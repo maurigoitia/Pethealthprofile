@@ -196,7 +196,7 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
 
     if (extracted.diagnosis) {
       details.push({
-        label: "Diagnóstico",
+        label: "Hallazgo registrado",
         value: extracted.diagnosis,
       });
     }

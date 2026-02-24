@@ -77,11 +77,11 @@ export function WelcomeScreen() {
 
           {/* Botón CREAR CUENTA */}
           <button
-            onClick={() => navigate("/login")}
+            onClick={() => navigate("/register-user")}
             className="w-full py-6 rounded-[40px] bg-white/20 backdrop-blur-sm text-white font-bold text-[16px] border-[1.5px] border-white/30 hover:bg-white/30 active:scale-[0.98] transition-all tracking-[1.6px] uppercase"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
-            Crear cuenta
+            Registrarse gratis
           </button>
         </motion.div>
       </div>

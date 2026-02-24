@@ -161,16 +161,17 @@ export function LoginScreen() {
           </form>
 
           {/* Sign Up Link */}
-          <div className="text-center mt-8 pb-8">
-            <p className="text-slate-600 dark:text-slate-400">
-              ¿No tienes una cuenta?{" "}
-              <button
-                type="button"
-                className="font-bold text-[#2b6fee] hover:text-[#2b6fee]/80"
-              >
-                Regístrate gratis
-              </button>
+          <div className="text-center mt-10 pb-8">
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
+              ¿Nuevo en PESSY?
             </p>
+            <button
+              type="button"
+              onClick={() => navigate("/register-user")}
+              className="w-full py-4 rounded-xl border-2 border-[#2b6fee] text-[#2b6fee] font-bold text-base hover:bg-[#2b6fee]/5 active:scale-[0.98] transition-all"
+            >
+              Regístrate gratis
+            </button>
           </div>
         </motion.div>
       </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { Header } from "./Header";
 import { ActionTray } from "./ActionTray";
 import { Timeline } from "./Timeline";
@@ -17,6 +18,7 @@ import { HealthReportModal } from "./HealthReportModal";
 import { usePet } from "../contexts/PetContext";
 
 export default function HomeScreen() {
+  const navigate = useNavigate();
   const [showPetProfile, setShowPetProfile] = useState(false);
   const [showExportReport, setShowExportReport] = useState(false);
   const [showHealthReport, setShowHealthReport] = useState(false);
@@ -42,9 +44,56 @@ export default function HomeScreen() {
   };
 
   const handleAddNewPet = () => {
-    // TODO: Open modal to add new pet
-    alert("Agregar nueva mascota - To be implemented");
+    // Navigate to pet registration
+    navigate("/register-pet");
   };
+
+  // Empty state: No pets registered
+  if (pets.length === 0) {
+    return (
+      <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen">
+        <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24">
+          <div className="flex-1 flex items-center justify-center px-6">
+            <div className="text-center space-y-6">
+              <div className="size-32 mx-auto bg-[#2b7cee]/10 rounded-full flex items-center justify-center">
+                <span className="material-symbols-outlined text-[#2b7cee]" style={{ fontSize: "64px" }}>
+                  pets
+                </span>
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  ¡Bienvenido a PESSY!
+                </h2>
+                <p className="text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
+                  Comienza agregando tu primera mascota para llevar su historial médico completo
+                </p>
+              </div>
+              <button
+                onClick={handleAddNewPet}
+                className="px-6 py-3 bg-[#2b7cee] text-white rounded-full font-semibold hover:bg-[#2563d4] transition-colors shadow-lg"
+              >
+                Agregar primera mascota
+              </button>
+            </div>
+          </div>
+        </div>
+        <BottomNav 
+          currentTab={currentTab} 
+          onTabChange={handleTabChange}
+          onAddDocument={() => setShowScanner(true)}
+        />
+        <DocumentScannerModal
+          isOpen={showScanner}
+          onClose={() => setShowScanner(false)}
+        />
+      </div>
+    );
+  }
+
+  // Guard: No active pet selected
+  if (!activePet) {
+    return null;
+  }
 
   // Render different screens based on tab
   if (currentTab === "settings") {

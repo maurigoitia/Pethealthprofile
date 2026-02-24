@@ -5,49 +5,61 @@ interface Pet {
   name: string;
   breed: string;
   photo: string;
+  species?: string;
+  age?: string;
+  weight?: string;
+  sex?: "male" | "female";
+  isNeutered?: boolean;
 }
 
 interface PetContextType {
   activePetId: string;
   setActivePetId: (id: string) => void;
   pets: Pet[];
-  activePet: Pet;
+  activePet: Pet | undefined;
+  addPet: (pet: Pet) => void;
 }
 
 const PetContext = createContext<PetContextType | undefined>(undefined);
 
 export function PetProvider({ children }: { children: ReactNode }) {
-  // Mock pets data
-  const pets: Pet[] = [
-    {
-      id: "pet-1",
-      name: "Bruno",
-      breed: "Golden Retriever",
-      photo: "https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=400&h=400&fit=crop",
-    },
-    {
-      id: "pet-2",
-      name: "Rocky",
-      breed: "Bulldog Francés",
-      photo: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=400&h=400&fit=crop",
-    },
-  ];
+  // Initialize pets from localStorage or use mock data
+  const [pets, setPets] = useState<Pet[]>(() => {
+    const stored = localStorage.getItem("pessy_pets");
+    if (stored) {
+      return JSON.parse(stored);
+    }
+    // Return empty array for "clean slate" onboarding
+    return [];
+  });
 
   // Initialize from localStorage or default to first pet
   const [activePetId, setActivePetIdState] = useState<string>(() => {
     const stored = localStorage.getItem("activePetId");
-    return stored && pets.find((p) => p.id === stored) ? stored : pets[0].id;
+    return stored && pets.find((p) => p.id === stored) ? stored : (pets[0]?.id || "");
   });
 
-  // Persist to localStorage whenever it changes
+  // Persist pets to localStorage
   useEffect(() => {
-    localStorage.setItem("activePetId", activePetId);
+    localStorage.setItem("pessy_pets", JSON.stringify(pets));
+  }, [pets]);
+
+  // Persist activePetId to localStorage whenever it changes
+  useEffect(() => {
+    if (activePetId) {
+      localStorage.setItem("activePetId", activePetId);
+    }
   }, [activePetId]);
 
-  const activePet = pets.find((p) => p.id === activePetId) || pets[0];
+  const activePet = pets.find((p) => p.id === activePetId);
 
   const setActivePetId = (id: string) => {
     setActivePetIdState(id);
+  };
+
+  const addPet = (pet: Pet) => {
+    setPets((prev) => [...prev, pet]);
+    setActivePetId(pet.id); // Auto-select the newly added pet
   };
 
   return (
@@ -57,6 +69,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
         setActivePetId,
         pets,
         activePet,
+        addPet,
       }}
     >
       {children}
