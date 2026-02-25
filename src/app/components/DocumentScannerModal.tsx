@@ -7,7 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
 import { storage } from "../../lib/firebase";
-import { extractMedicalData } from "../services/geminiService";
+import { extractMedicalData } from "../services/analysisService";
 import { NotificationService } from "../services/notificationService";
 import { MedicalEvent, PendingAction, ActiveMedication } from "../types/medical";
 

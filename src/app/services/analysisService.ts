@@ -1,12 +1,11 @@
 // ============================================================================
-// PESSY - Gemini Flash Integration (Mock)
-// Simula la respuesta de Gemini Flash para procesamiento de documentos
-// Cuando tengas el API key, reemplaza mockProcessDocument con callGeminiAPI
+// PESSY - Servicio de analisis documental
+// Mock + implementacion real
 // ============================================================================
 
 import {
   ExtractedData,
-  GeminiFlashResponse,
+  DocumentExtractionResponse,
   DocumentType,
   MedicationExtracted,
   Measurement,
@@ -18,11 +17,11 @@ import {
 
 export async function mockProcessDocument(
   file: File
-): Promise<GeminiFlashResponse> {
+): Promise<DocumentExtractionResponse> {
   // Simular delay de procesamiento
   await new Promise((resolve) => setTimeout(resolve, 2500));
 
-  // Detectar tipo aproximado por nombre de archivo (esto será Gemini real después)
+  // Detectar tipo aproximado por nombre de archivo
   const fileName = file.name.toLowerCase();
   let documentType: DocumentType = "other";
 
@@ -340,23 +339,24 @@ export async function mockProcessDocument(
   return {
     extractedData,
     processingTimeMs: 2500,
-    model: "gemini-1.5-flash (mock)",
+    model: "servicio-analisis (mock)",
     tokensUsed: 1250,
   };
 }
 
 // ============================================================================
-// REAL IMPLEMENTATION - Para cuando tengas Gemini API Key
+// IMPLEMENTACION REAL
 // ============================================================================
 
-export async function callGeminiAPI(
+export async function callAnalysisAPI(
   file: File
-): Promise<GeminiFlashResponse> {
+): Promise<DocumentExtractionResponse> {
   const startTime = Date.now();
-  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+  const analysisApiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const analysisModel = import.meta.env.VITE_ANALYSIS_MODEL;
 
-  if (!GEMINI_API_KEY) {
-    throw new Error("Gemini API key not configured");
+  if (!analysisApiKey || !analysisModel) {
+    throw new Error("Servicio de analisis no configurado");
   }
 
   const optimizedFile = await prepareFileForAnalysis(file);
@@ -385,9 +385,8 @@ Schema exacto:
 }
 Reglas: sin markdown, sin texto extra, null si no detecta campo.`;
 
-  // v1beta es requerido para gemini-2.5-flash
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${analysisModel}:generateContent?key=${analysisApiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -411,21 +410,21 @@ Reglas: sin markdown, sin texto extra, null si no detecta campo.`;
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Gemini API Error: ${response.status} - ${errorText}`);
+    throw new Error(`Error del servicio de analisis (${response.status}): ${errorText}`);
   }
 
   const result = await response.json();
   const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!rawText) {
-    throw new Error("Respuesta de Gemini vacía o malformada");
+    throw new Error("Respuesta del servicio de analisis vacia o malformada");
   }
 
-  // Limpiar markdown si Gemini lo devuelve igual
+  // Limpiar markdown si el proveedor devuelve fences
   const stripped = rawText.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
   const jsonMatch = stripped.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new Error("No se encontró JSON válido en la respuesta de Gemini");
+    throw new Error("No se pudo interpretar la respuesta del servicio de analisis");
   }
 
   const extractedData: ExtractedData = JSON.parse(jsonMatch[0]);
@@ -433,17 +432,18 @@ Reglas: sin markdown, sin texto extra, null si no detecta campo.`;
   return {
     extractedData,
     processingTimeMs: Date.now() - startTime,
-    model: "gemini-2.5-flash",
+    model: "servicio-analisis-v1",
     tokensUsed: result.usageMetadata?.totalTokenCount ?? 0,
   };
 }
 
 export async function generateHealthSummary(prompt: string): Promise<string> {
   const apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
-  if (!apiKey) throw new Error("API key not configured");
+  const analysisModel = (import.meta as any).env.VITE_ANALYSIS_MODEL;
+  if (!apiKey || !analysisModel) throw new Error("Servicio de analisis no configurado");
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${analysisModel}:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -459,14 +459,14 @@ export async function generateHealthSummary(prompt: string): Promise<string> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`Gemini API Error: ${response.status} - ${errorText}`);
+    throw new Error(`Error del servicio de analisis (${response.status}): ${errorText}`);
   }
 
   const data = await response.json();
   return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No se pudo generar el resumen.";
 }
 
-export const extractMedicalData = callGeminiAPI;
+export const extractMedicalData = callAnalysisAPI;
 
 async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {

@@ -5,7 +5,7 @@ import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router";
-import { generateHealthSummary } from "../services/geminiService";
+import { generateHealthSummary } from "../services/analysisService";
 
 interface ExportReportModalProps {
   isOpen: boolean;
