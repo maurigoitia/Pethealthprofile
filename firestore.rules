@@ -2,41 +2,70 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Reglas para Perfil de Usuario
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwnerByPetId(petId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/pets/$(petId))
+        && get(/databases/$(database)/documents/pets/$(petId)).data.ownerId == request.auth.uid;
+    }
+
+    // Perfil de usuario + tokens FCM
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      // Tokens de Notificación FCM
+      allow read, write: if signedIn() && request.auth.uid == userId;
+
       match /fcm_tokens/{tokenId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if signedIn() && request.auth.uid == userId;
       }
-      
-      // Mascotas
+
+      // Soporte legado por si existiera pets anidado
       match /pets/{petId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if signedIn() && request.auth.uid == userId;
       }
     }
 
-    // Reglas para Notificaciones Programadas
-    match /scheduled_notifications/{id} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    // Mascotas en colección raíz (modelo actual)
+    match /pets/{petId} {
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow read, update, delete: if signedIn() && resource.data.ownerId == request.auth.uid;
     }
 
-    // Reglas para Citas (pueden estar en raíz o bajo usuario, se asume raíz según trigger)
-    match /appointments/{appointmentId} {
-      allow read, write: if request.auth != null && (
-        resource.data.userId == request.auth.uid || 
-        resource.data.ownerId == request.auth.uid
-      );
-      allow create: if request.auth != null;
-    }
-    
-    // Reglas para Eventos Médicos
+    // Eventos, pendientes y medicación: autorizan por ownership de petId
     match /medical_events/{eventId} {
-      allow read, write: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null;
+      allow create: if isOwnerByPetId(request.resource.data.petId);
+      allow read, update, delete: if isOwnerByPetId(resource.data.petId);
+    }
+
+    match /pending_actions/{actionId} {
+      allow create: if isOwnerByPetId(request.resource.data.petId);
+      allow read, update, delete: if isOwnerByPetId(resource.data.petId);
+    }
+
+    match /medications/{medicationId} {
+      allow create: if isOwnerByPetId(request.resource.data.petId);
+      allow read, update, delete: if isOwnerByPetId(resource.data.petId);
+    }
+
+    match /appointments/{appointmentId} {
+      allow create: if isOwnerByPetId(request.resource.data.petId);
+      allow read, update, delete: if isOwnerByPetId(resource.data.petId);
+    }
+
+    match /scheduled_notifications/{id} {
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if signedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.petId != null && isOwnerByPetId(resource.data.petId))
+      );
+    }
+
+    // Verificación pública por hash (solo lectura)
+    match /verified_reports/{reportId} {
+      allow read: if true;
+      allow create: if signedIn();
+      allow update, delete: if false;
     }
   }
 }

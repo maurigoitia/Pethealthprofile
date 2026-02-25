@@ -359,41 +359,33 @@ export async function callGeminiAPI(
     throw new Error("Gemini API key not configured");
   }
 
-  const base64 = await fileToBase64(file);
+  const optimizedFile = await prepareFileForAnalysis(file);
+  const base64 = await fileToBase64(optimizedFile);
 
-  const prompt = `
-Eres un asistente médico veterinario experto. Analiza este documento médico y extrae la información estructurada.
-
-Debes responder ÚNICAMENTE con un objeto JSON válido (sin markdown, sin backticks, solo JSON):
-
+  const prompt = `Extrae datos veterinarios y responde SOLO JSON válido.
+Schema exacto:
 {
-  "documentType": "vaccine" | "lab_test" | "xray" | "echocardiogram" | "electrocardiogram" | "surgery" | "medication" | "checkup" | "other",
-  "documentTypeConfidence": "high" | "medium" | "low" | "not_detected",
-  "eventDate": "YYYY-MM-DD o null",
-  "eventDateConfidence": "high" | "medium" | "low" | "not_detected",
-  "provider": "string o null",
-  "providerConfidence": "high" | "medium" | "low" | "not_detected",
-  "diagnosis": "string o null",
-  "diagnosisConfidence": "high" | "medium" | "low" | "not_detected",
-  "observations": "string o null",
-  "observationsConfidence": "high" | "medium" | "low" | "not_detected",
-  "medications": [{"name": "string", "dosage": "string o null", "frequency": "string o null", "duration": "string o null", "confidence": "high" | "medium" | "low" | "not_detected"}],
-  "nextAppointmentDate": "YYYY-MM-DD o null",
-  "nextAppointmentReason": "string o null",
-  "nextAppointmentConfidence": "high" | "medium" | "low" | "not_detected",
-  "suggestedTitle": "string (un título corto y descriptivo)",
-  "aiGeneratedSummary": "Resumen en lenguaje simple para el tutor (2-3 oraciones)",
-  "measurements": [{"name": "string", "value": "string", "unit": "string o null", "referenceRange": "string o null", "confidence": "high" | "medium" | "low" | "not_detected"}]
+"documentType":"vaccine|lab_test|xray|echocardiogram|electrocardiogram|surgery|medication|checkup|other",
+"documentTypeConfidence":"high|medium|low|not_detected",
+"eventDate":"YYYY-MM-DD|null",
+"eventDateConfidence":"high|medium|low|not_detected",
+"provider":"string|null",
+"providerConfidence":"high|medium|low|not_detected",
+"diagnosis":"string|null",
+"diagnosisConfidence":"high|medium|low|not_detected",
+"observations":"string|null",
+"observationsConfidence":"high|medium|low|not_detected",
+"medications":[{"name":"string","dosage":"string|null","frequency":"string|null","duration":"string|null","confidence":"high|medium|low|not_detected"}],
+"nextAppointmentDate":"YYYY-MM-DD|null",
+"nextAppointmentReason":"string|null",
+"nextAppointmentConfidence":"high|medium|low|not_detected",
+"suggestedTitle":"string",
+"aiGeneratedSummary":"2-3 oraciones claras para tutor",
+"measurements":[{"name":"string","value":"string","unit":"string|null","referenceRange":"string|null","confidence":"high|medium|low|not_detected"}]
 }
+Reglas: sin markdown, sin texto extra, null si no detecta campo.`;
 
-IMPORTANTE:
-- Responde SOLO con el JSON, sin ningún texto adicional
-- Si no puedes detectar un campo, usa null y confidence "not_detected"
-- El aiGeneratedSummary debe ser entendible para alguien sin conocimientos médicos
-- Para fechas usa formato ISO 8601 (YYYY-MM-DD)
-`;
-
-  // v1beta es requerido para gemini-2.0-flash
+  // v1beta es requerido para gemini-2.5-flash
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
     {
@@ -403,14 +395,15 @@ IMPORTANTE:
         contents: [{
           parts: [
             { text: prompt },
-            { inline_data: { mime_type: file.type, data: base64 } },
+            { inline_data: { mime_type: optimizedFile.type, data: base64 } },
           ],
         }],
         generationConfig: {
           temperature: 0,
           topK: 1,
           topP: 1,
-          maxOutputTokens: 2048,
+          responseMimeType: "application/json",
+          maxOutputTokens: 1200,
         },
       }),
     }
@@ -456,7 +449,10 @@ export async function generateHealthSummary(prompt: string): Promise<string> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2 },
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 450,
+        },
       }),
     }
   );
@@ -470,6 +466,8 @@ export async function generateHealthSummary(prompt: string): Promise<string> {
   return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No se pudo generar el resumen.";
 }
 
+export const extractMedicalData = callGeminiAPI;
+
 async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -480,4 +478,44 @@ async function fileToBase64(file: File): Promise<string> {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+async function prepareFileForAnalysis(file: File): Promise<File> {
+  if (!file.type.startsWith("image/")) return file;
+  if (file.size < 450_000) return file;
+
+  try {
+    const image = await createImageBitmap(file);
+    const maxSide = 1600;
+    const largerSide = Math.max(image.width, image.height);
+    const scale = largerSide > maxSide ? maxSide / largerSide : 1;
+    const width = Math.max(1, Math.round(image.width * scale));
+    const height = Math.max(1, Math.round(image.height * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      image.close();
+      return file;
+    }
+
+    ctx.drawImage(image, 0, 0, width, height);
+    image.close();
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", 0.82)
+    );
+
+    if (!blob) return file;
+    if (blob.size >= file.size) return file;
+
+    return new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+      type: "image/jpeg",
+    });
+  } catch (error) {
+    console.warn("No se pudo optimizar imagen para análisis, se usa original:", error);
+    return file;
+  }
 }

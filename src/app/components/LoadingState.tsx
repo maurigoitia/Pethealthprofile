@@ -1,9 +1,8 @@
 import { motion } from "motion/react";
-import { MaterialIcon } from "./MaterialIcon";
 
 interface LoadingStateProps {
   message?: string;
-  type?: "spinner" | "dots" | "progress" | "ai";
+  type?: "spinner" | "dots" | "progress" | "analysis";
   progress?: number;
 }
 
@@ -49,17 +48,8 @@ export function LoadingState({
           </div>
         )}
 
-        {type === "ai" && (
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            className="relative size-20"
-          >
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#2b6fee] to-purple-500" />
-            <div className="absolute inset-2 rounded-full bg-white dark:bg-slate-900 flex items-center justify-center">
-              <MaterialIcon name="psychology" className="text-[#2b6fee] text-4xl" />
-            </div>
-          </motion.div>
+        {type === "analysis" && (
+          <div className="size-16 rounded-full border-4 border-slate-200 dark:border-slate-800 border-t-[#2b6fee] animate-spin" />
         )}
 
         {type === "progress" && progress !== undefined && (
@@ -89,23 +79,15 @@ export function LoadingState({
       </motion.p>
 
       {/* Decorative Elements */}
-      {type === "ai" && (
+      {type === "analysis" && (
         <div className="flex gap-2 mt-4">
-          {["Analizando", "OCR", "Validando"].map((step, idx) => (
-            <motion.div
+          {["Lectura", "Extraccion", "Validacion"].map((step) => (
+            <div
               key={step}
-              initial={{ opacity: 0.3 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                delay: idx * 0.3,
-                duration: 0.5,
-                repeat: Infinity,
-                repeatType: "reverse",
-              }}
               className="px-3 py-1.5 rounded-full bg-[#2b6fee]/10 text-[#2b6fee] text-xs font-bold"
             >
               {step}
-            </motion.div>
+            </div>
           ))}
         </div>
       )}

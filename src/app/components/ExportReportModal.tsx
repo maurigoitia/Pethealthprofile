@@ -62,7 +62,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       setShowPreview(true);
     } catch (error) {
       console.error("Error generating summary:", error);
-      setSummary("Error al conectar con la IA de salud. Por favor intenta de nuevo.");
+      setSummary("No se pudo generar el resumen por ahora. Por favor intenta de nuevo.");
       setShowPreview(true);
     } finally {
       setIsGenerating(false);
@@ -134,7 +134,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-[2px]"
+        className="fixed inset-0 z-40 bg-slate-900/60"
         onClick={onClose}
       />
 
@@ -144,7 +144,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
         transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-xl shadow-2xl flex flex-col max-h-[85vh]"
+        className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-xl shadow-xl flex flex-col max-h-[85vh]"
       >
         {/* Handle */}
         <div className="flex w-full items-center justify-center py-3">
@@ -223,9 +223,9 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         {/* Footer Action */}
         <div className="px-5 pb-8 pt-2 border-t border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2 mb-4 justify-center">
-            <MaterialIcon name="auto_awesome" className="text-[#2b6fee] dark:text-[#5a8aff] text-sm" />
+            <MaterialIcon name="description" className="text-[#2b6fee] dark:text-[#5a8aff] text-sm" />
             <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">
-              Gemini AI analizará el historial para generar un resumen ejecutivo
+              Se generará un resumen ejecutivo del historial
             </p>
           </div>
           <button
@@ -236,13 +236,13 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             {isGenerating ? (
               <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-              <MaterialIcon name="psychology" />
+              <MaterialIcon name="description" />
             )}
-            {isGenerating ? "Analizando Historial..." : "Analizar con IA y Compartir"}
+            {isGenerating ? "Generando resumen..." : "Generar y Compartir"}
           </button>
         </div>
 
-        {/* AI Summary Preview Overlay */}
+        {/* Summary Preview Overlay */}
         <AnimatePresence>
           {showPreview && (
             <motion.div
@@ -253,8 +253,8 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <MaterialIcon name="auto_awesome" className="text-[#2b6fee]" />
-                  <h3 className="font-black text-slate-900 dark:text-white">Resumen de IA Generado</h3>
+                  <MaterialIcon name="description" className="text-[#2b6fee]" />
+                  <h3 className="font-black text-slate-900 dark:text-white">Resumen Generado</h3>
                 </div>
                 <button onClick={() => setShowPreview(false)}>
                   <MaterialIcon name="close" className="text-slate-400" />

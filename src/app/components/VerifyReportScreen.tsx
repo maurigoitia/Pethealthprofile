@@ -123,7 +123,7 @@ export function VerifyReportScreen() {
 
                 <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
-                    Resumen Clínico (IA)
+                    Resumen Clínico
                   </p>
                   <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl mb-6">
                     <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed italic">

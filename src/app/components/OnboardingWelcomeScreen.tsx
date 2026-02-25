@@ -78,7 +78,7 @@ export function OnboardingWelcomeScreen() {
           </h1>
           <p className="text-slate-600 dark:text-slate-400 text-lg mb-10 leading-relaxed">
             La salud de tu mejor amigo, <br />
-            <span className="font-semibold text-slate-800 dark:text-slate-200">simplificada con IA</span>
+            <span className="font-semibold text-slate-800 dark:text-slate-200">simplificada para vos</span>
           </p>
 
           {/* Action Area */}
@@ -109,9 +109,9 @@ export function OnboardingWelcomeScreen() {
           </div>
           <div className="w-1 h-1 bg-[#2b7cee]/40 rounded-full"></div>
           <div className="flex items-center gap-1.5 opacity-60">
-            <span className="material-symbols-outlined text-xs text-slate-900 dark:text-slate-100">psychology</span>
+            <span className="material-symbols-outlined text-xs text-slate-900 dark:text-slate-100">monitoring</span>
             <span className="text-[10px] uppercase tracking-widest font-bold text-slate-900 dark:text-slate-100">
-              IA Médica
+              Historial Digital
             </span>
           </div>
         </div>

@@ -80,6 +80,7 @@ export interface Measurement {
 export interface MedicalEvent {
   id: string;
   petId: string;
+  userId?: string;
   title: string;
   // Archivo original
   documentUrl: string; // URL del Storage (Supabase o local)
@@ -118,6 +119,7 @@ export interface TreatmentNote {
 export interface PendingAction {
   id: string;
   petId: string;
+  userId?: string;
 
   // Tipo de acción
   type: "vaccine_due" | "checkup_due" | "medication_refill" | "test_pending" | "follow_up";
@@ -149,6 +151,7 @@ export interface PendingAction {
 export interface ActiveMedication {
   id: string;
   petId: string;
+  userId?: string;
 
   // Información del medicamento
   name: string;

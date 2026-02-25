@@ -116,7 +116,7 @@ export function RegisterUserScreen() {
             </div>
             <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
               <span className="material-symbols-outlined text-[#2b7cee] text-sm">notifications</span>
-              <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">Recordatorios IA</span>
+              <span className="text-[10px] font-medium text-slate-600 dark:text-slate-400">Recordatorios automáticos</span>
             </div>
           </div>
         </div>

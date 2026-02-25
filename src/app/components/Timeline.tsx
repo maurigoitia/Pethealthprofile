@@ -175,7 +175,7 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
     }
 
     if (event.ocrProcessed && event.aiProcessed) {
-      tags.push("IA VERIFICADO");
+      tags.push("PROCESADO");
     }
 
     const typeTag: Record<DocumentType, string> = {

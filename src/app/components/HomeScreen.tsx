@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useNavigate } from "react-router";
 import { Header } from "./Header";
 import { ActionTray } from "./ActionTray";
 import { Timeline } from "./Timeline";
 import { MonthSummary } from "./MonthSummary";
 import { PetProfileModal } from "./PetProfileModal";
-import { ExportReportModal } from "./ExportReportModal";
 import { DocumentScannerModal } from "./DocumentScannerModal";
 import { BottomNav } from "./BottomNav";
 import { UserProfileScreen } from "./UserProfileScreen";
@@ -14,9 +13,15 @@ import { MaterialIcon } from "./MaterialIcon";
 import { PetHomeView } from "./PetHomeView";
 import { AppointmentsScreen } from "./AppointmentsScreen";
 import { MedicationsScreen } from "./MedicationsScreen";
-import { HealthReportModal } from "./HealthReportModal";
 import { usePet } from "../contexts/PetContext";
 import { useAuth } from "../contexts/AuthContext";
+
+const ExportReportModal = lazy(() =>
+  import("./ExportReportModal").then((module) => ({ default: module.ExportReportModal }))
+);
+const HealthReportModal = lazy(() =>
+  import("./HealthReportModal").then((module) => ({ default: module.HealthReportModal }))
+);
 
 export default function HomeScreen() {
   const navigate = useNavigate();
@@ -103,7 +108,42 @@ export default function HomeScreen() {
 
   // Guard: No active pet selected
   if (!activePet) {
-    return null;
+    return (
+      <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen">
+        <div className="max-w-md mx-auto min-h-screen flex items-center justify-center px-6 pb-24">
+          <div className="text-center max-w-sm">
+            <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2">No se pudo cargar la mascota activa</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+              Volvé a seleccionar una mascota para continuar.
+            </p>
+            <button
+              onClick={() => setShowPetSelector(true)}
+              className="px-5 py-3 rounded-xl bg-[#2b7cee] text-white font-bold"
+            >
+              Seleccionar mascota
+            </button>
+          </div>
+        </div>
+        <BottomNav
+          currentTab={currentTab}
+          onTabChange={handleTabChange}
+          onAddDocument={() => setShowScanner(true)}
+        />
+        <DocumentScannerModal
+          isOpen={showScanner}
+          onClose={() => setShowScanner(false)}
+        />
+        <PetSelectorModal
+          isOpen={showPetSelector}
+          onClose={() => setShowPetSelector(false)}
+          pets={pets}
+          activePetId={activePetId}
+          onPetChange={handlePetChange}
+          onViewProfile={() => setShowPetProfile(true)}
+          onAddNewPet={handleAddNewPet}
+        />
+      </div>
+    );
   }
 
   // Render different screens based on tab
@@ -233,14 +273,18 @@ export default function HomeScreen() {
         isOpen={showPetProfile}
         onClose={() => setShowPetProfile(false)}
       />
-      <ExportReportModal
-        isOpen={showExportReport}
-        onClose={() => setShowExportReport(false)}
-      />
-      <HealthReportModal
-        isOpen={showHealthReport}
-        onClose={() => setShowHealthReport(false)}
-      />
+      <Suspense fallback={null}>
+        <ExportReportModal
+          isOpen={showExportReport}
+          onClose={() => setShowExportReport(false)}
+        />
+      </Suspense>
+      <Suspense fallback={null}>
+        <HealthReportModal
+          isOpen={showHealthReport}
+          onClose={() => setShowHealthReport(false)}
+        />
+      </Suspense>
       <DocumentScannerModal
         isOpen={showScanner}
         onClose={() => setShowScanner(false)}

@@ -55,28 +55,42 @@ export function PetProvider({ children }: { children: ReactNode }) {
 
     setLoading(true);
     const q = query(collection(db, "pets"), where("ownerId", "==", user.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedPets = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Pet));
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const fetchedPets = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Pet));
 
-      setPets(fetchedPets);
-      setLoading(false);
+        setPets(fetchedPets);
+        setLoading(false);
 
-      // Logic to select initial active pet if none or if current is gone
-      setActivePetIdState((current) => {
-        if (fetchedPets.length === 0) return "";
-        if (!current || !fetchedPets.find(p => p.id === current)) {
-          const firstId = fetchedPets[0].id;
-          localStorage.setItem("activePetId", firstId);
-          return firstId;
-        }
-        return current;
-      });
-    });
+        // Logic to select initial active pet if none or if current is gone
+        setActivePetIdState((current) => {
+          if (fetchedPets.length === 0) return "";
+          if (!current || !fetchedPets.find(p => p.id === current)) {
+            const firstId = fetchedPets[0].id;
+            localStorage.setItem("activePetId", firstId);
+            return firstId;
+          }
+          return current;
+        });
+      },
+      (error) => {
+        console.error("Error loading pets:", error);
+        setPets([]);
+        setLoading(false);
+      }
+    );
 
-    return () => unsubscribe();
+    // Evita spinner infinito si la suscripción se demora/falla silenciosamente.
+    const safetyTimer = setTimeout(() => setLoading(false), 7000);
+
+    return () => {
+      clearTimeout(safetyTimer);
+      unsubscribe();
+    };
   }, [user, authLoading]);
 
   const setActivePetId = (id: string) => {

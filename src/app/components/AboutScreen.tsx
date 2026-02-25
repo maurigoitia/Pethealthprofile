@@ -60,7 +60,7 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
               mantener organizado el historial médico de tus mascotas.
             </p>
             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-              Utilizamos inteligencia artificial para procesar documentos médicos,
+              Procesamos documentos médicos para ordenar el historial,
               generar recordatorios automáticos y facilitar la comunicación con
               profesionales veterinarios.
             </p>

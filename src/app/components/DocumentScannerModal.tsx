@@ -7,7 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
 import { storage } from "../../lib/firebase";
-import { callGeminiAPI } from "../services/geminiService";
+import { extractMedicalData } from "../services/geminiService";
 import { NotificationService } from "../services/notificationService";
 import { MedicalEvent, PendingAction, ActiveMedication } from "../types/medical";
 
@@ -90,19 +90,20 @@ export function DocumentScannerModal({
     setUploadStage("processing");
 
     try {
-      // Step 1: Upload to Firebase Storage
-      setProcessingStatus("Subiendo documento a la nube...");
+      // Subida y extracción en paralelo para reducir tiempo total.
+      setProcessingStatus("Procesando documento...");
       const storagePath = `documents/${user?.uid || "anonymous"}/${Date.now()}_${currentFileName}`;
       const storageRef = ref(storage, storagePath);
-      const uploadResult = await uploadBytes(storageRef, file);
+      const uploadTask = uploadBytes(storageRef, file);
+      const extractionTask = extractMedicalData(file);
+
+      const [uploadResult, extractionResponse] = await Promise.all([
+        uploadTask,
+        extractionTask,
+      ]);
       const downloadUrl = await getDownloadURL(uploadResult.ref);
+      const aiData = extractionResponse.extractedData;
 
-      // Step 2: Call Gemini 2.0 Flash via service
-      setProcessingStatus("Analizando con IA...");
-      const geminiResponse = await callGeminiAPI(file);
-      const aiData = geminiResponse.extractedData;
-
-      // Step 3: Save directly to Firestore
       setProcessingStatus("Guardando en tu historial...");
       const documentType = aiData.documentType || "other";
       const suggestedTitle = (aiData as any).suggestedTitle || currentFileName;
@@ -123,6 +124,7 @@ export function DocumentScannerModal({
       const newEvent: MedicalEvent = {
         id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         petId: activePet.id,
+        userId: user?.uid,
         title: aiData.suggestedTitle || currentFileName,
         documentUrl: downloadUrl,
         documentPreviewUrl: downloadUrl,
@@ -140,11 +142,12 @@ export function DocumentScannerModal({
 
       await addEvent(newEvent);
 
-      // Crear pendiente si Gemini detectó próxima fecha
+      // Crear pendiente si se detectó próxima fecha
       if (aiData.nextAppointmentDate) {
         const pending: PendingAction = {
           id: `pend_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           petId: activePet.id,
+          userId: user?.uid,
           type: "follow_up",
           title: aiData.nextAppointmentReason || "Próximo control",
           subtitle: `Generado desde: ${aiData.suggestedTitle || currentFileName}`,
@@ -160,7 +163,7 @@ export function DocumentScannerModal({
         await addPendingAction(pending);
       }
 
-      // Crear medicaciones activas si Gemini detectó alguna
+      // Crear medicaciones activas detectadas en el documento
       if (aiData.medications && aiData.medications.length > 0) {
         await NotificationService.requestPermissionAndGetToken();
 
@@ -171,6 +174,7 @@ export function DocumentScannerModal({
           const medication: ActiveMedication = {
             id: `med_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             petId: activePet.id,
+            userId: user?.uid,
             name: med.name,
             dosage: med.dosage || "",
             frequency: med.frequency || "",
@@ -207,11 +211,9 @@ export function DocumentScannerModal({
       setUploadStage("error");
       const msg = error?.message || String(error);
       if (error?.code?.includes("storage/")) {
-        setProcessingStatus(`Storage: ${msg}`);
-      } else if (msg.includes("Gemini") || msg.includes("API key") || msg.includes("API Error")) {
-        setProcessingStatus(`Gemini: ${msg}`);
+        setProcessingStatus(`Error de almacenamiento: ${msg}`);
       } else {
-        setProcessingStatus(msg);
+        setProcessingStatus(`No se pudo procesar el documento: ${msg}`);
       }
     }
   };
@@ -237,7 +239,7 @@ export function DocumentScannerModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/60 z-50"
           />
 
           {/* Modal */}
@@ -246,7 +248,7 @@ export function DocumentScannerModal({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl max-h-[85vh] overflow-hidden flex flex-col"
+            className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-xl max-h-[85vh] overflow-hidden flex flex-col"
           >
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-2">
@@ -279,10 +281,10 @@ export function DocumentScannerModal({
                     </button>
                   </div>
 
-                  {/* Info sobre procesamiento IA */}
+                  {/* Info sobre procesamiento */}
                   <div className="mb-6 p-4 bg-[#2b7cee]/10 border border-[#2b7cee]/20 rounded-2xl">
                     <div className="flex items-start gap-3">
-                      <MaterialIcon name="auto_awesome" className="text-[#2b7cee] text-xl mt-0.5" />
+                      <MaterialIcon name="description" className="text-[#2b7cee] text-xl mt-0.5" />
                       <div>
                         <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">
                           Procesamiento inteligente automático
@@ -340,15 +342,7 @@ export function DocumentScannerModal({
               {/* PROCESSING STAGE */}
               {uploadStage === "processing" && (
                 <div className="p-6 flex flex-col items-center justify-center min-h-[400px]">
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                    className="size-24 rounded-full bg-gradient-to-br from-[#2b7cee] to-purple-500 flex items-center justify-center mb-6 relative"
-                  >
-                    <div className="absolute inset-2 rounded-full bg-white dark:bg-slate-900 flex items-center justify-center">
-                      <MaterialIcon name="auto_awesome" className="text-[#2b7cee] text-4xl" />
-                    </div>
-                  </motion.div>
+                  <div className="size-14 rounded-full border-4 border-slate-200 dark:border-slate-800 border-t-[#2b7cee] animate-spin mb-6" />
                   <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">
                     {processingStatus}
                   </h3>
@@ -356,16 +350,13 @@ export function DocumentScannerModal({
                     {fileName}
                   </p>
                   <div className="flex gap-2 mt-4">
-                    {["OCR", "IA", "Guardando"].map((step, idx) => (
-                      <motion.div
+                    {["Lectura", "Extraccion", "Guardado"].map((step) => (
+                      <span
                         key={step}
-                        initial={{ opacity: 0.3 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: idx * 0.3, duration: 0.5, repeat: Infinity }}
                         className="px-3 py-1.5 rounded-full bg-[#2b7cee]/10 text-[#2b7cee] text-xs font-bold"
                       >
                         {step}
-                      </motion.div>
+                      </span>
                     ))}
                   </div>
                 </div>
