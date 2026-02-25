@@ -25,7 +25,7 @@ export async function mockProcessDocument(
   // Detectar tipo aproximado por nombre de archivo (esto será Gemini real después)
   const fileName = file.name.toLowerCase();
   let documentType: DocumentType = "other";
-  
+
   if (fileName.includes("vacun") || fileName.includes("vaccine")) {
     documentType = "vaccine";
   } else if (fileName.includes("lab") || fileName.includes("analisis")) {
@@ -61,11 +61,12 @@ export async function mockProcessDocument(
       nextAppointmentDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
       nextAppointmentReason: "Refuerzo anual de vacuna séxtuple",
       nextAppointmentConfidence: "high",
+      suggestedTitle: "Vacunación Séxtuple",
       aiGeneratedSummary:
         "Se aplicó la vacuna séxtuple de forma exitosa. La mascota respondió bien al procedimiento. Se recomienda refuerzo en un año.",
       measurements: [],
     },
-    
+
     lab_test: {
       documentType: "lab_test",
       documentTypeConfidence: "high",
@@ -81,6 +82,7 @@ export async function mockProcessDocument(
       nextAppointmentDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
       nextAppointmentReason: "Control bioquímico semestral",
       nextAppointmentConfidence: "medium",
+      suggestedTitle: "Análisis Bioquímico",
       aiGeneratedSummary:
         "Los resultados de laboratorio muestran que todos los valores están dentro de los rangos normales. La función renal y hepática están funcionando correctamente. Se recomienda repetir análisis en 6 meses como control preventivo.",
       measurements: [
@@ -131,6 +133,7 @@ export async function mockProcessDocument(
       nextAppointmentDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
       nextAppointmentReason: "Control radiográfico de seguimiento",
       nextAppointmentConfidence: "medium",
+      suggestedTitle: "Radiografía de Cadera",
       aiGeneratedSummary:
         "La radiografía registra displasia de cadera leve según los parámetros documentados. Se sugiere considerar tratamiento preventivo con condroprotectores y control de peso según evaluación veterinaria profesional.",
       measurements: [],
@@ -159,6 +162,7 @@ export async function mockProcessDocument(
       nextAppointmentDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
       nextAppointmentReason: "Control ecocardiográfico de seguimiento",
       nextAppointmentConfidence: "high",
+      suggestedTitle: "Ecocardiograma de Control",
       aiGeneratedSummary:
         "El ecocardiograma reveló una cardiomiopatía dilatada en etapa temprana. El corazón está trabajando con menor eficiencia de lo normal, pero el diagnóstico a tiempo permite un tratamiento efectivo. La medicación prescrita ayudará a mejorar la función cardíaca. Es importante el seguimiento cada 3 meses.",
       measurements: [
@@ -187,6 +191,7 @@ export async function mockProcessDocument(
       nextAppointmentDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
       nextAppointmentReason: "ECG de control preventivo",
       nextAppointmentConfidence: "medium",
+      suggestedTitle: "Electrocardiograma (ECG)",
       aiGeneratedSummary:
         "El electrocardiograma muestra un ritmo cardíaco normal y estable. No se detectaron irregularidades ni arritmias. El corazón está funcionando de manera adecuada desde el punto de vista eléctrico.",
       measurements: [
@@ -237,6 +242,7 @@ export async function mockProcessDocument(
       nextAppointmentDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
       nextAppointmentReason: "Retiro de puntos",
       nextAppointmentConfidence: "high",
+      suggestedTitle: "Cirugía de Castración",
       aiGeneratedSummary:
         "La cirugía de castración se realizó sin complicaciones. Se prescribió medicación antiinflamatoria y antibióticos para prevenir infecciones. Es importante mantener la zona limpia y evitar que la mascota se lama la herida. Los puntos se retiran en 10 días.",
       measurements: [],
@@ -265,6 +271,7 @@ export async function mockProcessDocument(
       nextAppointmentDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
       nextAppointmentReason: "Control post-tratamiento",
       nextAppointmentConfidence: "low",
+      suggestedTitle: "Receta de Antibióticos",
       aiGeneratedSummary:
         "Se prescribió antibiótico para tratamiento de infección. Es importante completar el ciclo completo de medicación aunque los síntomas mejoren antes. No suspender el tratamiento sin consultar al veterinario.",
       measurements: [],
@@ -285,6 +292,7 @@ export async function mockProcessDocument(
       nextAppointmentDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
       nextAppointmentReason: "Control preventivo semestral",
       nextAppointmentConfidence: "medium",
+      suggestedTitle: "Control de Rutina",
       aiGeneratedSummary:
         "La consulta de control registró los parámetros vitales habituales. No se documentaron hallazgos que requieran atención inmediata según el profesional actuante. Se sugiere próximo control en 6 meses.",
       measurements: [
@@ -320,6 +328,7 @@ export async function mockProcessDocument(
       nextAppointmentDate: null,
       nextAppointmentReason: null,
       nextAppointmentConfidence: "not_detected",
+      suggestedTitle: "Documento Adicional",
       aiGeneratedSummary:
         "Este documento fue procesado pero no se pudo identificar automáticamente su tipo. Puedes revisarlo manualmente o volver a cargarlo con mejor calidad de imagen.",
       measurements: [],
@@ -340,25 +349,27 @@ export async function mockProcessDocument(
 // REAL IMPLEMENTATION - Para cuando tengas Gemini API Key
 // ============================================================================
 
-/*
 export async function callGeminiAPI(
   file: File
 ): Promise<GeminiFlashResponse> {
   const startTime = Date.now();
-  
-  // 1. Convertir archivo a base64
+  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+
+  if (!GEMINI_API_KEY) {
+    throw new Error("Gemini API key not configured");
+  }
+
   const base64 = await fileToBase64(file);
-  
-  // 2. Preparar prompt estructurado
+
   const prompt = `
 Eres un asistente médico veterinario experto. Analiza este documento médico y extrae la información estructurada.
 
-Debes responder ÚNICAMENTE con un objeto JSON con esta estructura exacta:
+Debes responder ÚNICAMENTE con un objeto JSON válido (sin markdown, sin backticks, solo JSON):
 
 {
   "documentType": "vaccine" | "lab_test" | "xray" | "echocardiogram" | "electrocardiogram" | "surgery" | "medication" | "checkup" | "other",
   "documentTypeConfidence": "high" | "medium" | "low" | "not_detected",
-  "eventDate": "YYYY-MM-DD" o null,
+  "eventDate": "YYYY-MM-DD o null",
   "eventDateConfidence": "high" | "medium" | "low" | "not_detected",
   "provider": "string o null",
   "providerConfidence": "high" | "medium" | "low" | "not_detected",
@@ -366,84 +377,97 @@ Debes responder ÚNICAMENTE con un objeto JSON con esta estructura exacta:
   "diagnosisConfidence": "high" | "medium" | "low" | "not_detected",
   "observations": "string o null",
   "observationsConfidence": "high" | "medium" | "low" | "not_detected",
-  "medications": [
-    {
-      "name": "string",
-      "dosage": "string o null",
-      "frequency": "string o null",
-      "duration": "string o null",
-      "confidence": "high" | "medium" | "low" | "not_detected"
-    }
-  ],
-  "nextAppointmentDate": "YYYY-MM-DD" o null,
+  "medications": [{"name": "string", "dosage": "string o null", "frequency": "string o null", "duration": "string o null", "confidence": "high" | "medium" | "low" | "not_detected"}],
+  "nextAppointmentDate": "YYYY-MM-DD o null",
   "nextAppointmentReason": "string o null",
   "nextAppointmentConfidence": "high" | "medium" | "low" | "not_detected",
-  "aiGeneratedSummary": "Resumen clínico en lenguaje simple para el tutor de la mascota (2-3 oraciones)",
-  "measurements": [
-    {
-      "name": "string",
-      "value": "string",
-      "unit": "string o null",
-      "referenceRange": "string o null",
-      "confidence": "high" | "medium" | "low" | "not_detected"
-    }
-  ]
+  "suggestedTitle": "string (un título corto y descriptivo)",
+  "aiGeneratedSummary": "Resumen en lenguaje simple para el tutor (2-3 oraciones)",
+  "measurements": [{"name": "string", "value": "string", "unit": "string o null", "referenceRange": "string o null", "confidence": "high" | "medium" | "low" | "not_detected"}]
 }
 
 IMPORTANTE:
+- Responde SOLO con el JSON, sin ningún texto adicional
 - Si no puedes detectar un campo, usa null y confidence "not_detected"
 - El aiGeneratedSummary debe ser entendible para alguien sin conocimientos médicos
-- Sé conservador con las interpretaciones - marca como "medium" o "low" si no estás seguro
-- Para fechas, usa formato ISO 8601 (YYYY-MM-DD)
+- Para fechas usa formato ISO 8601 (YYYY-MM-DD)
 `;
 
-  // 3. Llamar a Gemini Flash API
+  // v1beta es requerido para gemini-2.0-flash
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt,
-              },
-              {
-                inline_data: {
-                  mime_type: file.type,
-                  data: base64,
-                },
-              },
-            ],
-          },
-        ],
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inline_data: { mime_type: file.type, data: base64 } },
+          ],
+        }],
         generationConfig: {
-          temperature: 0.1, // Más determinista
+          temperature: 0,
           topK: 1,
-          topP: 0.8,
+          topP: 1,
           maxOutputTokens: 2048,
         },
       }),
     }
   );
 
-  const result = await response.json();
-  const extractedData: ExtractedData = JSON.parse(
-    result.candidates[0].content.parts[0].text
-  );
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini API Error: ${response.status} - ${errorText}`);
+  }
 
-  const processingTimeMs = Date.now() - startTime;
+  const result = await response.json();
+  const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!rawText) {
+    throw new Error("Respuesta de Gemini vacía o malformada");
+  }
+
+  // Limpiar markdown si Gemini lo devuelve igual
+  const stripped = rawText.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  const jsonMatch = stripped.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error("No se encontró JSON válido en la respuesta de Gemini");
+  }
+
+  const extractedData: ExtractedData = JSON.parse(jsonMatch[0]);
 
   return {
     extractedData,
-    processingTimeMs,
-    model: "gemini-1.5-flash",
-    tokensUsed: result.usageMetadata.totalTokenCount,
+    processingTimeMs: Date.now() - startTime,
+    model: "gemini-2.5-flash",
+    tokensUsed: result.usageMetadata?.totalTokenCount ?? 0,
   };
+}
+
+export async function generateHealthSummary(prompt: string): Promise<string> {
+  const apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
+  if (!apiKey) throw new Error("API key not configured");
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.2 },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini API Error: ${response.status} - ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No se pudo generar el resumen.";
 }
 
 async function fileToBase64(file: File): Promise<string> {
@@ -457,4 +481,3 @@ async function fileToBase64(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
-*/

@@ -1,25 +1,39 @@
 import { useParams, Link } from "react-router";
 import { MaterialIcon } from "./MaterialIcon";
-
-// Mock database - In production, this would query a backend
-const MOCK_REPORTS: Record<
-  string,
-  {
-    reportId: string;
-    generatedAt: string;
-    petName: string;
-    petBreed: string;
-    ownerName: string;
-    hash: string;
-    valid: boolean;
-  }
-> = {};
+import { useState, useEffect } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../../lib/firebase";
 
 export function VerifyReportScreen() {
   const { hash } = useParams<{ hash: string }>();
+  const [report, setReport] = useState<any>(null);
+  const [status, setStatus] = useState<"loading" | "found" | "not_found">("loading");
 
-  // In production, this would make an API call to validate the hash
-  const report = hash ? MOCK_REPORTS[hash] : null;
+  useEffect(() => {
+    async function fetchReport() {
+      if (!hash) {
+        setStatus("not_found");
+        return;
+      }
+
+      try {
+        const docRef = doc(db, "verified_reports", hash);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          setReport({ id: docSnap.id, ...docSnap.data() });
+          setStatus("found");
+        } else {
+          setStatus("not_found");
+        }
+      } catch (error) {
+        console.error("Error fetching report:", error);
+        setStatus("not_found");
+      }
+    }
+
+    fetchReport();
+  }, [hash]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6">
@@ -54,14 +68,19 @@ export function VerifyReportScreen() {
           {/* Hash Display */}
           <div className="mb-8 pb-8 border-b border-slate-200 dark:border-slate-800">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
-              Hash SHA-256
+              Huella Digital del Reporte (ID)
             </p>
             <p className="text-sm font-mono text-slate-900 dark:text-white break-all bg-slate-50 dark:bg-slate-800 p-4 rounded-xl">
-              {hash || "No hash provided"}
+              {hash || "No proporcionado"}
             </p>
           </div>
 
-          {report ? (
+          {status === "loading" ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#2b7cee] border-t-transparent mb-4"></div>
+              <p className="text-sm text-slate-500 font-bold">Verificando integridad...</p>
+            </div>
+          ) : status === "found" && report ? (
             // Report Found
             <>
               {/* Status */}
@@ -82,20 +101,20 @@ export function VerifyReportScreen() {
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
-                      ID de Reporte
+                      ID de Certificación
                     </p>
-                    <p className="text-sm font-mono font-bold text-slate-900 dark:text-white">
-                      {report.reportId}
+                    <p className="text-sm font-mono font-bold text-slate-900 dark:text-white uppercase">
+                      {report.id.slice(0, 12)}...
                     </p>
                   </div>
 
                   <div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
-                      Fecha de Emisión
+                      Fecha de Certificación
                     </p>
                     <p className="text-sm font-bold text-slate-900 dark:text-white">
                       {new Date(report.generatedAt).toLocaleString("es-AR", {
-                        dateStyle: "long",
+                        dateStyle: "medium",
                         timeStyle: "short",
                       })}
                     </p>
@@ -104,7 +123,16 @@ export function VerifyReportScreen() {
 
                 <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
-                    Información del Paciente
+                    Resumen Clínico (IA)
+                  </p>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl mb-6">
+                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed italic">
+                      "{report.summary}"
+                    </p>
+                  </div>
+
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
+                    Información Registrada
                   </p>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -120,7 +148,7 @@ export function VerifyReportScreen() {
                       </p>
                     </div>
                     <div className="col-span-2">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Tutor</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Tutor Certificado</p>
                       <p className="text-base font-bold text-slate-900 dark:text-white">
                         {report.ownerName}
                       </p>

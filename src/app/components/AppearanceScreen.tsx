@@ -119,7 +119,7 @@ export function AppearanceScreen({ onBack }: AppearanceScreenProps) {
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <div className="size-10 rounded-lg bg-[#2b7cee]/10 flex items-center justify-center">
-                  <MaterialIcon name="pets" className="text-[#2b7cee] text-xl" />
+                  <MaterialIcon name="ecg_heart" className="text-[#2b7cee] text-xl" />
                 </div>
                 <div className="flex-1">
                   <h4 className="font-bold text-slate-900 dark:text-white text-sm">

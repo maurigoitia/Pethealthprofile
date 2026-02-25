@@ -1,110 +1,41 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { motion } from "motion/react";
 import { usePet } from "../contexts/PetContext";
+import { useMedical } from "../contexts/MedicalContext";
+import { AddAppointmentModal } from "./AddAppointmentModal";
+import { Appointment } from "../types/medical";
 
 interface AppointmentsScreenProps {
   onBack: () => void;
 }
 
-interface Appointment {
-  id: number;
-  petId: string; // Added petId
-  type: "checkup" | "vaccine" | "surgery" | "emergency";
-  title: string;
-  date: string;
-  time: string;
-  veterinarian: string;
-  clinic: string;
-  status: "upcoming" | "completed" | "cancelled";
-  notes?: string;
-}
-
 export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
   const [showAddModal, setShowAddModal] = useState(false);
-  
-  // Get active pet from context
+
+  // Get active pet and medical data from context
   const { activePetId, activePet } = usePet();
+  const { getAppointmentsByPetId, updateAppointment } = useMedical();
 
-  // Mock data with petId for multi-pet support
-  const allAppointments: Appointment[] = [
-    {
-      id: 1,
-      petId: "pet-1", // Bruno
-      type: "checkup",
-      title: "Control de peso mensual",
-      date: "28 Feb 2026",
-      time: "10:00 AM",
-      veterinarian: "Dra. López",
-      clinic: "VetCenter",
-      status: "upcoming",
-      notes: "Llevar carnet de vacunación",
-    },
-    {
-      id: 2,
-      petId: "pet-1", // Bruno
-      type: "vaccine",
-      title: "Vacuna DHPPi",
-      date: "15 Mar 2026",
-      time: "3:30 PM",
-      veterinarian: "Dr. Martínez",
-      clinic: "PetCare",
-      status: "upcoming",
-    },
-    {
-      id: 3,
-      petId: "pet-1", // Bruno
-      type: "checkup",
-      title: "Revisión general",
-      date: "20 Ene 2026",
-      time: "11:00 AM",
-      veterinarian: "Dra. López",
-      clinic: "VetCenter",
-      status: "completed",
-      notes: "Todo en orden. Peso: 28.5kg",
-    },
-    {
-      id: 4,
-      petId: "pet-1", // Bruno
-      type: "vaccine",
-      title: "Antirrábica",
-      date: "23 Feb 2025",
-      time: "4:00 PM",
-      veterinarian: "Dra. López",
-      clinic: "VetCenter",
-      status: "completed",
-    },
-    {
-      id: 5,
-      petId: "pet-2", // Rocky
-      type: "checkup",
-      title: "Chequeo respiratorio",
-      date: "5 Mar 2026",
-      time: "9:00 AM",
-      veterinarian: "Dr. García",
-      clinic: "VetPlus",
-      status: "upcoming",
-      notes: "Control de respiración",
-    },
-    {
-      id: 6,
-      petId: "pet-2", // Rocky
-      type: "vaccine",
-      title: "Vacuna Parvovirus",
-      date: "10 Ene 2026",
-      time: "2:00 PM",
-      veterinarian: "Dr. García",
-      clinic: "VetPlus",
-      status: "completed",
-    },
-  ];
-
-  // Filter appointments by active pet
-  const appointments = allAppointments.filter((a) => a.petId === activePetId);
+  // Get real appointments
+  const appointments = useMemo(() =>
+    activePetId ? getAppointmentsByPetId(activePetId) : [],
+    [activePetId, getAppointmentsByPetId]
+  );
 
   const upcomingAppointments = appointments.filter((a) => a.status === "upcoming");
   const pastAppointments = appointments.filter((a) => a.status === "completed" || a.status === "cancelled");
+
+  const handleComplete = async (id: string) => {
+    await updateAppointment(id, { status: "completed" });
+  };
+
+  const handleCancel = async (id: string) => {
+    if (confirm("¿Estás seguro de que deseas cancelar esta cita?")) {
+      await updateAppointment(id, { status: "cancelled" });
+    }
+  };
 
   const getTypeIcon = (type: Appointment["type"]) => {
     switch (type) {
@@ -168,21 +99,19 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
           <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
             <button
               onClick={() => setActiveTab("upcoming")}
-              className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${
-                activeTab === "upcoming"
+              className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === "upcoming"
                   ? "bg-white dark:bg-slate-900 text-[#2b6fee] shadow-sm"
                   : "text-slate-600 dark:text-slate-400"
-              }`}
+                }`}
             >
               Próximas ({upcomingAppointments.length})
             </button>
             <button
               onClick={() => setActiveTab("past")}
-              className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${
-                activeTab === "past"
+              className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === "past"
                   ? "bg-white dark:bg-slate-900 text-[#2b6fee] shadow-sm"
                   : "text-slate-600 dark:text-slate-400"
-              }`}
+                }`}
             >
               Pasadas ({pastAppointments.length})
             </button>
@@ -200,7 +129,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                 No hay citas próximas
               </h3>
               <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                Agenda la primera cita para Bruno
+                Agenda la primera cita para {activePet?.name || "tu mascota"}
               </p>
             </div>
           )}
@@ -231,11 +160,11 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                       </div>
                       <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                         <MaterialIcon name="location_on" className="text-base" />
-                        <span>{appointment.clinic}</span>
+                        <span>{appointment.clinic || "N/A"}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                         <MaterialIcon name="person" className="text-base" />
-                        <span>{appointment.veterinarian}</span>
+                        <span>{appointment.veterinarian || "N/A"}</span>
                       </div>
                     </div>
 
@@ -252,11 +181,17 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
 
                 {/* Actions */}
                 <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <button className="flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                    Reprogramar
+                  <button
+                    onClick={() => handleCancel(appointment.id)}
+                    className="flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    Cancelar
                   </button>
-                  <button className="flex-1 py-2 rounded-lg bg-[#2b6fee] text-white font-semibold text-sm hover:bg-[#5a8aff] transition-colors">
-                    Ver detalles
+                  <button
+                    onClick={() => handleComplete(appointment.id)}
+                    className="flex-1 py-2 rounded-lg bg-[#2b6fee] text-white font-semibold text-sm hover:bg-[#5a8aff] transition-colors"
+                  >
+                    Finalizar
                   </button>
                 </div>
               </motion.div>
@@ -268,7 +203,8 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                 key={appointment.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm opacity-75"
+                className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm ${appointment.status === "cancelled" ? "opacity-50" : "opacity-75"
+                  }`}
               >
                 <div className="flex gap-3">
                   <div className={`size-12 ${getTypeColor(appointment.type)} rounded-xl flex items-center justify-center shrink-0 opacity-60`}>
@@ -276,26 +212,23 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                   </div>
 
                   <div className="flex-1">
-                    <h3 className="font-bold text-slate-900 dark:text-white mb-1">
-                      {appointment.title}
-                    </h3>
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-bold text-slate-900 dark:text-white">
+                        {appointment.title}
+                      </h3>
+                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${appointment.status === "completed" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                        }`}>
+                        {appointment.status === "completed" ? "Completada" : "Cancelada"}
+                      </span>
+                    </div>
                     <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-1">
                       <MaterialIcon name="event" className="text-base" />
                       <span>{appointment.date}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                      <MaterialIcon name="person" className="text-base" />
-                      <span>{appointment.veterinarian} - {appointment.clinic}</span>
+                      <MaterialIcon name="location_on" className="text-base" />
+                      <span>{appointment.clinic || "N/A"}</span>
                     </div>
-
-                    {appointment.notes && (
-                      <div className="mt-2 p-2 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 rounded-lg">
-                        <p className="text-xs text-emerald-800 dark:text-emerald-300">
-                          <MaterialIcon name="check_circle" className="text-sm inline mr-1 align-text-bottom" />
-                          {appointment.notes}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </motion.div>
@@ -313,6 +246,11 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
           </button>
         </div>
       </div>
+
+      <AddAppointmentModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+      />
     </div>
   );
 }

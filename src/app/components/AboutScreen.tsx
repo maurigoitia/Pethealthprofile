@@ -1,5 +1,5 @@
 import { MaterialIcon } from "./MaterialIcon";
-import pessyLogo from "figma:asset/e4b9cb13fdb59713820f2da9cb50d2aa5431cc45.png";
+const pessyLogo = ""; // Placeholder for missing figma asset
 
 interface AboutScreenProps {
   onBack: () => void;
@@ -10,11 +10,7 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
     <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen relative overflow-hidden">
       {/* Logo de fondo como watermark */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] dark:opacity-[0.02]">
-        <img
-          src={pessyLogo}
-          alt=""
-          className="w-[400px] h-[400px] object-contain"
-        />
+        <div className="w-[400px] h-[400px] flex items-center justify-center text-[200px] font-black">P</div>
       </div>
 
       <div className="max-w-md mx-auto pb-8 relative z-10">
@@ -38,12 +34,8 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
           {/* About */}
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
             <div className="flex items-center gap-3 mb-4">
-              <div className="size-12 rounded-xl overflow-hidden bg-white flex items-center justify-center shadow-lg">
-                <img
-                  src={pessyLogo}
-                  alt="PESSY Logo"
-                  className="w-10 h-10 object-contain"
-                />
+              <div className="size-12 rounded-xl overflow-hidden bg-white flex items-center justify-center shadow-lg text-[#2b7cee] font-black text-2xl">
+                P
               </div>
               <div>
                 <h2 className="text-xl font-black text-slate-900 dark:text-white">

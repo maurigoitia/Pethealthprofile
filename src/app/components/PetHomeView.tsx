@@ -13,14 +13,16 @@ interface PetHomeViewProps {
     name: string;
     breed: string;
     photo: string;
+    age?: string;
+    weight?: string;
   }>;
   activePetId: string;
   onPetChange: (petId: string) => void;
 }
 
-export function PetHomeView({ 
-  userName, 
-  onViewHistory, 
+export function PetHomeView({
+  userName,
+  onViewHistory,
   onPetClick,
   onAppointmentsClick,
   onMedicationsClick,
@@ -29,25 +31,25 @@ export function PetHomeView({
   onPetChange
 }: PetHomeViewProps) {
   const [isDragging, setIsDragging] = useState(false);
-  
+
   const currentIndex = pets.findIndex(p => p.id === activePetId);
   const activePet = pets[currentIndex];
   const hasMultiplePets = pets.length > 1;
 
-  // Mock data for active pet
+  // Real data logic for active pet
   const petData = {
-    age: "2 años",
+    age: activePet?.age || "Edad no registrada",
     isActive: true,
-    lastVaccineDate: "15 de Oct",
-    weight: "28kg",
+    lastVaccineDate: "Ver en historial", // Future: calculate from medical records
+    weight: activePet?.weight || "Sin peso",
   };
 
   const handleDragEnd = (event: any, info: PanInfo) => {
     setIsDragging(false);
-    
+
     const threshold = 100; // Minimum swipe distance
     const velocity = info.velocity.x;
-    
+
     // Swipe left -> next pet
     if (info.offset.x < -threshold || velocity < -500) {
       const nextIndex = (currentIndex + 1) % pets.length;
@@ -108,7 +110,7 @@ export function PetHomeView({
               alt={activePet.name}
               className="w-full h-full object-cover"
             />
-            
+
             {/* Status Badge */}
             {petData.isActive && (
               <div className="absolute top-4 right-4">
@@ -135,7 +137,7 @@ export function PetHomeView({
                 </p>
               </div>
               <div className="size-12 rounded-full bg-[#2b6fee]/10 flex items-center justify-center">
-                <MaterialIcon name="pets" className="text-[#2b6fee] text-2xl" />
+                <MaterialIcon name="ecg_heart" className="text-[#2b6fee] text-2xl" />
               </div>
             </div>
 
@@ -188,11 +190,10 @@ export function PetHomeView({
               <button
                 key={pet.id}
                 onClick={() => onPetChange(pet.id)}
-                className={`h-2 rounded-full transition-all ${
-                  pet.id === activePetId
-                    ? "w-8 bg-[#2b6fee]"
-                    : "w-2 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400"
-                }`}
+                className={`h-2 rounded-full transition-all ${pet.id === activePetId
+                  ? "w-8 bg-[#2b6fee]"
+                  : "w-2 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400"
+                  }`}
               />
             ))}
           </div>
@@ -206,7 +207,7 @@ export function PetHomeView({
         transition={{ duration: 0.5, delay: 0.2 }}
         className="grid grid-cols-2 gap-3 mt-6"
       >
-        <button 
+        <button
           onClick={onAppointmentsClick}
           className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm active:scale-[0.98]"
         >
@@ -220,7 +221,7 @@ export function PetHomeView({
           </div>
         </button>
 
-        <button 
+        <button
           onClick={onMedicationsClick}
           className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm active:scale-[0.98]"
         >

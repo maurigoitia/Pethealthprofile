@@ -5,6 +5,7 @@ import { EmptyState } from "./EmptyState";
 import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
 import { MedicalEvent, DocumentType } from "../types/medical";
+import { EditEventModal } from "./EditEventModal";
 
 interface TimelineProps {
   activePet?: {
@@ -17,13 +18,25 @@ interface TimelineProps {
 export function Timeline({ activePet: activePetProp, onExportReport }: TimelineProps) {
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
-  
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [eventToEdit, setEventToEdit] = useState<MedicalEvent | null>(null);
+
   const { activePetId } = usePet();
   const { getEventsByPetId } = useMedical();
 
   // Get real events from context
-  const medicalEvents = getEventsByPetId(activePetId);
-  const displayedEvents = showAll ? medicalEvents : medicalEvents.slice(0, 3);
+  const allEvents = getEventsByPetId(activePetId);
+
+  // Detectar duplicados: mismo fileName + documentType
+  const seenKeys = new Set<string>();
+  const medicalEvents = allEvents.map(event => {
+    const key = `${event.fileName?.toLowerCase().trim()}_${event.extractedData.documentType}`;
+    const isDuplicate = seenKeys.has(key);
+    if (!isDuplicate) seenKeys.add(key);
+    return { ...event, isDuplicate };
+  });
+
+  const displayedEvents = showAll ? medicalEvents : medicalEvents.slice(0, 6);
 
   const toggleEvent = (id: string) => {
     setExpandedEvent(expandedEvent === id ? null : id);
@@ -32,73 +45,73 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
   // Map document type to display info
   const getEventTypeInfo = (docType: DocumentType, status: MedicalEvent["status"]) => {
     if (status === "processing") {
-      return { 
-        icon: "sync", 
-        color: "text-[#2b7cee]", 
-        bg: "bg-[#2b7cee]/10", 
-        border: "border-[#2b7cee]", 
-        animate: true 
+      return {
+        icon: "sync",
+        color: "text-[#2b7cee]",
+        bg: "bg-[#2b7cee]/10",
+        border: "border-[#2b7cee]",
+        animate: true
       };
     }
 
     switch (docType) {
       case "vaccine":
-        return { 
-          icon: "vaccines", 
-          color: "text-emerald-500", 
-          bg: "bg-emerald-500", 
-          border: "border-white", 
-          animate: false 
+        return {
+          icon: "vaccines",
+          color: "text-emerald-500",
+          bg: "bg-emerald-500",
+          border: "border-white",
+          animate: false
         };
       case "lab_test":
-        return { 
-          icon: "biotech", 
-          color: "text-purple-500", 
-          bg: "bg-purple-100 dark:bg-purple-900/30", 
-          border: "border-purple-200", 
-          animate: false 
+        return {
+          icon: "biotech",
+          color: "text-purple-500",
+          bg: "bg-purple-100 dark:bg-purple-900/30",
+          border: "border-purple-200",
+          animate: false
         };
       case "xray":
       case "echocardiogram":
       case "electrocardiogram":
-        return { 
-          icon: "ecg", 
-          color: "text-purple-500", 
-          bg: "bg-purple-100 dark:bg-purple-900/30", 
-          border: "border-purple-200", 
-          animate: false 
+        return {
+          icon: "ecg",
+          color: "text-purple-500",
+          bg: "bg-purple-100 dark:bg-purple-900/30",
+          border: "border-purple-200",
+          animate: false
         };
       case "surgery":
-        return { 
-          icon: "local_hospital", 
-          color: "text-red-500", 
-          bg: "bg-red-100 dark:bg-red-900/30", 
-          border: "border-red-200", 
-          animate: false 
+        return {
+          icon: "local_hospital",
+          color: "text-red-500",
+          bg: "bg-red-100 dark:bg-red-900/30",
+          border: "border-red-200",
+          animate: false
         };
       case "medication":
-        return { 
-          icon: "medication", 
-          color: "text-amber-500", 
-          bg: "bg-amber-100 dark:bg-amber-900/30", 
-          border: "border-amber-200", 
-          animate: false 
+        return {
+          icon: "medication",
+          color: "text-amber-500",
+          bg: "bg-amber-100 dark:bg-amber-900/30",
+          border: "border-amber-200",
+          animate: false
         };
       case "checkup":
-        return { 
-          icon: "check_circle", 
-          color: "text-emerald-500", 
-          bg: "bg-emerald-500", 
-          border: "border-white", 
-          animate: false 
+        return {
+          icon: "check_circle",
+          color: "text-emerald-500",
+          bg: "bg-emerald-500",
+          border: "border-white",
+          animate: false
         };
       default:
-        return { 
-          icon: "description", 
-          color: "text-slate-500", 
-          bg: "bg-slate-100 dark:bg-slate-800", 
-          border: "border-slate-200", 
-          animate: false 
+        return {
+          icon: "description",
+          color: "text-slate-500",
+          bg: "bg-slate-100 dark:bg-slate-800",
+          border: "border-slate-200",
+          animate: false
         };
     }
   };
@@ -108,16 +121,16 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
     const date = new Date(isoDate);
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
-    
+
     if (isToday) {
       return `HOY, ${date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
     }
-    
-    return date.toLocaleDateString("es-ES", { 
-      day: "numeric", 
-      month: "short", 
-      hour: "2-digit", 
-      minute: "2-digit" 
+
+    return date.toLocaleDateString("es-ES", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit"
     }).toUpperCase();
   };
 
@@ -145,11 +158,11 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
   // Get tags
   const getEventTags = (event: MedicalEvent) => {
     const tags: string[] = [];
-    
+
     if (event.status === "processing") {
       tags.push("PROCESANDO");
     }
-    
+
     if (event.ocrProcessed && event.aiProcessed) {
       tags.push("IA VERIFICADO");
     }
@@ -179,10 +192,10 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
     if (extracted.eventDate) {
       details.push({
         label: "Fecha del evento",
-        value: new Date(extracted.eventDate).toLocaleDateString("es-ES", { 
-          day: "numeric", 
-          month: "long", 
-          year: "numeric" 
+        value: new Date(extracted.eventDate).toLocaleDateString("es-ES", {
+          day: "numeric",
+          month: "long",
+          year: "numeric"
         }),
       });
     }
@@ -222,14 +235,20 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
     if (extracted.nextAppointmentDate) {
       details.push({
         label: "Próxima cita",
-        value: `${new Date(extracted.nextAppointmentDate).toLocaleDateString("es-ES", { 
-          day: "numeric", 
-          month: "long" 
+        value: `${new Date(extracted.nextAppointmentDate).toLocaleDateString("es-ES", {
+          day: "numeric",
+          month: "long"
         })}${extracted.nextAppointmentReason ? ` - ${extracted.nextAppointmentReason}` : ""}`,
       });
     }
 
     return details;
+  };
+
+  const handleEditClick = (e: React.MouseEvent, event: MedicalEvent) => {
+    e.stopPropagation(); // Prevent toggling the expanded state
+    setEventToEdit(event);
+    setShowEditModal(true);
   };
 
   return (
@@ -247,8 +266,8 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
           >
             <MaterialIcon name="description" className="text-[#2b7cee] dark:text-[#5a8aff] text-lg" />
           </button>
-          
-          {medicalEvents.length > 3 && (
+
+          {medicalEvents.length > 6 && (
             <button
               onClick={() => setShowAll(!showAll)}
               className="text-xs font-bold text-[#2b7cee] dark:text-[#5a8aff] hover:underline"
@@ -274,6 +293,7 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
             const isExpanded = expandedEvent === event.id;
             const styling = getEventTypeInfo(event.extractedData.documentType, event.status);
             const details = getEventDetails(event);
+            const isDuplicate = (event as any).isDuplicate;
 
             return (
               <motion.div
@@ -302,6 +322,11 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
                         {formatTimestamp(event.createdAt)}
                       </span>
                       <div className="flex items-center gap-1">
+                        {isDuplicate && (
+                          <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 uppercase tracking-wider">
+                            DUPLICADO
+                          </span>
+                        )}
                         {event.status === "processing" && (
                           <span className="flex h-2 w-2 rounded-full bg-[#2b7cee] animate-pulse" />
                         )}
@@ -334,7 +359,7 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
                   </div>
 
                   <AnimatePresence>
-                    {isExpanded && details.length > 0 && (
+                    {isExpanded && (
                       <motion.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
@@ -352,6 +377,38 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
                               </span>
                             </div>
                           ))}
+
+                          {/* Ver documento original */}
+                          {event.documentUrl && (
+                            <div className="pt-2">
+                              <a
+                                href={event.documentUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={e => e.stopPropagation()}
+                                className="w-full py-2.5 bg-[#2b7cee]/10 text-[#2b7cee] text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-[#2b7cee]/20 transition-colors"
+                              >
+                                <MaterialIcon name={event.fileType === "pdf" ? "picture_as_pdf" : "image"} className="text-sm" />
+                                Ver documento original
+                              </a>
+                            </div>
+                          )}
+
+                          {isDuplicate && (
+                            <p className="text-[10px] text-amber-600 text-center pt-1 font-medium">
+                              ⚠️ Este documento parece estar duplicado
+                            </p>
+                          )}
+
+                          <div className="pt-1">
+                            <button
+                              onClick={(e) => handleEditClick(e, event)}
+                              className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-750 transition-colors"
+                            >
+                              <MaterialIcon name="edit" className="text-sm" />
+                              Editar Datos Extraídos
+                            </button>
+                          </div>
                         </div>
                       </motion.div>
                     )}
@@ -362,6 +419,11 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
           })}
         </div>
       )}
+      <EditEventModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        event={eventToEdit}
+      />
     </section>
   );
 }

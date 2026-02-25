@@ -16,6 +16,7 @@ import { AppointmentsScreen } from "./AppointmentsScreen";
 import { MedicationsScreen } from "./MedicationsScreen";
 import { HealthReportModal } from "./HealthReportModal";
 import { usePet } from "../contexts/PetContext";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function HomeScreen() {
   const navigate = useNavigate();
@@ -27,8 +28,9 @@ export default function HomeScreen() {
   const [currentTab, setCurrentTab] = useState<"home" | "settings">("home");
   const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications">("card");
 
-  // Get pet data from context
-  const { activePetId, setActivePetId, pets, activePet } = usePet();
+  // Get pet and auth data from context
+  const { activePetId, setActivePetId, pets, activePet, loading: petsLoading } = usePet();
+  const { user } = useAuth();
 
   // Handle tab change and reset viewMode to "card" when going to home tab
   const handleTabChange = (tab: "home" | "settings") => {
@@ -47,6 +49,15 @@ export default function HomeScreen() {
     // Navigate to pet registration
     navigate("/register-pet");
   };
+
+  // Loading state: Waiting for Firestore
+  if (petsLoading && pets.length === 0) {
+    return (
+      <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#2b7cee] border-t-transparent"></div>
+      </div>
+    );
+  }
 
   // Empty state: No pets registered
   if (pets.length === 0) {
@@ -77,8 +88,8 @@ export default function HomeScreen() {
             </div>
           </div>
         </div>
-        <BottomNav 
-          currentTab={currentTab} 
+        <BottomNav
+          currentTab={currentTab}
           onTabChange={handleTabChange}
           onAddDocument={() => setShowScanner(true)}
         />
@@ -100,8 +111,8 @@ export default function HomeScreen() {
     return (
       <>
         <UserProfileScreen onBack={() => handleTabChange("home")} />
-        <BottomNav 
-          currentTab={currentTab} 
+        <BottomNav
+          currentTab={currentTab}
           onTabChange={handleTabChange}
           onAddDocument={() => setShowScanner(true)}
         />
@@ -118,8 +129,8 @@ export default function HomeScreen() {
     return (
       <>
         <AppointmentsScreen onBack={() => setViewMode("card")} />
-        <BottomNav 
-          currentTab={currentTab} 
+        <BottomNav
+          currentTab={currentTab}
           onTabChange={handleTabChange}
           onAddDocument={() => setShowScanner(true)}
         />
@@ -136,8 +147,8 @@ export default function HomeScreen() {
     return (
       <>
         <MedicationsScreen onBack={() => setViewMode("card")} />
-        <BottomNav 
-          currentTab={currentTab} 
+        <BottomNav
+          currentTab={currentTab}
           onTabChange={handleTabChange}
           onAddDocument={() => setShowScanner(true)}
         />
@@ -159,9 +170,9 @@ export default function HomeScreen() {
               onClick={() => setViewMode("card")}
               className="size-10 rounded-full bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center hover:scale-110 transition-transform"
             >
-              <MaterialIcon 
-                name="arrow_back" 
-                className="text-slate-700 dark:text-slate-300 text-xl" 
+              <MaterialIcon
+                name="arrow_back"
+                className="text-slate-700 dark:text-slate-300 text-xl"
               />
             </button>
           </div>
@@ -171,7 +182,7 @@ export default function HomeScreen() {
         {viewMode === "card" && (
           <>
             <PetHomeView
-              userName="Diego"
+              userName={user?.displayName?.split(" ")[0] || user?.email?.split("@")[0] || "Hola"}
               onViewHistory={() => setViewMode("feed")}
               onPetClick={() => setShowPetProfile(true)}
               onAppointmentsClick={() => setViewMode("appointments")}
@@ -186,7 +197,7 @@ export default function HomeScreen() {
         {/* Feed View - Original Design */}
         {viewMode === "feed" && (
           <>
-            <Header 
+            <Header
               onPetClick={() => setShowPetSelector(true)}
               activePet={{
                 name: activePet.name,
@@ -197,12 +208,12 @@ export default function HomeScreen() {
 
             <main className="flex-1 px-4 space-y-6 mt-4">
               <ActionTray />
-              <Timeline 
+              <Timeline
                 activePet={{
                   name: activePet.name,
                   photo: activePet.photo
                 }}
-                onExportReport={() => setShowHealthReport(true)}
+                onExportReport={() => setShowExportReport(true)}
               />
               <MonthSummary />
             </main>
@@ -211,8 +222,8 @@ export default function HomeScreen() {
       </div>
 
       {/* Bottom Navigation with Add Document button */}
-      <BottomNav 
-        currentTab={currentTab} 
+      <BottomNav
+        currentTab={currentTab}
         onTabChange={handleTabChange}
         onAddDocument={() => setShowScanner(true)}
       />

@@ -2,24 +2,28 @@ import { useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { motion } from "motion/react";
 import { usePet } from "../contexts/PetContext";
+import { useAuth } from "../contexts/AuthContext";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "../../lib/firebase";
 
 export function RegisterPetStep2() {
   const navigate = useNavigate();
   const location = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addPet } = usePet();
-  
-  // Get data from step 1
+  const { user } = useAuth();
+
   const step1Data = location.state || {};
 
   const [formData, setFormData] = useState({
-    photo: "https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=400&h=400&fit=crop",
     weight: "",
     sex: "male" as "male" | "female",
     isNeutered: false,
   });
 
-  const [photoPreview, setPhotoPreview] = useState(formData.photo);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState("https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=400&h=400&fit=crop");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handlePhotoClick = () => {
     fileInputRef.current?.click();
@@ -28,34 +32,45 @@ export function RegisterPetStep2() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setPhotoFile(file);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result as string);
-        setFormData({ ...formData, photo: reader.result as string });
-      };
+      reader.onloadend = () => setPhotoPreview(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
-  const handleFinish = () => {
-    // Combine step1Data and formData
-    const petData = {
-      id: `pet-${Date.now()}`,
-      name: step1Data.name || "Mascota",
-      breed: step1Data.breed || "Desconocida",
-      photo: formData.photo,
-      species: step1Data.species,
-      age: step1Data.age,
-      weight: formData.weight,
-      sex: formData.sex,
-      isNeutered: formData.isNeutered,
-    };
-    
-    // Add pet to context
-    addPet(petData);
-    
-    // Navigate to home after registration
-    navigate("/home");
+  const handleFinish = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      // Subir foto a Storage si el usuario eligió una
+      let photoUrl = "https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=400&h=400&fit=crop";
+      if (photoFile && user) {
+        const storageRef = ref(storage, `users/${user.uid}/pets/${Date.now()}_${photoFile.name}`);
+        const uploadResult = await uploadBytes(storageRef, photoFile);
+        photoUrl = await getDownloadURL(uploadResult.ref);
+      }
+
+      const petData = {
+        name: step1Data.name || "Mascota",
+        breed: step1Data.breed || "Desconocida",
+        photo: photoUrl,
+        species: step1Data.species,
+        age: step1Data.age,
+        weight: formData.weight,
+        sex: formData.sex,
+        isNeutered: formData.isNeutered,
+      };
+
+      await addPet(petData);
+      navigate("/home");
+    } catch (error) {
+      console.error("Error finalizing pet registration:", error);
+      alert("Error al registrar mascota. Por favor, intenta de nuevo.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -157,11 +172,10 @@ export function RegisterPetStep2() {
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, sex: "male" })}
-                className={`flex items-center justify-center gap-2 h-14 rounded-xl border-2 font-bold transition-colors ${
-                  formData.sex === "male"
+                className={`flex items-center justify-center gap-2 h-14 rounded-xl border-2 font-bold transition-colors ${formData.sex === "male"
                     ? "border-[#2b7cee] bg-[#2b7cee]/5 text-[#2b7cee]"
                     : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-                }`}
+                  }`}
               >
                 <span className="material-symbols-outlined">male</span>
                 Macho
@@ -169,11 +183,10 @@ export function RegisterPetStep2() {
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, sex: "female" })}
-                className={`flex items-center justify-center gap-2 h-14 rounded-xl border-2 font-bold transition-colors ${
-                  formData.sex === "female"
+                className={`flex items-center justify-center gap-2 h-14 rounded-xl border-2 font-bold transition-colors ${formData.sex === "female"
                     ? "border-[#2b7cee] bg-[#2b7cee]/5 text-[#2b7cee]"
                     : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-                }`}
+                  }`}
               >
                 <span className="material-symbols-outlined">female</span>
                 Hembra
@@ -206,9 +219,13 @@ export function RegisterPetStep2() {
         <div className="p-4 bg-[#f6f6f8] dark:bg-[#101622] border-t border-slate-200 dark:border-slate-800">
           <button
             onClick={handleFinish}
-            className="w-full bg-[#2b7cee] hover:bg-[#2563d4] text-white font-bold py-4 rounded-xl transition-colors shadow-lg shadow-[#2b7cee]/20"
+            disabled={isSubmitting}
+            className="w-full bg-[#2b7cee] hover:bg-[#2563d4] text-white font-bold py-4 rounded-xl transition-colors shadow-lg shadow-[#2b7cee]/20 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            Finalizar Registro
+            {isSubmitting ? (
+              <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : null}
+            {isSubmitting ? "Guardando..." : "Finalizar Registro"}
           </button>
         </div>
       </div>

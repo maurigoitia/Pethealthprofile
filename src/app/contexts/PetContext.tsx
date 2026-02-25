@@ -1,6 +1,14 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { db } from "../../lib/firebase";
+import { collection, query, where, onSnapshot, doc, updateDoc, addDoc, arrayUnion } from "firebase/firestore";
+import { useAuth } from "./AuthContext";
 
-interface Pet {
+export interface WeightEntry {
+  date: string; // ISO string
+  weight: number; // kg
+}
+
+export interface Pet {
   id: string;
   name: string;
   breed: string;
@@ -8,8 +16,11 @@ interface Pet {
   species?: string;
   age?: string;
   weight?: string;
+  birthDate?: string; // ISO string YYYY-MM-DD
   sex?: "male" | "female";
   isNeutered?: boolean;
+  ownerId?: string;
+  weightHistory?: WeightEntry[];
 }
 
 interface PetContextType {
@@ -17,61 +28,99 @@ interface PetContextType {
   setActivePetId: (id: string) => void;
   pets: Pet[];
   activePet: Pet | undefined;
-  addPet: (pet: Pet) => void;
+  addPet: (pet: Omit<Pet, "id" | "ownerId">) => Promise<string>;
+  updatePet: (id: string, updates: Partial<Pet> & { newWeightEntry?: WeightEntry }) => Promise<void>;
+  loading: boolean;
 }
 
 const PetContext = createContext<PetContextType | undefined>(undefined);
 
 export function PetProvider({ children }: { children: ReactNode }) {
-  // Initialize pets from localStorage or use mock data
-  const [pets, setPets] = useState<Pet[]>(() => {
-    const stored = localStorage.getItem("pessy_pets");
-    if (stored) {
-      return JSON.parse(stored);
-    }
-    // Return empty array for "clean slate" onboarding
-    return [];
-  });
-
-  // Initialize from localStorage or default to first pet
+  const { user, loading: authLoading } = useAuth();
+  const [pets, setPets] = useState<Pet[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activePetId, setActivePetIdState] = useState<string>(() => {
-    const stored = localStorage.getItem("activePetId");
-    return stored && pets.find((p) => p.id === stored) ? stored : (pets[0]?.id || "");
+    return localStorage.getItem("activePetId") || "";
   });
 
-  // Persist pets to localStorage
   useEffect(() => {
-    localStorage.setItem("pessy_pets", JSON.stringify(pets));
-  }, [pets]);
+    // Esperar a que Firebase Auth resuelva antes de hacer cualquier query
+    if (authLoading) return;
 
-  // Persist activePetId to localStorage whenever it changes
-  useEffect(() => {
-    if (activePetId) {
-      localStorage.setItem("activePetId", activePetId);
+    if (!user) {
+      setPets([]);
+      setLoading(false);
+      return;
     }
-  }, [activePetId]);
 
-  const activePet = pets.find((p) => p.id === activePetId);
+    setLoading(true);
+    const q = query(collection(db, "pets"), where("ownerId", "==", user.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedPets = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Pet));
+
+      setPets(fetchedPets);
+      setLoading(false);
+
+      // Logic to select initial active pet if none or if current is gone
+      setActivePetIdState((current) => {
+        if (fetchedPets.length === 0) return "";
+        if (!current || !fetchedPets.find(p => p.id === current)) {
+          const firstId = fetchedPets[0].id;
+          localStorage.setItem("activePetId", firstId);
+          return firstId;
+        }
+        return current;
+      });
+    });
+
+    return () => unsubscribe();
+  }, [user, authLoading]);
 
   const setActivePetId = (id: string) => {
     setActivePetIdState(id);
+    localStorage.setItem("activePetId", id);
   };
 
-  const addPet = (pet: Pet) => {
-    setPets((prev) => [...prev, pet]);
-    setActivePetId(pet.id); // Auto-select the newly added pet
+  const addPet = async (pet: Omit<Pet, "id" | "ownerId">) => {
+    if (!user) throw new Error("No user logged in");
+
+    try {
+      const docRef = await addDoc(collection(db, "pets"), {
+        ...pet,
+        ownerId: user.uid,
+        createdAt: new Date().toISOString()
+      });
+
+      // The onSnapshot listener will update the local state automatically
+      return docRef.id;
+    } catch (error) {
+      console.error("Error adding pet:", error);
+      throw error;
+    }
   };
+
+  const updatePet = async (id: string, updates: Partial<Pet> & { newWeightEntry?: WeightEntry }) => {
+    try {
+      const petRef = doc(db, "pets", id);
+      const { newWeightEntry, ...rest } = updates;
+      const payload: any = { ...rest };
+      if (newWeightEntry) {
+        payload.weightHistory = arrayUnion(newWeightEntry);
+      }
+      await updateDoc(petRef, payload);
+    } catch (error) {
+      console.error("Error updating pet:", error);
+      throw error;
+    }
+  };
+
+  const activePet = pets.find((p) => p.id === activePetId);
 
   return (
-    <PetContext.Provider
-      value={{
-        activePetId,
-        setActivePetId,
-        pets,
-        activePet,
-        addPet,
-      }}
-    >
+    <PetContext.Provider value={{ activePetId, setActivePetId, pets, activePet, addPet, updatePet, loading }}>
       {children}
     </PetContext.Provider>
   );
@@ -79,8 +128,8 @@ export function PetProvider({ children }: { children: ReactNode }) {
 
 export function usePet() {
   const context = useContext(PetContext);
-  if (!context) {
-    throw new Error("usePet must be used within PetProvider");
+  if (context === undefined) {
+    throw new Error("usePet must be used within a PetProvider");
   }
   return context;
 }

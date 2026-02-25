@@ -3,7 +3,11 @@ import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
 import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
-import { mockProcessDocument } from "../services/geminiService";
+import { useAuth } from "../contexts/AuthContext";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
+import { storage } from "../../lib/firebase";
+import { callGeminiAPI } from "../services/geminiService";
 import { MedicalEvent, PendingAction, ActiveMedication } from "../types/medical";
 
 interface DocumentScannerModalProps {
@@ -17,14 +21,24 @@ export function DocumentScannerModal({
   isOpen,
   onClose,
 }: DocumentScannerModalProps) {
+  const { user } = useAuth();
   const { activePet } = usePet();
   const { addEvent, addPendingAction, addMedication } = useMedical();
-  
+
   const [uploadStage, setUploadStage] = useState<UploadStage>("select");
   const [fileName, setFileName] = useState<string>("");
   const [processingStatus, setProcessingStatus] = useState<string>("Iniciando...");
   const [extractedType, setExtractedType] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string).split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
 
   const handleFileSelect = () => {
     fileInputRef.current?.click();
@@ -34,22 +48,34 @@ export function DocumentScannerModal({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setFileName(file.name);
+    if (!activePet) {
+      setUploadStage("error");
+      setProcessingStatus("Selecciona una mascota primero");
+      return;
+    }
+
+    const currentFileName = file.name;
+    setFileName(currentFileName);
     setUploadStage("processing");
 
     try {
-      // Paso 1: Análisis OCR
-      setProcessingStatus("Analizando documento...");
-      
-      // Paso 2: Llamar a Gemini (mock por ahora)
-      setProcessingStatus("Extrayendo información...");
-      const geminiResponse = await mockProcessDocument(file);
-      
-      // Paso 3: Clasificar documento
-      setProcessingStatus("Clasificando tipo de documento...");
-      const extracted = geminiResponse.extractedData;
-      
-      // Mapear tipo a español para mostrar
+      // Step 1: Upload to Firebase Storage
+      setProcessingStatus("Subiendo documento a la nube...");
+      const storagePath = `documents/${user?.uid || "anonymous"}/${Date.now()}_${currentFileName}`;
+      const storageRef = ref(storage, storagePath);
+      const uploadResult = await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(uploadResult.ref);
+
+      // Step 2: Call Gemini 2.0 Flash via service
+      setProcessingStatus("Analizando con IA...");
+      const geminiResponse = await callGeminiAPI(file);
+      const aiData = geminiResponse.extractedData;
+
+      // Step 3: Save directly to Firestore
+      setProcessingStatus("Guardando en tu historial...");
+      const documentType = aiData.documentType || "other";
+      const suggestedTitle = (aiData as any).suggestedTitle || currentFileName;
+
       const typeMap: Record<string, string> = {
         vaccine: "Vacuna",
         lab_test: "Análisis de Laboratorio",
@@ -61,86 +87,80 @@ export function DocumentScannerModal({
         checkup: "Control",
         other: "Documento General",
       };
-      setExtractedType(typeMap[extracted.documentType] || "Documento");
-      
-      // Paso 4: Crear evento médico
-      setProcessingStatus("Creando evento médico...");
-      
-      // Crear URL temporal para la preview (en producción será Supabase Storage URL)
-      const documentUrl = URL.createObjectURL(file);
-      
+      setExtractedType(typeMap[documentType] || "Documento");
+
       const newEvent: MedicalEvent = {
         id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         petId: activePet.id,
-        documentUrl,
-        documentPreviewUrl: documentUrl,
-        fileName: file.name,
+        title: aiData.suggestedTitle || currentFileName,
+        documentUrl: downloadUrl,
+        documentPreviewUrl: downloadUrl,
+        fileName: currentFileName,
         fileType: file.type.startsWith("image/") ? "image" : "pdf",
         status: "completed",
-        extractedData: extracted,
         ocrProcessed: true,
         aiProcessed: true,
+        extractedData: aiData,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         relatedEventIds: [],
         aiSuggestedRelation: null,
       };
-      
-      addEvent(newEvent);
-      
-      // Paso 5: Generar pendientes si hay próxima cita
-      if (extracted.nextAppointmentDate) {
-        setProcessingStatus("Generando recordatorios...");
-        
-        const pendingAction: PendingAction = {
-          id: `pnd_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+
+      await addEvent(newEvent);
+
+      // Crear pendiente si Gemini detectó próxima fecha
+      if (aiData.nextAppointmentDate) {
+        const pending: PendingAction = {
+          id: `pend_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
           petId: activePet.id,
-          type: extracted.documentType === "vaccine" ? "vaccine_due" : "follow_up",
-          title: extracted.nextAppointmentReason || "Próxima cita",
-          subtitle: `Programado para ${new Date(extracted.nextAppointmentDate).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}`,
-          dueDate: extracted.nextAppointmentDate,
+          type: "follow_up",
+          title: aiData.nextAppointmentReason || "Próximo control",
+          subtitle: `Generado desde: ${aiData.suggestedTitle || currentFileName}`,
+          dueDate: aiData.nextAppointmentDate,
           createdAt: new Date().toISOString(),
           generatedFromEventId: newEvent.id,
           autoGenerated: true,
           completed: false,
           completedAt: null,
           reminderEnabled: true,
-          reminderDaysBefore: 7,
+          reminderDaysBefore: 3,
         };
-        
-        addPendingAction(pendingAction);
+        await addPendingAction(pending);
       }
-      
-      // Paso 6: Agregar medicaciones si existen
-      if (extracted.medications.length > 0) {
-        setProcessingStatus("Agregando medicaciones...");
-        
-        for (const med of extracted.medications) {
-          const activeMed: ActiveMedication = {
+
+      // Crear medicaciones activas si Gemini detectó alguna
+      if (aiData.medications && aiData.medications.length > 0) {
+        for (const med of aiData.medications) {
+          const medication: ActiveMedication = {
             id: `med_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             petId: activePet.id,
             name: med.name,
-            dosage: med.dosage || "Según indicación",
-            frequency: med.frequency || "Según indicación",
-            type: extracted.documentType === "surgery" ? "Post-quirúrgico" : "Tratamiento",
+            dosage: med.dosage || "",
+            frequency: med.frequency || "",
+            type: typeMap[documentType] || "General",
             startDate: new Date().toISOString(),
-            endDate: med.duration && med.duration !== "Crónico" ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null,
-            prescribedBy: extracted.provider || null,
+            endDate: null,
+            prescribedBy: aiData.provider || null,
             generatedFromEventId: newEvent.id,
             active: true,
           };
-          
-          addMedication(activeMed);
+          await addMedication(medication);
         }
       }
-      
-      setProcessingStatus("¡Completado!");
+
       setUploadStage("success");
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error processing document:", error);
       setUploadStage("error");
-      setProcessingStatus("Error al procesar documento");
+      const msg = error?.message || String(error);
+      if (error?.code?.includes("storage/")) {
+        setProcessingStatus(`Storage: ${msg}`);
+      } else if (msg.includes("Gemini") || msg.includes("API key") || msg.includes("API Error")) {
+        setProcessingStatus(`Gemini: ${msg}`);
+      } else {
+        setProcessingStatus(msg);
+      }
     }
   };
 
@@ -339,12 +359,12 @@ export function DocumentScannerModal({
                   <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">
                     Error al procesar
                   </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs mb-6">
-                    No pudimos procesar el documento. Intenta nuevamente.
+                  <p className="text-xs text-red-500 text-center max-w-xs mb-2 font-mono bg-red-50 dark:bg-red-950/30 p-3 rounded-xl break-all">
+                    {processingStatus}
                   </p>
                   <button
                     onClick={() => setUploadStage("select")}
-                    className="px-8 py-3 rounded-xl bg-slate-900 dark:bg-slate-800 text-white font-bold hover:bg-black dark:hover:bg-slate-700 transition-colors"
+                    className="mt-4 px-8 py-3 rounded-xl bg-slate-900 dark:bg-slate-800 text-white font-bold hover:bg-black dark:hover:bg-slate-700 transition-colors"
                   >
                     Intentar de nuevo
                   </button>

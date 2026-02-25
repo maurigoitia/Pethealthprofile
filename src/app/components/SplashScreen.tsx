@@ -1,21 +1,30 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { motion } from "motion/react";
-import pessyLogo from "figma:asset/e4b9cb13fdb59713820f2da9cb50d2aa5431cc45.png";
+import { useAuth } from "../contexts/AuthContext";
 
 export function SplashScreen() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
+    // Wait for Firebase Auth to resolve
+    if (authLoading) return;
+
     const timer = setTimeout(() => {
-      navigate("/welcome");
-    }, 2500);
+      if (user) {
+        // User is logged in → HomeScreen handles the "no pets" empty state internally
+        navigate("/home");
+      } else {
+        navigate("/welcome");
+      }
+    }, 1500);
 
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [authLoading, user, navigate]);
 
   return (
-    <div className="min-h-screen bg-[#2b6fee] flex flex-col items-center justify-center px-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0a1628] flex flex-col items-center justify-center px-4 relative overflow-hidden">
       {/* Subtle pattern background */}
       <div
         className="absolute inset-0 opacity-5"
@@ -27,24 +36,22 @@ export function SplashScreen() {
 
       {/* Main Content */}
       <div className="flex flex-col items-center relative z-10">
-        {/* Logo Circle with Official Logo */}
+        {/* Official PESSY Logo */}
         <motion.div
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
+          initial={{ scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
           transition={{
-            duration: 0.8,
+            duration: 0.7,
             ease: [0.34, 1.56, 0.64, 1],
             type: "spring",
           }}
           className="mb-12"
         >
-          <div className="size-28 bg-white rounded-full flex items-center justify-center shadow-2xl p-6">
-            <img
-              src={pessyLogo}
-              alt="PESSY Logo"
-              className="w-full h-full object-contain"
-            />
-          </div>
+          <img
+            src="/pessy-logo.png"
+            alt="PESSY"
+            className="size-36 object-contain drop-shadow-2xl"
+          />
         </motion.div>
 
         {/* Brand Name */}

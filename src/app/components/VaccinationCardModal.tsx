@@ -83,7 +83,7 @@ export function VaccinationCardModal({
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="size-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                      <MaterialIcon name="pets" className="text-white text-2xl" />
+                      <MaterialIcon name="ecg_heart" className="text-white text-2xl" />
                     </div>
                     <div>
                       <h3 className="text-2xl font-black">PESSY</h3>

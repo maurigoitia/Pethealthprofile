@@ -33,10 +33,10 @@ export function EmptyState({
           <div className="size-48 rounded-3xl bg-gradient-to-br from-[#2b6fee]/5 to-purple-50 dark:from-[#2b6fee]/10 dark:to-purple-950/20 p-6 flex items-center justify-center border-2 border-dashed border-[#2b6fee]/20">
             {/* Floating paw prints decoration */}
             <div className="absolute top-4 right-4 text-[#2b6fee]/20 animate-pulse">
-              <MaterialIcon name="pets" className="text-3xl" />
+              <MaterialIcon name="ecg_heart" className="text-3xl" />
             </div>
             <div className="absolute bottom-6 left-6 text-[#2b6fee]/20 animate-pulse delay-150">
-              <MaterialIcon name="pets" className="text-2xl" />
+              <MaterialIcon name="ecg_heart" className="text-2xl" />
             </div>
             
             {/* Main icon */}

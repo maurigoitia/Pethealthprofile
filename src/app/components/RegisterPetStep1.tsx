@@ -1,19 +1,47 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { motion } from "motion/react";
+import { DOG_BREEDS, CAT_BREEDS, OTHER_BREEDS } from "../data/breeds";
 
 export function RegisterPetStep1() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
-    species: "dog" as "dog" | "cat",
+    species: "dog" as "dog" | "cat" | "other",
     breed: "",
     age: "",
   });
+  const [breedInput, setBreedInput] = useState("");
+  const [breedSuggestions, setBreedSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const getBreedList = () => {
+    if (formData.species === "dog") return DOG_BREEDS;
+    if (formData.species === "cat") return CAT_BREEDS;
+    return OTHER_BREEDS;
+  };
+
+  const handleBreedInput = (value: string) => {
+    setBreedInput(value);
+    setFormData({ ...formData, breed: value });
+    if (value.length >= 1) {
+      const filtered = getBreedList().filter((b) =>
+        b.toLowerCase().includes(value.toLowerCase())
+      );
+      setBreedSuggestions(filtered.slice(0, 6));
+      setShowSuggestions(filtered.length > 0);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleBreedSelect = (breed: string) => {
+    setBreedInput(breed);
+    setFormData({ ...formData, breed });
+    setShowSuggestions(false);
+  };
 
   const handleNext = () => {
-    // TODO: Validate form data
-    // Store in context or pass to next step
     navigate("/register-pet/step2", { state: formData });
   };
 
@@ -87,61 +115,62 @@ export function RegisterPetStep1() {
           {/* Species Selection */}
           <div className="flex flex-col w-full">
             <p className="text-slate-800 dark:text-slate-200 text-sm font-semibold pb-3">Especie</p>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, species: "dog" })}
-                className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-colors ${
-                  formData.species === "dog"
-                    ? "border-[#2b7cee] bg-[#2b7cee]/5 dark:bg-[#2b7cee]/10 text-[#2b7cee]"
-                    : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-[#2b7cee]/50"
-                }`}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: "32px" }}>
-                  pets
-                </span>
-                <span className="font-bold">Perro</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, species: "cat" })}
-                className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-colors ${
-                  formData.species === "cat"
-                    ? "border-[#2b7cee] bg-[#2b7cee]/5 dark:bg-[#2b7cee]/10 text-[#2b7cee]"
-                    : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:border-[#2b7cee]/50"
-                }`}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: "32px" }}>
-                  pets
-                </span>
-                <span className="font-bold">Gato</span>
-              </button>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { key: "dog", label: "Perro", icon: "pets" },
+                { key: "cat", label: "Gato", icon: "cruelty_free" },
+                { key: "other", label: "Otro", icon: "more_horiz" },
+              ].map(({ key, label, icon }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    setFormData({ ...formData, species: key as any, breed: "" });
+                    setBreedInput("");
+                    setShowSuggestions(false);
+                  }}
+                  className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-colors ${
+                    formData.species === key
+                      ? "border-[#2b7cee] bg-[#2b7cee]/5 text-[#2b7cee]"
+                      : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                  }`}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: "32px" }}>{icon}</span>
+                  <span className="font-bold text-sm">{label}</span>
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Breed Dropdown */}
-          <label className="flex flex-col w-full">
+          {/* Breed Autocomplete */}
+          <div className="flex flex-col w-full">
             <p className="text-slate-800 dark:text-slate-200 text-sm font-semibold pb-2">Raza</p>
             <div className="relative">
-              <select
-                className="form-select appearance-none flex w-full rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-[#2b7cee]/50 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-14 p-[15px] text-base font-normal transition-all"
-                value={formData.breed}
-                onChange={(e) => setFormData({ ...formData, breed: e.target.value })}
-              >
-                <option disabled value="">
-                  Selecciona una raza
-                </option>
-                <option value="labrador">Labrador Retriever</option>
-                <option value="poodle">Poodle</option>
-                <option value="bulldog">Bulldog</option>
-                <option value="golden">Golden Retriever</option>
-                <option value="other">Otra / Mestizo</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                <span className="material-symbols-outlined">expand_more</span>
-              </div>
+              <input
+                className="form-input flex w-full rounded-xl text-slate-900 dark:text-slate-100 focus:outline-0 focus:ring-2 focus:ring-[#2b7cee]/50 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 h-14 placeholder:text-slate-400 p-[15px] text-base font-normal transition-all"
+                placeholder="Escribí para buscar la raza..."
+                type="text"
+                value={breedInput}
+                onChange={(e) => handleBreedInput(e.target.value)}
+                onFocus={() => breedInput.length >= 1 && setShowSuggestions(true)}
+                autoComplete="off"
+              />
+              {showSuggestions && (
+                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden">
+                  {breedSuggestions.map((breed) => (
+                    <button
+                      key={breed}
+                      type="button"
+                      onMouseDown={() => handleBreedSelect(breed)}
+                      className="w-full text-left px-4 py-3 text-sm text-slate-900 dark:text-white hover:bg-[#2b7cee]/10 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0"
+                    >
+                      {breed}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          </label>
+          </div>
 
           {/* Age Input */}
           <label className="flex flex-col w-full">

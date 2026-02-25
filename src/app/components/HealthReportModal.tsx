@@ -21,7 +21,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import pessyLogo from "figma:asset/e4b9cb13fdb59713820f2da9cb50d2aa5431cc45.png";
+const pessyLogo = "/pessy-logo.png";
 
 interface HealthReportModalProps {
   isOpen: boolean;
@@ -109,6 +109,7 @@ const medicationData = [
 ];
 
 export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
+  if (!isOpen) return null;
   const { activePet } = usePet();
 
   const handleDownloadPDF = () => {
@@ -135,9 +136,9 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
         reportHash: generateReportHash(activePet.name),
         reportShortHash: getShortHash(activePet.name),
         weightData,
-        reportHistory,
-        vaccineData,
-        medicationData,
+        medicalHistory: reportHistory,
+        vaccines: vaccineData,
+        medications: medicationData,
       };
       setReportData(data);
     }
@@ -221,7 +222,7 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                         ID Expediente
                       </p>
                       <p className="text-sm font-mono font-bold">
-                        #PSY-2026-{activePet.name.toUpperCase()}-X92
+                        #PSY-2026-{activePet?.name.toUpperCase()}-X92
                       </p>
                     </div>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -240,7 +241,7 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
               {/* IDENTIFICACIÓN MAESTRA */}
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
                 <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3 mb-6">
-                  <MaterialIcon name="pets" className="text-[#2b6fee] text-lg" />
+                  <MaterialIcon name="ecg_heart" className="text-[#2b6fee] text-lg" />
                   <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-widest">
                     Datos de la Mascota
                   </h4>
@@ -248,18 +249,18 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                 <div className="flex gap-6 items-start">
                   <div className="w-24 h-24 rounded-3xl overflow-hidden ring-4 ring-[#2b6fee]/20 shrink-0 shadow-lg">
                     <img
-                      src={activePet.photo}
-                      alt={activePet.name}
+                      src={activePet?.photo}
+                      alt={activePet?.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="space-y-3 flex-1">
                     <div>
                       <h3 className="text-2xl font-black text-slate-900 dark:text-white leading-tight">
-                        {activePet.name}
+                        {activePet?.name}
                       </h3>
                       <p className="text-sm text-[#2b6fee] font-bold uppercase tracking-tighter">
-                        {activePet.breed}
+                        {activePet?.breed}
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-2">
@@ -449,11 +450,10 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className={`text-[9px] font-black px-2 py-1 rounded-full uppercase ${
-                                vax.status === "Vigente"
-                                  ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
-                                  : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
-                              }`}
+                              className={`text-[9px] font-black px-2 py-1 rounded-full uppercase ${vax.status === "Vigente"
+                                ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                                : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
+                                }`}
                             >
                               {vax.status}
                             </span>
@@ -605,9 +605,9 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
               <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm text-center">
                 <div className="flex justify-center mb-6">
                   <div className="size-20 bg-white rounded-3xl flex items-center justify-center shadow-2xl rotate-3 p-4">
-                    <img 
-                      src={pessyLogo} 
-                      alt="PESSY Logo" 
+                    <img
+                      src={pessyLogo}
+                      alt="PESSY Logo"
                       className="w-full h-full object-contain"
                     />
                   </div>
@@ -616,7 +616,7 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-6 max-w-2xl mx-auto">
                   <p className="text-[9px] text-slate-400 text-center leading-relaxed font-medium uppercase tracking-tighter">
                     Este reporte constituye una recopilación digital de los
-                    eventos médicos de la mascota identificada como {activePet.name}. Los
+                    eventos médicos de la mascota identificada como {activePet?.name}. Los
                     datos aquí contenidos han sido extraídos mediante tecnología OCR y
                     validados por algoritmos de inteligencia artificial. PESSY no se
                     responsabiliza por la veracidad de los documentos físicos originales
@@ -625,7 +625,7 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                 </div>
 
                 <p className="text-[10px] font-bold text-slate-900 dark:text-white uppercase tracking-[0.5em] opacity-20 mt-6">
-                  Fin del Reporte #PSY-2026-{activePet.name.toUpperCase()}
+                  Fin del Reporte #PSY-2026-{activePet?.name.toUpperCase()}
                 </p>
               </div>
             </main>

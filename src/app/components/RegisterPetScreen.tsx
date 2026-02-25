@@ -117,7 +117,7 @@ export function RegisterPetScreen() {
                       />
                     ) : (
                       <MaterialIcon
-                        name="pets"
+                        name="ecg_heart"
                         className="text-5xl text-slate-400"
                       />
                     )}
@@ -163,7 +163,7 @@ export function RegisterPetScreen() {
                         : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
                     }`}
                   >
-                    <MaterialIcon name="pets" className="text-3xl mb-2" />
+                    <MaterialIcon name="ecg_heart" className="text-3xl mb-2" />
                     <p className="font-bold text-sm">Perro</p>
                   </button>
                   <button

@@ -1,18 +1,98 @@
 import { useState } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
+import { usePet } from "../contexts/PetContext";
+import { useMedical } from "../contexts/MedicalContext";
+import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router";
+import { generateHealthSummary } from "../services/geminiService";
 
 interface ExportReportModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type ReportType = "health" | "vaccine" | "treatment" | null;
+type ReportType = "health" | "vaccine" | "treatment";
 
 export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
-  const [selectedReport, setSelectedReport] = useState<ReportType>("health");
-
   if (!isOpen) return null;
+
+  const [selectedReport, setSelectedReport] = useState<ReportType>("health");
+  const [summary, setSummary] = useState<string>("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isSavingReport, setIsSavingReport] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
+  const { user } = useAuth();
+  const { activePet } = usePet();
+  const { getEventsByPetId, saveVerifiedReport } = useMedical();
+  const navigate = useNavigate();
+
+  const handleGenerateReport = async () => {
+    if (!activePet) return;
+
+    setIsGenerating(true);
+    setSummary("");
+
+    try {
+      const events = getEventsByPetId(activePet.id);
+      const eventsSummary = events.map(e => ({
+        type: e.extractedData.documentType,
+        date: e.extractedData.eventDate || e.createdAt,
+        diagnosis: e.extractedData.diagnosis,
+        observations: e.extractedData.observations,
+        medications: e.extractedData.medications
+      }));
+
+      const prompt = `Eres un veterinario experto. Resume el historial médico de ${activePet.name} (${activePet.breed}, ${activePet.age}) para un reporte profesional.
+      
+      Eventos registrados:
+      ${JSON.stringify(eventsSummary, null, 2)}
+      
+      Instrucciones:
+      1. Genera un resumen ejecutivo profesional (máx 500 caracteres).
+      2. Identifica tendencias (mejora, recaídas, estabilidad).
+      3. Destaca medicaciones activas o advertencias.
+      4. Mantén un tono serio y tranquilizador.
+      5. Responde solo con el texto del resumen, sin intros ni otros textos.`;
+
+      const aiText = await generateHealthSummary(prompt);
+
+      setSummary(aiText);
+      setShowPreview(true);
+    } catch (error) {
+      console.error("Error generating summary:", error);
+      setSummary("Error al conectar con la IA de salud. Por favor intenta de nuevo.");
+      setShowPreview(true);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleShareAndVerify = async () => {
+    if (!activePet || !summary) return;
+
+    setIsSavingReport(true);
+    try {
+      const reportData = {
+        petId: activePet.id,
+        petName: activePet.name,
+        petBreed: activePet.breed,
+        ownerName: user?.displayName || user?.email || "Usuario PESSY",
+        summary: summary,
+        type: selectedReport,
+      };
+
+      const reportId = await saveVerifiedReport(reportData);
+      // Navigate to verification screen with the new report ID (using it as hash for now)
+      navigate(`/verify/${reportId}`);
+      onClose();
+    } catch (error) {
+      console.error("Error saving report:", error);
+    } finally {
+      setIsSavingReport(false);
+    }
+  };
 
   const options = [
     {
@@ -92,11 +172,10 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             return (
               <label
                 key={option.id}
-                className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                  isSelected
-                    ? `${option.borderColor} ${option.bgLight}`
-                    : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50"
-                }`}
+                className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected
+                  ? `${option.borderColor} ${option.bgLight}`
+                  : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50"
+                  }`}
               >
                 <input
                   type="radio"
@@ -107,9 +186,8 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
                   className="sr-only"
                 />
                 <div
-                  className={`flex size-10 shrink-0 items-center justify-center rounded-lg text-white ${
-                    isSelected ? option.bgColor : "bg-slate-200 dark:bg-slate-700"
-                  }`}
+                  className={`flex size-10 shrink-0 items-center justify-center rounded-lg text-white ${isSelected ? option.bgColor : "bg-slate-200 dark:bg-slate-700"
+                    }`}
                 >
                   <MaterialIcon
                     name={option.icon}
@@ -125,17 +203,15 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
                   </p>
                 </div>
                 <div
-                  className={`size-5 rounded-full border-2 flex items-center justify-center ${
-                    isSelected
-                      ? `${option.borderColor}`
-                      : "border-slate-300 dark:border-slate-600"
-                  }`}
+                  className={`size-5 rounded-full border-2 flex items-center justify-center ${isSelected
+                    ? `${option.borderColor}`
+                    : "border-slate-300 dark:border-slate-600"
+                    }`}
                 >
                   {isSelected && (
                     <div
-                      className={`size-2.5 rounded-full ${
-                        option.id === "health" ? "bg-[#2b6fee]" : "bg-slate-400"
-                      }`}
+                      className={`size-2.5 rounded-full ${option.id === "health" ? "bg-[#2b6fee]" : "bg-slate-400"
+                        }`}
                     ></div>
                   )}
                 </div>
@@ -147,16 +223,74 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         {/* Footer Action */}
         <div className="px-5 pb-8 pt-2 border-t border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2 mb-4 justify-center">
-            <MaterialIcon name="info" className="text-[#2b6fee] dark:text-[#5a8aff] text-sm" />
+            <MaterialIcon name="auto_awesome" className="text-[#2b6fee] dark:text-[#5a8aff] text-sm" />
             <p className="text-[11px] text-slate-500 dark:text-slate-400 italic">
-              Los documentos se generan automáticamente basados en datos validados por IA
+              Gemini AI analizará el historial para generar un resumen ejecutivo
             </p>
           </div>
-          <button className="w-full flex items-center justify-center gap-2 rounded-xl h-14 bg-[#2b6fee] text-white font-bold text-base shadow-lg shadow-[#2b6fee]/25 active:scale-95 transition-transform hover:bg-[#5a8aff]">
-            <MaterialIcon name="ios_share" />
-            Generar y Compartir
+          <button
+            onClick={handleGenerateReport}
+            disabled={isGenerating}
+            className="w-full flex items-center justify-center gap-2 rounded-xl h-14 bg-[#2b6fee] text-white font-bold text-base shadow-lg shadow-[#2b6fee]/25 active:scale-95 transition-transform hover:bg-[#5a8aff] disabled:opacity-50"
+          >
+            {isGenerating ? (
+              <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <MaterialIcon name="psychology" />
+            )}
+            {isGenerating ? "Analizando Historial..." : "Analizar con IA y Compartir"}
           </button>
         </div>
+
+        {/* AI Summary Preview Overlay */}
+        <AnimatePresence>
+          {showPreview && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="absolute inset-0 z-[60] bg-white dark:bg-slate-900 p-6 flex flex-col"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <MaterialIcon name="auto_awesome" className="text-[#2b6fee]" />
+                  <h3 className="font-black text-slate-900 dark:text-white">Resumen de IA Generado</h3>
+                </div>
+                <button onClick={() => setShowPreview(false)}>
+                  <MaterialIcon name="close" className="text-slate-400" />
+                </button>
+              </div>
+
+              <div className="flex-1 bg-slate-50 dark:bg-slate-800 rounded-2xl p-4 overflow-y-auto mb-6">
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                  {summary}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  onClick={handleShareAndVerify}
+                  disabled={isSavingReport}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl h-14 bg-emerald-500 text-white font-bold text-base shadow-lg shadow-emerald-500/25 active:scale-95 transition-transform disabled:opacity-50"
+                >
+                  {isSavingReport ? (
+                    <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <MaterialIcon name="verified" />
+                  )}
+                  {isSavingReport ? "Certificando..." : "Certificar y Ver Reporte"}
+                </button>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  disabled={isSavingReport}
+                  className="w-full h-12 text-slate-500 font-bold text-sm"
+                >
+                  Regresar
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </>
   );

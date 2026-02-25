@@ -1,5 +1,4 @@
 import { createBrowserRouter } from "react-router";
-import { SplashScreen } from "./components/SplashScreen";
 import { WelcomeScreen } from "./components/WelcomeScreen";
 import { OnboardingWelcomeScreen } from "./components/OnboardingWelcomeScreen";
 import { RegisterUserScreen } from "./components/RegisterUserScreen";
@@ -13,7 +12,7 @@ import { VerifyReportScreen } from "./components/VerifyReportScreen";
 export const router = createBrowserRouter([
   {
     path: "/",
-    Component: SplashScreen,
+    Component: WelcomeScreen,
   },
   {
     path: "/welcome",

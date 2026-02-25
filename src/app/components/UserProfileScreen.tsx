@@ -8,58 +8,50 @@ import { PrivacySecurityScreen } from "./PrivacySecurityScreen";
 import { AppearanceScreen } from "./AppearanceScreen";
 import { HelpSupportScreen } from "./HelpSupportScreen";
 import { AboutScreen } from "./AboutScreen";
+import { useAuth } from "../contexts/AuthContext";
+import { usePet } from "../contexts/PetContext";
+import { useMedical } from "../contexts/MedicalContext";
 
 interface UserProfileScreenProps {
   onBack: () => void;
 }
 
-type SubScreen = 
-  | "main" 
-  | "personal-info" 
-  | "notifications" 
-  | "privacy" 
-  | "appearance" 
-  | "help" 
+type SubScreen =
+  | "main"
+  | "personal-info"
+  | "notifications"
+  | "privacy"
+  | "appearance"
+  | "help"
   | "about";
 
 export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
   const [currentScreen, setCurrentScreen] = useState<SubScreen>("main");
-  
-  // Mock user data - en producción vendría del backend
-  const userData = (() => {
-    const stored = localStorage.getItem("pessy_user_info");
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      return {
-        name: parsed.name || "Diego",
-        email: parsed.email || "diego@email.com",
-        phone: parsed.phone || "+54 11 1234-5678",
-        photo: parsed.photo || "",
-        verified: true,
-        petsCount: 2,
-        recordsCount: 48,
-        daysActive: 127,
-      };
-    }
-    return {
-      name: "Diego",
-      email: "diego@email.com",
-      phone: "+54 11 1234-5678",
-      photo: "",
-      verified: true,
-      petsCount: 2,
-      recordsCount: 48,
-      daysActive: 127,
-    };
-  })();
-
+  const { user, logout } = useAuth();
+  const { pets } = usePet();
+  const { events } = useMedical();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    // Clear all data
-    localStorage.clear();
-    // Navigate to welcome
-    navigate("/welcome");
+  // Real user data from context
+  const userData = {
+    name: user?.displayName || user?.email?.split('@')[0] || "Usuario",
+    email: user?.email || "",
+    phone: user?.phoneNumber || "",
+    photo: user?.photoURL || "",
+    verified: user?.emailVerified || false,
+    petsCount: pets.length,
+    recordsCount: events.length,
+    daysActive: user?.metadata.creationTime ?
+      Math.floor((new Date().getTime() - new Date(user.metadata.creationTime).getTime()) / (1000 * 60 * 60 * 24)) : 0,
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/welcome");
+    } catch (error) {
+      console.error("Scale logut error:", error);
+    }
   };
 
   const menuItems = [

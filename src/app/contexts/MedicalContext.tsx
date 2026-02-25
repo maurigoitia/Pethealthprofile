@@ -1,140 +1,143 @@
-// ============================================================================
-// PESSY - Medical Events Context
-// Maneja todos los eventos médicos, pendientes, y medicaciones
-// ============================================================================
-
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { db } from "../../lib/firebase";
+import { collection, query, where, onSnapshot, addDoc, updateDoc, doc, setDoc } from "firebase/firestore";
+import { usePet } from "./PetContext";
 import {
   MedicalEvent,
   PendingAction,
   ActiveMedication,
   MonthSummary,
   DocumentType,
+  Appointment,
 } from "../types/medical";
 
 interface MedicalContextType {
-  // Eventos médicos
   events: MedicalEvent[];
-  addEvent: (event: MedicalEvent) => void;
-  updateEvent: (id: string, updates: Partial<MedicalEvent>) => void;
+  addEvent: (event: MedicalEvent) => Promise<void>;
+  updateEvent: (id: string, updates: Partial<MedicalEvent>) => Promise<void>;
   getEventsByPetId: (petId: string) => MedicalEvent[];
-  
-  // Pendientes
+
   pendingActions: PendingAction[];
-  addPendingAction: (action: PendingAction) => void;
-  completePendingAction: (id: string) => void;
+  addPendingAction: (action: PendingAction) => Promise<void>;
+  completePendingAction: (id: string) => Promise<void>;
   getPendingActionsByPetId: (petId: string) => PendingAction[];
-  
-  // Medicaciones activas
+
   activeMedications: ActiveMedication[];
-  addMedication: (medication: ActiveMedication) => void;
-  deactivateMedication: (id: string) => void;
+  addMedication: (medication: ActiveMedication) => Promise<void>;
+  deactivateMedication: (id: string) => Promise<void>;
   getActiveMedicationsByPetId: (petId: string) => ActiveMedication[];
-  
-  // Resumen del mes
+
   getMonthSummary: (petId: string, month: Date) => MonthSummary;
+  saveVerifiedReport: (report: any) => Promise<string>;
+
+  appointments: Appointment[];
+  addAppointment: (appointment: Appointment) => Promise<void>;
+  updateAppointment: (id: string, updates: Partial<Appointment>) => Promise<void>;
+  getAppointmentsByPetId: (petId: string) => Appointment[];
 }
 
 const MedicalContext = createContext<MedicalContextType | undefined>(undefined);
 
 export function MedicalProvider({ children }: { children: ReactNode }) {
-  // Estado persistido en localStorage
-  const [events, setEvents] = useState<MedicalEvent[]>(() => {
-    const stored = localStorage.getItem("pessy_medical_events");
-    return stored ? JSON.parse(stored) : [];
-  });
+  const { activePet } = usePet();
+  const [events, setEvents] = useState<MedicalEvent[]>([]);
+  const [pendingActions, setPendingActions] = useState<PendingAction[]>([]);
+  const [activeMedications, setActiveMedications] = useState<ActiveMedication[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
 
-  const [pendingActions, setPendingActions] = useState<PendingAction[]>(() => {
-    const stored = localStorage.getItem("pessy_pending_actions");
-    return stored ? JSON.parse(stored) : [];
-  });
-
-  const [activeMedications, setActiveMedications] = useState<ActiveMedication[]>(() => {
-    const stored = localStorage.getItem("pessy_active_medications");
-    return stored ? JSON.parse(stored) : [];
-  });
-
-  // Persistir cambios
+  // 1. Sync Events
   useEffect(() => {
-    localStorage.setItem("pessy_medical_events", JSON.stringify(events));
-  }, [events]);
+    if (!activePet) {
+      setEvents([]);
+      return;
+    }
+    const q = query(collection(db, "medical_events"), where("petId", "==", activePet.id));
+    return onSnapshot(q, (snapshot) => {
+      setEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as MedicalEvent)));
+    });
+  }, [activePet]);
 
+  // 2. Sync Pending Actions
   useEffect(() => {
-    localStorage.setItem("pessy_pending_actions", JSON.stringify(pendingActions));
-  }, [pendingActions]);
+    if (!activePet) {
+      setPendingActions([]);
+      return;
+    }
+    const q = query(collection(db, "pending_actions"), where("petId", "==", activePet.id));
+    return onSnapshot(q, (snapshot) => {
+      setPendingActions(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as PendingAction)));
+    });
+  }, [activePet]);
 
+  // 3. Sync Medications
   useEffect(() => {
-    localStorage.setItem("pessy_active_medications", JSON.stringify(activeMedications));
-  }, [activeMedications]);
+    if (!activePet) {
+      setActiveMedications([]);
+      return;
+    }
+    const q = query(collection(db, "medications"), where("petId", "==", activePet.id));
+    return onSnapshot(q, (snapshot) => {
+      setActiveMedications(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ActiveMedication)));
+    });
+  }, [activePet]);
 
-  // ============================================================================
-  // EVENTOS MÉDICOS
-  // ============================================================================
-  
-  const addEvent = (event: MedicalEvent) => {
-    setEvents((prev) => [event, ...prev]);
+  // 4. Sync Appointments
+  useEffect(() => {
+    if (!activePet) {
+      setAppointments([]);
+      return;
+    }
+    const q = query(collection(db, "appointments"), where("petId", "==", activePet.id));
+    return onSnapshot(q, (snapshot) => {
+      setAppointments(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Appointment)));
+    });
+  }, [activePet]);
+
+  const addEvent = async (event: MedicalEvent) => {
+    const { id, ...data } = event;
+    const docRef = id ? doc(db, "medical_events", id) : doc(collection(db, "medical_events"));
+    await setDoc(docRef, data);
   };
 
-  const updateEvent = (id: string, updates: Partial<MedicalEvent>) => {
-    setEvents((prev) =>
-      prev.map((event) =>
-        event.id === id ? { ...event, ...updates, updatedAt: new Date().toISOString() } : event
-      )
-    );
+  const updateEvent = async (id: string, updates: Partial<MedicalEvent>) => {
+    const ref = doc(db, "medical_events", id);
+    await updateDoc(ref, updates);
   };
 
   const getEventsByPetId = (petId: string) => {
-    return events
-      .filter((event) => event.petId === petId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return events.filter(e => e.petId === petId).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   };
 
-  // ============================================================================
-  // PENDIENTES
-  // ============================================================================
-  
-  const addPendingAction = (action: PendingAction) => {
-    setPendingActions((prev) => [action, ...prev]);
+  const addPendingAction = async (action: PendingAction) => {
+    const { id, ...data } = action;
+    const docRef = id ? doc(db, "pending_actions", id) : doc(collection(db, "pending_actions"));
+    await setDoc(docRef, data);
   };
 
-  const completePendingAction = (id: string) => {
-    setPendingActions((prev) =>
-      prev.map((action) =>
-        action.id === id
-          ? { ...action, completed: true, completedAt: new Date().toISOString() }
-          : action
-      )
-    );
+  const completePendingAction = async (id: string) => {
+    const ref = doc(db, "pending_actions", id);
+    await updateDoc(ref, { completed: true, completedAt: new Date().toISOString() });
   };
 
   const getPendingActionsByPetId = (petId: string) => {
-    return pendingActions
-      .filter((action) => action.petId === petId && !action.completed)
-      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+    return pendingActions.filter(a => a.petId === petId && !a.completed);
   };
 
-  // ============================================================================
-  // MEDICACIONES
-  // ============================================================================
-  
-  const addMedication = (medication: ActiveMedication) => {
-    setActiveMedications((prev) => [medication, ...prev]);
+  const addMedication = async (medication: ActiveMedication) => {
+    const { id, ...data } = medication;
+    const docRef = id ? doc(db, "medications", id) : doc(collection(db, "medications"));
+    await setDoc(docRef, data);
   };
 
-  const deactivateMedication = (id: string) => {
-    setActiveMedications((prev) =>
-      prev.map((med) => (med.id === id ? { ...med, active: false } : med))
-    );
+  const deactivateMedication = async (id: string) => {
+    const ref = doc(db, "medications", id);
+    await updateDoc(ref, { active: false });
   };
 
   const getActiveMedicationsByPetId = (petId: string) => {
-    return activeMedications.filter((med) => med.petId === petId && med.active);
+    return activeMedications.filter(m => m.petId === petId && m.active);
   };
 
-  // ============================================================================
-  // RESUMEN DEL MES
-  // ============================================================================
-  
   const getMonthSummary = (petId: string, month: Date): MonthSummary => {
     const startOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
     const endOfMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0);
@@ -145,15 +148,8 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     });
 
     const eventsByType: Record<DocumentType, number> = {
-      vaccine: 0,
-      lab_test: 0,
-      xray: 0,
-      echocardiogram: 0,
-      electrocardiogram: 0,
-      surgery: 0,
-      medication: 0,
-      checkup: 0,
-      other: 0,
+      vaccine: 0, lab_test: 0, xray: 0, echocardiogram: 0, electrocardiogram: 0,
+      surgery: 0, medication: 0, checkup: 0, other: 0,
     };
 
     petEvents.forEach((event) => {
@@ -168,7 +164,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       return completedDate >= startOfMonth && completedDate <= endOfMonth;
     });
 
-    const monthName = month.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
+    const monthName = month.toLocaleDateString("es-ES", { month: "long" });
 
     return {
       month: monthName.charAt(0).toUpperCase() + monthName.slice(1),
@@ -180,22 +176,39 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     };
   };
 
+  const saveVerifiedReport = async (report: any) => {
+    const docRef = await addDoc(collection(db, "verified_reports"), {
+      ...report,
+      generatedAt: new Date().toISOString(),
+    });
+    return docRef.id;
+  };
+
+  const addAppointment = async (appointment: Appointment) => {
+    const { id, ...data } = appointment;
+    const docRef = id ? doc(db, "appointments", id) : doc(collection(db, "appointments"));
+    await setDoc(docRef, data);
+  };
+
+  const updateAppointment = async (id: string, updates: Partial<Appointment>) => {
+    const ref = doc(db, "appointments", id);
+    await updateDoc(ref, updates);
+  };
+
+  const getAppointmentsByPetId = (petId: string) => {
+    return appointments
+      .filter(a => a.petId === petId)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  };
+
   return (
     <MedicalContext.Provider
       value={{
-        events,
-        addEvent,
-        updateEvent,
-        getEventsByPetId,
-        pendingActions,
-        addPendingAction,
-        completePendingAction,
-        getPendingActionsByPetId,
-        activeMedications,
-        addMedication,
-        deactivateMedication,
-        getActiveMedicationsByPetId,
-        getMonthSummary,
+        events, addEvent, updateEvent, getEventsByPetId,
+        pendingActions, addPendingAction, completePendingAction, getPendingActionsByPetId,
+        activeMedications, addMedication, deactivateMedication, getActiveMedicationsByPetId,
+        getMonthSummary, saveVerifiedReport,
+        appointments, addAppointment, updateAppointment, getAppointmentsByPetId,
       }}
     >
       {children}
@@ -205,8 +218,6 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
 
 export function useMedical() {
   const context = useContext(MedicalContext);
-  if (!context) {
-    throw new Error("useMedical must be used within MedicalProvider");
-  }
+  if (!context) throw new Error("useMedical must be used within MedicalProvider");
   return context;
 }

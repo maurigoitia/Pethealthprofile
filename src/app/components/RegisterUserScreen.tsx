@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { motion } from "motion/react";
+import { auth, db } from "../../lib/firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 
 export function RegisterUserScreen() {
   const navigate = useNavigate();
@@ -11,6 +14,8 @@ export function RegisterUserScreen() {
     confirmPassword: "",
   });
 
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({
     email: "",
     confirmPassword: "",
@@ -37,11 +42,34 @@ export function RegisterUserScreen() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement user registration logic
-    // For now, navigate to pet registration
-    navigate("/register-pet");
+    if (formData.password !== formData.confirmPassword) {
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const user = userCredential.user;
+
+      // Create user profile in Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        fullName: formData.fullName,
+        email: formData.email,
+        createdAt: new Date().toISOString(),
+      });
+
+      navigate("/register-pet");
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Error al crear la cuenta.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isEmailValid = formData.email && validateEmail(formData.email);
@@ -123,11 +151,10 @@ export function RegisterUserScreen() {
                 <span className="material-symbols-outlined text-slate-400 text-sm">email</span>
               </div>
               <input
-                className={`block w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border ${
-                  isEmailValid
+                className={`block w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800 border ${isEmailValid
                     ? "border-[#2b7cee]/50 dark:border-[#2b7cee]/50"
                     : "border-slate-300 dark:border-slate-700"
-                } rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-[#2b7cee] focus:border-[#2b7cee] transition-all text-sm`}
+                  } rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-[#2b7cee] focus:border-[#2b7cee] transition-all text-sm`}
                 id="email"
                 name="email"
                 type="email"
@@ -178,11 +205,10 @@ export function RegisterUserScreen() {
                 <span className="material-symbols-outlined text-slate-400 text-sm">verified_user</span>
               </div>
               <input
-                className={`block w-full pl-10 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border ${
-                  errors.confirmPassword
+                className={`block w-full pl-10 pr-3 py-2.5 bg-slate-50 dark:bg-slate-800 border ${errors.confirmPassword
                     ? "border-red-300 dark:border-red-900/50"
                     : "border-slate-300 dark:border-slate-700"
-                } rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-[#2b7cee] focus:border-[#2b7cee] transition-all text-sm`}
+                  } rounded-lg text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-[#2b7cee] focus:border-[#2b7cee] transition-all text-sm`}
                 id="confirm-password"
                 name="confirm-password"
                 placeholder="••••••••"
