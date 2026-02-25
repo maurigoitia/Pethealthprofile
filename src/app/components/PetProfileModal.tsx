@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
 import { useState, useRef, useMemo } from "react";
 import { VaccinationCardModal } from "./VaccinationCardModal";
+import { CoTutorModal } from "./CoTutorModal";
 import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -29,6 +30,7 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [showVaccinationCard, setShowVaccinationCard] = useState(false);
+  const [showCoTutorModal, setShowCoTutorModal] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -38,7 +40,7 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
   const [breedSuggestions, setBreedSuggestions] = useState<string[]>([]);
   const [showBreedSuggestions, setShowBreedSuggestions] = useState(false);
 
-  const { activePet, updatePet } = usePet();
+  const { activePet, updatePet, isOwner } = usePet();
   const { user } = useAuth();
 
   const getBreedList = () => {
@@ -323,6 +325,12 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                     <MaterialIcon name="edit" className="text-xl" />
                     Editar Perfil
                   </button>
+
+                  <button onClick={() => setShowCoTutorModal(true)}
+                    className="w-full py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold flex items-center justify-center gap-2">
+                    <MaterialIcon name="group" className="text-xl" />
+                    {activePet && isOwner(activePet) ? "Gestionar co-tutores" : "Mi acceso como co-tutor"}
+                  </button>
                 </div>
               )}
 
@@ -505,6 +513,11 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
               photo,
             }}
             vaccines={vaccines}
+          />
+
+          <CoTutorModal
+            isOpen={showCoTutorModal}
+            onClose={() => setShowCoTutorModal(false)}
           />
         </>
       )}

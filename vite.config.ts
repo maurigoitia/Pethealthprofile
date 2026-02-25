@@ -4,7 +4,12 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const buildId = new Date().toISOString()
+
 export default defineConfig({
+  define: {
+    __PESSY_BUILD_ID__: JSON.stringify(buildId),
+  },
   plugins: [
     react(),
     tailwindcss(),
@@ -44,6 +49,9 @@ export default defineConfig({
         ]
       },
       workbox: {
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
