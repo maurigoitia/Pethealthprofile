@@ -5,11 +5,11 @@ import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
 import { useAuth } from "../contexts/AuthContext";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
 import { storage } from "../../lib/firebase";
 import { extractMedicalData } from "../services/analysisService";
 import { NotificationService } from "../services/notificationService";
 import { MedicalEvent, PendingAction, ActiveMedication } from "../types/medical";
+import { buildEventDedupKey } from "../utils/deduplication";
 
 interface DocumentScannerModalProps {
   isOpen: boolean;
@@ -24,22 +24,13 @@ export function DocumentScannerModal({
 }: DocumentScannerModalProps) {
   const { user } = useAuth();
   const { activePet } = usePet();
-  const { addEvent, addPendingAction, addMedication } = useMedical();
+  const { addEvent, addPendingAction, addMedication, getEventsByPetId } = useMedical();
 
   const [uploadStage, setUploadStage] = useState<UploadStage>("select");
   const [fileName, setFileName] = useState<string>("");
   const [processingStatus, setProcessingStatus] = useState<string>("Iniciando...");
   const [extractedType, setExtractedType] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve((reader.result as string).split(",")[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
 
   const parseDurationToEndDate = (duration: string | null | undefined, startDateIso: string): string | null => {
     if (!duration) return null;
@@ -75,6 +66,14 @@ export function DocumentScannerModal({
     fileInputRef.current?.click();
   };
 
+  const hashFile = async (file: File): Promise<string> => {
+    const bytes = await file.arrayBuffer();
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest))
+      .map((value) => value.toString(16).padStart(2, "0"))
+      .join("");
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -86,10 +85,21 @@ export function DocumentScannerModal({
     }
 
     const currentFileName = file.name;
-    setFileName(currentFileName);
-    setUploadStage("processing");
-
     try {
+      setFileName(currentFileName);
+      setUploadStage("processing");
+
+      setProcessingStatus("Verificando duplicados...");
+      const fileHash = await hashFile(file);
+      const existingEvents = getEventsByPetId(activePet.id);
+      const duplicated = existingEvents.find((event) => event.fileHash && event.fileHash === fileHash);
+
+      if (duplicated) {
+        setUploadStage("error");
+        setProcessingStatus("Documento duplicado: ya existe en el historial. Se canceló para evitar doble costo.");
+        return;
+      }
+
       // Subida y extracción en paralelo para reducir tiempo total.
       setProcessingStatus("Procesando documento...");
       const storagePath = `documents/${user?.uid || "anonymous"}/${Date.now()}_${currentFileName}`;
@@ -134,11 +144,15 @@ export function DocumentScannerModal({
         ocrProcessed: true,
         aiProcessed: true,
         extractedData: aiData,
+        fileHash,
+        dedupKey: "",
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         relatedEventIds: [],
         aiSuggestedRelation: null,
       };
+
+      newEvent.dedupKey = buildEventDedupKey(newEvent);
 
       await addEvent(newEvent);
 

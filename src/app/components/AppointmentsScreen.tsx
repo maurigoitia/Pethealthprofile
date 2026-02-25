@@ -5,6 +5,7 @@ import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
 import { AddAppointmentModal } from "./AddAppointmentModal";
 import { Appointment } from "../types/medical";
+import { dedupeAppointments } from "../utils/deduplication";
 
 interface AppointmentsScreenProps {
   onBack: () => void;
@@ -79,7 +80,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
         }];
       });
 
-    return [...persistedAppointments, ...timelineDerivedAppointments]
+    return dedupeAppointments([...persistedAppointments, ...timelineDerivedAppointments])
       .sort((a, b) => getAppointmentTimestamp(a) - getAppointmentTimestamp(b));
   }, [activePetId, getAppointmentsByPetId, getEventsByPetId]);
 

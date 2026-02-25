@@ -11,6 +11,15 @@ import {
   DocumentType,
   Appointment,
 } from "../types/medical";
+import {
+  buildEventDedupKey,
+  buildMedicationDedupKey,
+  buildPendingActionDedupKey,
+  dedupeAppointments,
+  dedupeEvents,
+  dedupeMedications,
+  dedupePendingActions,
+} from "../utils/deduplication";
 
 interface MedicalContextType {
   events: MedicalEvent[];
@@ -146,6 +155,12 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   }, [activePet]);
 
   const addEvent = async (event: MedicalEvent) => {
+    const eventKey = buildEventDedupKey(event);
+    const alreadyExists = events.some(
+      (existing) => existing.petId === event.petId && buildEventDedupKey(existing) === eventKey
+    );
+    if (alreadyExists) return;
+
     const { id, ...data } = event;
     const docRef = id ? doc(db, "medical_events", id) : doc(collection(db, "medical_events"));
     const payload = {
@@ -177,7 +192,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   };
 
   const getEventsByPetId = (petId: string) => {
-    return events.filter(e => e.petId === petId).sort((a, b) => {
+    return dedupeEvents(events.filter(e => e.petId === petId)).sort((a, b) => {
       // Ordenar por fecha del documento (eventDate), si no existe usar createdAt (fecha de escaneo)
       const dateA = a.extractedData?.eventDate || a.createdAt;
       const dateB = b.extractedData?.eventDate || b.createdAt;
@@ -186,6 +201,15 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   };
 
   const addPendingAction = async (action: PendingAction) => {
+    const actionKey = buildPendingActionDedupKey(action);
+    const pendingDuplicate = pendingActions.some(
+      (existing) =>
+        existing.petId === action.petId &&
+        !existing.completed &&
+        buildPendingActionDedupKey(existing) === actionKey
+    );
+    if (pendingDuplicate) return;
+
     const { id, ...data } = action;
     const docRef = id ? doc(db, "pending_actions", id) : doc(collection(db, "pending_actions"));
     await setDoc(docRef, {
@@ -200,10 +224,20 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   };
 
   const getPendingActionsByPetId = (petId: string) => {
-    return pendingActions.filter(a => a.petId === petId && !a.completed);
+    return dedupePendingActions(pendingActions.filter(a => a.petId === petId && !a.completed))
+      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
   };
 
   const addMedication = async (medication: ActiveMedication) => {
+    const medicationKey = buildMedicationDedupKey(medication);
+    const activeDuplicate = activeMedications.some(
+      (existing) =>
+        existing.petId === medication.petId &&
+        existing.active &&
+        buildMedicationDedupKey(existing) === medicationKey
+    );
+    if (activeDuplicate) return;
+
     const { id, ...data } = medication;
     const docRef = id ? doc(db, "medications", id) : doc(collection(db, "medications"));
     await setDoc(docRef, {
@@ -218,14 +252,14 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   };
 
   const getActiveMedicationsByPetId = (petId: string) => {
-    return activeMedications.filter(m => m.petId === petId && m.active);
+    return dedupeMedications(activeMedications.filter(m => m.petId === petId && m.active));
   };
 
   const getMonthSummary = (petId: string, month: Date): MonthSummary => {
     const startOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
     const endOfMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0);
 
-    const petEvents = events.filter((event) => {
+    const petEvents = getEventsByPetId(petId).filter((event) => {
       const eventDate = new Date(event.extractedData?.eventDate || event.createdAt);
       return event.petId === petId && eventDate >= startOfMonth && eventDate <= endOfMonth;
     });
@@ -240,7 +274,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       eventsByType[type] = (eventsByType[type] || 0) + 1;
     });
 
-    const petPendingActions = pendingActions.filter((action) => action.petId === petId);
+    const petPendingActions = dedupePendingActions(pendingActions.filter((action) => action.petId === petId));
     const completedThisMonth = petPendingActions.filter((action) => {
       if (!action.completedAt) return false;
       const completedDate = new Date(action.completedAt);
@@ -291,8 +325,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       return new Date(appointment.createdAt || 0).getTime();
     };
 
-    return appointments
-      .filter(a => a.petId === petId)
+    return dedupeAppointments(appointments.filter(a => a.petId === petId))
       .sort((a, b) => toTimestamp(a) - toTimestamp(b));
   };
 

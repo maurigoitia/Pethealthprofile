@@ -97,6 +97,8 @@ export interface MedicalEvent {
   // Metadatos
   ocrProcessed: boolean;
   aiProcessed: boolean;
+  fileHash?: string;
+  dedupKey?: string;
   createdAt: string; // ISO 8601
   updatedAt: string; // ISO 8601
 

@@ -34,14 +34,7 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
     return dateB - dateA; // más reciente primero
   });
 
-  // Detectar duplicados: mismo fileName + documentType
-  const seenKeys = new Set<string>();
-  const medicalEvents = sortedEvents.map(event => {
-    const key = `${event.fileName?.toLowerCase().trim()}_${event.extractedData.documentType}`;
-    const isDuplicate = seenKeys.has(key);
-    if (!isDuplicate) seenKeys.add(key);
-    return { ...event, isDuplicate };
-  });
+  const medicalEvents = sortedEvents;
 
   const displayedEvents = showAll ? medicalEvents : medicalEvents.slice(0, 6);
 
@@ -304,8 +297,6 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
             const isExpanded = expandedEvent === event.id;
             const styling = getEventTypeInfo(event.extractedData.documentType, event.status);
             const details = getEventDetails(event);
-            const isDuplicate = (event as any).isDuplicate;
-
             return (
               <motion.div
                 key={event.id}
@@ -333,11 +324,6 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
                         {formatTimestamp(event)}
                       </span>
                       <div className="flex items-center gap-1">
-                        {isDuplicate && (
-                          <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-amber-100 text-amber-600 uppercase tracking-wider">
-                            DUPLICADO
-                          </span>
-                        )}
                         {event.status === "processing" && (
                           <span className="flex h-2 w-2 rounded-full bg-[#2b7cee] animate-pulse" />
                         )}
@@ -403,12 +389,6 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
                                 Ver documento original
                               </a>
                             </div>
-                          )}
-
-                          {isDuplicate && (
-                            <p className="text-[10px] text-amber-600 text-center pt-1 font-medium">
-                              ⚠️ Este documento parece estar duplicado
-                            </p>
                           )}
 
                           <div className="pt-1">
