@@ -27,9 +27,16 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
   // Get real events from context
   const allEvents = getEventsByPetId(activePetId);
 
+  // Ordenar por fecha del documento (eventDate), si no existe usa createdAt (fecha de escaneo)
+  const sortedEvents = [...allEvents].sort((a, b) => {
+    const dateA = new Date(a.extractedData?.eventDate || a.createdAt).getTime();
+    const dateB = new Date(b.extractedData?.eventDate || b.createdAt).getTime();
+    return dateB - dateA; // más reciente primero
+  });
+
   // Detectar duplicados: mismo fileName + documentType
   const seenKeys = new Set<string>();
-  const medicalEvents = allEvents.map(event => {
+  const medicalEvents = sortedEvents.map(event => {
     const key = `${event.fileName?.toLowerCase().trim()}_${event.extractedData.documentType}`;
     const isDuplicate = seenKeys.has(key);
     if (!isDuplicate) seenKeys.add(key);
@@ -116,22 +123,26 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
     }
   };
 
-  // Format timestamp
-  const formatTimestamp = (isoDate: string) => {
-    const date = new Date(isoDate);
+  // Format timestamp — usa eventDate del documento, si no existe usa createdAt (fecha de escaneo)
+  const formatTimestamp = (event: MedicalEvent) => {
+    const dateStr = event.extractedData?.eventDate || event.createdAt;
+    const date = new Date(dateStr);
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
+    const isFromScan = !event.extractedData?.eventDate;
 
+    let formatted = "";
     if (isToday) {
-      return `HOY, ${date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
+      formatted = `HOY, ${date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
+    } else {
+      formatted = date.toLocaleDateString("es-ES", {
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+      }).toUpperCase();
     }
 
-    return date.toLocaleDateString("es-ES", {
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit"
-    }).toUpperCase();
+    return isFromScan ? `${formatted} ·  ESCANEO` : formatted;
   };
 
   // Get title based on event
@@ -319,7 +330,7 @@ export function Timeline({ activePet: activePetProp, onExportReport }: TimelineP
                   <div className="p-3">
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        {formatTimestamp(event.createdAt)}
+                        {formatTimestamp(event)}
                       </span>
                       <div className="flex items-center gap-1">
                         {isDuplicate && (

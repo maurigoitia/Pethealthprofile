@@ -50,7 +50,7 @@ export function SplashScreen() {
           <img
             src="/pessy-logo.png"
             alt="PESSY"
-            className="size-36 object-contain drop-shadow-2xl"
+            className="size-36 object-contain drop-shadow-2xl dark:brightness-0 dark:invert"
           />
         </motion.div>
 

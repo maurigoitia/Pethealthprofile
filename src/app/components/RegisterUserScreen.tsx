@@ -59,10 +59,13 @@ export function RegisterUserScreen() {
       // Create user profile in Firestore
       await setDoc(doc(db, "users", user.uid), {
         fullName: formData.fullName,
+        name: formData.fullName,
         email: formData.email,
         createdAt: new Date().toISOString(),
       });
 
+      // Pequeña espera para que onAuthStateChanged propague antes de navegar
+      await new Promise(resolve => setTimeout(resolve, 500));
       navigate("/register-pet");
     } catch (err: any) {
       console.error(err);

@@ -49,7 +49,7 @@ export function VerifyReportScreen() {
           </Link>
 
           <div className="flex items-center gap-4 mb-4">
-            <div className="size-14 bg-[#2b7cee] text-white rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg">
+            <div className="size-14 bg-[#2b7cee] dark:bg-white/10 text-white dark:text-white rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg transition-colors">
               P
             </div>
             <div>

@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { VaccinationCardModal } from "./VaccinationCardModal";
 import { usePet } from "../contexts/PetContext";
+import { useMedical } from "../contexts/MedicalContext";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
@@ -129,7 +130,33 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
     }
   };
 
-  const vaccines: Vaccine[] = [];
+  const { getEventsByPetId } = useMedical();
+
+  // Vacunas reales desde medical_events procesados
+  const vaccines = useMemo(() => {
+    if (!activePet?.id) return [];
+    return getEventsByPetId(activePet.id)
+      .filter((e) => e.extractedData.documentType === "vaccine" && e.status === "completed")
+      .map((e, idx) => ({
+        id: idx,
+        name: e.extractedData.diagnosis || e.extractedData.aiGeneratedSummary || "Vacuna",
+        date: e.extractedData.eventDate
+          ? new Date(e.extractedData.eventDate).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
+          : new Date(e.createdAt).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }),
+        nextDue: e.extractedData.nextAppointmentDate
+          ? new Date(e.extractedData.nextAppointmentDate).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
+          : "No especificada",
+        veterinarian: e.extractedData.provider || "Profesional no especificado",
+        status: (() => {
+          if (!e.extractedData.nextAppointmentDate) return "current" as const;
+          const next = new Date(e.extractedData.nextAppointmentDate);
+          const diff = (next.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
+          if (diff < 0) return "overdue" as const;
+          if (diff < 30) return "due-soon" as const;
+          return "current" as const;
+        })(),
+      }));
+  }, [activePet?.id, getEventsByPetId]);
 
   const getStatusColor = (status: Vaccine["status"]) => {
     if (status === "current") return "bg-emerald-500";

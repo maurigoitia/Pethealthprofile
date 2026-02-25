@@ -608,7 +608,7 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                     <img
                       src={pessyLogo}
                       alt="PESSY Logo"
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain dark:brightness-0 dark:invert"
                     />
                   </div>
                 </div>

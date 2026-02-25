@@ -8,6 +8,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
 import { storage } from "../../lib/firebase";
 import { callGeminiAPI } from "../services/geminiService";
+import { NotificationService } from "../services/notificationService";
 import { MedicalEvent, PendingAction, ActiveMedication } from "../types/medical";
 
 interface DocumentScannerModalProps {
@@ -38,6 +39,36 @@ export function DocumentScannerModal({
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+  };
+
+  const parseDurationToEndDate = (duration: string | null | undefined, startDateIso: string): string | null => {
+    if (!duration) return null;
+    const normalized = duration.toLowerCase().trim();
+
+    if (
+      normalized.includes("cronic") ||
+      normalized.includes("indefin") ||
+      normalized.includes("continu")
+    ) {
+      return null;
+    }
+
+    const match = normalized.match(/(\d+)\s*(día|dias|días|semana|semanas|mes|meses)/i);
+    if (!match) return null;
+
+    const quantity = Number(match[1]);
+    const unit = match[2].toLowerCase();
+    if (!Number.isFinite(quantity) || quantity <= 0) return null;
+
+    const startDate = new Date(startDateIso);
+    if (Number.isNaN(startDate.getTime())) return null;
+
+    const end = new Date(startDate);
+    if (unit.startsWith("día") || unit.startsWith("dia")) end.setDate(end.getDate() + quantity);
+    if (unit.startsWith("semana")) end.setDate(end.getDate() + quantity * 7);
+    if (unit.startsWith("mes")) end.setMonth(end.getMonth() + quantity);
+
+    return end.toISOString();
   };
 
   const handleFileSelect = () => {
@@ -131,7 +162,12 @@ export function DocumentScannerModal({
 
       // Crear medicaciones activas si Gemini detectó alguna
       if (aiData.medications && aiData.medications.length > 0) {
+        await NotificationService.requestPermissionAndGetToken();
+
         for (const med of aiData.medications) {
+          const treatmentStart = aiData.eventDate || newEvent.createdAt;
+          const treatmentEnd = parseDurationToEndDate(med.duration, treatmentStart);
+
           const medication: ActiveMedication = {
             id: `med_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             petId: activePet.id,
@@ -139,13 +175,29 @@ export function DocumentScannerModal({
             dosage: med.dosage || "",
             frequency: med.frequency || "",
             type: typeMap[documentType] || "General",
-            startDate: new Date().toISOString(),
-            endDate: null,
+            startDate: treatmentStart,
+            endDate: treatmentEnd,
             prescribedBy: aiData.provider || null,
             generatedFromEventId: newEvent.id,
             active: true,
           };
           await addMedication(medication);
+
+          try {
+            await NotificationService.scheduleMedicationReminders({
+              petId: activePet.id,
+              petName: activePet.name,
+              medicationName: med.name,
+              dosage: med.dosage || "Según receta",
+              frequency: med.frequency || "Cada 24 horas",
+              startDate: treatmentStart,
+              endDate: treatmentEnd,
+              sourceEventId: newEvent.id,
+              sourceMedicationId: medication.id,
+            });
+          } catch (scheduleError) {
+            console.warn("No se pudo programar recordatorio de medicación:", scheduleError);
+          }
         }
       }
 

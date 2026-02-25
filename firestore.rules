@@ -1,0 +1,42 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Reglas para Perfil de Usuario
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Tokens de Notificación FCM
+      match /fcm_tokens/{tokenId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      // Mascotas
+      match /pets/{petId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Reglas para Notificaciones Programadas
+    match /scheduled_notifications/{id} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Reglas para Citas (pueden estar en raíz o bajo usuario, se asume raíz según trigger)
+    match /appointments/{appointmentId} {
+      allow read, write: if request.auth != null && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.ownerId == request.auth.uid
+      );
+      allow create: if request.auth != null;
+    }
+    
+    // Reglas para Eventos Médicos
+    match /medical_events/{eventId} {
+      allow read, write: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow create: if request.auth != null;
+    }
+  }
+}

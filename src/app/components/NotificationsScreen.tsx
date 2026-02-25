@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { MaterialIcon } from "./MaterialIcon";
+import { useNotifications } from "../contexts/NotificationContext";
 
 interface NotificationsScreenProps {
   onBack: () => void;
@@ -14,6 +15,7 @@ interface NotificationSettings {
 }
 
 export function NotificationsScreen({ onBack }: NotificationsScreenProps) {
+  const { permission, hasToken, requestPermission } = useNotifications();
   const [settings, setSettings] = useState<NotificationSettings>(() => {
     const stored = localStorage.getItem("pessy_notification_settings");
     return stored
@@ -31,8 +33,13 @@ export function NotificationsScreen({ onBack }: NotificationsScreenProps) {
     localStorage.setItem("pessy_notification_settings", JSON.stringify(settings));
   }, [settings]);
 
-  const toggleGlobal = () => {
-    setSettings({ ...settings, enabled: !settings.enabled });
+  const toggleGlobal = async () => {
+    const nextEnabled = !settings.enabled;
+    setSettings({ ...settings, enabled: nextEnabled });
+
+    if (nextEnabled && permission !== "granted") {
+      await requestPermission();
+    }
   };
 
   const toggleSetting = (key: keyof Omit<NotificationSettings, "enabled">) => {
@@ -88,6 +95,26 @@ export function NotificationsScreen({ onBack }: NotificationsScreenProps) {
                 />
               </button>
             </div>
+            <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+              Estado del navegador:{" "}
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                {permission === "granted"
+                  ? hasToken
+                    ? "Push activo"
+                    : "Permiso OK, token pendiente"
+                  : permission === "denied"
+                    ? "Bloqueado por usuario"
+                    : "Sin permiso"}
+              </span>
+            </div>
+            {permission !== "granted" && (
+              <button
+                onClick={requestPermission}
+                className="mt-3 w-full py-2.5 rounded-lg bg-[#2b7cee] text-white text-sm font-bold hover:bg-[#2563d4] transition-colors"
+              >
+                Activar push en este dispositivo
+              </button>
+            )}
           </div>
 
           {/* Individual Settings */}

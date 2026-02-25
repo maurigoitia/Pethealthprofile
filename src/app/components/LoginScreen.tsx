@@ -48,8 +48,8 @@ export function LoginScreen() {
           transition={{ duration: 0.5 }}
           className="pt-16 pb-8 px-6 flex flex-col items-center"
         >
-          <div className="size-20 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-xl p-4 mb-4">
-            <span className="text-[#2b6fee] text-4xl font-black">P</span>
+          <div className="size-20 bg-white dark:bg-white/10 rounded-2xl flex items-center justify-center shadow-xl p-4 mb-4 transition-colors">
+            <span className="text-[#2b6fee] dark:text-white text-4xl font-black">P</span>
           </div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
             PESSY

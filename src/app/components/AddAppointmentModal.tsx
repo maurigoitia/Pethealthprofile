@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
 import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
+import { useAuth } from "../contexts/AuthContext";
 import { Appointment } from "../types/medical";
 
 interface AddAppointmentModalProps {
@@ -12,6 +13,7 @@ interface AddAppointmentModalProps {
 
 export function AddAppointmentModal({ isOpen, onClose }: AddAppointmentModalProps) {
     const { activePet } = usePet();
+    const { user } = useAuth();
     const { addAppointment } = useMedical();
 
     const [type, setType] = useState<Appointment["type"]>("checkup");
@@ -32,6 +34,8 @@ export function AddAppointmentModal({ isOpen, onClose }: AddAppointmentModalProp
             const newAppointment: Appointment = {
                 id: `apt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 petId: activePet.id,
+                userId: user?.uid,
+                petName: activePet.name,
                 type,
                 title,
                 date,

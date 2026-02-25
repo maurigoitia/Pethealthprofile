@@ -1,6 +1,7 @@
 import { MaterialIcon } from "./MaterialIcon";
 import { motion, PanInfo } from "motion/react";
 import { useState } from "react";
+import { useMedical } from "../contexts/MedicalContext";
 
 interface PetHomeViewProps {
   userName: string;
@@ -31,17 +32,28 @@ export function PetHomeView({
   onPetChange
 }: PetHomeViewProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const { getEventsByPetId } = useMedical();
 
   const currentIndex = pets.findIndex(p => p.id === activePetId);
   const activePet = pets[currentIndex];
   const hasMultiplePets = pets.length > 1;
 
-  // Real data logic for active pet
+  // Calcular última vacuna real desde eventos médicos
+  const petEvents = activePetId ? getEventsByPetId(activePetId) : [];
+  const vaccineEvents = petEvents
+    .filter((e) => e.extractedData.documentType === "vaccine" && e.status === "completed")
+    .sort((a, b) => new Date(b.extractedData.eventDate || b.createdAt).getTime() - new Date(a.extractedData.eventDate || a.createdAt).getTime());
+
+  const lastVaccineDate = vaccineEvents.length > 0
+    ? new Date(vaccineEvents[0].extractedData.eventDate || vaccineEvents[0].createdAt)
+        .toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })
+    : "Sin registro";
+
   const petData = {
     age: activePet?.age || "Edad no registrada",
     isActive: true,
-    lastVaccineDate: "Ver en historial", // Future: calculate from medical records
-    weight: activePet?.weight || "Sin peso",
+    lastVaccineDate,
+    weight: activePet?.weight ? `${activePet.weight} kg` : "Sin peso",
   };
 
   const handleDragEnd = (event: any, info: PanInfo) => {
@@ -216,7 +228,7 @@ export function PetHomeView({
               <MaterialIcon name="event" className="text-emerald-500 text-2xl" />
             </div>
             <span className="text-sm font-bold text-slate-900 dark:text-white">
-              Citas
+              Turnos
             </span>
           </div>
         </button>
@@ -230,7 +242,7 @@ export function PetHomeView({
               <MaterialIcon name="medication" className="text-purple-500 text-2xl" />
             </div>
             <span className="text-sm font-bold text-slate-900 dark:text-white">
-              Medicamentos
+              Tratamientos
             </span>
           </div>
         </button>

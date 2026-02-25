@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { motion } from "motion/react";
 import { usePet } from "../contexts/PetContext";
@@ -11,7 +11,17 @@ export function RegisterPetStep2() {
   const location = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addPet } = usePet();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const [waitingForAuth, setWaitingForAuth] = useState(false);
+
+  // Esperar hasta 5 segundos a que el usuario esté disponible
+  useEffect(() => {
+    if (!user && !authLoading) {
+      setWaitingForAuth(true);
+      const timeout = setTimeout(() => setWaitingForAuth(false), 5000);
+      return () => clearTimeout(timeout);
+    }
+  }, [user, authLoading]);
 
   const step1Data = location.state || {};
 
@@ -41,23 +51,35 @@ export function RegisterPetStep2() {
 
   const handleFinish = async () => {
     if (isSubmitting) return;
+
+    // Esperar a que el usuario esté disponible (puede tardar si acaba de registrarse)
+    if (!user) {
+      alert("Tu sesión aún está cargando. Espera un momento e intenta de nuevo.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       // Subir foto a Storage si el usuario eligió una
-      let photoUrl = "https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=400&h=400&fit=crop";
+      let photoUrl = "";
       if (photoFile && user) {
-        const storageRef = ref(storage, `users/${user.uid}/pets/${Date.now()}_${photoFile.name}`);
-        const uploadResult = await uploadBytes(storageRef, photoFile);
-        photoUrl = await getDownloadURL(uploadResult.ref);
+        try {
+          const storageRef = ref(storage, `users/${user.uid}/pets/${Date.now()}_${photoFile.name}`);
+          const uploadResult = await uploadBytes(storageRef, photoFile);
+          photoUrl = await getDownloadURL(uploadResult.ref);
+        } catch (storageError: any) {
+          console.warn("No se pudo subir la foto, se continúa sin ella:", storageError?.message);
+          // Continúa sin foto — no bloquea el registro
+        }
       }
 
       const petData = {
         name: step1Data.name || "Mascota",
         breed: step1Data.breed || "Desconocida",
         photo: photoUrl,
-        species: step1Data.species,
-        age: step1Data.age,
+        species: step1Data.species || "dog",
+        age: step1Data.age || "",
         weight: formData.weight,
         sex: formData.sex,
         isNeutered: formData.isNeutered,
@@ -65,9 +87,10 @@ export function RegisterPetStep2() {
 
       await addPet(petData);
       navigate("/home");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error finalizing pet registration:", error);
-      alert("Error al registrar mascota. Por favor, intenta de nuevo.");
+      const msg = error?.message || String(error);
+      alert(`Error al registrar mascota: ${msg}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -219,13 +242,13 @@ export function RegisterPetStep2() {
         <div className="p-4 bg-[#f6f6f8] dark:bg-[#101622] border-t border-slate-200 dark:border-slate-800">
           <button
             onClick={handleFinish}
-            disabled={isSubmitting}
+            disabled={isSubmitting || authLoading}
             className="w-full bg-[#2b7cee] hover:bg-[#2563d4] text-white font-bold py-4 rounded-xl transition-colors shadow-lg shadow-[#2b7cee]/20 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {isSubmitting ? (
+            {(isSubmitting || authLoading) ? (
               <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : null}
-            {isSubmitting ? "Guardando..." : "Finalizar Registro"}
+            {authLoading ? "Verificando sesión..." : isSubmitting ? "Guardando..." : "Finalizar Registro"}
           </button>
         </div>
       </div>

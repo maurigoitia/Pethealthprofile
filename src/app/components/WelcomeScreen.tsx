@@ -42,8 +42,8 @@ export function WelcomeScreen() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-12"
         >
-          <div className="size-20 bg-white rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-900/40 mx-auto mb-6">
-            <span className="text-[#2b6fee] text-4xl font-extrabold tracking-tight">P</span>
+          <div className="size-20 bg-white dark:bg-white/10 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-900/40 dark:shadow-black/60 mx-auto mb-6 transition-colors">
+            <span className="text-[#2b6fee] dark:text-white text-4xl font-extrabold tracking-tight">P</span>
           </div>
           <h1 className="text-white text-5xl font-black tracking-tight mb-3">PESSY</h1>
           <p className="text-white/80 text-lg font-medium">Software Veterinario</p>
@@ -80,7 +80,7 @@ export function WelcomeScreen() {
           </button>
 
           <button
-            onClick={() => navigate("/register")}
+            onClick={() => navigate("/register-user")}
             className="w-full h-16 bg-white/10 border-2 border-white/20 rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all hover:bg-white/20"
           >
             <span className="text-white text-lg font-bold">Comenzar</span>

@@ -1,161 +1,212 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { motion } from "motion/react";
 import { usePet } from "../contexts/PetContext";
+import { useMedical } from "../contexts/MedicalContext";
+import { MedicalEvent, TreatmentNote } from "../types/medical";
 
 interface MedicationsScreenProps {
   onBack: () => void;
 }
 
-interface Medication {
-  id: number;
-  petId: string; // Added petId
-  name: string;
-  type: "pill" | "injection" | "topical" | "drops";
+type MedicationStatus = "active" | "completed";
+
+type MedicationCardItem = {
+  id: string;
+  event: MedicalEvent;
+  medicationName: string;
   dosage: string;
   frequency: string;
-  startDate: string;
-  endDate?: string;
-  status: "active" | "completed" | "paused";
-  instructions: string;
-  prescribedBy: string;
-  refillsLeft?: number;
-  nextDose?: string;
+  duration: string;
+  provider: string;
+  referenceDate: string;
+  sourceLabel: "document" | "scan";
+  status: MedicationStatus;
+};
+
+const NOTE_LABELS: Record<TreatmentNote["interpretedAs"], string> = {
+  dose_change: "Cambio de dosis",
+  interruption: "Tratamiento interrumpido",
+  positive_progress: "Evolucion positiva",
+  adverse_effect: "Interferencia o efecto",
+  general_note: "Observacion",
+};
+
+function interpretTreatmentNote(text: string): TreatmentNote["interpretedAs"] {
+  const normalized = text.toLowerCase();
+
+  if (
+    normalized.includes("aument") ||
+    normalized.includes("subi") ||
+    normalized.includes("baje") ||
+    normalized.includes("doble") ||
+    normalized.includes("dosis")
+  ) {
+    return "dose_change";
+  }
+
+  if (
+    normalized.includes("suspend") ||
+    normalized.includes("interrump") ||
+    normalized.includes("deje") ||
+    normalized.includes("no lo tomo")
+  ) {
+    return "interruption";
+  }
+
+  if (
+    normalized.includes("vomit") ||
+    normalized.includes("diarrea") ||
+    normalized.includes("alerg") ||
+    normalized.includes("reaccion") ||
+    normalized.includes("efecto")
+  ) {
+    return "adverse_effect";
+  }
+
+  if (
+    normalized.includes("mejor") ||
+    normalized.includes("evoluc") ||
+    normalized.includes("estable") ||
+    normalized.includes("sin sintomas")
+  ) {
+    return "positive_progress";
+  }
+
+  return "general_note";
+}
+
+function formatDate(dateIso: string): string {
+  return new Date(dateIso).toLocaleDateString("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function parseDurationToEndDate(startDateIso: string, duration: string): string | null {
+  if (!duration) return null;
+  const normalized = duration.toLowerCase().trim();
+
+  if (
+    normalized.includes("cronic") ||
+    normalized.includes("indefin") ||
+    normalized.includes("continu")
+  ) {
+    return null;
+  }
+
+  const match = normalized.match(/(\d+)\s*(dia|dias|días|semana|semanas|mes|meses)/i);
+  if (!match) return null;
+
+  const quantity = Number(match[1]);
+  if (!Number.isFinite(quantity) || quantity <= 0) return null;
+
+  const end = new Date(startDateIso);
+  if (Number.isNaN(end.getTime())) return null;
+
+  const unit = match[2].toLowerCase();
+  if (unit.startsWith("dia") || unit.startsWith("día")) end.setDate(end.getDate() + quantity);
+  if (unit.startsWith("semana")) end.setDate(end.getDate() + quantity * 7);
+  if (unit.startsWith("mes")) end.setMonth(end.getMonth() + quantity);
+
+  return end.toISOString();
 }
 
 export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
-  const [showAddModal, setShowAddModal] = useState(false);
-  
-  // Get active pet from context
-  const { activePetId, activePet } = usePet();
+  const [expandedNotesByEvent, setExpandedNotesByEvent] = useState<Record<string, boolean>>({});
+  const [draftNoteByEvent, setDraftNoteByEvent] = useState<Record<string, string>>({});
+  const [savingNoteByEvent, setSavingNoteByEvent] = useState<Record<string, boolean>>({});
 
-  // Mock data with petId for multi-pet support
-  const allMedications: Medication[] = [
-    {
-      id: 1,
-      petId: "pet-1", // Bruno
-      name: "Apoquel 16mg",
-      type: "pill",
-      dosage: "1 tableta",
-      frequency: "Cada 12 horas",
-      startDate: "10 Feb 2026",
-      status: "active",
-      instructions: "Dar con comida para evitar malestar estomacal",
-      prescribedBy: "Dra. López - VetCenter",
-      refillsLeft: 2,
-      nextDose: "Hoy, 6:00 PM",
-    },
-    {
-      id: 2,
-      petId: "pet-1", // Bruno
-      name: "Simparica (Antiparasitario)",
-      type: "pill",
-      dosage: "1 tableta masticable",
-      frequency: "Mensual",
-      startDate: "23 Ene 2026",
-      status: "active",
-      instructions: "Dar el día 23 de cada mes",
-      prescribedBy: "Dr. Martínez - PetCare",
-      nextDose: "23 Feb 2026",
-    },
-    {
-      id: 3,
-      petId: "pet-1", // Bruno
-      name: "Gotas óticas (Otitis)",
-      type: "drops",
-      dosage: "3 gotas en cada oído",
-      frequency: "Cada 8 horas",
-      startDate: "05 Feb 2026",
-      endDate: "19 Feb 2026",
-      status: "completed",
-      instructions: "Limpiar oído antes de aplicar. Masajear después.",
-      prescribedBy: "Dra. López - VetCenter",
-    },
-    {
-      id: 4,
-      petId: "pet-1", // Bruno
-      name: "Meloxicam (Antiinflamatorio)",
-      type: "injection",
-      dosage: "0.2mg/kg",
-      frequency: "Cada 24 horas",
-      startDate: "20 Dic 2025",
-      endDate: "05 Ene 2026",
-      status: "completed",
-      instructions: "Post-operatorio. Suspender si hay vómitos.",
-      prescribedBy: "Dr. Ramírez - Clínica Central",
-    },
-    {
-      id: 5,
-      petId: "pet-2", // Rocky
-      name: "Prednisona 5mg",
-      type: "pill",
-      dosage: "1 tableta",
-      frequency: "Cada 24 horas",
-      startDate: "15 Feb 2026",
-      status: "active",
-      instructions: "Reducir dosis gradualmente según indicaciones",
-      prescribedBy: "Dr. García - VetPlus",
-      refillsLeft: 1,
-      nextDose: "Mañana, 8:00 AM",
-    },
-  ];
+  const { activePetId } = usePet();
+  const { getEventsByPetId, updateEvent } = useMedical();
 
-  // Filter medications by active pet
-  const medications = allMedications.filter((m) => m.petId === activePetId);
+  const medicationItems = useMemo(() => {
+    if (!activePetId) return [] as MedicationCardItem[];
 
-  const activeMedications = medications.filter((m) => m.status === "active");
-  const historyMedications = medications.filter((m) => m.status === "completed" || m.status === "paused");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  const getTypeIcon = (type: Medication["type"]) => {
-    switch (type) {
-      case "pill":
-        return "medication";
-      case "injection":
-        return "vaccines";
-      case "topical":
-        return "healing";
-      case "drops":
-        return "water_drop";
-      default:
-        return "medication";
-    }
-  };
+    return getEventsByPetId(activePetId)
+      .flatMap((event) => {
+        const hasMedicationArray = Boolean(event.extractedData.medications?.length);
+        const isMedicationDocument = event.extractedData.documentType === "medication";
+        if (!hasMedicationArray && !isMedicationDocument) return [];
 
-  const getTypeColor = (type: Medication["type"]) => {
-    switch (type) {
-      case "pill":
-        return "bg-purple-500";
-      case "injection":
-        return "bg-blue-500";
-      case "topical":
-        return "bg-green-500";
-      case "drops":
-        return "bg-cyan-500";
-      default:
-        return "bg-purple-500";
-    }
-  };
+        const referenceDate = event.extractedData.eventDate || event.createdAt;
+        const sourceLabel = event.extractedData.eventDate ? "document" : "scan";
 
-  const getTypeLabel = (type: Medication["type"]) => {
-    switch (type) {
-      case "pill":
-        return "Oral";
-      case "injection":
-        return "Inyección";
-      case "topical":
-        return "Tópico";
-      case "drops":
-        return "Gotas";
-      default:
-        return "Oral";
+        const meds = hasMedicationArray
+          ? event.extractedData.medications
+          : [
+              {
+                name: event.extractedData.diagnosis || event.title || event.fileName,
+                dosage: null,
+                frequency: null,
+                duration: null,
+                confidence: "not_detected" as const,
+              },
+            ];
+
+        return meds.map((med, idx) => {
+          const durationEnd = med.duration ? parseDurationToEndDate(referenceDate, med.duration) : null;
+          const comparisonDate = durationEnd || referenceDate;
+          const status: MedicationStatus = new Date(comparisonDate).getTime() < today.getTime()
+            ? "completed"
+            : "active";
+
+          return {
+            id: `${event.id}-${idx}`,
+            event,
+            medicationName: med.name || "Medicacion",
+            dosage: med.dosage || "Segun receta",
+            frequency: med.frequency || "Frecuencia no especificada",
+            duration: med.duration || "Sin duracion definida",
+            provider: event.extractedData.provider || "Profesional no especificado",
+            referenceDate,
+            sourceLabel,
+            status,
+          };
+        });
+      })
+      .sort((a, b) => new Date(b.referenceDate).getTime() - new Date(a.referenceDate).getTime());
+  }, [activePetId, getEventsByPetId]);
+
+  const activeItems = medicationItems.filter((item) => item.status === "active");
+  const completedItems = medicationItems.filter((item) => item.status === "completed");
+  const shownItems = activeTab === "active" ? activeItems : completedItems;
+
+  const saveNote = async (event: MedicalEvent) => {
+    const raw = draftNoteByEvent[event.id] || "";
+    const text = raw.trim();
+    if (!text) return;
+
+    setSavingNoteByEvent((prev) => ({ ...prev, [event.id]: true }));
+
+    try {
+      const newNote: TreatmentNote = {
+        id: `note_${Date.now()}`,
+        text,
+        interpretedAs: interpretTreatmentNote(text),
+        createdAt: new Date().toISOString(),
+      };
+
+      const existingNotes = event.treatmentNotes || [];
+      await updateEvent(event.id, {
+        treatmentNotes: [...existingNotes, newNote],
+      });
+
+      setDraftNoteByEvent((prev) => ({ ...prev, [event.id]: "" }));
+      setExpandedNotesByEvent((prev) => ({ ...prev, [event.id]: true }));
+    } finally {
+      setSavingNoteByEvent((prev) => ({ ...prev, [event.id]: false }));
     }
   };
 
   return (
     <div className="min-h-screen bg-[#f6f6f8] dark:bg-[#101622] flex flex-col">
       <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
-        {/* Header */}
         <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 pt-6 pb-4">
           <div className="flex items-center gap-3 mb-4">
             <button
@@ -165,22 +216,13 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
               <MaterialIcon name="arrow_back" className="text-xl" />
             </button>
             <div className="flex-1">
-              <h1 className="text-2xl font-black text-slate-900 dark:text-white">
-                Medicamentos
-              </h1>
+              <h1 className="text-2xl font-black text-slate-900 dark:text-white">Tratamientos y medicacion</h1>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                {activeMedications.length} tratamientos activos
+                {medicationItems.length} registros detectados
               </p>
             </div>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="size-10 rounded-full bg-[#2b6fee] text-white flex items-center justify-center shadow-lg shadow-[#2b6fee]/30 hover:bg-[#5a8aff] transition-colors"
-            >
-              <MaterialIcon name="add" className="text-2xl" />
-            </button>
           </div>
 
-          {/* Tabs */}
           <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
             <button
               onClick={() => setActiveTab("active")}
@@ -190,7 +232,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                   : "text-slate-600 dark:text-slate-400"
               }`}
             >
-              Activos ({activeMedications.length})
+              Activos ({activeItems.length})
             </button>
             <button
               onClick={() => setActiveTab("history")}
@@ -200,175 +242,134 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                   : "text-slate-600 dark:text-slate-400"
               }`}
             >
-              Historial ({historyMedications.length})
+              Historial ({completedItems.length})
             </button>
           </div>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {/* Next Dose Alert */}
-          {activeTab === "active" && activeMedications.some((m) => m.nextDose?.includes("Hoy")) && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-br from-amber-500 to-orange-500 rounded-2xl p-4 text-white shadow-lg"
-            >
-              <div className="flex items-start gap-3">
-                <div className="size-10 bg-white/20 rounded-full flex items-center justify-center shrink-0">
-                  <MaterialIcon name="schedule" className="text-2xl" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-black mb-1">Próxima dosis pendiente</h3>
-                  <p className="text-sm opacity-90">
-                    Apoquel 16mg - Hoy a las 6:00 PM
-                  </p>
-                </div>
-                <button className="size-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
-                  <MaterialIcon name="check" className="text-xl" />
-                </button>
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === "active" && activeMedications.length === 0 && (
+          {shownItems.length === 0 ? (
             <div className="text-center py-12">
               <div className="size-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                 <MaterialIcon name="medication" className="text-4xl text-slate-400" />
               </div>
-              <h3 className="font-black text-slate-900 dark:text-white mb-2">
-                No hay medicamentos activos
-              </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                Agrega un tratamiento cuando lo necesites
+              <h3 className="font-black text-slate-900 dark:text-white mb-2">Sin registros para esta vista</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Subi recetas y notas de tratamiento para enriquecer el historial
               </p>
             </div>
+          ) : (
+            shownItems.map((item) => {
+              const noteCount = item.event.treatmentNotes?.length || 0;
+              const isExpanded = Boolean(expandedNotesByEvent[item.event.id]);
+
+              return (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden"
+                >
+                  <div className={`h-1.5 ${item.status === "active" ? "bg-[#2b6fee]" : "bg-emerald-500"}`} />
+
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div>
+                        <h3 className="font-black text-slate-900 dark:text-white text-base leading-tight">
+                          {item.medicationName}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{item.provider}</p>
+                      </div>
+                      <span
+                        className={`text-[10px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full ${
+                          item.status === "active"
+                            ? "bg-[#2b6fee]/10 text-[#2b6fee]"
+                            : "bg-emerald-100 text-emerald-700"
+                        }`}
+                      >
+                        {item.status === "active" ? "Activo" : "Completado"}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
+                        <p className="text-[10px] text-slate-500 uppercase tracking-wide">Dosis</p>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white">{item.dosage}</p>
+                      </div>
+                      <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
+                        <p className="text-[10px] text-slate-500 uppercase tracking-wide">Frecuencia</p>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white">{item.frequency}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                      <span className="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
+                        {item.sourceLabel === "document" ? "Fecha documento" : "Fecha escaneo"}: {formatDate(item.referenceDate)}
+                      </span>
+                      <span className="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold">
+                        Duracion: {item.duration}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        onClick={() =>
+                          setExpandedNotesByEvent((prev) => ({
+                            ...prev,
+                            [item.event.id]: !prev[item.event.id],
+                          }))
+                        }
+                        className="w-full flex items-center justify-between text-sm font-bold text-slate-700 dark:text-slate-300"
+                      >
+                        <span>Notas del tratamiento ({noteCount})</span>
+                        <MaterialIcon
+                          name={isExpanded ? "keyboard_arrow_up" : "keyboard_arrow_down"}
+                          className="text-xl"
+                        />
+                      </button>
+
+                      {isExpanded && (
+                        <div className="mt-3 space-y-2">
+                          {(item.event.treatmentNotes || []).map((note) => (
+                            <div
+                              key={note.id}
+                              className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] uppercase tracking-wide font-bold text-[#2b6fee]">
+                                  {NOTE_LABELS[note.interpretedAs]}
+                                </span>
+                                <span className="text-[10px] text-slate-500">{formatDate(note.createdAt)}</span>
+                              </div>
+                              <p className="text-xs text-slate-700 dark:text-slate-300">{note.text}</p>
+                            </div>
+                          ))}
+
+                          <div className="flex gap-2">
+                            <input
+                              value={draftNoteByEvent[item.event.id] || ""}
+                              onChange={(e) =>
+                                setDraftNoteByEvent((prev) => ({ ...prev, [item.event.id]: e.target.value }))
+                              }
+                              placeholder="Ej: se redujo dosis por indicacion veterinaria"
+                              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b6fee]"
+                            />
+                            <button
+                              onClick={() => saveNote(item.event)}
+                              disabled={Boolean(savingNoteByEvent[item.event.id])}
+                              className="px-3 py-2 rounded-lg bg-[#2b6fee] text-white text-xs font-bold disabled:opacity-60"
+                            >
+                              {savingNoteByEvent[item.event.id] ? "Guardando" : "Agregar"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })
           )}
-
-          {activeTab === "active" &&
-            activeMedications.map((medication) => (
-              <motion.div
-                key={medication.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
-              >
-                <div className="flex gap-3 mb-3">
-                  {/* Icon */}
-                  <div className={`size-12 ${getTypeColor(medication.type)} rounded-xl flex items-center justify-center shrink-0`}>
-                    <MaterialIcon name={getTypeIcon(medication.type)} className="text-white text-2xl" />
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-1">
-                      <h3 className="font-bold text-slate-900 dark:text-white">
-                        {medication.name}
-                      </h3>
-                      <span className="text-[10px] bg-purple-100 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full font-bold uppercase">
-                        {getTypeLabel(medication.type)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                      {medication.dosage} - {medication.frequency}
-                    </p>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      Prescrito por {medication.prescribedBy}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Next Dose */}
-                {medication.nextDose && (
-                  <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 rounded-lg flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <MaterialIcon name="schedule" className="text-blue-600 dark:text-blue-400 text-lg" />
-                      <span className="text-xs font-semibold text-blue-800 dark:text-blue-300">
-                        Próxima dosis: {medication.nextDose}
-                      </span>
-                    </div>
-                    <button className="text-xs font-bold text-blue-600 dark:text-blue-400">
-                      Marcar
-                    </button>
-                  </div>
-                )}
-
-                {/* Instructions */}
-                <div className="mb-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                    <MaterialIcon name="info" className="text-sm inline mr-1 align-text-bottom text-slate-500" />
-                    {medication.instructions}
-                  </p>
-                </div>
-
-                {/* Refills */}
-                {medication.refillsLeft !== undefined && (
-                  <div className="flex items-center gap-2 mb-3">
-                    <MaterialIcon name="autorenew" className="text-emerald-600 dark:text-emerald-400 text-lg" />
-                    <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-                      {medication.refillsLeft} recargas disponibles
-                    </span>
-                  </div>
-                )}
-
-                {/* Actions */}
-                <div className="flex gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <button className="flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                    Editar
-                  </button>
-                  <button className="flex-1 py-2 rounded-lg bg-[#2b6fee] text-white font-semibold text-sm hover:bg-[#5a8aff] transition-colors">
-                    Ver historial
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-
-          {activeTab === "history" &&
-            historyMedications.map((medication) => (
-              <motion.div
-                key={medication.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm opacity-75"
-              >
-                <div className="flex gap-3">
-                  <div className={`size-12 ${getTypeColor(medication.type)} rounded-xl flex items-center justify-center shrink-0 opacity-60`}>
-                    <MaterialIcon name={getTypeIcon(medication.type)} className="text-white text-2xl" />
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-1">
-                      <h3 className="font-bold text-slate-900 dark:text-white">
-                        {medication.name}
-                      </h3>
-                      <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full font-bold uppercase">
-                        Completado
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                      {medication.dosage} - {medication.frequency}
-                    </p>
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      {medication.startDate} - {medication.endDate}
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Prescrito por {medication.prescribedBy}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-        </div>
-
-        {/* Quick Add Button */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="w-full py-4 rounded-xl bg-[#2b6fee] text-white font-bold shadow-lg shadow-[#2b6fee]/30 hover:bg-[#5a8aff] transition-colors flex items-center justify-center gap-2"
-          >
-            <MaterialIcon name="add_circle" className="text-xl" />
-            Agregar medicamento
-          </button>
         </div>
       </div>
     </div>

@@ -1,0 +1,20 @@
+{
+  "name": "pessy-functions",
+  "scripts": {
+    "build": "tsc",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "firebase-admin": "^11.11.1",
+    "firebase-functions": "^4.5.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "private": true
+}
