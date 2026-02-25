@@ -31,13 +31,9 @@ export function EmptyState({
       <div className="mb-6 relative">
         {illustration ? (
           <div className="size-48 rounded-3xl bg-gradient-to-br from-[#2b6fee]/5 to-purple-50 dark:from-[#2b6fee]/10 dark:to-purple-950/20 p-6 flex items-center justify-center border-2 border-dashed border-[#2b6fee]/20">
-            {/* Floating paw prints decoration */}
-            <div className="absolute top-4 right-4 text-[#2b6fee]/20 animate-pulse">
-              <MaterialIcon name="ecg_heart" className="text-3xl" />
-            </div>
-            <div className="absolute bottom-6 left-6 text-[#2b6fee]/20 animate-pulse delay-150">
-              <MaterialIcon name="ecg_heart" className="text-2xl" />
-            </div>
+            {/* Simple decorative markers */}
+            <div className="absolute top-4 right-4 size-6 rounded-full bg-[#2b6fee]/15" />
+            <div className="absolute bottom-6 left-6 size-4 rounded-full bg-[#2b6fee]/15" />
             
             {/* Main icon */}
             <div className="size-24 rounded-2xl bg-[#2b6fee]/10 flex items-center justify-center">

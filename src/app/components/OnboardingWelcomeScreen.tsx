@@ -11,7 +11,7 @@ export function OnboardingWelcomeScreen() {
         <div className="pt-8 px-8 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-[#2b7cee] rounded-lg flex items-center justify-center">
-              <span className="material-symbols-outlined text-white text-xl">pets</span>
+              <span className="material-symbols-outlined text-white text-xl">monitoring</span>
             </div>
             <span className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">PESSY</span>
           </div>
@@ -47,7 +47,7 @@ export function OnboardingWelcomeScreen() {
               <div className="text-center">
                 <div className="size-48 mx-auto mb-6 bg-gradient-to-br from-[#2b7cee] to-[#5d9fff] rounded-full flex items-center justify-center shadow-2xl shadow-[#2b7cee]/30">
                   <span className="material-symbols-outlined text-white" style={{ fontSize: "120px" }}>
-                    pets
+                    description
                   </span>
                 </div>
                 <div className="flex justify-center gap-3">

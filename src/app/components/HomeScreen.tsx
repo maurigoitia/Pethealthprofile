@@ -73,7 +73,7 @@ export default function HomeScreen() {
             <div className="text-center space-y-6">
               <div className="size-32 mx-auto bg-[#2b7cee]/10 rounded-full flex items-center justify-center">
                 <span className="material-symbols-outlined text-[#2b7cee]" style={{ fontSize: "64px" }}>
-                  pets
+                  folder_shared
                 </span>
               </div>
               <div className="space-y-2">
