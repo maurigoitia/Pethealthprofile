@@ -30,6 +30,7 @@ export function RegisterPetStep1() {
           <h1 className="text-3xl font-black text-[#2b7cee]">
             Pessy
           </h1>
+          <p className="text-slate-500 text-sm mt-2">Que su historia no se pierda.</p>
           <h2 className="text-xl font-bold mt-4 text-slate-900">
             Registrar mascota
           </h2>

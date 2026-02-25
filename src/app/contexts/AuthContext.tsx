@@ -48,8 +48,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return (
         <AuthContext.Provider value={{ user, loading, logout }}>
             {loading ? (
-                <div className="min-h-screen bg-[#2b6fee] flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
+                <div
+                    className="min-h-screen flex items-center justify-center px-6"
+                    style={{
+                        backgroundImage: "linear-gradient(rgb(43,124,238) 0%, rgb(61,139,255) 50%, rgb(93,163,255) 100%)",
+                    }}
+                >
+                    <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl px-6 py-10 text-center">
+                        <h1 className="text-3xl font-black text-[#2b7cee]">Pessy</h1>
+                        <p className="text-slate-500 text-sm mt-2">Cargando sesión...</p>
+                    </div>
                 </div>
             ) : (
                 children

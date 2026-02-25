@@ -56,6 +56,7 @@ export function RegisterUserScreen() {
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl px-6 pt-10 pb-10">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-black text-[#2b7cee]">Pessy</h1>
+          <p className="text-slate-500 text-sm mt-2">Que su historia no se pierda.</p>
         </div>
 
         <form onSubmit={handleCreateAccount} className="space-y-5">

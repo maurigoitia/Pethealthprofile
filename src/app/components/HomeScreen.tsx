@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from "react";
-import { useNavigate } from "react-router";
+import { Navigate, useNavigate } from "react-router";
 import { Header } from "./Header";
 import { ActionTray } from "./ActionTray";
 import { Timeline } from "./Timeline";
@@ -37,6 +37,11 @@ export default function HomeScreen() {
   const { activePetId, setActivePetId, pets, activePet, loading: petsLoading } = usePet();
   const { user } = useAuth();
 
+  // Guard de autenticación para evitar navegación en bucle hacia pantallas internas
+  if (!user) {
+    return <Navigate to="/welcome" replace />;
+  }
+
   // Handle tab change and reset viewMode to "card" when going to home tab
   const handleTabChange = (tab: "home" | "settings") => {
     setCurrentTab(tab);
@@ -58,8 +63,11 @@ export default function HomeScreen() {
   // Loading state: Waiting for Firestore
   if (petsLoading && pets.length === 0) {
     return (
-      <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#2b7cee] border-t-transparent"></div>
+      <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen flex items-center justify-center px-6">
+        <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 text-center">
+          <p className="text-base font-bold text-slate-900 dark:text-white">Cargando tus datos...</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Un momento, por favor.</p>
+        </div>
       </div>
     );
   }
