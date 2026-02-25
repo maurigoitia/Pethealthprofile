@@ -92,7 +92,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setHasToken(true);
       setPermission("granted");
     } else {
-      setPermission(Notification.permission as NotificationPermission);
+      if ("Notification" in window) {
+        setPermission(Notification.permission as NotificationPermission);
+      } else {
+        setPermission("unknown");
+      }
     }
   }, []);
 

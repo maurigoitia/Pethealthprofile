@@ -2,10 +2,12 @@ import { ActiveMedication, Appointment, MedicalEvent, PendingAction } from "../t
 
 function normalizeText(value?: string | null): string {
   return (value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim()
     .replace(/\s+/g, " ")
-    .replace(/[^\p{L}\p{N}\s|:-]/gu, "");
+    .replace(/[^a-z0-9\s|:-]/g, "");
 }
 
 function toDateKey(value?: string | null): string {
