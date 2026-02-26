@@ -1,7 +1,5 @@
 import { motion } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { unsplash_tool } from "../../utils/unsplash";
 
 interface EmptyStateProps {
   icon?: string;

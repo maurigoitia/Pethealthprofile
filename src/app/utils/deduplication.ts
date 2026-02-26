@@ -1,4 +1,5 @@
 import { ActiveMedication, Appointment, MedicalEvent, PendingAction } from "../types/medical";
+import { toDateKeySafe, toTimestampSafe } from "./dateUtils";
 
 function normalizeText(value?: string | null): string {
   return (value || "")
@@ -11,17 +12,53 @@ function normalizeText(value?: string | null): string {
 }
 
 function toDateKey(value?: string | null): string {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toISOString().slice(0, 10);
+  return toDateKeySafe(value);
+}
+
+function providerFingerprint(value?: string | null): string {
+  const normalized = normalizeText(value)
+    .replace(/\bdr\/a\b/g, "")
+    .replace(/\bdra\b/g, "")
+    .replace(/\bdr\b/g, "")
+    .replace(/\bveterinaria\b/g, "")
+    .replace(/\bvet\b/g, "")
+    .replace(/\bclinica\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return "";
+  return normalized.split(" ")[0] || "";
+}
+
+function documentTypeBucket(value?: string | null): string {
+  const type = (value || "").toLowerCase();
+  if (!type) return "other";
+  if (["xray", "echocardiogram", "electrocardiogram", "lab_test", "checkup", "other"].includes(type)) {
+    return "study";
+  }
+  if (["vaccine"].includes(type)) return "vaccine";
+  if (["medication"].includes(type)) return "medication";
+  if (["appointment"].includes(type)) return "appointment";
+  if (["surgery"].includes(type)) return "surgery";
+  return type;
 }
 
 export function buildEventDedupKey(event: MedicalEvent): string {
   if (event.fileHash) return `hash:${event.fileHash}`;
   if (event.dedupKey) return `dedup:${event.dedupKey}`;
 
+  return buildEventSemanticKey(event);
+}
+
+export function buildEventSemanticKey(event: MedicalEvent): string {
   const extracted = event.extractedData;
+  const diagnosisSignature = normalizeText(extracted.diagnosis);
+  const titleSignature = normalizeText(extracted.suggestedTitle || event.title || event.fileName);
+  const measurementSignature = (extracted.measurements || [])
+    .map((measurement) => normalizeText(`${measurement.name}|${measurement.value}|${measurement.unit || ""}`))
+    .filter(Boolean)
+    .sort()
+    .join(";");
+
   const medSignature = (extracted.medications || [])
     .map((med) =>
       normalizeText(`${med.name}|${med.dosage || ""}|${med.frequency || ""}|${med.duration || ""}`)
@@ -30,22 +67,21 @@ export function buildEventDedupKey(event: MedicalEvent): string {
     .join(";");
 
   const fallbackSignature = normalizeText(
-    extracted.observations || extracted.diagnosis || extracted.suggestedTitle || event.title || event.fileName
-  ).slice(0, 120);
+    [diagnosisSignature, titleSignature, measurementSignature].filter(Boolean).join("|")
+  ) || normalizeText(extracted.observations).slice(0, 40) || "sin_firma";
 
   return [
     "event",
-    extracted.documentType,
+    documentTypeBucket(extracted.documentType),
     toDateKey(extracted.eventDate || event.createdAt),
-    normalizeText(extracted.provider),
+    providerFingerprint(extracted.provider),
     medSignature || fallbackSignature,
   ].join("|");
 }
 
 export function dedupeEvents(events: MedicalEvent[]): MedicalEvent[] {
   const sorted = [...events].sort(
-    (a, b) =>
-      new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
+    (a, b) => toTimestampSafe(b.updatedAt || b.createdAt) - toTimestampSafe(a.updatedAt || a.createdAt)
   );
   const seen = new Set<string>();
   const result: MedicalEvent[] = [];
@@ -61,7 +97,7 @@ export function dedupeEvents(events: MedicalEvent[]): MedicalEvent[] {
 }
 
 export function buildPendingActionDedupKey(action: PendingAction): string {
-  return [
+  const baseKey = [
     "pending",
     action.petId,
     action.type,
@@ -69,11 +105,23 @@ export function buildPendingActionDedupKey(action: PendingAction): string {
     normalizeText(action.title),
     normalizeText(action.subtitle),
   ].join("|");
+
+  // Si no hay metadata semántica suficiente, incluir sourceEventId como desempate.
+  if (
+    action.generatedFromEventId &&
+    !normalizeText(action.title) &&
+    !normalizeText(action.subtitle) &&
+    !toDateKey(action.dueDate)
+  ) {
+    return `${baseKey}|${action.generatedFromEventId}`;
+  }
+
+  return baseKey;
 }
 
 export function dedupePendingActions(actions: PendingAction[]): PendingAction[] {
   const sorted = [...actions].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    (a, b) => toTimestampSafe(b.createdAt) - toTimestampSafe(a.createdAt)
   );
   const seen = new Set<string>();
   const result: PendingAction[] = [];
@@ -102,7 +150,7 @@ export function buildMedicationDedupKey(medication: ActiveMedication): string {
 
 export function dedupeMedications(medications: ActiveMedication[]): ActiveMedication[] {
   const sorted = [...medications].sort(
-    (a, b) => new Date(b.startDate || b.id).getTime() - new Date(a.startDate || a.id).getTime()
+    (a, b) => toTimestampSafe(b.startDate || b.id) - toTimestampSafe(a.startDate || a.id)
   );
   const seen = new Set<string>();
   const result: ActiveMedication[] = [];
@@ -133,7 +181,7 @@ export function buildAppointmentDedupKey(appointment: Appointment): string {
 
 export function dedupeAppointments(appointments: Appointment[]): Appointment[] {
   const sorted = [...appointments].sort(
-    (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    (a, b) => toTimestampSafe(b.createdAt) - toTimestampSafe(a.createdAt)
   );
   const seen = new Set<string>();
   const result: Appointment[] = [];

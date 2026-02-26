@@ -101,46 +101,14 @@ export function HelpSupportScreen({ onBack }: HelpSupportScreenProps) {
             <h2 className="text-lg font-black text-slate-900 dark:text-white mb-3">
               Contacto
             </h2>
-            <div className="space-y-3">
-              {/* Email */}
-              <a
-                href="mailto:soporte@pessy.app"
-                className="w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-              >
-                <div className="size-10 rounded-lg bg-[#2b7cee]/10 flex items-center justify-center">
-                  <MaterialIcon name="email" className="text-[#2b7cee] text-xl" />
-                </div>
-                <div className="flex-1 text-left">
-                  <h3 className="font-bold text-slate-900 dark:text-white">
-                    Email de soporte
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    soporte@pessy.app
-                  </p>
-                </div>
-                <MaterialIcon name="chevron_right" className="text-slate-400" />
-              </a>
-
-              {/* WhatsApp */}
-              <a
-                href="https://wa.me/5491112345678"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
-              >
-                <div className="size-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                  <MaterialIcon name="chat" className="text-emerald-500 text-xl" />
-                </div>
-                <div className="flex-1 text-left">
-                  <h3 className="font-bold text-slate-900 dark:text-white">
-                    WhatsApp
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Chatea con nosotros
-                  </p>
-                </div>
-                <MaterialIcon name="open_in_new" className="text-slate-400" />
-              </a>
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
+              <div className="size-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <MaterialIcon name="support_agent" className="text-slate-400 text-xl" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white">Soporte en camino</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Próximamente habilitaremos canales de contacto.</p>
+              </div>
             </div>
           </div>
 

@@ -35,6 +35,17 @@ export function VerifyReportScreen() {
     fetchReport();
   }, [hash]);
 
+  const cleanSummary = (text?: string | null) =>
+    (text || "")
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "$1")
+      .replace(/#{1,6}\s+/g, "")
+      .replace(/```json\s*/gi, "")
+      .replace(/```\s*/g, "")
+      .replace(/`{1,3}/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6">
       <div className="max-w-2xl mx-auto">
@@ -113,10 +124,12 @@ export function VerifyReportScreen() {
                       Fecha de Certificación
                     </p>
                     <p className="text-sm font-bold text-slate-900 dark:text-white">
-                      {new Date(report.generatedAt).toLocaleString("es-AR", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
+                      {report.generatedAt
+                        ? new Date(report.generatedAt).toLocaleString("es-AR", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })
+                        : "Sin fecha"}
                     </p>
                   </div>
                 </div>
@@ -126,8 +139,8 @@ export function VerifyReportScreen() {
                     Resumen Clínico
                   </p>
                   <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl mb-6">
-                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed italic">
-                      "{report.summary}"
+                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                      {cleanSummary(report.summary) || "Sin resumen clínico disponible para este reporte."}
                     </p>
                   </div>
 
@@ -138,19 +151,19 @@ export function VerifyReportScreen() {
                     <div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Mascota</p>
                       <p className="text-base font-bold text-slate-900 dark:text-white">
-                        {report.petName}
+                        {report.petName || "No disponible"}
                       </p>
                     </div>
                     <div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Raza</p>
                       <p className="text-base font-bold text-slate-900 dark:text-white">
-                        {report.petBreed}
+                        {report.petBreed || "No registrada"}
                       </p>
                     </div>
                     <div className="col-span-2">
                       <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Tutor Certificado</p>
                       <p className="text-base font-bold text-slate-900 dark:text-white">
-                        {report.ownerName}
+                        {report.ownerName || "No registrado"}
                       </p>
                     </div>
                   </div>

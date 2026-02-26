@@ -1,8 +1,9 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { db } from "../../lib/firebase";
+import { auth, db } from "../../lib/firebase";
 import {
-  collection, query, where, onSnapshot, doc, updateDoc, addDoc, arrayUnion, setDoc, getDoc, deleteDoc
+  collection, query, where, onSnapshot, doc, updateDoc, addDoc, arrayUnion, setDoc, getDoc
 } from "firebase/firestore";
+import { sendSignInLinkToEmail } from "firebase/auth";
 import { useAuth } from "./AuthContext";
 
 export interface WeightEntry {
@@ -31,6 +32,7 @@ export interface Pet {
   ownerId?: string;
   weightHistory?: WeightEntry[];
   coTutors?: CoTutor[];
+  coTutorUids?: string[];
 }
 
 interface PetContextType {
@@ -41,8 +43,8 @@ interface PetContextType {
   addPet: (pet: Omit<Pet, "id" | "ownerId">) => Promise<string>;
   updatePet: (id: string, updates: Partial<Pet> & { newWeightEntry?: WeightEntry }) => Promise<void>;
   loading: boolean;
-  // Co-tutores
-  generateInviteCode: (petId: string) => Promise<string>;
+  generateInviteCode: (petId: string, inviteEmail?: string) => Promise<string>;
+  sendCoTutorInviteEmail: (petId: string, email: string) => Promise<{ code: string; inviteLink: string }>;
   joinWithCode: (code: string) => Promise<{ petName: string }>;
   removeCoTutor: (petId: string, coTutorUid: string) => Promise<void>;
   leaveAsTutor: (petId: string) => Promise<void>;
@@ -69,49 +71,91 @@ export function PetProvider({ children }: { children: ReactNode }) {
 
     setLoading(true);
 
-    // Query 1: mascotas donde soy dueño
-    const qOwner = query(collection(db, "pets"), where("ownerId", "==", user.uid));
-    // Query 2: mascotas donde soy co-tutor
-    const qCoTutor = query(collection(db, "pets"), where("coTutors", "array-contains", { uid: user.uid }));
-
+    // Mapa compartido entre los dos listeners
     const allPetsMap = new Map<string, Pet>();
 
+    // Flags para saber cuándo ambos queries ya respondieron al menos una vez
+    const resolved = { owner: false, cotutor: false };
+
     const merge = () => {
+      // Solo terminar loading cuando ambos queries hayan respondido
+      const bothReady = resolved.owner && resolved.cotutor;
       const merged = Array.from(allPetsMap.values());
       setPets(merged);
-      setLoading(false);
-      setActivePetIdState((current) => {
-        if (merged.length === 0) return "";
-        if (!current || !merged.find(p => p.id === current)) {
-          const firstId = merged[0].id;
-          localStorage.setItem("activePetId", firstId);
-          return firstId;
-        }
-        return current;
-      });
+      if (bothReady) {
+        setLoading(false);
+        setActivePetIdState((current) => {
+          if (merged.length === 0) return "";
+          if (!current || !merged.find(p => p.id === current)) {
+            const firstId = merged[0].id;
+            localStorage.setItem("activePetId", firstId);
+            return firstId;
+          }
+          return current;
+        });
+      }
     };
 
+    // Query 1: mascotas donde soy dueño
+    const qOwner = query(collection(db, "pets"), where("ownerId", "==", user.uid));
     const unsubOwner = onSnapshot(qOwner, (snap) => {
-      snap.docs.forEach(d => allPetsMap.set(d.id, { id: d.id, ...d.data() } as Pet));
-      // Eliminar las que ya no están
-      snap.docChanges().filter(c => c.type === "removed").forEach(c => allPetsMap.delete(c.doc.id));
-      merge();
-    }, (err) => { console.error("Error pets owner:", err); setLoading(false); });
-
-    // Co-tutor query: Firestore no soporta array-contains con objetos parciales,
-    // usamos campo plano coTutorUids para la query
-    const qCoTutorFlat = query(collection(db, "pets"), where("coTutorUids", "array-contains", user.uid));
-    const unsubCoTutor = onSnapshot(qCoTutorFlat, (snap) => {
-      snap.docs.forEach(d => allPetsMap.set(d.id, { id: d.id, ...d.data() } as Pet));
-      snap.docChanges().filter(c => c.type === "removed").forEach(c => {
-        // Solo eliminar si tampoco soy owner
-        const pet = allPetsMap.get(c.doc.id);
-        if (pet && pet.ownerId !== user.uid) allPetsMap.delete(c.doc.id);
+      snap.docChanges().forEach(change => {
+        if (change.type === "removed") {
+          allPetsMap.delete(change.doc.id);
+        } else {
+          const data = change.doc.data();
+          // Auto-migrar mascotas viejas que no tienen coTutorUids
+          if (!data.coTutorUids) {
+            updateDoc(doc(db, "pets", change.doc.id), { coTutors: [], coTutorUids: [] }).catch(() => {});
+          }
+          allPetsMap.set(change.doc.id, { id: change.doc.id, ...data } as Pet);
+        }
       });
+      resolved.owner = true;
       merge();
-    }, (err) => { console.error("Error pets cotutor:", err); });
+    }, (err) => {
+      console.error("Error query owner pets:", err);
+      resolved.owner = true; // marcar igualmente para no bloquear UI
+      merge();
+    });
 
-    const safetyTimer = setTimeout(() => setLoading(false), 7000);
+    // Query 2: mascotas donde soy co-tutor (usa campo plano coTutorUids)
+    const qCoTutor = query(collection(db, "pets"), where("coTutorUids", "array-contains", user.uid));
+    const unsubCoTutor = onSnapshot(qCoTutor, (snap) => {
+      snap.docChanges().forEach(change => {
+        if (change.type === "removed") {
+          // Solo eliminar si tampoco soy owner
+          const existing = allPetsMap.get(change.doc.id);
+          if (existing && existing.ownerId !== user.uid) {
+            allPetsMap.delete(change.doc.id);
+          }
+        } else {
+          // No sobreescribir si ya está (el owner query tiene más info actualizada)
+          if (!allPetsMap.has(change.doc.id)) {
+            allPetsMap.set(change.doc.id, { id: change.doc.id, ...change.doc.data() } as Pet);
+          }
+        }
+      });
+      resolved.cotutor = true;
+      merge();
+    }, (err) => {
+      // Algunos proyectos tienen reglas que bloquean list por coTutorUids.
+      // No rompemos la app del owner principal por ese fallback.
+      const code = (err as any)?.code || "";
+      if (code !== "permission-denied" && code !== "firestore/permission-denied") {
+        console.error("Error query cotutor pets:", err);
+      }
+      resolved.cotutor = true; // marcar igualmente para no bloquear UI
+      merge();
+    });
+
+    // Safety timeout: si algo falla, desbloquear UI igual
+    const safetyTimer = setTimeout(() => {
+      resolved.owner = true;
+      resolved.cotutor = true;
+      merge();
+    }, 6000);
+
     return () => {
       clearTimeout(safetyTimer);
       unsubOwner();
@@ -126,89 +170,119 @@ export function PetProvider({ children }: { children: ReactNode }) {
 
   const addPet = async (pet: Omit<Pet, "id" | "ownerId">) => {
     if (!user) throw new Error("No user logged in");
-    try {
-      const docRef = await addDoc(collection(db, "pets"), {
-        ...pet,
-        ownerId: user.uid,
-        coTutors: [],
-        coTutorUids: [],
-        createdAt: new Date().toISOString()
-      });
-      return docRef.id;
-    } catch (error) {
-      console.error("Error adding pet:", error);
-      throw error;
-    }
+    const docRef = await addDoc(collection(db, "pets"), {
+      ...pet,
+      ownerId: user.uid,
+      coTutors: [],
+      coTutorUids: [],
+      createdAt: new Date().toISOString(),
+    });
+    return docRef.id;
   };
 
   const updatePet = async (id: string, updates: Partial<Pet> & { newWeightEntry?: WeightEntry }) => {
-    try {
-      const petRef = doc(db, "pets", id);
-      const { newWeightEntry, ...rest } = updates;
-      const payload: any = { ...rest };
-      if (newWeightEntry) {
-        payload.weightHistory = arrayUnion(newWeightEntry);
-      }
-      await updateDoc(petRef, payload);
-    } catch (error) {
-      console.error("Error updating pet:", error);
-      throw error;
+    const petRef = doc(db, "pets", id);
+    const { newWeightEntry, ...rest } = updates;
+    const payload: any = { ...rest };
+    if (newWeightEntry) {
+      payload.weightHistory = arrayUnion(newWeightEntry);
     }
+    await updateDoc(petRef, payload);
   };
 
-  // Genera un código de 6 caracteres y lo guarda en Firestore con 48hs de vida
-  const generateInviteCode = async (petId: string): Promise<string> => {
+  const generateInviteCode = async (petId: string, inviteEmail?: string): Promise<string> => {
     if (!user) throw new Error("No user logged in");
+    const petRef = doc(db, "pets", petId);
+    const petSnap = await getDoc(petRef);
+    if (!petSnap.exists()) throw new Error("Mascota no encontrada");
+    const petData = petSnap.data();
+    if (petData.ownerId !== user.uid) throw new Error("Solo el dueño puede invitar co-tutores");
+
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
     await setDoc(doc(db, "invitations", code), {
       petId,
+      petName: petData.name || "Mascota",
       createdBy: user.uid,
+      inviteEmail: inviteEmail ? inviteEmail.trim().toLowerCase() : null,
+      sendMethod: inviteEmail ? "email_magic_link" : "manual_code",
       expiresAt,
       used: false,
+      createdAt: new Date(),
     });
     return code;
   };
 
-  // El co-tutor ingresa el código y se agrega a la mascota
+  const sendCoTutorInviteEmail = async (petId: string, email: string): Promise<{ code: string; inviteLink: string }> => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !normalizedEmail.includes("@")) {
+      throw new Error("Ingresá un email válido.");
+    }
+    if (normalizedEmail === (user?.email || "").trim().toLowerCase()) {
+      throw new Error("No podés invitarte a vos mismo.");
+    }
+
+    const code = await generateInviteCode(petId, normalizedEmail);
+    const baseUrl = window.location.origin;
+    const inviteLink = `${baseUrl}/email-link?invite=${encodeURIComponent(code)}`;
+
+    await sendSignInLinkToEmail(auth, normalizedEmail, {
+      url: inviteLink,
+      handleCodeInApp: true,
+    });
+
+    localStorage.setItem("pessy_magic_link_email", normalizedEmail);
+    return { code, inviteLink };
+  };
+
   const joinWithCode = async (code: string): Promise<{ petName: string }> => {
-    if (!user) throw new Error("No user logged in");
-    const invRef = doc(db, "invitations", code.toUpperCase().trim());
+    const currentUser = user || auth.currentUser;
+    if (!currentUser) throw new Error("No user logged in");
+    const normalizedCode = code.toUpperCase().trim();
+    const invRef = doc(db, "invitations", normalizedCode);
     const invSnap = await getDoc(invRef);
     if (!invSnap.exists()) throw new Error("Código inválido o expirado");
 
     const inv = invSnap.data();
     if (inv.used) throw new Error("Este código ya fue utilizado");
-    if (new Date(inv.expiresAt) < new Date()) throw new Error("El código expiró");
-    if (inv.createdBy === user.uid) throw new Error("No podés unirte a tu propia mascota con un código");
+    const currentUserEmail = (currentUser.email || "").trim().toLowerCase();
+    const inviteEmail = (inv.inviteEmail || "").trim().toLowerCase();
+    if (inviteEmail && inviteEmail !== currentUserEmail) {
+      throw new Error("Este código fue emitido para otro correo.");
+    }
+    const expiresAt =
+      typeof inv.expiresAt?.toDate === "function"
+        ? inv.expiresAt.toDate()
+        : new Date(inv.expiresAt);
+    if (!Number.isFinite(expiresAt.getTime()) || expiresAt < new Date()) {
+      throw new Error("El código expiró");
+    }
+    if (inv.createdBy === currentUser.uid) throw new Error("No podés unirte a tu propia mascota con un código");
 
     const petRef = doc(db, "pets", inv.petId);
-    const petSnap = await getDoc(petRef);
-    if (!petSnap.exists()) throw new Error("Mascota no encontrada");
-
-    const petData = petSnap.data();
-    const existingUids: string[] = petData.coTutorUids || [];
-    if (existingUids.includes(user.uid)) throw new Error("Ya sos co-tutor de esta mascota");
 
     const newCoTutor: CoTutor = {
-      uid: user.uid,
-      email: user.email || "",
-      name: user.displayName || user.email || "",
+      uid: currentUser.uid,
+      email: currentUser.email || "",
+      name: currentUser.displayName || currentUser.email || "",
       addedAt: new Date().toISOString(),
     };
 
     await updateDoc(petRef, {
       coTutors: arrayUnion(newCoTutor),
-      coTutorUids: arrayUnion(user.uid),
+      coTutorUids: arrayUnion(currentUser.uid),
+      lastJoinInviteCode: normalizedCode,
     });
 
-    // Marcar código como usado
-    await updateDoc(invRef, { used: true, usedBy: user.uid, usedAt: new Date().toISOString() });
+    await updateDoc(invRef, {
+      used: true,
+      usedBy: currentUser.uid,
+      usedAt: new Date(),
+    });
 
-    return { petName: petData.name };
+    return { petName: inv.petName || "la mascota" };
   };
 
-  // El dueño elimina un co-tutor
   const removeCoTutor = async (petId: string, coTutorUid: string) => {
     const petRef = doc(db, "pets", petId);
     const petSnap = await getDoc(petRef);
@@ -219,7 +293,6 @@ export function PetProvider({ children }: { children: ReactNode }) {
     await updateDoc(petRef, { coTutors: updatedCoTutors, coTutorUids: updatedUids });
   };
 
-  // El co-tutor se va por su cuenta
   const leaveAsTutor = async (petId: string) => {
     if (!user) return;
     await removeCoTutor(petId, user.uid);
@@ -232,7 +305,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
   return (
     <PetContext.Provider value={{
       activePetId, setActivePetId, pets, activePet, addPet, updatePet, loading,
-      generateInviteCode, joinWithCode, removeCoTutor, leaveAsTutor, isOwner,
+      generateInviteCode, sendCoTutorInviteEmail, joinWithCode, removeCoTutor, leaveAsTutor, isOwner,
     }}>
       {children}
     </PetContext.Provider>

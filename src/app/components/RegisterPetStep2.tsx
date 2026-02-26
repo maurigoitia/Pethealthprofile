@@ -4,6 +4,7 @@ import { usePet } from "../contexts/PetContext";
 import { useAuth } from "../contexts/AuthContext";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../../lib/firebase";
+import { DEFAULT_PET_PHOTO } from "../constants/petDefaults";
 
 export function RegisterPetStep2() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export function RegisterPetStep2() {
   const { user, loading: authLoading } = useAuth();
 
   const step1Data = location.state || {};
+  const hasStep1Data = Boolean(step1Data?.name?.trim() && step1Data?.species);
 
   const [formData, setFormData] = useState({
     weight: "",
@@ -20,14 +22,16 @@ export function RegisterPetStep2() {
     isNeutered: false,
   });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState(
-    "https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=400&h=400&fit=crop"
-  );
+  const [photoPreview, setPhotoPreview] = useState(DEFAULT_PET_PHOTO);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   if (!authLoading && !user) {
     return <Navigate to="/welcome" replace />;
+  }
+
+  if (!hasStep1Data) {
+    return <Navigate to="/register-pet" replace />;
   }
 
   const handlePhotoClick = () => {
@@ -61,9 +65,9 @@ export function RegisterPetStep2() {
       }
 
       await addPet({
-        name: step1Data.name || "Mascota",
-        breed: step1Data.breed || "Desconocida",
-        photo: photoUrl,
+        name: step1Data.name.trim(),
+        breed: step1Data.breed?.trim() || "No especificada",
+        photo: photoUrl || DEFAULT_PET_PHOTO,
         species: step1Data.species || "dog",
         age: step1Data.age || "",
         weight: formData.weight,

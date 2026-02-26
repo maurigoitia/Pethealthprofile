@@ -1,5 +1,5 @@
-import { lazy, Suspense, useState } from "react";
-import { Navigate, useNavigate } from "react-router";
+import { lazy, Suspense, useEffect, useState } from "react";
+import { Navigate, useLocation, useNavigate } from "react-router";
 import { Header } from "./Header";
 import { ActionTray } from "./ActionTray";
 import { Timeline } from "./Timeline";
@@ -13,29 +13,96 @@ import { MaterialIcon } from "./MaterialIcon";
 import { PetHomeView } from "./PetHomeView";
 import { AppointmentsScreen } from "./AppointmentsScreen";
 import { MedicationsScreen } from "./MedicationsScreen";
+import { RemindersScreen } from "./RemindersScreen";
+import { NearbyVetsScreen } from "./NearbyVetsScreen";
 import { usePet } from "../contexts/PetContext";
 import { useAuth } from "../contexts/AuthContext";
+import { useNotifications } from "../contexts/NotificationContext";
+import { useReminders } from "../contexts/RemindersContext";
 
 const ExportReportModal = lazy(() =>
   import("./ExportReportModal").then((module) => ({ default: module.ExportReportModal }))
 );
-const HealthReportModal = lazy(() =>
-  import("./HealthReportModal").then((module) => ({ default: module.HealthReportModal }))
-);
 
 export default function HomeScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showPetProfile, setShowPetProfile] = useState(false);
   const [showExportReport, setShowExportReport] = useState(false);
-  const [showHealthReport, setShowHealthReport] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showPetSelector, setShowPetSelector] = useState(false);
-  const [currentTab, setCurrentTab] = useState<"home" | "settings">("home");
+  const [currentTab, setCurrentTab] = useState<"home" | "reminders" | "vets" | "settings">("home");
   const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications">("card");
+  const [showNotificationsNudge, setShowNotificationsNudge] = useState(false);
+  const NUDGE_UNTIL_KEY = "pessy_notifications_nudge_until";
+  const { permission, requestPermission } = useNotifications();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const review = params.get("review");
+    if (!review) return;
+
+    if (review === "appointments") {
+      setCurrentTab("home");
+      setViewMode("appointments");
+      return;
+    }
+    if (review === "medications") {
+      setCurrentTab("home");
+      setViewMode("medications");
+      return;
+    }
+    if (review === "feed") {
+      setCurrentTab("home");
+      setViewMode("feed");
+      return;
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    if (permission === "granted") {
+      setShowNotificationsNudge(false);
+      return;
+    }
+    const rawUntil = localStorage.getItem(NUDGE_UNTIL_KEY);
+    const until = rawUntil ? Number(rawUntil) : 0;
+    if (Number.isFinite(until) && until > Date.now()) {
+      setShowNotificationsNudge(false);
+      return;
+    }
+    setShowNotificationsNudge(true);
+  }, [permission]);
 
   // Get pet and auth data from context
   const { activePetId, setActivePetId, pets, activePet, loading: petsLoading } = usePet();
-  const { user } = useAuth();
+  const { user, loading: authLoading, userName } = useAuth();
+  const { getPendingCount } = useReminders();
+  const safeUserName = (() => {
+    const fromContext = (userName || "").trim();
+    if (fromContext) return fromContext;
+    const fromDisplayName = (user?.displayName || "").trim().split(/\s+/)[0];
+    if (fromDisplayName) return fromDisplayName;
+    const fromEmail = (user?.email?.split("@")[0] || "").trim();
+    if (fromEmail) return fromEmail;
+    return "Tutor";
+  })();
+
+  if (authLoading) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center px-6"
+        style={{
+          backgroundImage: "linear-gradient(rgb(43,124,238) 0%, rgb(61,139,255) 50%, rgb(93,163,255) 100%)",
+        }}
+      >
+        <div className="w-full max-w-sm bg-white/95 rounded-3xl border border-white/50 p-8 text-center shadow-2xl">
+          <div className="mx-auto mb-4 size-10 rounded-full border-4 border-[#2b7cee]/20 border-t-[#2b7cee] animate-spin" />
+          <p className="text-base font-bold text-slate-900">Validando sesión...</p>
+          <p className="text-sm text-slate-500 mt-1">Un instante, por favor.</p>
+        </div>
+      </div>
+    );
+  }
 
   // Guard de autenticación para evitar navegación en bucle hacia pantallas internas
   if (!user) {
@@ -43,16 +110,21 @@ export default function HomeScreen() {
   }
 
   // Handle tab change and reset viewMode to "card" when going to home tab
-  const handleTabChange = (tab: "home" | "settings") => {
+  const handleTabChange = (tab: "home" | "reminders" | "vets" | "settings") => {
     setCurrentTab(tab);
-    if (tab === "home") {
-      setViewMode("card");
-    }
+    if (tab === "home") setViewMode("card");
   };
 
   const handlePetChange = (petId: string) => {
     setActivePetId(petId);
     // Refresh all data for new pet
+  };
+
+  const handleDismissNotificationsNudge = () => {
+    // Oculta por 24h para no ser invasivos.
+    const tomorrow = Date.now() + 24 * 60 * 60 * 1000;
+    localStorage.setItem(NUDGE_UNTIL_KEY, String(tomorrow));
+    setShowNotificationsNudge(false);
   };
 
   const handleAddNewPet = () => {
@@ -195,15 +267,30 @@ export default function HomeScreen() {
     return (
       <>
         <MedicationsScreen onBack={() => setViewMode("card")} />
-        <BottomNav
-          currentTab={currentTab}
-          onTabChange={handleTabChange}
-          onAddDocument={() => setShowScanner(true)}
-        />
-        <DocumentScannerModal
-          isOpen={showScanner}
-          onClose={() => setShowScanner(false)}
-        />
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} reminderBadge={activePetId ? getPendingCount(activePetId) : 0} />
+        <DocumentScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
+      </>
+    );
+  }
+
+  // Recordatorios
+  if (currentTab === "reminders") {
+    return (
+      <>
+        <RemindersScreen onBack={() => handleTabChange("home")} />
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} reminderBadge={activePetId ? getPendingCount(activePetId) : 0} />
+        <DocumentScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
+      </>
+    );
+  }
+
+  // Veterinarias cercanas
+  if (currentTab === "vets") {
+    return (
+      <>
+        <NearbyVetsScreen onBack={() => handleTabChange("home")} />
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} reminderBadge={activePetId ? getPendingCount(activePetId) : 0} />
+        <DocumentScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
       </>
     );
   }
@@ -229,8 +316,39 @@ export default function HomeScreen() {
         {/* Card View - New Design */}
         {viewMode === "card" && (
           <>
+            {showNotificationsNudge && (
+              <div className="mx-4 mt-4 mb-1 bg-[#2b7cee]/10 border border-[#2b7cee]/20 rounded-2xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="size-10 rounded-full bg-[#2b7cee]/20 flex items-center justify-center shrink-0">
+                    <MaterialIcon name="notifications_active" className="text-[#2b7cee] text-xl" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white">
+                      Activá notificaciones de PESSY
+                    </h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+                      Te avisamos a tiempo cuando hay medicación o turnos para evitar olvidos.
+                    </p>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => void requestPermission()}
+                        className="px-3 py-2 rounded-lg bg-[#2b7cee] text-white text-xs font-bold hover:bg-[#245fc9] transition-colors"
+                      >
+                        Activar ahora
+                      </button>
+                      <button
+                        onClick={handleDismissNotificationsNudge}
+                        className="px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300"
+                      >
+                        Recordar luego
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             <PetHomeView
-              userName={user?.displayName?.split(" ")[0] || user?.email?.split("@")[0] || "Hola"}
+              userName={safeUserName}
               onViewHistory={() => setViewMode("feed")}
               onPetClick={() => setShowPetProfile(true)}
               onAppointmentsClick={() => setViewMode("appointments")}
@@ -285,12 +403,6 @@ export default function HomeScreen() {
         <ExportReportModal
           isOpen={showExportReport}
           onClose={() => setShowExportReport(false)}
-        />
-      </Suspense>
-      <Suspense fallback={null}>
-        <HealthReportModal
-          isOpen={showHealthReport}
-          onClose={() => setShowHealthReport(false)}
         />
       </Suspense>
       <DocumentScannerModal

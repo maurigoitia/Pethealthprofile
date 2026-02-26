@@ -5,6 +5,7 @@ import { EmptyState } from "./EmptyState";
 import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
 import { PendingAction } from "../types/medical";
+import { formatDateSafe, parseDateSafe } from "../utils/dateUtils";
 
 export function ActionTray() {
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
@@ -45,7 +46,8 @@ export function ActionTray() {
   // Calculate priority based on due date
   const getPriority = (dueDate: string): "high" | "medium" | "low" => {
     const now = new Date();
-    const due = new Date(dueDate);
+    const due = parseDateSafe(dueDate);
+    if (!due) return "medium";
     const daysUntil = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     
     if (daysUntil < 0) return "high"; // Overdue
@@ -67,7 +69,8 @@ export function ActionTray() {
 
   // Format due date
   const formatDueDate = (isoDate: string) => {
-    const date = new Date(isoDate);
+    const date = parseDateSafe(isoDate);
+    if (!date) return "Fecha no disponible";
     const now = new Date();
     const daysUntil = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     
@@ -176,12 +179,13 @@ export function ActionTray() {
                             <span className="text-xs text-slate-500 dark:text-slate-400">
                               Fecha programada
                             </span>
-                            <span className="text-xs font-semibold text-slate-900 dark:text-white">
-                              {new Date(action.dueDate).toLocaleDateString("es-ES", {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                              })}
+                              <span className="text-xs font-semibold text-slate-900 dark:text-white">
+                              {formatDateSafe(
+                                action.dueDate,
+                                "es-ES",
+                                { day: "numeric", month: "long", year: "numeric" },
+                                "Fecha no disponible"
+                              )}
                             </span>
                           </div>
                           {action.reminderEnabled && (

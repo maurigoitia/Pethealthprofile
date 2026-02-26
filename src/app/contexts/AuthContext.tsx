@@ -1,75 +1,174 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import {
-    User,
-    onAuthStateChanged,
-    signOut
-} from "firebase/auth";
-import { auth } from "../../lib/firebase";
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { User, onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
+import { auth, db } from "../../lib/firebase";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 interface AuthContextType {
-    user: User | null;
-    loading: boolean;
-    logout: () => Promise<void>;
+  user: User | null;
+  loading: boolean;
+  userName: string;       // Primer nombre, capitalizado
+  userFullName: string;   // Nombre completo
+  userPhoto: string;      // URL foto de perfil
+  userCountry: string;    // Código de país (ej: "AR")
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        // Fallback: If Firebase keys are missing, don't wait forever
-        if (!auth.app.options.apiKey) {
-            console.warn("Firebase API key missing. Running in limited mode.");
-            setLoading(false);
-            return;
-        }
-
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            setUser(user);
-            setLoading(false);
-        }, (error) => {
-            console.error("Auth error:", error);
-            setLoading(false);
-        });
-
-        // Protection: 5s timeout to avoid white screen
-        const timer = setTimeout(() => setLoading(false), 5000);
-
-        return () => {
-            unsubscribe();
-            clearTimeout(timer);
+// Lee Firestore y devuelve los datos del perfil. Siempre hace una sola query.
+async function fetchUserProfile(firebaseUser: User): Promise<{
+  firstName: string;
+  fullName: string;
+  photo: string;
+  country: string;
+}> {
+  try {
+    const snap = await getDoc(doc(db, "users", firebaseUser.uid));
+    if (snap.exists()) {
+      const data = snap.data();
+      const fullName = ((data.fullName || data.name || "") as string).trim();
+      if (fullName) {
+        const firstName = fullName.split(" ")[0];
+        return {
+          firstName: firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase(),
+          fullName,
+          photo: (data.photo || firebaseUser.photoURL || "") as string,
+          country: (data.country || "") as string,
         };
-    }, []);
+      }
+    }
+  } catch {
+    // Firestore offline o sin permisos — caer a Auth
+  }
 
-    const logout = () => signOut(auth);
+  // Fallback 1: displayName en Firebase Auth
+  const dn = (firebaseUser.displayName || "").trim();
+  if (dn) {
+    const firstName = dn.split(" ")[0];
+    return {
+      firstName: firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase(),
+      fullName: dn,
+      photo: firebaseUser.photoURL || "",
+      country: "",
+    };
+  }
 
-    return (
-        <AuthContext.Provider value={{ user, loading, logout }}>
-            {loading ? (
-                <div
-                    className="min-h-screen flex items-center justify-center px-6"
-                    style={{
-                        backgroundImage: "linear-gradient(rgb(43,124,238) 0%, rgb(61,139,255) 50%, rgb(93,163,255) 100%)",
-                    }}
-                >
-                    <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl px-6 py-10 text-center">
-                        <h1 className="text-3xl font-black text-[#2b7cee]">Pessy</h1>
-                        <p className="text-slate-500 text-sm mt-2">Cargando sesión...</p>
-                    </div>
-                </div>
-            ) : (
-                children
-            )}
-        </AuthContext.Provider>
-    );
+  // Fallback 2: email
+  const emailName = firebaseUser.email?.split("@")[0] || "Usuario";
+  return { firstName: emailName, fullName: emailName, photo: "", country: "" };
+}
+
+// Crea el doc en Firestore solo si no existe. Nunca sobreescribe datos.
+async function ensureFirestoreProfile(firebaseUser: User): Promise<void> {
+  try {
+    const ref = doc(db, "users", firebaseUser.uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      await setDoc(ref, {
+        fullName: firebaseUser.displayName || "",
+        name: firebaseUser.displayName || "",
+        email: firebaseUser.email?.trim().toLowerCase() || "",
+        photo: firebaseUser.photoURL || null,
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+      });
+    } else {
+      // Solo registrar último login — nunca tocar fullName/name/country
+      await setDoc(ref, { lastLoginAt: new Date().toISOString() }, { merge: true });
+    }
+  } catch {
+    // No bloquear si Firestore falla
+  }
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState("");
+  const [userFullName, setUserFullName] = useState("");
+  const [userPhoto, setUserPhoto] = useState("");
+  const [userCountry, setUserCountry] = useState("");
+
+  const applyProfile = useCallback((profile: { firstName: string; fullName: string; photo: string; country: string }) => {
+    const safeFirstName =
+      (profile.firstName || "").trim() ||
+      (profile.fullName || "").trim().split(/\s+/)[0] ||
+      "Tutor";
+    const safeFullName = (profile.fullName || "").trim() || safeFirstName;
+    setUserName(safeFirstName);
+    setUserFullName(safeFullName);
+    setUserPhoto(profile.photo);
+    setUserCountry(profile.country);
+  }, []);
+
+  const clearProfile = useCallback(() => {
+    setUserName("");
+    setUserFullName("");
+    setUserPhoto("");
+    setUserCountry("");
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return;
+    const profile = await fetchUserProfile(currentUser);
+    applyProfile(profile);
+  }, [applyProfile]);
+
+  useEffect(() => {
+    if (!auth.app.options.apiKey) {
+      setLoading(false);
+      return;
+    }
+
+    // Safety timeout para evitar loading infinito
+    const safetyTimer = setTimeout(() => setLoading(false), 8000);
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setUser(firebaseUser);
+
+      if (firebaseUser) {
+        // Cargar perfil Y asegurar doc en Firestore en paralelo
+        const [profile] = await Promise.all([
+          fetchUserProfile(firebaseUser),
+          ensureFirestoreProfile(firebaseUser),
+        ]);
+
+        applyProfile(profile);
+
+        // Sincronizar displayName en Auth si está vacío
+        if (!firebaseUser.displayName && profile.fullName && profile.fullName !== firebaseUser.email?.split("@")[0]) {
+          updateProfile(firebaseUser, { displayName: profile.fullName }).catch(() => {});
+        }
+      } else {
+        clearProfile();
+      }
+
+      clearTimeout(safetyTimer);
+      setLoading(false);
+    }, () => {
+      clearTimeout(safetyTimer);
+      setLoading(false);
+    });
+
+    return () => {
+      unsubscribe();
+      clearTimeout(safetyTimer);
+    };
+  }, [applyProfile, clearProfile]);
+
+  const logout = () => signOut(auth);
+
+  return (
+    <AuthContext.Provider value={{ user, loading, userName, userFullName, userPhoto, userCountry, logout, refreshUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error("useAuth must be used within an AuthProvider");
-    }
-    return context;
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
+  return context;
 }

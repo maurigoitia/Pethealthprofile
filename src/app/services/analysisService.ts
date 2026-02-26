@@ -4,12 +4,883 @@
 // ============================================================================
 
 import {
+  ActiveMedication,
+  Appointment,
   ExtractedData,
   DocumentExtractionResponse,
   DocumentType,
+  MasterClinicalPayload,
+  MedicalEvent,
   MedicationExtracted,
   Measurement,
 } from "../types/medical";
+import { toDateKeySafe, toTimestampSafe } from "../utils/dateUtils";
+
+const DOCUMENT_TYPES: DocumentType[] = [
+  "vaccine",
+  "appointment",
+  "lab_test",
+  "xray",
+  "echocardiogram",
+  "electrocardiogram",
+  "surgery",
+  "medication",
+  "checkup",
+  "other",
+];
+
+const CONFIDENCE_LEVELS = ["high", "medium", "low", "not_detected"] as const;
+
+const asStringOrNull = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const asObject = (value: unknown): Record<string, unknown> =>
+  value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+
+const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+const asConfidence = (value: unknown): "high" | "medium" | "low" | "not_detected" => {
+  if (typeof value === "number") {
+    if (value >= 0.85) return "high";
+    if (value >= 0.65) return "medium";
+    if (value >= 0.45) return "low";
+    return "not_detected";
+  }
+  if (typeof value !== "string") return "not_detected";
+  const normalized = value.toLowerCase().trim();
+  if (normalized === "alta" || normalized === "alto") return "high";
+  if (normalized === "media" || normalized === "medio") return "medium";
+  if (normalized === "baja" || normalized === "bajo") return "low";
+  if (normalized === "no_detectado" || normalized === "no detectado") return "not_detected";
+  return (CONFIDENCE_LEVELS as readonly string[]).includes(normalized)
+    ? (normalized as "high" | "medium" | "low" | "not_detected")
+    : "not_detected";
+};
+
+const asDocumentType = (value: unknown): DocumentType => {
+  if (typeof value !== "string") return "other";
+  return DOCUMENT_TYPES.includes(value as DocumentType) ? (value as DocumentType) : "other";
+};
+
+const asDateKeyOrNull = (value: unknown): string | null => {
+  const key = toDateKeySafe(value);
+  return key || null;
+};
+
+const asAppointmentTimeOrNull = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (/^\d{2}:\d{2}$/.test(trimmed)) return trimmed;
+
+  const match = trimmed.match(/(\d{1,2})\s*[:.h]\s*(\d{2})/i);
+  if (match) {
+    const hh = Number(match[1]);
+    const mm = Number(match[2]);
+    if (hh >= 0 && hh <= 23 && mm >= 0 && mm <= 59) {
+      return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+    }
+  }
+
+  const hourOnlyMatch = trimmed.match(/\b(\d{1,2})\s*hs?\b/i);
+  if (hourOnlyMatch) {
+    const hh = Number(hourOnlyMatch[1]);
+    if (hh >= 0 && hh <= 23) {
+      return `${String(hh).padStart(2, "0")}:00`;
+    }
+  }
+
+  return null;
+};
+
+const normalizeClinicalTerm = (value: string): string => {
+  const source = value.toLowerCase().trim();
+  const dictionary: Array<[RegExp, string]> = [
+    [/cardiomiopat[ií]a\s+dilatada|cmd\b/g, "cardiomiopatia dilatada"],
+    [/insuficiencia\s+card[ií]aca/g, "insuficiencia cardiaca"],
+    [/hepatopat[ií]a|enfermedad\s+hep[aá]tica/g, "hepatopatia"],
+    [/displasia\s+de\s+cadera/g, "displasia de cadera"],
+    [/dermatitis\s+al[eé]rgica|alergia\s+cut[aá]nea/g, "dermatitis alergica"],
+  ];
+
+  for (const [pattern, normalized] of dictionary) {
+    if (pattern.test(source)) return normalized;
+  }
+  return source.replace(/\s+/g, " ");
+};
+
+const titleFromDocumentType = (documentType: DocumentType): string => {
+  const labelMap: Record<DocumentType, string> = {
+    vaccine: "Registro de Vacunación",
+    appointment: "Turno Médico",
+    lab_test: "Resultado de Laboratorio",
+    xray: "Estudio Radiográfico",
+    echocardiogram: "Ecocardiograma",
+    electrocardiogram: "Electrocardiograma",
+    surgery: "Informe de Cirugía",
+    medication: "Prescripción Médica",
+    checkup: "Control Clínico",
+    other: "Documento Médico",
+  };
+  return labelMap[documentType];
+};
+
+const mapMasterDocumentType = (value: unknown): DocumentType => {
+  const type = asStringOrNull(value);
+  if (!type) return "other";
+  if (type === "ecografia") return "echocardiogram";
+  if (type === "laboratorio") return "lab_test";
+  if (type === "receta") return "medication";
+  if (type === "informe") return "checkup";
+  if (type === "otro") return "other";
+  if (type === "medical_appointment") return "appointment";
+  if (type === "clinical_report") return "checkup";
+  if (type === "laboratory_result") return "lab_test";
+  if (type === "vaccination_record") return "vaccine";
+  if (type === "appointment") return "appointment";
+  if (type === "lab_result") return "lab_test";
+  if (type === "prescription") return "medication";
+  if (type === "medical_study") return "checkup";
+  return "other";
+};
+
+const normalizeToMasterDocumentType = (value: unknown): MasterClinicalPayload["document_type"] => {
+  const type = asStringOrNull(value)?.toLowerCase();
+  if (!type) return "other";
+  if (type === "ecografia") return "medical_study";
+  if (type === "laboratorio") return "laboratory_result";
+  if (type === "receta") return "prescription";
+  if (type === "informe") return "clinical_report";
+  if (type === "otro") return "other";
+  if (type === "medical_appointment") return "medical_appointment";
+  if (type === "clinical_report") return "clinical_report";
+  if (type === "laboratory_result") return "laboratory_result";
+  if (type === "prescription") return "prescription";
+  if (type === "vaccination_record") return "vaccination_record";
+  if (type === "appointment") return "appointment";
+  if (type === "medical_study") return "medical_study";
+  if (type === "lab_result") return "lab_result";
+  if (type === "invoice") return "invoice";
+  if (type === "other") return "other";
+  return "other";
+};
+
+const inferLegacyDocumentTypeFromMaster = (payload: MasterClinicalPayload): DocumentType => {
+  const mapped = mapMasterDocumentType(payload.document_type);
+  if (mapped !== "checkup") return mapped;
+
+  const haystack = [
+    payload.document_info.record_number,
+    payload.document_info.clinic_name,
+    payload.document_info.veterinarian_name,
+    ...payload.diagnoses.map((diagnosis) => diagnosis.condition_name),
+    ...payload.abnormal_findings.map((finding) => finding.parameter),
+    ...payload.recommendations,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (/(rx|radiograf|placa|torax dv|torax ld|d-v|l-l)/i.test(haystack)) return "xray";
+  if (/(ecocardi|eco cardi|doppler)/i.test(haystack)) return "echocardiogram";
+  if (/(ecg|electrocardi|ritmo sinusal)/i.test(haystack)) return "electrocardiogram";
+  if (/(laboratorio|hemograma|bioquim|analisis|glucosa|creatinina|urea|alt|ast)/i.test(haystack)) return "lab_test";
+  if (/(cirug|quirurg|operatorio|postoperatorio)/i.test(haystack)) return "surgery";
+  if (payload.treatments.length > 0) return "medication";
+  return "checkup";
+};
+
+const buildSummaryFromMaster = (
+  documentType: DocumentType,
+  sourceDocumentType: MasterClinicalPayload["document_type"],
+  diagnosis: string | null,
+  treatments: MedicationExtracted[],
+  findings: Measurement[],
+  recommendations: string[],
+  context: {
+    petName?: string | null;
+    eventDate?: string | null;
+    appointmentTime?: string | null;
+    appointments?: ExtractedData["detectedAppointments"];
+    provider?: string | null;
+    clinic?: string | null;
+    title?: string | null;
+    observations?: string | null;
+  } = {}
+): string => {
+  const diagnosisText = diagnosis?.replace(/\bno_especificado\b/gi, "").trim() || null;
+  const alteredFindings = findings.filter((item) => /(alto|bajo|alterado|fuera)/i.test(item.referenceRange || ""));
+  const petName = asStringOrNull(context.petName) || "la mascota";
+  const eventDate = asDateKeyOrNull(context.eventDate) || "fecha no disponible";
+  const provider = asStringOrNull(context.provider);
+  const clinic = asStringOrNull(context.clinic);
+  const whoWhere = [provider, clinic].filter(Boolean).join(" · ");
+  const firstAppointment = context.appointments?.[0] || null;
+  const appointmentDate = asDateKeyOrNull(firstAppointment?.date) || eventDate;
+  const appointmentTime = asAppointmentTimeOrNull(context.appointmentTime || firstAppointment?.time);
+  const appointmentReason =
+    asStringOrNull(firstAppointment?.title) ||
+    asStringOrNull(firstAppointment?.specialty) ||
+    asStringOrNull(context.title) ||
+    "consulta veterinaria";
+
+  const isAppointmentDocument =
+    documentType === "appointment" ||
+    sourceDocumentType === "medical_appointment" ||
+    sourceDocumentType === "appointment";
+
+  if (isAppointmentDocument) {
+    return `Turno programado para ${petName}: ${appointmentReason}, ${appointmentDate}${appointmentTime ? ` a las ${appointmentTime}` : ""}${whoWhere ? `. Centro/profesional: ${whoWhere}` : ""}.`;
+  }
+
+  if (documentType === "medication") {
+    const first = treatments[0];
+    const looksLikePlan = /(plan|sesiones|terapia|hiperb[aá]rica)/i.test(
+      [context.title, context.observations, recommendations[0]].filter(Boolean).join(" ")
+    );
+    if (looksLikePlan && !first) {
+      return `Plan de tratamiento registrado para ${petName} con fecha ${eventDate}${whoWhere ? `. Centro/profesional: ${whoWhere}` : ""}.`;
+    }
+    if (first) {
+      const details = [first.dosage, first.frequency, first.duration].filter(Boolean).join(", ");
+      return `Tratamiento indicado para ${petName}: ${first.name}${details ? ` (${details})` : ""}. Fecha de receta: ${eventDate}${whoWhere ? `. Prescriptor: ${whoWhere}` : ""}.`;
+    }
+    return `Receta médica registrada para ${petName} en ${eventDate}${whoWhere ? `. Prescriptor: ${whoWhere}` : ""}.`;
+  }
+
+  if (documentType === "xray" || documentType === "echocardiogram" || documentType === "electrocardiogram") {
+    if (diagnosisText) return `Según informe por imágenes de ${eventDate}, ${petName} presenta: ${diagnosisText}${whoWhere ? `. Firmado por ${whoWhere}` : ""}.`;
+    return `Estudio por imágenes de ${eventDate} para ${petName}. El documento no incluye interpretación clínica explícita${whoWhere ? ` (${whoWhere})` : ""}.`;
+  }
+
+  if (documentType === "lab_test") {
+    if (findings.length > 0) {
+      return `Resultado de laboratorio de ${eventDate}: ${alteredFindings.length} de ${findings.length} mediciones fuera de rango${whoWhere ? `. Laboratorio: ${whoWhere}` : ""}.`;
+    }
+    return `Laboratorio registrado en ${eventDate}${whoWhere ? `. Laboratorio: ${whoWhere}` : ""}.`;
+  }
+
+  if (documentType === "vaccine" || sourceDocumentType === "vaccination_record") {
+    return `Registro de vacunación para ${petName} en ${eventDate}${whoWhere ? `. Aplicada en ${whoWhere}` : ""}.`;
+  }
+
+  if (diagnosisText) {
+    return `Informe clínico de ${eventDate}: ${petName} presenta ${diagnosisText}${whoWhere ? `. Atención en ${whoWhere}` : ""}.`;
+  }
+
+  const recommendation = recommendations[0] ? `Recomendación registrada: ${recommendations[0]}.` : "";
+  return (`Documento clínico de ${petName} cargado en ${eventDate}. ${recommendation}`).trim();
+};
+
+const inferAppointmentByContent = (params: {
+  documentType: DocumentType;
+  title: string | null;
+  observations: string | null;
+  diagnosis: string | null;
+  eventDate: string | null;
+  appointmentTime: string | null;
+  detectedAppointments: ExtractedData["detectedAppointments"];
+}): boolean => {
+  if (params.documentType === "appointment") return true;
+  if ((params.detectedAppointments || []).length > 0) return true;
+
+  const haystack = [
+    params.title,
+    params.observations,
+    params.diagnosis,
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  const hasAppointmentKeywords = /(turno|confirmad|consulta|especialidad|prestaci[oó]n|centro de atenci[oó]n|agenda)/i.test(haystack);
+  const hasScheduleData = Boolean(params.eventDate && (params.appointmentTime || /\b\d{1,2}[:.]\d{2}\b/.test(haystack)));
+  return hasAppointmentKeywords && hasScheduleData;
+};
+
+const toMasterPayload = (value: Record<string, unknown>): MasterClinicalPayload => {
+  const pet = asObject(value.pet);
+  const documentInfoLegacy = asObject(value.document_info);
+  const documentInfoV2 = asObject(value.document);
+  const documentInfo = Object.keys(documentInfoV2).length > 0 ? documentInfoV2 : documentInfoLegacy;
+  const appointmentEventRaw = asObject(value.appointment_event);
+  const topLevelAppointmentEvent = asStringOrNull(value.event_type) === "medical_appointment";
+  const diagnoses = asArray(value.diagnoses_detected ?? value.diagnoses).map((item) => {
+    if (typeof item === "string") {
+      return {
+        condition_name: asStringOrNull(item),
+        organ_system: null,
+        classification: null,
+        severity: "no_especificado" as const,
+      };
+    }
+    const row = asObject(item);
+    return {
+      condition_name: asStringOrNull(row.condition_name ?? row.name),
+      organ_system: asStringOrNull(row.organ_system ?? row.system),
+      classification: asStringOrNull(row.classification ?? row.status) as MasterClinicalPayload["diagnoses"][number]["classification"],
+      severity: asStringOrNull(row.severity) as MasterClinicalPayload["diagnoses"][number]["severity"],
+    };
+  });
+
+  const abnormalFindings = asArray(value.abnormal_findings).map((item) => {
+    if (typeof item === "string") {
+      return {
+        parameter: asStringOrNull(item),
+        value: null,
+        reference_range: null,
+        status: null,
+      };
+    }
+    const row = asObject(item);
+    return {
+      parameter: asStringOrNull(row.parameter ?? row.name),
+      value: asStringOrNull(row.value ?? row.result),
+      reference_range: asStringOrNull(row.reference_range ?? row.range),
+      status: asStringOrNull(row.status ?? row.interpretation) as MasterClinicalPayload["abnormal_findings"][number]["status"],
+    };
+  });
+
+  const treatments = asArray(value.treatments_detected ?? value.treatments).map((item) => {
+    if (typeof item === "string") {
+      return {
+        treatment_name: asStringOrNull(item),
+        start_date: null,
+        end_date: null,
+        dosage: null,
+        status: "desconocido" as const,
+      };
+    }
+    const row = asObject(item);
+    return {
+      treatment_name: asStringOrNull(row.treatment_name ?? row.name),
+      start_date: asDateKeyOrNull(row.start_date ?? row.startDate),
+      end_date: asDateKeyOrNull(row.end_date ?? row.endDate),
+      dosage: asStringOrNull(row.dosage ?? row.dose),
+      status: asStringOrNull(row.status) as MasterClinicalPayload["treatments"][number]["status"],
+    };
+  });
+
+  const appointments = asArray(value.appointments).map((item) => {
+    if (typeof item === "string") {
+      return {
+        date: null,
+        time: null,
+        specialty: null,
+        procedure: asStringOrNull(item),
+        clinic_name: null,
+        clinic_address: null,
+        professional_name: null,
+        status: "recordatorio" as const,
+      };
+    }
+    const row = asObject(item);
+    const rawStatus = asStringOrNull(row.status);
+    return {
+      date: asDateKeyOrNull(row.date ?? row.event_date),
+      time: asAppointmentTimeOrNull(row.time ?? row.hour),
+      specialty: asStringOrNull(row.specialty ?? row.area),
+      procedure: asStringOrNull(row.procedure ?? row.title),
+      clinic_name: asStringOrNull(row.clinic_name ?? row.clinic),
+      clinic_address: asStringOrNull(row.clinic_address ?? row.address),
+      professional_name: asStringOrNull(row.professional_name ?? row.provider),
+      status: (rawStatus === "scheduled" ? "programado" : rawStatus) as MasterClinicalPayload["appointments"][number]["status"],
+    };
+  });
+
+  const appointmentEvent = (() => {
+    const source = Object.keys(appointmentEventRaw).length > 0 ? appointmentEventRaw : value;
+    if (asStringOrNull(source.event_type) !== "medical_appointment") return null;
+    const statusRaw = asStringOrNull(source.status);
+    return {
+      event_type: "medical_appointment" as const,
+      date: asDateKeyOrNull(source.date ?? source.event_date),
+      time: asAppointmentTimeOrNull(source.time ?? source.hour),
+      specialty: asStringOrNull(source.specialty),
+      procedure: asStringOrNull(source.procedure ?? source.title),
+      clinic: asStringOrNull(source.clinic ?? source.clinic_name ?? source.center ?? source.centro),
+      address: asStringOrNull(source.address ?? source.clinic_address),
+      professional_name: asStringOrNull(source.professional_name ?? source.provider ?? source.veterinarian_name),
+      preparation_required: asStringOrNull(source.preparation_required ?? source.preparation ?? source.instructions),
+      status: (statusRaw === "programado" ? "scheduled" : statusRaw) as MasterClinicalPayload["appointment_event"]["status"],
+    };
+  })();
+
+  const mergedAppointments = [...appointments];
+  if (appointmentEvent?.date) {
+    mergedAppointments.unshift({
+      date: appointmentEvent.date,
+      time: appointmentEvent.time,
+      specialty: appointmentEvent.specialty,
+      procedure: appointmentEvent.procedure,
+      clinic_name: appointmentEvent.clinic,
+      clinic_address: appointmentEvent.address,
+      professional_name: appointmentEvent.professional_name,
+      status: appointmentEvent.status === "scheduled" ? "programado" : appointmentEvent.status,
+    });
+  }
+
+  const recommendationsSource = asArray(value.medical_recommendations ?? value.recommendations);
+  const normalizedDocumentType = normalizeToMasterDocumentType(
+    topLevelAppointmentEvent
+      ? "medical_appointment"
+      : (asStringOrNull(value.document_type) ?? asStringOrNull(documentInfo.type))
+  );
+
+  return {
+    document_type: normalizedDocumentType,
+    pet: {
+      name: asStringOrNull(pet.name),
+      species: asStringOrNull(pet.species),
+      breed: asStringOrNull(pet.breed),
+      age_at_document: asStringOrNull(pet.age_at_document ?? pet.age),
+      owner: asStringOrNull(pet.owner ?? documentInfo.owner),
+    },
+    document_info: {
+      date: asDateKeyOrNull(documentInfo.study_date ?? documentInfo.date ?? documentInfo.document_date),
+      clinic_name: asStringOrNull(documentInfo.clinic_name),
+      clinic_address: asStringOrNull(documentInfo.clinic_address),
+      veterinarian_name: asStringOrNull(documentInfo.veterinarian_name ?? documentInfo.vet_name),
+      veterinarian_license: asStringOrNull(documentInfo.veterinarian_license),
+      record_number: asStringOrNull(documentInfo.protocol_or_record_number ?? documentInfo.record_number ?? documentInfo.study_type),
+    },
+    diagnoses,
+    abnormal_findings: abnormalFindings,
+    treatments,
+    appointments: mergedAppointments,
+    recommendations: recommendationsSource.map((item) => asStringOrNull(item)).filter(Boolean) as string[],
+    requires_followup: Boolean(value.requires_followup),
+    appointment_event: appointmentEvent,
+  };
+};
+
+const isMasterProtocolPayload = (value: Record<string, unknown>): boolean => {
+  const hasLegacy = typeof value.document_type === "string" && value.document_info != null && value.pet != null;
+  const documentV2 = asObject(value.document);
+  const hasV2 = value.pet != null && typeof documentV2.type === "string";
+  return hasLegacy || hasV2;
+};
+
+const isAppointmentEventPayload = (value: Record<string, unknown>): boolean => {
+  if (asStringOrNull(value.event_type) === "medical_appointment") return true;
+  const nested = asObject(value.appointment_event);
+  return asStringOrNull(nested.event_type) === "medical_appointment";
+};
+
+const mapMasterPayloadToLegacy = (payload: MasterClinicalPayload): Record<string, unknown> => {
+  const documentType = inferLegacyDocumentTypeFromMaster(payload);
+  const appointmentEvent = payload.appointment_event || null;
+  const sourceDocumentType = payload.document_type;
+  const canExtractDiagnoses = ["clinical_report", "laboratory_result", "medical_study", "lab_result"].includes(sourceDocumentType);
+
+  const normalizedDiagnoses = (canExtractDiagnoses ? payload.diagnoses : [])
+    .map((entry) => ({
+      ...entry,
+      condition_name: entry.condition_name ? normalizeClinicalTerm(entry.condition_name) : null,
+    }))
+    .filter((entry) => Boolean(entry.condition_name));
+
+  const diagnosis = normalizedDiagnoses.length > 0
+    ? normalizedDiagnoses
+        .map((entry) => {
+          const details = [entry.organ_system, entry.classification, entry.severity]
+            .filter(Boolean)
+            .join(", ");
+          return details ? `${entry.condition_name} (${details})` : entry.condition_name;
+        })
+        .join("; ")
+    : null;
+
+  const measurements: Measurement[] = (canExtractDiagnoses ? payload.abnormal_findings : [])
+    .map((finding) => {
+      if (!finding.parameter || !finding.value) return null;
+      return {
+        name: finding.parameter,
+        value: finding.value,
+        unit: null,
+        referenceRange: [finding.reference_range, finding.status].filter(Boolean).join(" · ") || null,
+        confidence: "high",
+      };
+    })
+    .filter(Boolean) as Measurement[];
+
+  const medications: MedicationExtracted[] = (documentType === "appointment" ? [] : payload.treatments)
+    .map((treatment) => {
+      if (!treatment.treatment_name) return null;
+      const dosage = treatment.dosage || null;
+      const frequencyFromDosage = dosage ? asStringOrNull(dosage.match(/cada\s+\d+\s*horas?/i)?.[0] || null) : null;
+      const duration =
+        treatment.start_date && treatment.end_date
+          ? `${treatment.start_date} a ${treatment.end_date}`
+          : treatment.status === "activo"
+            ? "indefinido"
+            : null;
+
+      return {
+        name: treatment.treatment_name,
+        dosage,
+        frequency: frequencyFromDosage,
+        duration,
+        confidence: "high",
+      };
+    })
+    .filter(Boolean) as MedicationExtracted[];
+
+  const detectedAppointments = payload.appointments
+    .map((appointment) => {
+      if (!appointment.date) return null;
+      return {
+        date: appointment.date,
+        time: appointment.time,
+        title: appointment.procedure,
+        specialty: appointment.specialty,
+        clinic: appointment.clinic_name,
+        provider: appointment.professional_name,
+        confidence: "high" as const,
+      };
+    })
+    .filter(Boolean) as ExtractedData["detectedAppointments"];
+
+  if (appointmentEvent?.date) {
+    const exists = detectedAppointments.some(
+      (item) =>
+        item.date === appointmentEvent.date &&
+        (item.time || null) === (appointmentEvent.time || null)
+    );
+    if (!exists) {
+      detectedAppointments.unshift({
+        date: appointmentEvent.date,
+        time: appointmentEvent.time,
+        title: appointmentEvent.procedure || appointmentEvent.specialty || "Turno médico",
+        specialty: appointmentEvent.specialty,
+        clinic: appointmentEvent.clinic,
+        provider: appointmentEvent.professional_name,
+        confidence: "high",
+      });
+    }
+  }
+
+  const firstAppointment = detectedAppointments[0] || null;
+  const eventDate = appointmentEvent?.date || payload.document_info.date || firstAppointment?.date || null;
+  const appointmentTime = documentType === "appointment"
+    ? (appointmentEvent?.time || firstAppointment?.time || null)
+    : null;
+
+  const isAppointmentDocument = documentType === "appointment";
+  const nextAppointment = !isAppointmentDocument
+    ? detectedAppointments.find((item) => {
+        const timestamp = toTimestampSafe(item.date);
+        return timestamp >= Date.now() - 24 * 60 * 60 * 1000;
+      }) || null
+    : null;
+
+  const recommendations = payload.recommendations || [];
+  const observationsParts = [
+    payload.document_info.record_number ? `Registro: ${payload.document_info.record_number}` : null,
+    appointmentEvent?.address ? `Dirección: ${appointmentEvent.address}` : null,
+    appointmentEvent?.preparation_required ? `Preparación: ${appointmentEvent.preparation_required}` : null,
+    recommendations.length > 0 ? `Recomendaciones: ${recommendations.join(" | ")}` : null,
+  ].filter(Boolean);
+  const provider = appointmentEvent?.professional_name || payload.document_info.veterinarian_name;
+  const clinic = appointmentEvent?.clinic || payload.document_info.clinic_name;
+
+  const aiGeneratedSummary = isAppointmentDocument
+    ? buildSummaryFromMaster(
+        documentType,
+        sourceDocumentType,
+        diagnosis,
+        medications,
+        measurements,
+        recommendations,
+        {
+          petName: payload.pet.name,
+          eventDate,
+          appointmentTime,
+          appointments: detectedAppointments,
+          provider,
+          clinic,
+          title: appointmentEvent?.procedure,
+          observations: appointmentEvent?.preparation_required,
+        }
+      )
+    : buildSummaryFromMaster(
+        documentType,
+        sourceDocumentType,
+        diagnosis,
+        medications,
+        measurements,
+        recommendations,
+        {
+          petName: payload.pet.name,
+          eventDate,
+          appointmentTime,
+          appointments: detectedAppointments,
+          provider,
+          clinic,
+          title: payload.document_info.record_number,
+          observations: observationsParts.join(". "),
+        }
+      );
+  const suggestedTitle = (isAppointmentDocument
+    ? (appointmentEvent?.procedure || appointmentEvent?.specialty || firstAppointment?.title || "Turno médico")
+    : firstAppointment?.title)
+    || medications[0]?.name
+    || normalizedDiagnoses[0]?.condition_name
+    || titleFromDocumentType(documentType);
+
+  return {
+    documentType,
+    documentTypeConfidence: "high",
+    eventDate,
+    eventDateConfidence: eventDate ? "high" : "not_detected",
+    appointmentTime,
+    detectedAppointments,
+    provider,
+    providerConfidence: provider ? "high" : "not_detected",
+    clinic,
+    diagnosis: isAppointmentDocument ? null : diagnosis,
+    diagnosisConfidence: isAppointmentDocument ? "not_detected" : (diagnosis ? "high" : "not_detected"),
+    observations: observationsParts.join(". ") || null,
+    observationsConfidence: observationsParts.length > 0 ? "medium" : "not_detected",
+    medications,
+    nextAppointmentDate: isAppointmentDocument ? null : (nextAppointment?.date || null),
+    nextAppointmentReason: isAppointmentDocument
+      ? null
+      : nextAppointment
+      ? `Seguimiento sugerido: ${nextAppointment.title || nextAppointment.specialty || "control"}`
+      : recommendations[0] || null,
+    nextAppointmentConfidence: isAppointmentDocument
+      ? "not_detected"
+      : (nextAppointment ? "high" : (recommendations.length > 0 ? "medium" : "not_detected")),
+    suggestedTitle,
+    aiGeneratedSummary,
+    measurements: isAppointmentDocument ? [] : measurements,
+    masterClinical: payload,
+    extractionProtocol: "pessy_clinical_processing_protocol_v1",
+  };
+};
+
+const sanitizeDetectedAppointments = (
+  value: unknown,
+  fallbackFields: { eventDate: string | null; appointmentTime: string | null; title: string | null; clinic: string | null; provider: string | null }
+): ExtractedData["detectedAppointments"] => {
+  const fromArray = Array.isArray(value)
+    ? value
+        .map((item) => {
+          const row = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+          const date = asDateKeyOrNull(row.date ?? row.eventDate);
+          const time = asAppointmentTimeOrNull(row.time ?? row.appointmentTime);
+          const title = asStringOrNull(row.title ?? row.reason ?? row.prestacion ?? row.specialty);
+          const specialty = asStringOrNull(row.specialty ?? row.especialidad);
+          const clinic = asStringOrNull(row.clinic ?? row.center ?? row.centro);
+          const provider = asStringOrNull(row.provider ?? row.professional ?? row.veterinarian);
+          const confidence = asConfidence(row.confidence);
+
+          if (!date) return null;
+
+          return {
+            date,
+            time,
+            title,
+            specialty,
+            clinic,
+            provider,
+            confidence,
+          };
+        })
+        .filter(Boolean)
+    : [];
+
+  if (fromArray.length > 0) {
+    return fromArray as ExtractedData["detectedAppointments"];
+  }
+
+  if (fallbackFields.eventDate) {
+    return [{
+      date: fallbackFields.eventDate,
+      time: fallbackFields.appointmentTime,
+      title: fallbackFields.title,
+      specialty: null,
+      clinic: fallbackFields.clinic,
+      provider: fallbackFields.provider,
+      confidence: "medium",
+    }];
+  }
+
+  return [];
+};
+
+const sanitizeExtractedData = (raw: unknown, fallbackRawText = ""): ExtractedData => {
+  const parsed = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const fallback = buildSafeFallbackExtraction(fallbackRawText);
+  const eventDate = asDateKeyOrNull(parsed.eventDate);
+  const appointmentTime = asAppointmentTimeOrNull(parsed.appointmentTime);
+  const provider = asStringOrNull(parsed.provider);
+  const clinic = asStringOrNull(parsed.clinic);
+  const suggestedTitle = asStringOrNull(parsed.suggestedTitle) || fallback.suggestedTitle;
+
+  const medications = Array.isArray(parsed.medications)
+    ? parsed.medications
+        .map((item) => {
+          const med = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+          const name = asStringOrNull(med.name);
+          if (!name) return null;
+          return {
+            name,
+            dosage: asStringOrNull(med.dosage),
+            frequency: asStringOrNull(med.frequency),
+            duration: asStringOrNull(med.duration),
+            confidence: asConfidence(med.confidence),
+          };
+        })
+        .filter(Boolean)
+    : [];
+
+  const measurements = Array.isArray(parsed.measurements)
+    ? parsed.measurements
+        .map((item) => {
+          const measurement = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+          const name = asStringOrNull(measurement.name);
+          const value = asStringOrNull(measurement.value);
+          if (!name || !value) return null;
+          return {
+            name,
+            value,
+            unit: asStringOrNull(measurement.unit),
+            referenceRange: asStringOrNull(measurement.referenceRange),
+            confidence: asConfidence(measurement.confidence),
+          };
+        })
+        .filter(Boolean)
+    : [];
+
+  const detectedAppointments = sanitizeDetectedAppointments(
+    parsed.detectedAppointments ?? parsed.appointments ?? null,
+    { eventDate, appointmentTime, title: suggestedTitle, clinic, provider }
+  );
+
+  let inferredType = asDocumentType(parsed.documentType);
+  const forceAppointment = inferAppointmentByContent({
+    documentType: inferredType,
+    title: suggestedTitle,
+    observations: asStringOrNull(parsed.observations),
+    diagnosis: asStringOrNull(parsed.diagnosis),
+    eventDate,
+    appointmentTime,
+    detectedAppointments,
+  });
+  if (forceAppointment) inferredType = "appointment";
+
+  const summaryFromParsed = asStringOrNull(parsed.aiGeneratedSummary) || fallback.aiGeneratedSummary;
+  const adjustedSummary = inferredType === "appointment"
+    ? "Confirmación de turno detectada. Revisá fecha, hora y profesional para agregarla a agenda."
+    : summaryFromParsed;
+
+  return {
+    ...fallback,
+    documentType: inferredType,
+    documentTypeConfidence: asConfidence(parsed.documentTypeConfidence),
+    eventDate,
+    eventDateConfidence: asConfidence(parsed.eventDateConfidence),
+    appointmentTime,
+    detectedAppointments,
+    provider,
+    providerConfidence: asConfidence(parsed.providerConfidence),
+    clinic,
+    diagnosis: inferredType === "appointment" ? null : asStringOrNull(parsed.diagnosis),
+    diagnosisConfidence: inferredType === "appointment" ? "not_detected" : asConfidence(parsed.diagnosisConfidence),
+    observations: asStringOrNull(parsed.observations),
+    observationsConfidence: asConfidence(parsed.observationsConfidence),
+    medications: (inferredType === "appointment" ? [] : medications) as ExtractedData["medications"],
+    nextAppointmentDate: inferredType === "appointment" ? null : asDateKeyOrNull(parsed.nextAppointmentDate),
+    nextAppointmentReason: asStringOrNull(parsed.nextAppointmentReason),
+    nextAppointmentConfidence: inferredType === "appointment" ? "not_detected" : asConfidence(parsed.nextAppointmentConfidence),
+    suggestedTitle,
+    aiGeneratedSummary: adjustedSummary,
+    measurements: (inferredType === "appointment" ? [] : measurements) as ExtractedData["measurements"],
+    masterClinical: (parsed.masterClinical && typeof parsed.masterClinical === "object")
+      ? (parsed.masterClinical as MasterClinicalPayload)
+      : null,
+    extractionProtocol:
+      asStringOrNull(parsed.extractionProtocol) === "pessy_clinical_processing_protocol_v1"
+        ? "pessy_clinical_processing_protocol_v1"
+        : asStringOrNull(parsed.extractionProtocol) === "pessy_master_clinical_protocol_v1"
+          ? "pessy_master_clinical_protocol_v1"
+        : asStringOrNull(parsed.extractionProtocol) === "legacy_v1"
+          ? "legacy_v1"
+          : "legacy_v1",
+  };
+};
+
+const buildSafeFallbackExtraction = (rawText?: string | null): ExtractedData => {
+  const summary = (rawText || "")
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 500);
+
+  return {
+    documentType: "other",
+    documentTypeConfidence: "low",
+    eventDate: null,
+    eventDateConfidence: "not_detected",
+    appointmentTime: null,
+    detectedAppointments: [],
+    provider: null,
+    providerConfidence: "not_detected",
+    clinic: null,
+    diagnosis: null,
+    diagnosisConfidence: "not_detected",
+    observations: null,
+    observationsConfidence: "not_detected",
+    medications: [],
+    nextAppointmentDate: null,
+    nextAppointmentReason: null,
+    nextAppointmentConfidence: "not_detected",
+    suggestedTitle: "Documento médico",
+    aiGeneratedSummary: summary || "Documento recibido. Revisá los datos manualmente.",
+    measurements: [],
+    masterClinical: null,
+    extractionProtocol: "legacy_v1",
+  };
+};
+
+const extractJsonCandidate = (rawText: string): string | null => {
+  const stripped = rawText
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .replace(/[“”]/g, "\"")
+    .replace(/[‘’]/g, "'")
+    .trim();
+
+  const firstBrace = stripped.indexOf("{");
+  const lastBrace = stripped.lastIndexOf("}");
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) return null;
+  const candidate = stripped.slice(firstBrace, lastBrace + 1);
+  return candidate.replace(/,\s*([}\]])/g, "$1");
+};
+
+const safeParseExtractedData = (rawText: string): ExtractedData | null => {
+  const candidate = extractJsonCandidate(rawText);
+  if (!candidate) return null;
+  try {
+    const parsed = JSON.parse(candidate);
+    const record = asObject(parsed);
+    if (isAppointmentEventPayload(record)) {
+      const masterPayload = toMasterPayload(record);
+      const mapped = mapMasterPayloadToLegacy(masterPayload);
+      return sanitizeExtractedData(mapped, rawText);
+    }
+    if (isMasterProtocolPayload(record)) {
+      const masterPayload = toMasterPayload(record);
+      const mapped = mapMasterPayloadToLegacy(masterPayload);
+      return sanitizeExtractedData(mapped, rawText);
+    }
+    return sanitizeExtractedData(record, rawText);
+  } catch {
+    return null;
+  }
+};
 
 // ============================================================================
 // MOCK - Reemplazar con API real
@@ -44,7 +915,7 @@ export async function mockProcessDocument(
   }
 
   // Mock data basado en el tipo detectado
-  const mockResponses: Record<DocumentType, ExtractedData> = {
+  const mockResponses: Partial<Record<DocumentType, Partial<ExtractedData>>> = {
     vaccine: {
       documentType: "vaccine",
       documentTypeConfidence: "high",
@@ -334,7 +1205,7 @@ export async function mockProcessDocument(
     },
   };
 
-  const extractedData = mockResponses[documentType];
+  const extractedData = sanitizeExtractedData(mockResponses[documentType] || mockResponses["other"] || {});
 
   return {
     extractedData,
@@ -362,28 +1233,89 @@ export async function callAnalysisAPI(
   const optimizedFile = await prepareFileForAnalysis(file);
   const base64 = await fileToBase64(optimizedFile);
 
-  const prompt = `Extrae datos veterinarios y responde SOLO JSON válido.
-Schema exacto:
+  const today = new Date().toISOString().slice(0, 10);
+  const prompt = `Sos el motor de extracción clínica de PESSY.
+Fecha de hoy: ${today}
+
+PESSY CLINICAL PROCESSING PROTOCOL
+
+FASE 1 — EXTRACCIÓN ESTRUCTURADA
+Analizá el documento completo en modo multimodal y devolvé SOLO JSON válido:
 {
-"documentType":"vaccine|lab_test|xray|echocardiogram|electrocardiogram|surgery|medication|checkup|other",
-"documentTypeConfidence":"high|medium|low|not_detected",
-"eventDate":"YYYY-MM-DD|null",
-"eventDateConfidence":"high|medium|low|not_detected",
-"provider":"string|null",
-"providerConfidence":"high|medium|low|not_detected",
-"diagnosis":"string|null",
-"diagnosisConfidence":"high|medium|low|not_detected",
-"observations":"string|null",
-"observationsConfidence":"high|medium|low|not_detected",
-"medications":[{"name":"string","dosage":"string|null","frequency":"string|null","duration":"string|null","confidence":"high|medium|low|not_detected"}],
-"nextAppointmentDate":"YYYY-MM-DD|null",
-"nextAppointmentReason":"string|null",
-"nextAppointmentConfidence":"high|medium|low|not_detected",
-"suggestedTitle":"string",
-"aiGeneratedSummary":"2-3 oraciones claras para tutor",
-"measurements":[{"name":"string","value":"string","unit":"string|null","referenceRange":"string|null","confidence":"high|medium|low|not_detected"}]
+  "pet": {
+    "name": "string|null",
+    "species": "string|null",
+    "breed": "string|null",
+    "age_at_study": "string|null",
+    "owner": "string|null"
+  },
+  "document": {
+    "type": "ecografia|laboratorio|receta|informe|otro",
+    "study_date": "YYYY-MM-DD|null",
+    "clinic_name": "string|null",
+    "clinic_address": "string|null",
+    "veterinarian_name": "string|null",
+    "veterinarian_license": "string|null",
+    "protocol_or_record_number": "string|null"
+  },
+  "diagnoses_detected": [
+    {
+      "condition_name": "string|null",
+      "organ_system": "string|null",
+      "status": "nuevo|recurrente|persistente|null",
+      "severity": "leve|moderado|severo|no_especificado|null"
+    }
+  ],
+  "abnormal_findings": [
+    {
+      "parameter": "string|null",
+      "value": "string|null",
+      "reference_range": "string|null",
+      "interpretation": "alto|bajo|alterado|null"
+    }
+  ],
+  "treatments_detected": [
+    {
+      "treatment_name": "string|null",
+      "start_date": "YYYY-MM-DD|null",
+      "end_date": "YYYY-MM-DD|null",
+      "dosage": "string|null",
+      "status": "activo|finalizado|desconocido|null"
+    }
+  ],
+  "medical_recommendations": ["string"],
+  "requires_followup": true
 }
-Reglas: sin markdown, sin texto extra, null si no detecta campo.`;
+
+Opcional para documentos de turno:
+{
+  "appointment_event": {
+    "event_type": "medical_appointment",
+    "date": "YYYY-MM-DD|null",
+    "time": "HH:MM|null",
+    "specialty": "string|null",
+    "procedure": "string|null",
+    "clinic": "string|null",
+    "address": "string|null",
+    "professional_name": "string|null",
+    "preparation_required": "string|null",
+    "status": "scheduled|programado|confirmado|recordatorio|null"
+  }
+}
+
+FASE 2 — NORMALIZACIÓN
+- Fechas en ISO YYYY-MM-DD.
+- Unificar patologías equivalentes.
+- Estandarizar órgano/sistema cuando esté explícito.
+
+Reglas:
+- Si un campo no está presente: null.
+- No inventar información.
+- No devolver texto fuera del JSON.
+- No exceder 6 elementos por lista.
+- Ignorar fecha de impresión y priorizar fecha clínica principal.
+- Si el documento es turno, no completar diagnósticos ni hallazgos clínicos.
+`;
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${analysisModel}:generateContent?key=${analysisApiKey}`,
@@ -402,7 +1334,10 @@ Reglas: sin markdown, sin texto extra, null si no detecta campo.`;
           topK: 1,
           topP: 1,
           responseMimeType: "application/json",
-          maxOutputTokens: 1200,
+          maxOutputTokens: 2600,
+          thinkingConfig: {
+            thinkingBudget: 0,
+          },
         },
       }),
     }
@@ -417,17 +1352,15 @@ Reglas: sin markdown, sin texto extra, null si no detecta campo.`;
   const rawText = result.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!rawText) {
-    throw new Error("Respuesta del servicio de analisis vacia o malformada");
+    return {
+      extractedData: buildSafeFallbackExtraction(""),
+      processingTimeMs: Date.now() - startTime,
+      model: "servicio-analisis-v1",
+      tokensUsed: result.usageMetadata?.totalTokenCount ?? 0,
+    };
   }
 
-  // Limpiar markdown si el proveedor devuelve fences
-  const stripped = rawText.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-  const jsonMatch = stripped.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error("No se pudo interpretar la respuesta del servicio de analisis");
-  }
-
-  const extractedData: ExtractedData = JSON.parse(jsonMatch[0]);
+  const extractedData = safeParseExtractedData(rawText) || buildSafeFallbackExtraction(rawText);
 
   return {
     extractedData,
@@ -464,6 +1397,259 @@ export async function generateHealthSummary(prompt: string): Promise<string> {
 
   const data = await response.json();
   return data?.candidates?.[0]?.content?.parts?.[0]?.text || "No se pudo generar el resumen.";
+}
+
+export type ReportType = "health" | "vaccine" | "treatment";
+
+interface ClinicalReportSynthesisInput {
+  reportType: ReportType;
+  pet: {
+    id: string;
+    name: string;
+    breed?: string;
+    species?: string;
+    age?: string;
+  };
+  ownerName: string;
+  events: MedicalEvent[];
+  medications: ActiveMedication[];
+  appointments: Appointment[];
+}
+
+interface ClinicalReportSynthesis {
+  executiveSummary: string;
+  clinicalNarrative: string;
+  carePlan: string;
+}
+
+const DOC_TYPE_LABEL: Record<DocumentType, string> = {
+  vaccine: "vacuna",
+  appointment: "turno",
+  lab_test: "laboratorio",
+  xray: "radiografia",
+  echocardiogram: "ecocardiograma",
+  electrocardiogram: "electrocardiograma",
+  surgery: "cirugia",
+  medication: "medicacion",
+  checkup: "control",
+  other: "documento",
+};
+
+const cleanReportText = (value?: string | null): string =>
+  (value || "")
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/#{1,6}\s+/g, "")
+    .replace(/`{1,3}/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const formatIsoShort = (iso?: string | null): string => {
+  const key = toDateKeySafe(iso);
+  return key || "sin fecha";
+};
+
+const buildFallbackSynthesis = (input: ClinicalReportSynthesisInput): ClinicalReportSynthesis => {
+  const sortedEvents = [...input.events].sort((a, b) => {
+    const da = toTimestampSafe(a.extractedData?.eventDate || a.createdAt);
+    const db = toTimestampSafe(b.extractedData?.eventDate || b.createdAt);
+    return db - da;
+  });
+  const latest = sortedEvents[0];
+  const upcoming = input.appointments.filter((appointment) => appointment.status === "upcoming").length;
+  const executiveSummary = latest
+    ? `${input.pet.name} presenta un seguimiento clínico con ${sortedEvents.length} registro(s). Actualmente hay ${input.medications.length} tratamiento(s) activo(s) y ${upcoming} turno(s) próximo(s).`
+    : `${input.pet.name} aún no tiene registros suficientes para construir un resumen clínico completo.`;
+
+  const clinicalNarrative = latest
+    ? [
+        `1. Introducción del paciente: ${input.pet.name}, ${cleanReportText(input.pet.species) || "especie no registrada"}, ${cleanReportText(input.pet.breed) || "raza no registrada"}. Seguimiento disponible: ${sortedEvents.length} documento(s).`,
+        `2. Resumen cronológico: el registro más reciente es "${cleanReportText(latest.title)}" (${formatIsoShort(latest.extractedData?.eventDate || latest.createdAt)}). La evolución se interpreta desde la base estructurada cargada por el tutor.`,
+        `3. Condiciones identificadas: ${cleanReportText(latest.extractedData?.diagnosis) || "sin diagnóstico consolidado en el último registro"}.`,
+        `4. Eventos relevantes: ${cleanReportText(latest.extractedData?.observations || latest.extractedData?.aiGeneratedSummary) || "sin eventos críticos explícitos"}.`,
+        `5. Estado clínico actual estimado: ${input.medications.length > 0 ? "en seguimiento con tratamiento activo" : "estable según datos disponibles, requiere controles periódicos"}.`,
+      ].join(" ")
+    : "No hay antecedentes clínicos suficientes para construir narrativa longitudinal completa.";
+
+  const carePlan =
+    input.medications.length > 0 || upcoming > 0
+      ? `Mantener adherencia al plan actual, registrar cambios clínicos y asistir a controles programados. Este resumen no reemplaza la evaluación veterinaria presencial.`
+      : `Continuar con medicina preventiva y controles periódicos. Este resumen no reemplaza la evaluación veterinaria presencial.`;
+
+  return {
+    executiveSummary,
+    clinicalNarrative,
+    carePlan,
+  };
+};
+
+export async function generateClinicalReportSynthesis(
+  input: ClinicalReportSynthesisInput
+): Promise<ClinicalReportSynthesis> {
+  const apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
+  const analysisModel = (import.meta as any).env.VITE_ANALYSIS_MODEL;
+
+  if (!apiKey || !analysisModel) {
+    return buildFallbackSynthesis(input);
+  }
+
+  const sortedEvents = [...input.events].sort((a, b) => {
+    const da = toTimestampSafe(a.extractedData?.eventDate || a.createdAt);
+    const db = toTimestampSafe(b.extractedData?.eventDate || b.createdAt);
+    return da - db;
+  });
+
+  const eventLines = sortedEvents.map((event, index) => {
+    const extracted = event.extractedData;
+    const masterDiagnoses = (extracted.masterClinical?.diagnoses || [])
+      .map((diagnosisRow) => cleanReportText(diagnosisRow.condition_name))
+      .filter(Boolean)
+      .join(" | ");
+    const masterRecommendations = (extracted.masterClinical?.recommendations || [])
+      .map((rec) => cleanReportText(rec))
+      .filter(Boolean)
+      .join(" | ");
+    const meds = (extracted.medications || [])
+      .map((medication) =>
+        [cleanReportText(medication.name), cleanReportText(medication.dosage), cleanReportText(medication.frequency)]
+          .filter(Boolean)
+          .join(" ")
+      )
+      .filter(Boolean)
+      .join(" | ");
+    const measures = (extracted.measurements || [])
+      .map((measurement) =>
+        `${cleanReportText(measurement.name)}: ${cleanReportText(measurement.value)} ${cleanReportText(measurement.unit)}`
+      )
+      .join(" | ");
+
+    return [
+      `${index + 1}.`,
+      `fecha=${formatIsoShort(extracted.eventDate || event.createdAt)}`,
+      `tipo=${DOC_TYPE_LABEL[extracted.documentType] || "documento"}`,
+      `titulo=${cleanReportText(event.title || extracted.suggestedTitle) || "sin titulo"}`,
+      `proveedor=${cleanReportText(extracted.provider) || "no especificado"}`,
+      `diagnostico=${cleanReportText(extracted.diagnosis) || "no especificado"}`,
+      `observaciones=${cleanReportText(extracted.observations || extracted.aiGeneratedSummary) || "sin observaciones"}`,
+      `diagnosticos_estructurados=${masterDiagnoses || "no"}`,
+      `recomendaciones_estructuradas=${masterRecommendations || "no"}`,
+      `medicacion=${meds || "no"}`,
+      `mediciones=${measures || "no"}`,
+      `proximo_control=${formatIsoShort(extracted.nextAppointmentDate)}`,
+      `archivo=${cleanReportText(event.fileName) || "sin nombre"}`,
+    ].join(" ; ");
+  });
+
+  const medicationLines = input.medications.map((medication, index) =>
+    `${index + 1}. ${cleanReportText(medication.name)} ; dosis=${cleanReportText(medication.dosage) || "sin dato"} ; frecuencia=${cleanReportText(medication.frequency) || "sin dato"} ; inicio=${formatIsoShort(medication.startDate)} ; fin=${formatIsoShort(medication.endDate)}`
+  );
+
+  const appointmentLines = input.appointments
+    .filter((appointment) => appointment.status === "upcoming")
+    .map((appointment, index) =>
+      `${index + 1}. ${cleanReportText(appointment.title) || "turno"} ; fecha=${cleanReportText(appointment.date)} ${cleanReportText(appointment.time)} ; veterinario=${cleanReportText(appointment.veterinarian) || "no especificado"}`
+    );
+
+  const focusByType: Record<ReportType, string> = {
+    health: "prioriza estado clinico integral, hitos diagnosticos y evolucion temporal",
+    vaccine: "prioriza vacunas aplicadas, cobertura actual y proximos refuerzos",
+    treatment: "prioriza medicaciones, adherencia, cambios de dosis e interacciones a vigilar",
+  };
+
+  const prompt = `Eres redactor clínico veterinario de PESSY.
+Objetivo: generar análisis longitudinal narrativo usando SOLO la base estructurada recibida.
+No reanalices archivos PDF o imágenes.
+No inventes datos.
+Si faltan datos, indícalo explícitamente.
+No uses markdown.
+Idioma: español neutro.
+
+Devuelve SOLO JSON valido con este schema exacto:
+{
+  "executiveSummary":"string",
+  "clinicalNarrative":"string",
+  "carePlan":"string"
+}
+
+Contexto:
+- tipo_reporte: ${input.reportType}
+- foco: ${focusByType[input.reportType]}
+- mascota: ${cleanReportText(input.pet.name)} (${cleanReportText(input.pet.breed) || "raza no registrada"})
+- especie: ${cleanReportText(input.pet.species) || "no especificada"}
+- edad: ${cleanReportText(input.pet.age) || "no registrada"}
+- tutor: ${cleanReportText(input.ownerName) || "no registrado"}
+- total_documentos: ${sortedEvents.length}
+- total_medicaciones_activas: ${input.medications.length}
+- total_turnos_proximos: ${appointmentLines.length}
+
+Documentos (orden cronologico):
+${eventLines.join("\n")}
+
+Medicaciones activas:
+${medicationLines.length > 0 ? medicationLines.join("\n") : "sin medicaciones activas"}
+
+Turnos proximos:
+${appointmentLines.length > 0 ? appointmentLines.join("\n") : "sin turnos proximos"}
+
+Reglas de escritura:
+- executiveSummary: 2 a 4 oraciones de situación global.
+- clinicalNarrative: debe cubrir en prosa 5 partes:
+  1) introducción del paciente,
+  2) resumen cronológico,
+  3) condiciones identificadas (aguda/recurrente/crónica/resuelta/en seguimiento cuando aplique),
+  4) eventos relevantes,
+  5) estado clínico actual estimado.
+- carePlan: plan de seguimiento y alertas de control sin indicar tratamientos nuevos.
+- Mantén tono profesional veterinario para tutores.
+- Incluir aclaración breve de que no reemplaza evaluación veterinaria presencial.
+`;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${analysisModel}:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.1,
+          topK: 1,
+          topP: 1,
+          responseMimeType: "application/json",
+          maxOutputTokens: 1200,
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    return buildFallbackSynthesis(input);
+  }
+
+  const data = await response.json();
+  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const stripped = rawText.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  const jsonMatch = stripped.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    return buildFallbackSynthesis(input);
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  const executiveSummary = cleanReportText(parsed?.executiveSummary);
+  const clinicalNarrative = cleanReportText(parsed?.clinicalNarrative);
+  const carePlan = cleanReportText(parsed?.carePlan);
+
+  if (!executiveSummary || !clinicalNarrative || !carePlan) {
+    return buildFallbackSynthesis(input);
+  }
+
+  return {
+    executiveSummary,
+    clinicalNarrative,
+    carePlan,
+  };
 }
 
 export const extractMedicalData = callAnalysisAPI;

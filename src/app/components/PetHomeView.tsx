@@ -1,7 +1,9 @@
 import { MaterialIcon } from "./MaterialIcon";
 import { motion, PanInfo } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMedical } from "../contexts/MedicalContext";
+import { formatDateSafe, toTimestampSafe } from "../utils/dateUtils";
+import { PetPhoto } from "./PetPhoto";
 
 interface PetHomeViewProps {
   userName: string;
@@ -32,29 +34,130 @@ export function PetHomeView({
   onPetChange
 }: PetHomeViewProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const { getEventsByPetId } = useMedical();
+  const { getEventsByPetId, getActiveMedicationsByPetId } = useMedical();
+  const safeUserName = (userName || "").trim() || "Tutor";
 
   const currentIndex = pets.findIndex(p => p.id === activePetId);
   const activePet = pets[currentIndex];
   const hasMultiplePets = pets.length > 1;
 
-  // Calcular última vacuna real desde eventos médicos
+  // Calcular estado real de vacunas
   const petEvents = activePetId ? getEventsByPetId(activePetId) : [];
   const vaccineEvents = petEvents
     .filter((e) => e.extractedData.documentType === "vaccine" && e.status === "completed")
-    .sort((a, b) => new Date(b.extractedData.eventDate || b.createdAt).getTime() - new Date(a.extractedData.eventDate || a.createdAt).getTime());
+    .sort(
+      (a, b) =>
+        toTimestampSafe(b.extractedData.eventDate || b.createdAt) -
+        toTimestampSafe(a.extractedData.eventDate || a.createdAt)
+    );
 
-  const lastVaccineDate = vaccineEvents.length > 0
-    ? new Date(vaccineEvents[0].extractedData.eventDate || vaccineEvents[0].createdAt)
-        .toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" })
+  const lastVaccine = vaccineEvents[0];
+  const lastVaccineDate = lastVaccine
+    ? formatDateSafe(
+        lastVaccine.extractedData.eventDate || lastVaccine.createdAt,
+        "es-AR",
+        { day: "numeric", month: "short", year: "numeric" },
+        "Sin registro"
+      )
     : "Sin registro";
+
+  // Calcular si hay vacunas vencidas o próximas
+  const vaccineStatusLabel = (() => {
+    if (vaccineEvents.length === 0) return { text: "Sin registro", color: "text-slate-500" };
+    const now = Date.now();
+    let hasOverdue = false;
+    let hasSoon = false;
+    for (const e of vaccineEvents) {
+      if (!e.extractedData.nextAppointmentDate) continue;
+      const diff = (toTimestampSafe(e.extractedData.nextAppointmentDate, now) - now) / 86400000;
+      if (diff < 0) hasOverdue = true;
+      else if (diff < 30) hasSoon = true;
+    }
+    if (hasOverdue) return { text: "¡Vencida!", color: "text-red-500" };
+    if (hasSoon) return { text: "Próxima", color: "text-amber-500" };
+    return { text: lastVaccineDate, color: "text-slate-900 dark:text-white" };
+  })();
 
   const petData = {
     age: activePet?.age || "Edad no registrada",
     isActive: true,
     lastVaccineDate,
+    vaccineStatusLabel,
     weight: activePet?.weight ? `${activePet.weight} kg` : "Sin peso",
   };
+
+  const parseFrequencyHours = (value: string | null | undefined): number | null => {
+    if (!value) return null;
+    const text = value.toLowerCase().replace(",", ".");
+    const everyMatch = text.match(/cada\s+(\d+(?:\.\d+)?)\s*h/);
+    if (everyMatch) {
+      const num = Number(everyMatch[1]);
+      return Number.isFinite(num) && num > 0 ? num : null;
+    }
+    const dailyMatch = text.match(/(\d+)\s*vez(?:es)?\s*al\s*d[ií]a/);
+    if (dailyMatch) {
+      const times = Number(dailyMatch[1]);
+      if (Number.isFinite(times) && times > 0) return Math.round(24 / times);
+    }
+    if (/diario|diaria|cada\s+24\s*h/.test(text)) return 24;
+    return null;
+  };
+
+  const getNextDoseTime = (startDate: string, frequencyHours: number | null): Date | null => {
+    if (!frequencyHours || frequencyHours <= 0) return null;
+    let nextTs = toTimestampSafe(startDate, Date.now());
+    if (!Number.isFinite(nextTs)) return null;
+    const step = Math.round(frequencyHours * 60 * 60 * 1000);
+    const now = Date.now();
+    let guard = 0;
+    while (nextTs <= now && guard < 2000) {
+      nextTs += step;
+      guard += 1;
+    }
+    return new Date(nextTs);
+  };
+
+  const todayDateKey = new Date().toISOString().slice(0, 10);
+  const storagePrefix = activePetId ? `pessy_treatment_taken_${activePetId}_${todayDateKey}_` : "pessy_treatment_taken_";
+
+  const [takenMap, setTakenMap] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const map: Record<string, boolean> = {};
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(storagePrefix)) continue;
+      map[key.replace(storagePrefix, "")] = localStorage.getItem(key) === "1";
+    }
+    setTakenMap(map);
+  }, [storagePrefix]);
+
+  const toggleTaken = (medicationId: string) => {
+    const key = `${storagePrefix}${medicationId}`;
+    setTakenMap((prev) => {
+      const nextState = !prev[medicationId];
+      if (nextState) localStorage.setItem(key, "1");
+      else localStorage.removeItem(key);
+      return { ...prev, [medicationId]: nextState };
+    });
+  };
+
+  const upcomingTreatments = activePetId
+    ? getActiveMedicationsByPetId(activePetId)
+        .slice(0, 6)
+        .map((med) => ({
+          id: med.id,
+          name: med.name,
+          dosage: med.dosage || "",
+          startDate: med.startDate,
+          frequency: (med.frequency || "")
+            .replace(/cada\s+/i, "c/")
+            .replace(/\s+horas?/i, "h")
+            .trim(),
+          rawFrequency: med.frequency || null,
+        }))
+    : [];
 
   const handleDragEnd = (event: any, info: PanInfo) => {
     setIsDragging(false);
@@ -91,7 +194,7 @@ export function PetHomeView({
         className="mb-6"
       >
         <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2">
-          ¡Hola, {userName}!
+          ¡Hola, {safeUserName}!
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
           Tu mejor amigo está en buenas manos.
@@ -117,10 +220,11 @@ export function PetHomeView({
         >
           {/* Pet Photo Section */}
           <div className="relative h-72 bg-gradient-to-b from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900">
-            <img
+            <PetPhoto
               src={activePet.photo}
               alt={activePet.name}
               className="w-full h-full object-cover"
+              fallbackClassName="rounded-none"
             />
 
             {/* Status Badge */}
@@ -163,8 +267,8 @@ export function PetHomeView({
                     Vacuna
                   </span>
                 </div>
-                <p className="text-lg font-black text-slate-900 dark:text-white">
-                  {petData.lastVaccineDate}
+                <p className={`text-lg font-black ${petData.vaccineStatusLabel.color}`}>
+                  {petData.vaccineStatusLabel.text}
                 </p>
               </div>
 
@@ -247,6 +351,76 @@ export function PetHomeView({
           </div>
         </button>
       </motion.div>
+
+      {upcomingTreatments.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.25 }}
+          className="mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">
+              Próximas tomas
+            </p>
+            <button
+              onClick={onMedicationsClick}
+              className="text-[11px] font-bold text-[#2b6fee] hover:underline"
+            >
+              Ver tratamientos
+            </button>
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-1">
+            {upcomingTreatments.map((treatment) => (
+              <div
+                key={treatment.id}
+                className={`snap-start shrink-0 w-[180px] rounded-2xl border p-2.5 transition-all ${
+                  takenMap[treatment.id]
+                    ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-900/20"
+                    : "border-[#2b6fee]/20 bg-[#2b6fee]/5 dark:border-[#2b6fee]/40 dark:bg-[#2b6fee]/10"
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                    takenMap[treatment.id]
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                      : "bg-white/90 text-[#2b6fee] dark:bg-slate-900 dark:text-[#7da8ff]"
+                  }`}>
+                    {(() => {
+                      const hours = parseFrequencyHours(treatment.rawFrequency);
+                      const nextDose = getNextDoseTime(treatment.startDate, hours);
+                      if (!nextDose) return "según receta";
+                      return `hoy ${nextDose.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`;
+                    })()}
+                  </span>
+                  <button
+                    onClick={() => toggleTaken(treatment.id)}
+                    className={`size-7 rounded-full flex items-center justify-center border transition-colors ${
+                      takenMap[treatment.id]
+                        ? "border-emerald-300 bg-emerald-500 text-white"
+                        : "border-slate-200 bg-white text-slate-400"
+                    }`}
+                    title={takenMap[treatment.id] ? "Marcar pendiente" : "Marcar tomada"}
+                  >
+                    <MaterialIcon name="check" className="text-sm" />
+                  </button>
+                </div>
+
+                <p className="text-xs font-black text-slate-900 dark:text-white leading-tight line-clamp-2">
+                  {treatment.name}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">
+                  {treatment.dosage || "Dosis según receta"}
+                </p>
+                <p className="text-[10px] font-semibold text-[#2b6fee] dark:text-[#7da8ff] mt-1">
+                  {treatment.frequency || "Frecuencia no especificada"}
+                </p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

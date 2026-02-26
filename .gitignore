@@ -64,6 +64,14 @@ node_modules/
 
 # dotenv environment variables file
 .env
+.env.local
+.env.*.local
 
 # dataconnect generated files
 .dataconnect
+
+# Build and local QA artifacts
+dist/
+.vite/
+qa-artifacts/
+cleanup_dev_*.log

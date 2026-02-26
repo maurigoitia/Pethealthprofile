@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
 import { MedicalEvent, DocumentType } from "../types/medical";
 import { useMedical } from "../contexts/MedicalContext";
+import { cleanText } from "../utils/cleanText";
 
 interface EditEventModalProps {
     isOpen: boolean;
@@ -11,9 +12,10 @@ interface EditEventModalProps {
 }
 
 export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) {
-    const { updateEvent } = useMedical();
+    const { updateEvent, confirmEvent } = useMedical();
     const [formData, setFormData] = useState<any>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isConfirming, setIsConfirming] = useState(false);
 
     useEffect(() => {
         if (event) {
@@ -22,8 +24,8 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                 documentType: event.extractedData.documentType,
                 eventDate: event.extractedData.eventDate || "",
                 provider: event.extractedData.provider || "",
-                diagnosis: event.extractedData.diagnosis || "",
-                observations: event.extractedData.observations || "",
+                diagnosis: cleanText(event.extractedData.diagnosis) || "",
+                observations: cleanText(event.extractedData.observations) || "",
                 nextAppointmentDate: event.extractedData.nextAppointmentDate || "",
             });
         }
@@ -52,6 +54,31 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
             console.error("Error updating event:", error);
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleSaveAndConfirm = async () => {
+        setIsConfirming(true);
+        try {
+            await confirmEvent(event.id, {
+                title: formData.title,
+                extractedData: {
+                    ...event.extractedData,
+                    documentType: formData.documentType as DocumentType,
+                    eventDate: formData.eventDate || null,
+                    provider: formData.provider || null,
+                    diagnosis: formData.diagnosis || null,
+                    observations: formData.observations || null,
+                    nextAppointmentDate: formData.nextAppointmentDate || null,
+                },
+                updatedAt: new Date().toISOString(),
+            });
+            onClose();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "No se pudo confirmar el registro.";
+            alert(message);
+        } finally {
+            setIsConfirming(false);
         }
     };
 
@@ -188,6 +215,22 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                                     </>
                                 )}
                             </button>
+                            {(event.requiresManualConfirmation || event.workflowStatus === "review_required" || event.workflowStatus === "invalid_future_date" || event.status === "draft") && (
+                                <button
+                                    onClick={handleSaveAndConfirm}
+                                    disabled={isConfirming}
+                                    className="flex-[2] py-4 px-6 bg-emerald-500 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/30 disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {isConfirming ? (
+                                        <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <>
+                                            <MaterialIcon name="check_circle" className="text-lg" />
+                                            Confirmar
+                                        </>
+                                    )}
+                                </button>
+                            )}
                         </div>
                     </motion.div>
                 </>

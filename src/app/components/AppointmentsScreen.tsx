@@ -1,97 +1,237 @@
-import { useState, useMemo } from "react";
-import { MaterialIcon } from "./MaterialIcon";
+import { useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { usePet } from "../contexts/PetContext";
-import { useMedical } from "../contexts/MedicalContext";
+import { MaterialIcon } from "./MaterialIcon";
 import { AddAppointmentModal } from "./AddAppointmentModal";
+import { useAuth } from "../contexts/AuthContext";
+import { useMedical } from "../contexts/MedicalContext";
+import { useNotifications } from "../contexts/NotificationContext";
+import { usePet } from "../contexts/PetContext";
 import { Appointment } from "../types/medical";
 import { dedupeAppointments } from "../utils/deduplication";
+import { cleanText } from "../utils/cleanText";
+import { buildGoogleCalendarUrl, downloadIcsEvent } from "../utils/calendarExport";
+import { parseDateSafe, toTimestampSafe } from "../utils/dateUtils";
 
 interface AppointmentsScreenProps {
   onBack: () => void;
 }
 
+const TYPE_CONFIG: Record<Appointment["type"], { icon: string; label: string; color: string; accent: string }> = {
+  checkup: { icon: "stethoscope", label: "Control", color: "text-[#2b6fee]", accent: "#2b6fee" },
+  vaccine: { icon: "vaccines", label: "Vacuna", color: "text-emerald-600", accent: "#10b981" },
+  surgery: { icon: "local_hospital", label: "Cirugía", color: "text-red-600", accent: "#dc2626" },
+  emergency: { icon: "emergency", label: "Urgencia", color: "text-orange-600", accent: "#ea580c" },
+  other: { icon: "medical_services", label: "Consulta", color: "text-slate-500", accent: "#64748b" },
+};
+
+type AppointmentView = Appointment & { isVirtual?: boolean };
+
+function parseDateSafely(rawDate: string): Date | null {
+  return parseDateSafe(rawDate);
+}
+
+function buildSuggestionKey(sourceEventId: string, date: string, time: string, title: string): string {
+  return [
+    sourceEventId,
+    date,
+    (time || "").trim(),
+    cleanText(title).toLowerCase(),
+  ].join("|");
+}
+
+function formatAppointmentDate(date: string, time?: string) {
+  const normalizedTime = time && time.trim() ? time : "00:00";
+  const parsed = new Date(`${date}T${normalizedTime}:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return { day: "—", month: "—", year: "—", time: "" };
+  }
+  return {
+    day: String(parsed.getDate()).padStart(2, "0"),
+    month: parsed.toLocaleDateString("es-AR", { month: "short" }).replace(".", ""),
+    year: String(parsed.getFullYear()),
+    time: time && time.trim() ? time : "",
+  };
+}
+
+function getDaysFromNow(date: string, time?: string): number {
+  const normalizedTime = time && time.trim() ? time : "00:00";
+  const parsed = new Date(`${date}T${normalizedTime}:00`);
+  return Math.ceil((parsed.getTime() - Date.now()) / 86400000);
+}
+
 export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [modalInitialValues, setModalInitialValues] = useState<Partial<Appointment> | undefined>(undefined);
+  const [modalSourceEventId, setModalSourceEventId] = useState<string | undefined>(undefined);
 
-  // Get active pet and medical data from context
+  const { user } = useAuth();
   const { activePetId, activePet } = usePet();
-  const { getAppointmentsByPetId, getEventsByPetId, updateAppointment } = useMedical();
+  const { permission, requestPermission } = useNotifications();
+  const { getAppointmentsByPetId, getEventsByPetId, addAppointment, updateAppointment, updateEvent } = useMedical();
 
-  type AppointmentView = Appointment & { isVirtual?: boolean };
-
-  const getAppointmentTimestamp = (appointment: AppointmentView) => {
-    const withTime = appointment.time
-      ? `${appointment.date}T${appointment.time}:00`
-      : `${appointment.date}T00:00:00`;
-    const parsed = new Date(withTime);
+  const getAppointmentTimestamp = (appointment: AppointmentView): number => {
+    const normalizedTime = appointment.time && appointment.time.trim() ? appointment.time : "00:00";
+    const parsed = new Date(`${appointment.date}T${normalizedTime}:00`);
     if (!Number.isNaN(parsed.getTime())) return parsed.getTime();
-    return new Date(appointment.createdAt || 0).getTime();
+    return toTimestampSafe(appointment.createdAt);
   };
 
-  // Get real appointments
+  const openCreateAppointmentModal = (initialValues?: Partial<Appointment>, sourceEventId?: string) => {
+    setModalInitialValues(initialValues);
+    setModalSourceEventId(sourceEventId);
+    setShowAddModal(true);
+  };
+
   const appointments = useMemo(() => {
     if (!activePetId) return [] as AppointmentView[];
 
-    const persistedAppointments = getAppointmentsByPetId(activePetId);
-    const persistedSourceEventIds = new Set(
-      persistedAppointments
-        .map((appointment) => appointment.sourceEventId)
-        .filter(Boolean)
+    const persisted = getAppointmentsByPetId(activePetId).filter((item) => !item.autoGenerated);
+    const persistedSuggestionKeys = new Set(
+      persisted
+        .map((item) => item.sourceSuggestionKey)
+        .filter((item): item is string => Boolean(item))
     );
 
-    const timelineDerivedAppointments: AppointmentView[] = getEventsByPetId(activePetId)
-      .filter((event) => Boolean(event.extractedData.nextAppointmentDate))
-      .filter((event) => !persistedSourceEventIds.has(event.id))
+    const virtual: AppointmentView[] = getEventsByPetId(activePetId)
+      .filter((event) => !event.dismissedNextAppointment)
       .flatMap((event) => {
-        const rawDate = event.extractedData.nextAppointmentDate as string;
-        const parsed = new Date(rawDate);
-        if (Number.isNaN(parsed.getTime())) return [];
+        const isAppointmentDocument = event.extractedData.documentType === "appointment";
+        const suggestedType: Appointment["type"] = event.extractedData.documentType === "vaccine"
+          ? "vaccine"
+          : event.extractedData.documentType === "surgery"
+            ? "surgery"
+            : event.extractedData.documentType === "checkup" || event.extractedData.documentType === "appointment"
+              ? "checkup"
+              : "other";
 
-        const yyyy = parsed.getFullYear();
-        const mm = String(parsed.getMonth() + 1).padStart(2, "0");
-        const dd = String(parsed.getDate()).padStart(2, "0");
-        const hh = String(parsed.getHours()).padStart(2, "0");
-        const min = String(parsed.getMinutes()).padStart(2, "0");
+        const detectedRows = Array.isArray(event.extractedData.detectedAppointments)
+          ? event.extractedData.detectedAppointments
+          : [];
+        const rows = isAppointmentDocument && detectedRows.length > 0
+          ? detectedRows.map((row) => ({
+              date: row.date,
+              time: row.time || "",
+              title: cleanText(row.title || row.specialty) || cleanText(event.title || event.extractedData.suggestedTitle) || "Turno veterinario detectado",
+              clinic: cleanText(row.clinic || event.extractedData.clinic || event.extractedData.provider) || null,
+              provider: cleanText(row.provider || event.extractedData.provider) || null,
+              notes: `Turno detectado desde documento: ${cleanText(event.title)}${row.specialty ? ` · ${cleanText(row.specialty)}` : ""}`,
+            }))
+          : [{
+              date: isAppointmentDocument ? event.extractedData.eventDate : event.extractedData.nextAppointmentDate,
+              time: isAppointmentDocument ? (event.extractedData.appointmentTime || "") : "",
+              title: isAppointmentDocument
+                ? cleanText(event.title || event.extractedData.suggestedTitle) || "Turno veterinario detectado"
+                : cleanText(event.extractedData.nextAppointmentReason) || `Seguimiento: ${cleanText(event.title)}`,
+              clinic: cleanText(event.extractedData.clinic || event.extractedData.provider) || null,
+              provider: cleanText(event.extractedData.provider) || null,
+              notes: isAppointmentDocument
+                ? `Posible turno detectado en: ${cleanText(event.title)}`
+                : `Sugerido desde historial: ${cleanText(event.title)}`,
+            }];
 
-        return [{
-          id: `virtual_${event.id}`,
-          petId: event.petId,
-          sourceEventId: event.id,
-          autoGenerated: true,
-          type:
-            event.extractedData.documentType === "vaccine"
-              ? "vaccine"
-              : event.extractedData.documentType === "surgery"
-                ? "surgery"
-                : event.extractedData.documentType === "checkup"
-                  ? "checkup"
-                  : "other",
-          title: event.extractedData.nextAppointmentReason || `Seguimiento de ${event.title}`,
-          date: `${yyyy}-${mm}-${dd}`,
-          time: `${hh}:${min}`,
-          veterinarian: event.extractedData.provider || null,
-          clinic: event.extractedData.provider || null,
-          status: "upcoming",
-          notes: `Extraído del historial médico: ${event.title}`,
-          createdAt: event.createdAt,
-          isVirtual: true,
-        }];
+        return rows.flatMap((row, index) => {
+          if (!row.date) return [];
+
+          const parsed = parseDateSafely(row.date);
+          if (!parsed) return [];
+          if (parsed.getTime() < Date.now()) return [];
+
+          const yyyy = parsed.getFullYear();
+          const mm = String(parsed.getMonth() + 1).padStart(2, "0");
+          const dd = String(parsed.getDate()).padStart(2, "0");
+          const date = `${yyyy}-${mm}-${dd}`;
+          const time = (row.time || "").trim();
+          const title = cleanText(row.title) || "Turno veterinario detectado";
+          const sourceSuggestionKey = buildSuggestionKey(event.id, date, time, title);
+          if (persistedSuggestionKeys.has(sourceSuggestionKey)) return [];
+
+          return [{
+            id: `virtual_${event.id}_${index}_${date}_${time || "sinhora"}`,
+            petId: event.petId,
+            userId: event.userId,
+            sourceEventId: event.id,
+            sourceSuggestionKey,
+            autoGenerated: false,
+            type: suggestedType,
+            title,
+            date,
+            time,
+            veterinarian: row.provider,
+            clinic: row.clinic,
+            status: "upcoming" as const,
+            notes: row.notes,
+            createdAt: event.createdAt,
+            isVirtual: true,
+          }];
+        });
       });
 
-    return dedupeAppointments([...persistedAppointments, ...timelineDerivedAppointments])
-      .sort((a, b) => getAppointmentTimestamp(a) - getAppointmentTimestamp(b));
+    return dedupeAppointments([...persisted, ...virtual]).sort((a, b) => getAppointmentTimestamp(a) - getAppointmentTimestamp(b));
   }, [activePetId, getAppointmentsByPetId, getEventsByPetId]);
 
   const nowTs = Date.now();
   const isPast = (appointment: AppointmentView) =>
-    appointment.status === "completed" ||
-    appointment.status === "cancelled" ||
-    getAppointmentTimestamp(appointment) < nowTs;
+    appointment.status === "completed" || appointment.status === "cancelled" || getAppointmentTimestamp(appointment) < nowTs;
 
-  const upcomingAppointments = appointments.filter((appointment) => !isPast(appointment));
-  const pastAppointments = appointments.filter((appointment) => isPast(appointment));
+  const upcoming = appointments.filter((appointment) => !isPast(appointment));
+  const past = appointments.filter((appointment) => isPast(appointment));
+  const shown = activeTab === "upcoming" ? upcoming : past;
+
+  const ensureNotificationsPermission = async () => {
+    if (!("Notification" in window)) return;
+    if (permission === "granted") return;
+    const accepted = confirm(
+      "Pessy necesita permiso para enviarte recordatorios de turnos aunque la app esté cerrada. ¿Activar notificaciones?"
+    );
+    if (!accepted) return;
+    await requestPermission();
+  };
+
+  const addToCalendar = (appointment: AppointmentView) => {
+    const petName = activePet?.name || "tu mascota";
+    const title = cleanText(appointment.title) || `Consulta veterinaria — ${petName}`;
+    const location = [appointment.clinic, appointment.veterinarian].filter(Boolean).map(cleanText).join(" · ");
+    const description = cleanText(
+      appointment.notes || `Turno de ${petName}${appointment.veterinarian ? ` con ${appointment.veterinarian}` : ""}`
+    );
+
+    const downloaded = downloadIcsEvent(
+      {
+        title,
+        date: appointment.date,
+        time: appointment.time,
+        durationMinutes: 45,
+        location: location || null,
+        description: description || null,
+      },
+      `turno-${petName.toLowerCase().replace(/\s+/g, "-")}.ics`
+    );
+
+    if (!downloaded) {
+      alert("No se pudo generar el evento del calendario. Revisá fecha y hora.");
+      return;
+    }
+
+    if (confirm("Evento descargado. ¿Querés abrir también Google Calendar?")) {
+      const url = buildGoogleCalendarUrl({
+        title,
+        date: appointment.date,
+        time: appointment.time,
+        durationMinutes: 45,
+        location: location || null,
+        description: description || null,
+      });
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const onAppointmentCreated = async (appointment: Appointment) => {
+    await ensureNotificationsPermission();
+    if (confirm("Turno guardado. ¿Querés agregarlo también al calendario?")) {
+      addToCalendar(appointment);
+    }
+  };
 
   const handleComplete = async (appointment: AppointmentView) => {
     if (appointment.isVirtual) return;
@@ -100,221 +240,284 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
 
   const handleCancel = async (appointment: AppointmentView) => {
     if (appointment.isVirtual) return;
-    if (confirm("¿Estás seguro de que deseas cancelar esta cita?")) {
-      await updateAppointment(appointment.id, { status: "cancelled" });
-    }
+    if (!confirm("¿Cancelar esta cita?")) return;
+    await updateAppointment(appointment.id, { status: "cancelled" });
   };
 
-  const getTypeIcon = (type: Appointment["type"]) => {
-    switch (type) {
-      case "checkup":
-        return "medical_services";
-      case "vaccine":
-        return "vaccines";
-      case "surgery":
-        return "healing";
-      case "emergency":
-        return "emergency";
-      default:
-        return "medical_services";
-    }
+  const handleDismissSuggestedAppointment = async (appointment: AppointmentView) => {
+    if (!appointment.isVirtual || !appointment.sourceEventId) return;
+    await updateEvent(appointment.sourceEventId, {
+      dismissedNextAppointment: true,
+      updatedAt: new Date().toISOString(),
+    });
   };
 
-  const getTypeColor = (type: Appointment["type"]) => {
-    switch (type) {
-      case "checkup":
-        return "bg-blue-500";
-      case "vaccine":
-        return "bg-purple-500";
-      case "surgery":
-        return "bg-red-500";
-      case "emergency":
-        return "bg-orange-500";
-      default:
-        return "bg-blue-500";
+  const handleEditSuggestedAppointment = (appointment: AppointmentView) => {
+    openCreateAppointmentModal(
+      {
+        type: appointment.type,
+        title: appointment.title,
+        date: appointment.date,
+        time: appointment.time,
+        veterinarian: appointment.veterinarian,
+        clinic: appointment.clinic,
+        notes: appointment.notes,
+        sourceSuggestionKey: appointment.sourceSuggestionKey,
+      },
+      appointment.sourceEventId
+    );
+  };
+
+  const handleAddSuggestedAppointment = async (appointment: AppointmentView) => {
+    if (!appointment.isVirtual) return;
+    const timestamp = getAppointmentTimestamp(appointment);
+    if (timestamp < Date.now()) {
+      alert("La fecha detectada ya pasó. Editá el turno antes de confirmarlo.");
+      handleEditSuggestedAppointment(appointment);
+      return;
     }
+    if (!appointment.time || !appointment.time.trim()) {
+      alert("No detectamos hora del turno. Completala antes de confirmarlo.");
+      handleEditSuggestedAppointment(appointment);
+      return;
+    }
+
+    const persisted: Appointment = {
+      id: `appt_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      petId: appointment.petId,
+      userId: user?.uid,
+      petName: activePet?.name,
+      sourceEventId: appointment.sourceEventId,
+      sourceSuggestionKey: appointment.sourceSuggestionKey,
+      autoGenerated: false,
+      type: appointment.type,
+      title: appointment.title,
+      date: appointment.date,
+      time: appointment.time,
+      veterinarian: appointment.veterinarian || null,
+      clinic: appointment.clinic || null,
+      status: "upcoming",
+      notes: appointment.notes || "Turno confirmado manualmente desde sugerencia de documento.",
+      createdAt: new Date().toISOString(),
+    };
+
+    await addAppointment(persisted);
+    await onAppointmentCreated(persisted);
   };
 
   return (
     <div className="min-h-screen bg-[#f6f6f8] dark:bg-[#101622] flex flex-col">
       <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
-        {/* Header */}
         <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 pt-6 pb-4">
           <div className="flex items-center gap-3 mb-4">
             <button
               onClick={onBack}
-              className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center"
             >
               <MaterialIcon name="arrow_back" className="text-xl" />
             </button>
             <div className="flex-1">
-              <h1 className="text-2xl font-black text-slate-900 dark:text-white">
-                Citas
-              </h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                {upcomingAppointments.length} próximas
-              </p>
+              <h1 className="text-2xl font-black text-slate-900 dark:text-white">Citas</h1>
+              <p className="text-sm text-slate-500">{upcoming.length} próximas · {past.length} pasadas</p>
             </div>
             <button
-              onClick={() => setShowAddModal(true)}
-              className="size-10 rounded-full bg-[#2b6fee] text-white flex items-center justify-center shadow-lg shadow-[#2b6fee]/30 hover:bg-[#5a8aff] transition-colors"
+              onClick={() => openCreateAppointmentModal()}
+              className="size-10 rounded-full bg-[#2b6fee] text-white flex items-center justify-center shadow-lg shadow-[#2b6fee]/30"
             >
               <MaterialIcon name="add" className="text-2xl" />
             </button>
           </div>
 
-          {/* Tabs */}
           <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-            <button
-              onClick={() => setActiveTab("upcoming")}
-              className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === "upcoming"
-                  ? "bg-white dark:bg-slate-900 text-[#2b6fee] shadow-sm"
-                  : "text-slate-600 dark:text-slate-400"
+            {(["upcoming", "past"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${
+                  activeTab === tab
+                    ? "bg-white dark:bg-slate-900 text-[#2b6fee] shadow-sm"
+                    : "text-slate-600 dark:text-slate-400"
                 }`}
-            >
-              Próximas ({upcomingAppointments.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("past")}
-              className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === "past"
-                  ? "bg-white dark:bg-slate-900 text-[#2b6fee] shadow-sm"
-                  : "text-slate-600 dark:text-slate-400"
-                }`}
-            >
-              Pasadas ({pastAppointments.length})
-            </button>
+              >
+                {tab === "upcoming" ? `Próximas (${upcoming.length})` : `Pasadas (${past.length})`}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {activeTab === "upcoming" && upcomingAppointments.length === 0 && (
-            <div className="text-center py-12">
+          {shown.length === 0 ? (
+            <div className="text-center py-16">
               <div className="size-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                 <MaterialIcon name="event" className="text-4xl text-slate-400" />
               </div>
               <h3 className="font-black text-slate-900 dark:text-white mb-2">
-                No hay citas próximas
+                {activeTab === "upcoming" ? "No hay citas próximas" : "Sin citas pasadas"}
               </h3>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                Agenda la primera cita para {activePet?.name || "tu mascota"}
-              </p>
+              {activeTab === "upcoming" && (
+                <p className="text-sm text-slate-500 mb-6">
+                  Agendá la primera cita para {activePet?.name || "tu mascota"}
+                </p>
+              )}
+              {activeTab === "upcoming" && (
+                <button
+                  onClick={() => openCreateAppointmentModal()}
+                  className="px-6 py-3 rounded-xl bg-[#2b6fee] text-white font-bold shadow-lg shadow-[#2b6fee]/30"
+                >
+                  Agendar cita
+                </button>
+              )}
             </div>
-          )}
+          ) : (
+            shown.map((appointment) => {
+              const typeConfig = TYPE_CONFIG[appointment.type] || TYPE_CONFIG.other;
+              const formatted = formatAppointmentDate(appointment.date, appointment.time);
+              const daysFromNow = getDaysFromNow(appointment.date, appointment.time);
+              const pastAppointment = isPast(appointment);
+              const isToday = daysFromNow === 0;
+              const isTomorrow = daysFromNow === 1;
+              const isSoon = daysFromNow > 0 && daysFromNow <= 3;
 
-          {activeTab === "upcoming" &&
-            upcomingAppointments.map((appointment) => (
-              <motion.div
-                key={appointment.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
-              >
-                <div className="flex gap-3">
-                  {/* Icon */}
-                  <div className={`size-12 ${getTypeColor(appointment.type)} rounded-xl flex items-center justify-center shrink-0`}>
-                    <MaterialIcon name={getTypeIcon(appointment.type)} className="text-white text-2xl" />
-                  </div>
+              return (
+                <motion.div
+                  key={appointment.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`bg-white dark:bg-slate-900 rounded-2xl border overflow-hidden shadow-sm ${
+                    pastAppointment
+                      ? "border-slate-100 dark:border-slate-800 opacity-70"
+                      : "border-slate-200 dark:border-slate-800"
+                  }`}
+                >
+                  <div className="h-1" style={{ backgroundColor: pastAppointment ? "#94a3b8" : typeConfig.accent }} />
 
-                  {/* Info */}
-                  <div className="flex-1">
-                    <h3 className="font-bold text-slate-900 dark:text-white mb-1">
-                      {appointment.title}
-                    </h3>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                        <MaterialIcon name="event" className="text-base" />
-                        <span>{appointment.date} a las {appointment.time}</span>
+                  <div className="p-4">
+                    <div className="flex gap-4">
+                      <div className="shrink-0 w-14 flex flex-col items-center bg-slate-50 dark:bg-slate-800 rounded-xl py-2.5">
+                        <span className="text-[10px] font-black uppercase text-slate-400">{formatted.month}</span>
+                        <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">{formatted.day}</span>
+                        <span className="text-[10px] text-slate-400">{formatted.year}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                        <MaterialIcon name="location_on" className="text-base" />
-                        <span>{appointment.clinic || "N/A"}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                        <MaterialIcon name="person" className="text-base" />
-                        <span>{appointment.veterinarian || "N/A"}</span>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-1">
+                          <h3 className="font-black text-sm text-slate-900 dark:text-white leading-snug flex-1">
+                            {cleanText(appointment.title)}
+                          </h3>
+                          {pastAppointment ? (
+                            <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full shrink-0 ${
+                              appointment.status === "completed" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                            }`}>
+                              {appointment.status === "completed" ? "Completada" : "Cancelada"}
+                            </span>
+                          ) : (
+                            <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full shrink-0 ${
+                              isToday
+                                ? "bg-red-100 text-red-700"
+                                : isSoon
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-[#2b6fee]/10 text-[#2b6fee]"
+                            }`}>
+                              {isToday ? "Hoy" : isTomorrow ? "Mañana" : `${daysFromNow}d`}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <MaterialIcon name={typeConfig.icon} className={`text-sm ${typeConfig.color}`} />
+                          <span className={`text-xs font-semibold ${typeConfig.color}`}>{typeConfig.label}</span>
+                          {appointment.time && appointment.time.trim() && (
+                            <>
+                              <span className="text-slate-300">·</span>
+                              <MaterialIcon name="schedule" className="text-slate-400 text-sm" />
+                              <span className="text-xs text-slate-500">{appointment.time}</span>
+                            </>
+                          )}
+                        </div>
+
+                        {(appointment.veterinarian || appointment.clinic) && (
+                          <div className="flex items-center gap-1.5">
+                            <MaterialIcon name="person" className="text-slate-400 text-sm" />
+                            <span className="text-xs text-slate-500 truncate">
+                              {cleanText(appointment.veterinarian || appointment.clinic)}
+                            </span>
+                          </div>
+                        )}
+
+                        {appointment.notes && (
+                          <div className="mt-2 bg-amber-50 dark:bg-amber-950/20 rounded-lg px-3 py-2">
+                            <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
+                              {cleanText(appointment.notes)}
+                            </p>
+                          </div>
+                        )}
+
+                        {appointment.isVirtual && !pastAppointment && (
+                          <p className="mt-1.5 text-[10px] text-amber-600">
+                            Sugerencia detectada. Confirmá, editá o descartá este turno.
+                          </p>
+                        )}
                       </div>
                     </div>
 
-                    {appointment.notes && (
-                      <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded-lg">
-                        <p className="text-xs text-amber-800 dark:text-amber-300">
-                          <MaterialIcon name="info" className="text-sm inline mr-1 align-text-bottom" />
-                          {appointment.notes}
-                        </p>
+                    {!pastAppointment && (
+                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                        {appointment.isVirtual ? (
+                          <div className="grid grid-cols-3 gap-2">
+                            <button
+                              onClick={() => handleDismissSuggestedAppointment(appointment)}
+                              className="py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs active:scale-95 transition-transform"
+                            >
+                              Descartar
+                            </button>
+                            <button
+                              onClick={() => handleEditSuggestedAppointment(appointment)}
+                              className="py-2.5 rounded-xl bg-amber-100 text-amber-700 font-bold text-xs active:scale-95 transition-transform"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => handleAddSuggestedAppointment(appointment)}
+                              className="py-2.5 rounded-xl bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-500/25 active:scale-95 transition-transform"
+                            >
+                              Agregar
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-3 gap-2">
+                            <button
+                              onClick={() => addToCalendar(appointment)}
+                              className="py-2.5 rounded-xl bg-[#2b6fee]/10 text-[#2b6fee] font-bold text-xs active:scale-95 transition-transform"
+                            >
+                              Calendario
+                            </button>
+                            <button
+                              onClick={() => handleCancel(appointment)}
+                              className="py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs active:scale-95 transition-transform"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              onClick={() => handleComplete(appointment)}
+                              className="py-2.5 rounded-xl bg-[#2b6fee] text-white font-bold text-xs shadow-lg shadow-[#2b6fee]/25 active:scale-95 transition-transform"
+                            >
+                              Completada
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <button
-                    onClick={() => handleCancel(appointment)}
-                    disabled={appointment.isVirtual}
-                    className="flex-1 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors disabled:opacity-60"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={() => handleComplete(appointment)}
-                    disabled={appointment.isVirtual}
-                    className="flex-1 py-2 rounded-lg bg-[#2b6fee] text-white font-semibold text-sm hover:bg-[#5a8aff] transition-colors disabled:opacity-60"
-                  >
-                    Finalizar
-                  </button>
-                </div>
-                {appointment.isVirtual && (
-                  <p className="mt-2 text-[11px] text-slate-500">
-                    Turno generado desde historial. Editalo desde el evento del Timeline.
-                  </p>
-                )}
-              </motion.div>
-            ))}
-
-          {activeTab === "past" &&
-            pastAppointments.map((appointment) => (
-              <motion.div
-                key={appointment.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm ${appointment.status === "cancelled" ? "opacity-50" : "opacity-75"
-                  }`}
-              >
-                <div className="flex gap-3">
-                  <div className={`size-12 ${getTypeColor(appointment.type)} rounded-xl flex items-center justify-center shrink-0 opacity-60`}>
-                    <MaterialIcon name={getTypeIcon(appointment.type)} className="text-white text-2xl" />
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-bold text-slate-900 dark:text-white">
-                        {appointment.title}
-                      </h3>
-                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${appointment.status === "completed" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
-                        }`}>
-                        {appointment.status === "completed" ? "Completada" : "Cancelada"}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 mb-1">
-                      <MaterialIcon name="event" className="text-base" />
-                      <span>{appointment.date}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                      <MaterialIcon name="location_on" className="text-base" />
-                      <span>{appointment.clinic || "N/A"}</span>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })
+          )}
         </div>
 
-        {/* Quick Add Button */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
           <button
-            onClick={() => setShowAddModal(true)}
-            className="w-full py-4 rounded-xl bg-[#2b6fee] text-white font-bold shadow-lg shadow-[#2b6fee]/30 hover:bg-[#5a8aff] transition-colors flex items-center justify-center gap-2"
+            onClick={() => openCreateAppointmentModal()}
+            className="w-full py-4 rounded-xl bg-[#2b6fee] text-white font-bold shadow-lg shadow-[#2b6fee]/30 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
             <MaterialIcon name="add_circle" className="text-xl" />
             Agendar nueva cita
@@ -324,7 +527,14 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
 
       <AddAppointmentModal
         isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        onClose={() => {
+          setShowAddModal(false);
+          setModalInitialValues(undefined);
+          setModalSourceEventId(undefined);
+        }}
+        initialValues={modalInitialValues}
+        sourceEventId={modalSourceEventId}
+        onCreated={onAppointmentCreated}
       />
     </div>
   );

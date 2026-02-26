@@ -1,6 +1,7 @@
 import { getMessaging, getToken, isSupported, onMessage } from "firebase/messaging";
-import { doc, setDoc, collection, addDoc } from "firebase/firestore";
+import { doc, setDoc, collection, addDoc, getDocs, query, where, deleteDoc } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
+import { parseDateSafe } from "../utils/dateUtils";
 
 // VAPID key — generala en Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
 // Por ahora usa placeholder, hay que reemplazar con la key real
@@ -19,6 +20,8 @@ export interface ScheduledNotification {
   sourceMedicationId?: string;
   repeat?: "daily" | "weekly" | "monthly" | "none";
   repeatInterval?: number; // horas entre dosis
+  repeatRootId?: string;
+  endAt?: string | null;
   active: boolean;
   sent: boolean;
   createdAt: string;
@@ -92,10 +95,12 @@ class NotificationServiceClass {
   private async saveTokenToFirestore(token: string) {
     const user = auth.currentUser;
     if (!user) return;
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
     await setDoc(doc(db, "users", user.uid, "fcm_tokens", "primary"), {
       token,
       platform: this.detectPlatform(),
+      timezone,
       updatedAt: new Date().toISOString(),
     }, { merge: true });
   }
@@ -132,49 +137,75 @@ class NotificationServiceClass {
     const intervalHours = this.parseFrequencyToHours(params.frequency);
     if (!intervalHours) return;
 
-    const start = new Date(params.startDate);
-    const end = params.endDate ? new Date(params.endDate) : null;
+    const hasExplicitStartTime = typeof params.startDate === "string" && /T\d{2}:\d{2}/.test(params.startDate);
+    const hasExplicitEndTime = typeof params.endDate === "string" && /T\d{2}:\d{2}/.test(params.endDate);
+
+    const start = parseDateSafe(params.startDate);
+    const end = params.endDate ? parseDateSafe(params.endDate) : null;
+    if (!start) return;
     const now = new Date();
 
-    // Genera las próximas 7 notificaciones desde ahora
-    const notifications: ScheduledNotification[] = [];
+    // Si la fecha vino sin hora explícita, fijamos 09:00 local para evitar
+    // recordatorios ambiguos en "mediodía por defecto".
     let current = new Date(start);
+    if (!hasExplicitStartTime) {
+      current.setHours(9, 0, 0, 0);
+    }
 
-    // Avanzar hasta ahora si la fecha de inicio ya pasó
+    // Avanzar hasta ahora si la fecha de inicio ya pasó.
     while (current < now) {
       current = new Date(current.getTime() + intervalHours * 3600000);
     }
 
-    for (let i = 0; i < 7; i++) {
-      if (end && current > end) break;
-
-      notifications.push({
-        userId: user.uid,
-        petId: params.petId,
-        petName: params.petName,
-        type: "medication",
-        title: `💊 Medicación de ${params.petName}`,
-        body: `${params.medicationName} · ${params.dosage}`,
-        scheduledFor: current.toISOString(),
-        sourceEventId: params.sourceEventId,
-        sourceMedicationId: params.sourceMedicationId,
-        repeat: intervalHours <= 24 ? "daily" : "weekly",
-        repeatInterval: intervalHours,
-        active: true,
-        sent: false,
-        createdAt: new Date().toISOString(),
-      });
-
-      current = new Date(current.getTime() + intervalHours * 3600000);
+    if (end) {
+      const effectiveEnd = new Date(end);
+      if (!hasExplicitEndTime) {
+        effectiveEnd.setHours(23, 59, 59, 999);
+      }
+      if (current > effectiveEnd) {
+        return;
+      }
     }
 
-    // Guarda en Firestore — Firebase Function las procesa
-    const batch = notifications.map(n =>
-      addDoc(collection(db, "scheduled_notifications"), n)
-    );
-    await Promise.all(batch);
+    // Limpia pendientes previos del mismo tratamiento para evitar duplicados.
+    const existing = await getDocs(query(
+      collection(db, "scheduled_notifications"),
+      where("userId", "==", user.uid)
+    ));
+    const staleDocs = existing.docs.filter((docSnap) => {
+      const data = docSnap.data();
+      if (data.type !== "medication") return false;
+      if (!data.active || data.sent) return false;
+      if (params.sourceMedicationId && data.sourceMedicationId) {
+        return data.sourceMedicationId === params.sourceMedicationId;
+      }
+      return data.sourceEventId === params.sourceEventId;
+    });
+    await Promise.all(staleDocs.map((docSnap) => deleteDoc(docSnap.ref)));
 
-    console.log(`✅ ${notifications.length} recordatorios programados para ${params.medicationName}`);
+    const repeatRootId = `med_${params.sourceMedicationId || params.sourceEventId}`;
+    const notification: ScheduledNotification = {
+      userId: user.uid,
+      petId: params.petId,
+      petName: params.petName,
+      type: "medication",
+      title: `💊 Hoy toca medicación — ${params.petName}`,
+      body: `${params.medicationName} · ${params.dosage}`,
+      scheduledFor: current.toISOString(),
+      sourceEventId: params.sourceEventId,
+      sourceMedicationId: params.sourceMedicationId,
+      repeat: intervalHours <= 24 ? "daily" : "weekly",
+      repeatInterval: intervalHours,
+      repeatRootId,
+      endAt: params.endDate || null,
+      active: true,
+      sent: false,
+      createdAt: new Date().toISOString(),
+    };
+
+    await addDoc(collection(db, "scheduled_notifications"), notification);
+
+    console.log(`✅ Recordatorio de medicación programado para ${params.medicationName}`);
   }
 
   async scheduleAppointmentReminder(params: {
@@ -189,7 +220,8 @@ class NotificationServiceClass {
     const user = auth.currentUser;
     if (!user) return;
 
-    const appointmentDate = new Date(params.date);
+    const appointmentDate = parseDateSafe(params.date);
+    if (!appointmentDate) return;
     const oneDayBefore = new Date(appointmentDate.getTime() - 24 * 3600000);
     const twoHoursBefore = new Date(appointmentDate.getTime() - 2 * 3600000);
     const now = new Date();
@@ -240,6 +272,11 @@ class NotificationServiceClass {
   // Parsea "Cada 12 horas" → 12, "Mensual" → 720, etc
   private parseFrequencyToHours(frequency: string): number | null {
     const f = frequency.toLowerCase();
+    const genericHours = f.match(/(\d+)\s*h/);
+    if (genericHours) {
+      const parsed = Number(genericHours[1]);
+      if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    }
     if (f.includes("12")) return 12;
     if (f.includes("8")) return 8;
     if (f.includes("6")) return 6;

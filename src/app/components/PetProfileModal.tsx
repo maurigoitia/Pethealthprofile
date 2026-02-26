@@ -2,13 +2,16 @@ import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
 import { useState, useRef, useMemo } from "react";
 import { VaccinationCardModal } from "./VaccinationCardModal";
-import { CoTutorModal } from "./CoTutorModal";
 import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { DOG_BREEDS, CAT_BREEDS, OTHER_BREEDS } from "../data/breeds";
+import { searchBreeds } from "../utils/breedSearch";
+import { formatDateSafe, parseDateSafe, toDateInputValueSafe, toDateKeySafe } from "../utils/dateUtils";
+import { DEFAULT_PET_PHOTO } from "../constants/petDefaults";
+import { PetPhoto } from "./PetPhoto";
 
 interface PetProfileModalProps {
   isOpen: boolean;
@@ -30,7 +33,6 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [showVaccinationCard, setShowVaccinationCard] = useState(false);
-  const [showCoTutorModal, setShowCoTutorModal] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -40,7 +42,7 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
   const [breedSuggestions, setBreedSuggestions] = useState<string[]>([]);
   const [showBreedSuggestions, setShowBreedSuggestions] = useState(false);
 
-  const { activePet, updatePet, isOwner } = usePet();
+  const { activePet, updatePet } = usePet();
   const { user } = useAuth();
 
   const getBreedList = () => {
@@ -54,19 +56,19 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
     name: activePet?.name || "",
     breed: activePet?.breed || "",
     weightNum: activePet?.weight || "",
-    birthDate: activePet?.birthDate || "",
+    birthDate: toDateInputValueSafe(activePet?.birthDate),
     hasChip: false,
     microchip: "",
   });
 
-  const photo = activePet?.photo || "https://images.unsplash.com/photo-1633722715463-d30f4f325e24?w=400&h=400&fit=crop";
+  const photo = activePet?.photo || DEFAULT_PET_PHOTO;
 
   const handleOpenEdit = () => {
     setEditData({
       name: activePet?.name || "",
       breed: activePet?.breed || "",
       weightNum: activePet?.weight || "",
-      birthDate: activePet?.birthDate || "",
+      birthDate: toDateInputValueSafe(activePet?.birthDate),
       hasChip: false,
       microchip: "",
     });
@@ -78,9 +80,7 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
     setBreedInput(value);
     setEditData((prev) => ({ ...prev, breed: value }));
     if (value.length >= 1) {
-      const filtered = getBreedList().filter((b) =>
-        b.toLowerCase().includes(value.toLowerCase())
-      );
+      const filtered = searchBreeds(getBreedList(), value, 6);
       setBreedSuggestions(filtered.slice(0, 6));
       setShowBreedSuggestions(filtered.length > 0);
     } else {
@@ -101,7 +101,7 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
       const updates: any = {
         name: editData.name,
         breed: editData.breed,
-        birthDate: editData.birthDate,
+        birthDate: toDateKeySafe(editData.birthDate),
       };
       const newWeight = editData.weightNum.trim();
       if (newWeight && newWeight !== activePet.weight) {
@@ -143,15 +143,16 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
         id: idx,
         name: e.extractedData.diagnosis || e.extractedData.aiGeneratedSummary || "Vacuna",
         date: e.extractedData.eventDate
-          ? new Date(e.extractedData.eventDate).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
-          : new Date(e.createdAt).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" }),
+          ? formatDateSafe(e.extractedData.eventDate, "es-ES", { day: "2-digit", month: "short", year: "numeric" }, "Sin fecha")
+          : formatDateSafe(e.createdAt, "es-ES", { day: "2-digit", month: "short", year: "numeric" }, "Sin fecha"),
         nextDue: e.extractedData.nextAppointmentDate
-          ? new Date(e.extractedData.nextAppointmentDate).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" })
+          ? formatDateSafe(e.extractedData.nextAppointmentDate, "es-ES", { day: "2-digit", month: "short", year: "numeric" }, "Sin fecha")
           : "No especificada",
         veterinarian: e.extractedData.provider || "Profesional no especificado",
         status: (() => {
           if (!e.extractedData.nextAppointmentDate) return "current" as const;
-          const next = new Date(e.extractedData.nextAppointmentDate);
+          const next = parseDateSafe(e.extractedData.nextAppointmentDate);
+          if (!next) return "current" as const;
           const diff = (next.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
           if (diff < 0) return "overdue" as const;
           if (diff < 30) return "due-soon" as const;
@@ -174,9 +175,18 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
   const displayWeight = activePet?.weight ? `${activePet.weight} kg` : "Sin peso";
   
   // Calcular edad desde birthDate
+  const parseBirthDate = (birthDate?: string) => {
+    const key = toDateKeySafe(birthDate);
+    if (!key) return null;
+    const [year, month, day] = key.split("-").map(Number);
+    const parsed = new Date(year, month - 1, day, 12, 0, 0, 0);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
   const calcAge = (birthDate?: string) => {
     if (!birthDate) return "No registrada";
-    const birth = new Date(birthDate);
+    const birth = parseBirthDate(birthDate);
+    if (!birth) return "No registrada";
     const now = new Date();
     const years = now.getFullYear() - birth.getFullYear();
     const months = now.getMonth() - birth.getMonth();
@@ -196,8 +206,9 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
   };
 
   const formatDate = (d?: string) => {
-    if (!d) return "No registrada";
-    return new Date(d).toLocaleDateString("es", { day: "2-digit", month: "long", year: "numeric" });
+    const birth = parseBirthDate(d);
+    if (!birth) return "No registrada";
+    return birth.toLocaleDateString("es", { day: "2-digit", month: "long", year: "numeric" });
   };
 
   const displayAge = calcAge(activePet?.birthDate);
@@ -257,7 +268,12 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                     <div className="relative mb-4">
                       <div className="size-32 rounded-3xl bg-gradient-to-br from-[#2b6fee] to-purple-500 p-1">
                         <div className="size-full rounded-[23px] overflow-hidden">
-                          <img src={photo} alt={activePet?.name} className="size-full object-cover" />
+                          <PetPhoto
+                            src={photo}
+                            alt={activePet?.name || "Mascota"}
+                            className="size-full object-cover"
+                            fallbackClassName="rounded-full"
+                          />
                         </div>
                       </div>
                       <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />
@@ -326,11 +342,35 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                     Editar Perfil
                   </button>
 
-                  <button onClick={() => setShowCoTutorModal(true)}
-                    className="w-full py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold flex items-center justify-center gap-2">
-                    <MaterialIcon name="group" className="text-xl" />
-                    {activePet && isOwner(activePet) ? "Gestionar co-tutores" : "Mi acceso como co-tutor"}
-                  </button>
+                  {/* Sección co-tutores: solo informativa */}
+                  {(() => {
+                    const coTutors = activePet?.coTutors || [];
+                    if (coTutors.length === 0) return null;
+                    return (
+                      <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wide">
+                          Compartida con
+                        </p>
+                        <div className="space-y-2">
+                          {coTutors.map((ct: any) => (
+                            <div key={ct.uid} className="flex items-center gap-3">
+                              <div className="size-8 rounded-full bg-[#2b6fee]/10 flex items-center justify-center shrink-0">
+                                <MaterialIcon name="person" className="text-[#2b6fee] text-base" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-bold text-slate-900 dark:text-white">
+                                  {ct.name || ct.email || "Co-tutor"}
+                                </p>
+                                {ct.email && ct.name && (
+                                  <p className="text-xs text-slate-500">{ct.email}</p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -443,7 +483,12 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                         </div>
                         {(activePet as any)?.weightHistory?.length > 0 && (
                           <p className="text-xs text-slate-400 mt-1">
-                            Último registro: {(activePet as any).weightHistory.at(-1)?.weight} kg ({new Date((activePet as any).weightHistory.at(-1)?.date).toLocaleDateString("es", { day: "2-digit", month: "short" })})
+                            Último registro: {(activePet as any).weightHistory.at(-1)?.weight} kg ({formatDateSafe(
+                              (activePet as any).weightHistory.at(-1)?.date,
+                              "es",
+                              { day: "2-digit", month: "short" },
+                              "sin fecha"
+                            )})
                           </p>
                         )}
                       </div>
@@ -513,11 +558,6 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
               photo,
             }}
             vaccines={vaccines}
-          />
-
-          <CoTutorModal
-            isOpen={showCoTutorModal}
-            onClose={() => setShowCoTutorModal(false)}
           />
         </>
       )}

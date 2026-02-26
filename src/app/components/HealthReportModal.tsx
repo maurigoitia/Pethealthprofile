@@ -3,6 +3,9 @@ import { MaterialIcon } from "./MaterialIcon";
 import { useMemo } from "react";
 import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
+import { cleanText } from "../utils/cleanText";
+import { formatDateSafe, toTimestampSafe } from "../utils/dateUtils";
+import { PetPhoto } from "./PetPhoto";
 
 interface HealthReportModalProps {
   isOpen: boolean;
@@ -20,6 +23,7 @@ type TimelineRow = {
 
 const typeLabelMap: Record<string, string> = {
   vaccine: "Vacuna",
+  appointment: "Turno",
   lab_test: "Laboratorio",
   xray: "Radiografia",
   echocardiogram: "Ecocardiograma",
@@ -31,14 +35,11 @@ const typeLabelMap: Record<string, string> = {
 };
 
 const formatDate = (iso?: string | null) => {
-  if (!iso) return "Sin fecha";
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "Sin fecha";
-  return date.toLocaleDateString("es-ES", {
+  return formatDateSafe(iso, "es-ES", {
     day: "2-digit",
     month: "short",
     year: "numeric",
-  });
+  }, "Sin fecha");
 };
 
 export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
@@ -54,7 +55,7 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
 
     const vaccines = events.filter((event) => event.extractedData.documentType === "vaccine");
     const weightHistory = [...((activePet as any)?.weightHistory || [])]
-      .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .sort((a: any, b: any) => toTimestampSafe(b.date) - toTimestampSafe(a.date))
       .slice(0, 8);
 
     const timeline: TimelineRow[] = events.slice(0, 12).map((event) => {
@@ -64,9 +65,9 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
         dateIso,
         title: event.title,
         subtitle:
-          event.extractedData.aiGeneratedSummary ||
+          cleanText(event.extractedData.aiGeneratedSummary ||
           event.extractedData.observations ||
-          event.extractedData.diagnosis ||
+          event.extractedData.diagnosis) ||
           "Sin observaciones cargadas",
         typeLabel: typeLabelMap[event.extractedData.documentType] || "Documento",
         documentUrl: event.documentUrl,
@@ -131,10 +132,11 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                 <>
                   <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 md:p-5">
                     <div className="flex items-center gap-3 mb-4">
-                      <img
+                      <PetPhoto
                         src={activePet.photo}
                         alt={activePet.name}
                         className="size-16 rounded-2xl object-cover border border-slate-200 dark:border-slate-800"
+                        fallbackClassName="rounded-2xl"
                       />
                       <div>
                         <h3 className="text-2xl font-black text-slate-900 dark:text-white leading-none">{activePet.name}</h3>

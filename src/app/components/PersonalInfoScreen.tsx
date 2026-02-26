@@ -1,56 +1,76 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MaterialIcon } from "./MaterialIcon";
+import { useAuth } from "../contexts/AuthContext";
+import { db, storage } from "../../lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { updateProfile } from "firebase/auth";
+import { COUNTRIES } from "../data/countries";
 
 interface PersonalInfoScreenProps {
   onBack: () => void;
 }
 
 export function PersonalInfoScreen({ onBack }: PersonalInfoScreenProps) {
-  const [formData, setFormData] = useState(() => {
-    const stored = localStorage.getItem("pessy_user_info");
-    return stored
-      ? JSON.parse(stored)
-      : {
-          name: "Diego Martínez",
-          email: "diego@email.com",
-          phone: "+54 9 11 1234-5678",
-          photo: "",
-        };
-  });
-
+  const { user, refreshUser, userFullName, userPhoto, userCountry } = useAuth();
+  const [formData, setFormData] = useState({ name: "", email: "", phone: "", photo: "", country: "" });
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Cargar datos desde AuthContext — ya vienen de Firestore, sin duplicar la query
+  useEffect(() => {
+    if (!user) return;
+    setFormData({
+      name: userFullName || user.displayName || "",
+      email: user.email || "",
+      phone: user.phoneNumber || "",
+      photo: userPhoto || user.photoURL || "",
+      country: userCountry || "",
+    });
+  }, [user, userFullName, userPhoto, userCountry]);
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Check file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert("La imagen es muy grande. Máximo 5MB.");
-        return;
-      }
-
-      // Convert to base64
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, photo: reader.result as string });
-      };
-      reader.readAsDataURL(file);
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) { alert("La imagen es muy grande. Máximo 5MB."); return; }
+    setUploadingPhoto(true);
+    try {
+      const storageRef = ref(storage, `users/${user.uid}/profile_photo`);
+      const result = await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(result.ref);
+      await updateProfile(user, { photoURL: url });
+      await setDoc(doc(db, "users", user.uid), { photo: url }, { merge: true });
+      setFormData(prev => ({ ...prev, photo: url }));
+      await refreshUser();
+    } catch {
+      alert("Error al subir la foto");
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
-  const handleRemovePhoto = () => {
-    setFormData({ ...formData, photo: "" });
-  };
-
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!user) return;
     setIsSaving(true);
-    // Simulate save
-    setTimeout(() => {
-      // Save to localStorage
-      localStorage.setItem("pessy_user_info", JSON.stringify(formData));
+    try {
+      await updateProfile(user, { displayName: formData.name });
+      await setDoc(doc(db, "users", user.uid), {
+        fullName: formData.name,
+        name: formData.name,
+        phone: formData.phone || null,
+        country: formData.country || null,
+        email: user.email || "",
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+      await refreshUser(); // Actualiza userName/userFullName en todo el app
+      setSuccessMsg("¡Información guardada!");
+      setTimeout(() => setSuccessMsg(""), 3000);
+    } catch {
+      alert("Error al guardar");
+    } finally {
       setIsSaving(false);
-      alert("Información guardada exitosamente");
-    }, 500);
+    }
   };
 
   return (
@@ -59,117 +79,93 @@ export function PersonalInfoScreen({ onBack }: PersonalInfoScreenProps) {
         {/* Header */}
         <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
           <div className="px-4 py-4 flex items-center gap-3">
-            <button
-              onClick={onBack}
-              className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-            >
+            <button onClick={onBack}
+              className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
               <MaterialIcon name="arrow_back" className="text-xl" />
             </button>
-            <h1 className="text-xl font-black text-slate-900 dark:text-white">
-              Información Personal
-            </h1>
+            <h1 className="text-xl font-black text-slate-900 dark:text-white">Información Personal</h1>
           </div>
         </div>
 
-        {/* Content */}
         <div className="p-4 space-y-4">
-          {/* Photo */}
+          {/* Foto */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">
-              Foto de perfil
-            </label>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Foto de perfil</label>
             <div className="flex items-center gap-4">
               <div className="relative">
                 {formData.photo ? (
-                  <img
-                    src={formData.photo}
-                    alt="Foto de perfil"
-                    className="size-24 rounded-full object-cover border-4 border-white dark:border-slate-900 shadow-lg"
-                  />
+                  <img src={formData.photo} alt="Foto"
+                    className="size-24 rounded-full object-cover border-4 border-white dark:border-slate-900 shadow-lg" />
                 ) : (
-                  <div className="size-24 rounded-full bg-gradient-to-br from-[#2b7cee] to-[#5a8aff] flex items-center justify-center text-white shadow-lg">
+                  <div className="size-24 rounded-full bg-gradient-to-br from-[#2b6fee] to-[#5a8aff] flex items-center justify-center text-white shadow-lg">
                     <MaterialIcon name="person" className="text-5xl" />
                   </div>
                 )}
-                <label
-                  htmlFor="photo-upload"
-                  className="absolute bottom-0 right-0 size-8 rounded-full bg-[#2b7cee] text-white flex items-center justify-center cursor-pointer hover:bg-[#5a8aff] transition-colors shadow-lg"
-                >
-                  <MaterialIcon name="photo_camera" className="text-lg" />
-                  <input
-                    id="photo-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoChange}
-                    className="hidden"
-                  />
+                <label htmlFor="photo-upload"
+                  className="absolute bottom-0 right-0 size-8 rounded-full bg-[#2b6fee] text-white flex items-center justify-center cursor-pointer shadow-lg">
+                  {uploadingPhoto
+                    ? <span className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    : <MaterialIcon name="photo_camera" className="text-lg" />}
+                  <input id="photo-upload" type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
                 </label>
               </div>
-              <div className="flex-1">
-                <p className="text-xs text-slate-600 dark:text-slate-400 mb-2">
-                  JPG, PNG o GIF. Máximo 5MB.
-                </p>
-                {formData.photo && (
-                  <button
-                    onClick={handleRemovePhoto}
-                    className="text-xs font-bold text-red-500 hover:text-red-600 transition-colors"
-                  >
-                    Eliminar foto
-                  </button>
-                )}
-              </div>
+              <p className="text-xs text-slate-500">JPG, PNG o GIF. Máximo 5MB.</p>
             </div>
           </div>
 
-          {/* Name */}
+          {/* Nombre */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-              Nombre completo
-            </label>
-            <input
-              type="text"
-              value={formData.name}
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Nombre completo</label>
+            <input type="text" value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b7cee] focus:border-transparent"
-              placeholder="Tu nombre"
-            />
+              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b6fee]"
+              placeholder="Tu nombre completo" />
           </div>
 
-          {/* Email */}
+          {/* Email (solo lectura) */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b7cee] focus:border-transparent"
-              placeholder="tu@email.com"
-            />
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Email</label>
+            <input type="email" value={formData.email} readOnly
+              className="w-full px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 cursor-not-allowed" />
+            <p className="text-xs text-slate-400 mt-1">El email no se puede cambiar desde aquí.</p>
           </div>
 
-          {/* Phone */}
+          {/* Teléfono */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
-              Teléfono
-            </label>
-            <input
-              type="tel"
-              value={formData.phone}
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Teléfono</label>
+            <input type="tel" value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b7cee] focus:border-transparent"
-              placeholder="+54 9 11 1234-5678"
-            />
+              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b6fee]"
+              placeholder="+54 9 11 1234-5678" />
           </div>
 
-          {/* Save Button */}
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="w-full py-4 rounded-xl bg-[#2b7cee] text-white font-bold hover:bg-[#5a8aff] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? "Guardando..." : "Guardar"}
+          {/* País */}
+          <div>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">País</label>
+            <div className="relative">
+              <select value={formData.country}
+                onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b6fee] appearance-none cursor-pointer">
+                <option value="">🌍 Seleccioná tu país</option>
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">▾</div>
+            </div>
+          </div>
+
+          {successMsg && (
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 rounded-xl text-sm text-emerald-700 font-medium text-center">
+              {successMsg}
+            </div>
+          )}
+
+          <button onClick={handleSave} disabled={isSaving}
+            className="w-full py-4 rounded-xl bg-[#2b6fee] text-white font-bold disabled:opacity-50 flex items-center justify-center gap-2">
+            {isSaving
+              ? <><span className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</>
+              : "Guardar cambios"}
           </button>
         </div>
       </div>

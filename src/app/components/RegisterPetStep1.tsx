@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { CAT_BREEDS, DOG_BREEDS, OTHER_BREEDS } from "../data/breeds";
+import { searchBreeds } from "../utils/breedSearch";
 
 export function RegisterPetStep1() {
   const navigate = useNavigate();
@@ -22,9 +23,7 @@ export function RegisterPetStep1() {
       setShowSuggestions(false);
       return;
     }
-    const filtered = getBreedList()
-      .filter((breed) => breed.toLowerCase().includes(value.toLowerCase()))
-      .slice(0, 8);
+    const filtered = searchBreeds(getBreedList(), value, 8);
     setBreedSuggestions(filtered);
     setShowSuggestions(filtered.length > 0);
   };
@@ -77,9 +76,11 @@ export function RegisterPetStep1() {
               setSpecies(nextSpecies);
               // Recalcula sugerencias con la especie nueva si ya escribió algo.
               if (breedInput.trim().length > 0) {
-                const filtered = (nextSpecies === "dog" ? DOG_BREEDS : nextSpecies === "cat" ? CAT_BREEDS : OTHER_BREEDS)
-                  .filter((breed) => breed.toLowerCase().includes(breedInput.toLowerCase()))
-                  .slice(0, 8);
+                const filtered = searchBreeds(
+                  nextSpecies === "dog" ? DOG_BREEDS : nextSpecies === "cat" ? CAT_BREEDS : OTHER_BREEDS,
+                  breedInput,
+                  8
+                );
                 setBreedSuggestions(filtered);
                 setShowSuggestions(filtered.length > 0);
               }

@@ -1,11 +1,14 @@
 import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
+import { useAuth } from "../contexts/AuthContext";
+import { PetPhoto } from "./PetPhoto";
 
 interface Pet {
   id: string;
   name: string;
   breed: string;
   photo: string;
+  ownerId?: string;
 }
 
 interface PetSelectorModalProps {
@@ -29,6 +32,7 @@ export function PetSelectorModal({
 }: PetSelectorModalProps) {
   const hasMultiplePets = pets.length > 1;
   const activePet = pets.find((p) => p.id === activePetId);
+  const { user } = useAuth();
 
   const handlePetSelect = (petId: string) => {
     if (petId !== activePetId) {
@@ -100,10 +104,11 @@ export function PetSelectorModal({
                         {/* Pet Photo */}
                         <div className={`relative ${isActive ? "scale-105" : ""}`}>
                           <div className="size-16 rounded-xl overflow-hidden ring-2 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 ${isActive ? 'ring-white' : 'ring-transparent'}">
-                            <img
+                            <PetPhoto
                               src={pet.photo}
                               alt={pet.name}
                               className="size-full object-cover"
+                              fallbackClassName="rounded-xl"
                             />
                           </div>
                           {isActive && (
@@ -118,22 +123,17 @@ export function PetSelectorModal({
 
                         {/* Pet Info */}
                         <div className="flex-1 text-left">
-                          <p
-                            className={`font-black text-base mb-0.5 ${
-                              isActive
-                                ? "text-white"
-                                : "text-slate-900 dark:text-white"
-                            }`}
-                          >
-                            {pet.name}
-                          </p>
-                          <p
-                            className={`text-sm ${
-                              isActive
-                                ? "text-white/80"
-                                : "text-slate-500 dark:text-slate-400"
-                            }`}
-                          >
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <p className={`font-black text-base ${isActive ? "text-white" : "text-slate-900 dark:text-white"}`}>
+                              {pet.name}
+                            </p>
+                            {pet.ownerId !== user?.uid && (
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-purple-100 text-purple-600"}`}>
+                                CO-TUTOR
+                              </span>
+                            )}
+                          </div>
+                          <p className={`text-sm ${isActive ? "text-white/80" : "text-slate-500 dark:text-slate-400"}`}>
                             {pet.breed}
                           </p>
                         </div>
@@ -162,10 +162,11 @@ export function PetSelectorModal({
                 <div className="mb-6 p-5 rounded-2xl bg-gradient-to-br from-[#2b6fee]/10 to-purple-500/10 border border-[#2b6fee]/20">
                   <div className="flex items-center gap-4">
                     <div className="size-20 rounded-2xl overflow-hidden ring-4 ring-[#2b6fee]/20">
-                      <img
+                      <PetPhoto
                         src={activePet.photo}
                         alt={activePet.name}
                         className="size-full object-cover"
+                        fallbackClassName="rounded-2xl"
                       />
                     </div>
                     <div className="flex-1">

@@ -8,9 +8,11 @@ import { PrivacySecurityScreen } from "./PrivacySecurityScreen";
 import { AppearanceScreen } from "./AppearanceScreen";
 import { HelpSupportScreen } from "./HelpSupportScreen";
 import { AboutScreen } from "./AboutScreen";
+import { CoTutorModal } from "./CoTutorModal";
 import { useAuth } from "../contexts/AuthContext";
 import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
+import { StorageUsageWidget } from "./StorageUsageWidget";
 
 interface UserProfileScreenProps {
   onBack: () => void;
@@ -27,22 +29,24 @@ type SubScreen =
 
 export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
   const [currentScreen, setCurrentScreen] = useState<SubScreen>("main");
-  const { user, logout } = useAuth();
+  const [showCoTutorModal, setShowCoTutorModal] = useState(false);
+  const { user, logout, userFullName, userPhoto } = useAuth();
   const { pets } = usePet();
   const { events } = useMedical();
   const navigate = useNavigate();
 
-  // Real user data from context
+  // Datos del usuario desde AuthContext — una sola fuente de verdad
   const userData = {
-    name: user?.displayName || user?.email?.split('@')[0] || "Usuario",
+    name: userFullName || user?.email?.split("@")[0] || "Usuario",
     email: user?.email || "",
     phone: user?.phoneNumber || "",
-    photo: user?.photoURL || "",
+    photo: userPhoto || user?.photoURL || "",
     verified: user?.emailVerified || false,
     petsCount: pets.length,
     recordsCount: events.length,
-    daysActive: user?.metadata.creationTime ?
-      Math.floor((new Date().getTime() - new Date(user.metadata.creationTime).getTime()) / (1000 * 60 * 60 * 24)) : 0,
+    daysActive: user?.metadata.creationTime
+      ? Math.floor((Date.now() - new Date(user.metadata.creationTime).getTime()) / 86400000)
+      : 0,
   };
 
   const handleLogout = async () => {
@@ -55,6 +59,12 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
   };
 
   const menuItems = [
+    {
+      icon: "group",
+      title: "Co-tutores",
+      subtitle: "Invitar o unirte a mascotas compartidas",
+      onClick: () => setShowCoTutorModal(true),
+    },
     {
       icon: "person",
       title: "Información personal",
@@ -176,8 +186,10 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
               {userData.email}
             </p>
             <div className="flex items-center gap-2 bg-[#2b7cee]/10 text-[#2b7cee] px-3 py-1.5 rounded-full mt-2">
-              <MaterialIcon name="verified" className="text-base" />
-              <span className="text-xs font-bold">Cuenta Verificada</span>
+              <MaterialIcon name={userData.verified ? "verified" : "warning"} className="text-base" />
+              <span className="text-xs font-bold">
+                {userData.verified ? "Cuenta verificada" : "Email no verificado"}
+              </span>
             </div>
           </div>
 
@@ -202,6 +214,16 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
               </p>
             </div>
           </div>
+        </motion.div>
+
+        {/* Storage Widget */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.05 }}
+          className="px-6 mb-1"
+        >
+          <StorageUsageWidget />
         </motion.div>
 
         {/* Menu Items */}
@@ -261,6 +283,11 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
           </p>
         </div>
       </div>
+
+      <CoTutorModal
+        isOpen={showCoTutorModal}
+        onClose={() => setShowCoTutorModal(false)}
+      />
     </div>
   );
 }

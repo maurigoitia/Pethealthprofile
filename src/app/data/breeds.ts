@@ -52,7 +52,7 @@ export const DOG_BREEDS = [
   "Old English Sheepdog", "Otterhound",
   // P
   "Papillon", "Parson Russell Terrier", "Pekingese", "Pembroke Welsh Corgi",
-  "Pharaoh Hound", "Pointer", "Pomeranian", "Poodle", "Poodle Miniatura", "Poodle Toy",
+  "Pharaoh Hound", "Pointer", "Pomeranian", "Poodle", "Poodle Miniatura", "Poodle Toy", "Caniche", "Caniche Toy", "Caniche Miniatura", "Caniche Enano",
   "Portuguese Water Dog", "Pug", "Puli",
   // R
   "Rat Terrier", "Rhodesian Ridgeback", "Rottweiler",
