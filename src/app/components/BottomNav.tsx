@@ -1,8 +1,8 @@
 import { MaterialIcon } from "./MaterialIcon";
 
 interface BottomNavProps {
-  currentTab: "home" | "reminders" | "vets" | "settings";
-  onTabChange: (tab: "home" | "reminders" | "vets" | "settings") => void;
+  currentTab: "home" | "reminders" | "settings";
+  onTabChange: (tab: "home" | "reminders" | "settings") => void;
   onAddDocument?: () => void;
   reminderBadge?: number;
 }
@@ -11,7 +11,6 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, reminderBadg
   const tabs = [
     { id: "home"      as const, icon: "home",             label: "Inicio"   },
     { id: "reminders" as const, icon: "notifications",    label: "Recordar" },
-    { id: "vets"      as const, icon: "local_hospital",   label: "Vets"     },
     { id: "settings"  as const, icon: "person",           label: "Perfil"   },
   ];
 

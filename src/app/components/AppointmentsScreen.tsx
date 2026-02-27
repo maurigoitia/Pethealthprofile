@@ -97,6 +97,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
       .filter((event) => !event.dismissedNextAppointment)
       .flatMap((event) => {
         const isAppointmentDocument = event.extractedData.documentType === "appointment";
+        if (!isAppointmentDocument) return [];
         const suggestedType: Appointment["type"] = event.extractedData.documentType === "vaccine"
           ? "vaccine"
           : event.extractedData.documentType === "surgery"
@@ -108,7 +109,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
         const detectedRows = Array.isArray(event.extractedData.detectedAppointments)
           ? event.extractedData.detectedAppointments
           : [];
-        const rows = isAppointmentDocument && detectedRows.length > 0
+        const rows = detectedRows.length > 0
           ? detectedRows.map((row) => ({
               date: row.date,
               time: row.time || "",
@@ -118,16 +119,12 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
               notes: `Turno detectado desde documento: ${cleanText(event.title)}${row.specialty ? ` · ${cleanText(row.specialty)}` : ""}`,
             }))
           : [{
-              date: isAppointmentDocument ? event.extractedData.eventDate : event.extractedData.nextAppointmentDate,
-              time: isAppointmentDocument ? (event.extractedData.appointmentTime || "") : "",
-              title: isAppointmentDocument
-                ? cleanText(event.title || event.extractedData.suggestedTitle) || "Turno veterinario detectado"
-                : cleanText(event.extractedData.nextAppointmentReason) || `Seguimiento: ${cleanText(event.title)}`,
+              date: event.extractedData.eventDate,
+              time: event.extractedData.appointmentTime || "",
+              title: cleanText(event.title || event.extractedData.suggestedTitle) || "Turno veterinario detectado",
               clinic: cleanText(event.extractedData.clinic || event.extractedData.provider) || null,
               provider: cleanText(event.extractedData.provider) || null,
-              notes: isAppointmentDocument
-                ? `Posible turno detectado en: ${cleanText(event.title)}`
-                : `Sugerido desde historial: ${cleanText(event.title)}`,
+              notes: `Posible turno detectado en: ${cleanText(event.title)}`,
             }];
 
         return rows.flatMap((row, index) => {

@@ -126,12 +126,13 @@ function resolveClinicalRenderKind(event: MedicalEvent): ClinicalRenderKind {
     .toLowerCase();
 
   const hasDetectedAppointments = (d.detectedAppointments || []).length > 0;
+  const hasMasterAppointment = Boolean(d.masterClinical?.appointment_event?.date);
   if (
     d.documentType === "appointment" ||
     masterType === "medical_appointment" ||
     masterType === "appointment" ||
     hasDetectedAppointments ||
-    /(turno|confirmaci[oó]n|agenda|consulta|especialidad|prestaci[oó]n)/i.test(sourceText)
+    hasMasterAppointment
   ) {
     return "appointment_confirmation";
   }

@@ -14,7 +14,6 @@ import { PetHomeView } from "./PetHomeView";
 import { AppointmentsScreen } from "./AppointmentsScreen";
 import { MedicationsScreen } from "./MedicationsScreen";
 import { RemindersScreen } from "./RemindersScreen";
-import { NearbyVetsScreen } from "./NearbyVetsScreen";
 import { usePet } from "../contexts/PetContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotifications } from "../contexts/NotificationContext";
@@ -31,7 +30,7 @@ export default function HomeScreen() {
   const [showExportReport, setShowExportReport] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showPetSelector, setShowPetSelector] = useState(false);
-  const [currentTab, setCurrentTab] = useState<"home" | "reminders" | "vets" | "settings">("home");
+  const [currentTab, setCurrentTab] = useState<"home" | "reminders" | "settings">("home");
   const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications">("card");
   const [showNotificationsNudge, setShowNotificationsNudge] = useState(false);
   const NUDGE_UNTIL_KEY = "pessy_notifications_nudge_until";
@@ -110,7 +109,7 @@ export default function HomeScreen() {
   }
 
   // Handle tab change and reset viewMode to "card" when going to home tab
-  const handleTabChange = (tab: "home" | "reminders" | "vets" | "settings") => {
+  const handleTabChange = (tab: "home" | "reminders" | "settings") => {
     setCurrentTab(tab);
     if (tab === "home") setViewMode("card");
   };
@@ -278,17 +277,6 @@ export default function HomeScreen() {
     return (
       <>
         <RemindersScreen onBack={() => handleTabChange("home")} />
-        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} reminderBadge={activePetId ? getPendingCount(activePetId) : 0} />
-        <DocumentScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
-      </>
-    );
-  }
-
-  // Veterinarias cercanas
-  if (currentTab === "vets") {
-    return (
-      <>
-        <NearbyVetsScreen onBack={() => handleTabChange("home")} />
         <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} reminderBadge={activePetId ? getPendingCount(activePetId) : 0} />
         <DocumentScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
       </>
