@@ -4,7 +4,6 @@ import { MaterialIcon } from "./MaterialIcon";
 import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
 import { useAuth } from "../contexts/AuthContext";
-import { generateClinicalReportSynthesis } from "../services/analysisService";
 import jsPDF from "jspdf";
 import { formatDateSafe } from "../utils/dateUtils";
 
@@ -45,8 +44,40 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       .replace(/\s+/g, " ")
       .trim();
 
+  const toTs = (value?: string | null) => (value ? Date.parse(value) || 0 : 0);
+
+  const fmtLong = (iso?: string | null) => {
+    return formatDateSafe(
+      iso,
+      "es-AR",
+      { day: "2-digit", month: "long", year: "numeric" },
+      "—",
+    );
+  };
+
+  const fmtDateTime = (date?: string | null, time?: string | null) => {
+    const base = fmtLong(date);
+    return time ? `${base} ${time}` : base;
+  };
+
+  const toTypeLabel = (documentType?: string | null): string => {
+    const map: Record<string, string> = {
+      vaccine: "Vacuna",
+      lab_test: "Laboratorio",
+      xray: "Radiografía",
+      checkup: "Consulta",
+      medication: "Tratamiento",
+      surgery: "Cirugía",
+      echocardiogram: "Ecocardiograma",
+      electrocardiogram: "Electrocardiograma",
+      appointment: "Turno",
+      other: "Otro",
+    };
+    return map[documentType || ""] || "Otro";
+  };
+
   const TITLE_MAP: Record<ReportType, string> = {
-    health: "Reporte de Salud Completo",
+    health: "Reporte Clinico Estructurado (V2)",
     vaccine: "Carnet de Vacunación",
     treatment: "Plan de Tratamiento",
   };
@@ -116,258 +147,327 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       const activeAlerts = alerts.filter((alert) => alert.status === "active");
       const activeTreatments = treatments.filter((treatment) => treatment.status === "active");
 
-      // ── SÍNTESIS IA (con timeout de seguridad) ────────────────────────────
-      let executiveSummary = "";
-      let clinicalNarrative = "";
-      let carePlan = "";
-      let reportSummaryForVerification = "";
+      const sortedEvents = [...events].sort((a, b) => {
+        const aDate = a.extractedData.eventDate || a.createdAt;
+        const bDate = b.extractedData.eventDate || b.createdAt;
+        return toTs(bDate) - toTs(aDate);
+      });
 
-      try {
-        const synthesis = await Promise.race([
-          generateClinicalReportSynthesis({
-            reportType: selectedReport,
-            pet: { id: activePet.id, name: activePet.name, breed: activePet.breed || "", species: activePet.species || "", age: activePet.age || "" },
-            ownerName: clean(userFullName || userName || user?.email),
-            events, medications, appointments,
-          }),
-          new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout")), 15000)),
-        ]);
-        executiveSummary = clean(synthesis.executiveSummary);
-        clinicalNarrative = clean(synthesis.clinicalNarrative);
-        carePlan = clean(synthesis.carePlan);
-      } catch {
-        executiveSummary = events.length === 0
-          ? `${activePet.name} aún no tiene documentos médicos cargados.`
-          : `${activePet.name} tiene ${events.length} documento${events.length !== 1 ? "s" : ""} médico${events.length !== 1 ? "s" : ""}, ${medications.length} medicación${medications.length !== 1 ? "es" : ""} activa${medications.length !== 1 ? "s" : ""} y ${upcoming.length} turno${upcoming.length !== 1 ? "s" : ""} próximo${upcoming.length !== 1 ? "s" : ""}.`;
-        clinicalNarrative = "La lectura se construyó con la evidencia disponible en el historial. Esta síntesis no reemplaza evaluación clínica presencial.";
-        carePlan = "Mantener adherencia a medicación, registrar cambios clínicos y asistir a controles programados.";
-      }
-      reportSummaryForVerification = `${executiveSummary} ${clinicalNarrative} ${carePlan}`.trim();
+      const pendingManualReviewCount = events.filter((event) => {
+        return event.requiresManualConfirmation || event.workflowStatus === "review_required";
+      }).length;
 
-      // ── BLOQUE RESUMEN CLÍNICO ─────────────────────────────────────────────
-      checkY(20);
-      pdf.setFontSize(10.5);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(13, 148, 136);
-      pdf.text("Lectura clínica consolidada", M, y);
-      y += 5;
-      pdf.setDrawColor(13, 148, 136);
-      pdf.setLineWidth(0.4);
-      pdf.line(M, y, M + CW, y);
-      y += 4;
+      const conditionNameById = new Map<string, string>(
+        conditions.map((condition) => [condition.id, clean(condition.normalizedName)]),
+      );
 
-      const paragraph1 = `Resumen ejecutivo: ${executiveSummary || "Sin resumen disponible."}`;
-      const paragraph2 = `Narrativa clínica: ${clinicalNarrative || "Sin narrativa disponible."}`;
-      const paragraph3 = `Plan de cuidado: ${carePlan || "Sin plan de cuidado disponible."}`;
-      const summaryLines = [
-        ...pdf.splitTextToSize(paragraph1, CW - 8),
-        "",
-        ...pdf.splitTextToSize(paragraph2, CW - 8),
-        "",
-        ...pdf.splitTextToSize(paragraph3, CW - 8),
-      ];
-      const summaryBoxH = Math.max(24, summaryLines.length * 4.4 + 8);
-      checkY(summaryBoxH + 3);
-      pdf.setFillColor(240, 253, 250);
-      pdf.roundedRect(M, y, CW, summaryBoxH, 2, 2, "F");
-      pdf.setFontSize(8.5);
-      pdf.setFont("helvetica", "normal");
-      pdf.setTextColor(55, 65, 81);
-      pdf.text(summaryLines, M + 4, y + 6);
-      y += summaryBoxH + 5;
+      const treatmentRows = (activeTreatments.length > 0
+        ? activeTreatments.map((item) => ({
+            name: clean(item.normalizedName) || "Tratamiento",
+            dosage: clean(item.dosage) || "—",
+            frequency: clean(item.frequency) || "—",
+            condition: item.linkedConditionIds.length > 0
+              ? item.linkedConditionIds
+                  .map((conditionId) => conditionNameById.get(conditionId))
+                  .filter(Boolean)
+                  .join(", ")
+              : "Sin asociar",
+            startDate: item.startDate,
+            professional: clean(item.prescribingProfessional?.name || item.clinic?.name) || "Sin firma clínica",
+            status: item.endDate ? "Temporal" : "Crónico",
+          }))
+        : medications.map((item) => ({
+            name: clean(item.name) || "Tratamiento",
+            dosage: clean(item.dosage) || "—",
+            frequency: clean(item.frequency) || "—",
+            condition: "Sin asociar",
+            startDate: item.startDate,
+            professional: clean(item.prescribedBy) || "Sin firma clínica",
+            status: item.endDate ? "Temporal" : "Crónico",
+          })))
+        .filter((item) => item.name.length > 0);
+
+      const studies = sortedEvents.filter((event) => {
+        const type = event.extractedData.documentType;
+        return ["xray", "lab_test", "echocardiogram", "electrocardiogram"].includes(type);
+      });
+
+      const reportSummaryForVerification = [
+        `Problemas activos: ${activeConditions.length}`,
+        `Tratamientos activos: ${treatmentRows.length}`,
+        `Turnos próximos: ${upcoming.length}`,
+        `Eventos: ${events.length}`,
+      ].join(" · ");
 
       // ──────────────────────────────────────────────────────────────────────
       // REPORTE DE SALUD COMPLETO
       // ──────────────────────────────────────────────────────────────────────
       if (selectedReport === "health") {
-        // Stats bar
-        checkY(18);
-        pdf.setFillColor(248, 250, 252);
-        pdf.roundedRect(M, y, CW, 14, 2, 2, "F");
-        const SW = CW / 3;
-        const statsData = [
-          { val: String(events.length), label: "Documentos" },
-          { val: String(activeConditions.length), label: "Condiciones activas" },
-          { val: String(activeAlerts.length), label: "Alertas activas" },
-        ];
-        statsData.forEach(({ val, label }, i) => {
-          const cx = M + SW * i + SW / 2;
-          pdf.setFontSize(9);
-          pdf.setFont("helvetica", "bold");
-          pdf.setTextColor(30, 30, 30);
-          pdf.text(val, cx, y + 6, { align: "center" });
-          pdf.setFontSize(7);
-          pdf.setFont("helvetica", "normal");
-          pdf.setTextColor(120, 120, 120);
-          pdf.text(label, cx, y + 11, { align: "center" });
-        });
-        y += 18;
-
-        // Condiciones consolidadas (entidad viva)
-        if (activeConditions.length > 0) {
+        const sectionTitle = (title: string) => {
           checkY(16);
           pdf.setFontSize(10.5);
           pdf.setFont("helvetica", "bold");
           pdf.setTextColor(13, 148, 136);
-          pdf.text("Condiciones clínicas activas", M, y);
+          pdf.text(title, M, y);
           y += 5;
           pdf.setDrawColor(13, 148, 136);
+          pdf.setLineWidth(0.4);
           pdf.line(M, y, M + CW, y);
           y += 4;
+        };
 
-          for (const condition of activeConditions) {
-            checkY(15);
-            pdf.setFillColor(240, 253, 250);
-            pdf.roundedRect(M, y, CW, 13, 2, 2, "F");
-            pdf.setFontSize(8.5);
-            pdf.setFont("helvetica", "bold");
-            pdf.setTextColor(30, 30, 30);
-            pdf.text(clean(condition.normalizedName).substring(0, 55), M + 3, y + 5);
-            pdf.setFont("helvetica", "normal");
-            pdf.setFontSize(7.5);
-            pdf.setTextColor(90, 90, 90);
-            pdf.text(`Patrón: ${condition.pattern} · Ocurrencias: ${condition.occurrencesCount}`, M + 3, y + 10);
-            pdf.text(`Último hallazgo: ${fmt(condition.lastDetectedDate)}`, COL2, y + 10);
-            y += 14;
+        sectionTitle("1. Estado clínico actual");
+
+        pdf.setFontSize(8.5);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(31, 41, 55);
+        pdf.text("Problemas activos", M, y);
+        y += 4;
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(55, 65, 81);
+        if (activeConditions.length === 0) {
+          pdf.text("Sin condiciones activas registradas.", M, y + 1);
+          y += 6;
+        } else {
+          for (const condition of activeConditions.slice(0, 8)) {
+            checkY(6);
+            const statusLabel = condition.status === "monitoring" ? "en seguimiento" : "activo";
+            pdf.text(`• ${clean(condition.normalizedName)} (${statusLabel})`, M, y + 1);
+            y += 5;
           }
         }
 
-        if (resolvedConditions.length > 0) {
-          y += 2;
-          checkY(16);
-          pdf.setFontSize(10.5);
-          pdf.setFont("helvetica", "bold");
-          pdf.setTextColor(13, 148, 136);
-          pdf.text("Condiciones históricas/resueltas", M, y);
-          y += 5;
-          pdf.setDrawColor(13, 148, 136);
-          pdf.line(M, y, M + CW, y);
-          y += 4;
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(31, 41, 55);
+        pdf.text("Eventos en seguimiento", M, y + 1);
+        y += 4;
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(55, 65, 81);
+        if (activeAlerts.length === 0) {
+          pdf.text("Sin eventos de seguimiento activos.", M, y + 1);
+          y += 6;
+        } else {
+          for (const alert of activeAlerts.slice(0, 4)) {
+            checkY(6);
+            pdf.text(`• ${clean(alert.title).substring(0, 95)}`, M, y + 1);
+            y += 5;
+          }
+        }
 
-          for (const condition of resolvedConditions.slice(0, 8)) {
-            checkY(12);
-            pdf.setFillColor(248, 249, 252);
-            pdf.roundedRect(M, y, CW, 10, 2, 2, "F");
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(31, 41, 55);
+        pdf.text("Turnos próximos", M, y + 1);
+        y += 4;
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(55, 65, 81);
+        const nextAppointments = [...upcoming].sort((a, b) => {
+          return toTs(`${a.date || ""}T${a.time || "00:00"}`) - toTs(`${b.date || ""}T${b.time || "00:00"}`);
+        });
+        if (nextAppointments.length === 0) {
+          pdf.text("Sin turnos próximos registrados.", M, y + 1);
+          y += 6;
+        } else {
+          for (const appointment of nextAppointments.slice(0, 5)) {
+            checkY(8);
+            const detail = `${fmtDateTime(appointment.date, appointment.time)} · ${clean(
+              appointment.title || appointment.clinic || "Turno veterinario",
+            )}${appointment.veterinarian ? ` · ${clean(appointment.veterinarian)}` : ""}`;
+            const lines = pdf.splitTextToSize(`• ${detail}`, CW - 2);
+            pdf.text(lines, M, y + 1);
+            y += lines.length * 4 + 1;
+          }
+        }
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(31, 41, 55);
+        pdf.text("Alertas de coherencia", M, y + 1);
+        y += 4;
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(55, 65, 81);
+        if (activeAlerts.length === 0) {
+          pdf.text("• Sin inconsistencias lógicas detectadas.", M, y + 1);
+          y += 5;
+        } else {
+          pdf.text(`• ${activeAlerts.length} alerta(s) clínica(s) activa(s).`, M, y + 1);
+          y += 5;
+        }
+        if (pendingManualReviewCount > 0) {
+          pdf.text(`• ${pendingManualReviewCount} ítem(s) pendiente(s) de validación manual (fuente correo).`, M, y + 1);
+          y += 5;
+        }
+
+        sectionTitle("2. Tratamientos activos vinculados");
+        const colWidths = [34, 20, 20, 34, 18, 34, 18];
+        const headers = ["Medicamento", "Dosis", "Frecuencia", "Condición", "Inicio", "Profesional", "Estado"];
+        const drawRow = (cells: string[], rowY: number, bg = [248, 250, 252] as [number, number, number]) => {
+          let x = M;
+          pdf.setFillColor(bg[0], bg[1], bg[2]);
+          pdf.roundedRect(M, rowY, CW, 8, 1.5, 1.5, "F");
+          pdf.setFontSize(6.7);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(31, 41, 55);
+          cells.forEach((cell, idx) => {
+            const text = clean(cell || "—").substring(0, 34);
+            pdf.text(text, x + 1.3, rowY + 5.2);
+            x += colWidths[idx];
+          });
+        };
+
+        checkY(10);
+        pdf.setFillColor(226, 232, 240);
+        pdf.roundedRect(M, y, CW, 8, 1.5, 1.5, "F");
+        pdf.setFontSize(6.7);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(15, 23, 42);
+        let headerX = M;
+        headers.forEach((header, idx) => {
+          pdf.text(header, headerX + 1.3, y + 5.2);
+          headerX += colWidths[idx];
+        });
+        y += 9;
+
+        if (treatmentRows.length === 0) {
+          checkY(8);
+          drawRow(["Sin tratamientos activos", "—", "—", "—", "—", "—", "—"], y, [240, 253, 250]);
+          y += 9;
+        } else {
+          for (const treatment of treatmentRows.slice(0, 12)) {
+            checkY(8);
+            drawRow([
+              treatment.name,
+              treatment.dosage,
+              treatment.frequency,
+              treatment.condition || "Sin asociar",
+              fmt(treatment.startDate),
+              treatment.professional,
+              treatment.status,
+            ], y, [240, 253, 250]);
+            y += 9;
+          }
+        }
+
+        sectionTitle("3. Condiciones médicas");
+        pdf.setFontSize(8.5);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(31, 41, 55);
+        pdf.text("Activas", M, y);
+        y += 4;
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(55, 65, 81);
+        if (activeConditions.length === 0) {
+          pdf.text("Sin condiciones activas registradas.", M, y + 1);
+          y += 6;
+        } else {
+          for (const condition of activeConditions.slice(0, 8)) {
+            checkY(8);
+            const linkedTreatments = treatmentRows
+              .filter((row) => row.condition.toLowerCase().includes(clean(condition.normalizedName).toLowerCase()))
+              .map((row) => row.name);
+            const treatmentText = linkedTreatments.length > 0 ? linkedTreatments.join(", ") : "sin tratamiento vinculado";
+            const line = `• ${clean(condition.normalizedName)} · detectada: ${fmt(condition.firstDetectedDate)} · tratamientos: ${treatmentText}`;
+            const lines = pdf.splitTextToSize(line, CW - 2);
+            pdf.text(lines, M, y + 1);
+            y += lines.length * 4 + 1;
+          }
+        }
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(31, 41, 55);
+        pdf.text("Resueltas", M, y + 1);
+        y += 4;
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(55, 65, 81);
+        if (resolvedConditions.length === 0) {
+          pdf.text("Sin condiciones resueltas registradas.", M, y + 1);
+          y += 6;
+        } else {
+          for (const condition of resolvedConditions.slice(0, 6)) {
+            checkY(6);
+            pdf.text(`• ${clean(condition.normalizedName)} · última vez: ${fmt(condition.lastDetectedDate)}`, M, y + 1);
+            y += 5;
+          }
+        }
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(31, 41, 55);
+        pdf.text("Antecedentes", M, y + 1);
+        y += 4;
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(55, 65, 81);
+        const historicalStudiesCount = studies.filter((event) => toTs(event.extractedData.eventDate || event.createdAt) < toTs(new Date().toISOString()) - 1000 * 60 * 60 * 24 * 180).length;
+        pdf.text(`• Eventos históricos registrados: ${resolvedConditions.length + historicalStudiesCount}`, M, y + 1);
+        y += 5;
+        pdf.text(`• Estudios complementarios acumulados: ${studies.length}`, M, y + 1);
+        y += 6;
+
+        sectionTitle("4. Estudios complementarios");
+        if (studies.length === 0) {
+          pdf.setFontSize(8.5);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(120, 120, 120);
+          pdf.text("No hay estudios complementarios tipificados en el período.", M, y + 2);
+          y += 8;
+        } else {
+          for (const event of studies.slice(0, 12)) {
+            checkY(11);
+            const extracted = event.extractedData;
+            const studyTitle = clean(extracted.studyType || event.title || extracted.suggestedTitle || toTypeLabel(extracted.documentType));
+            const detailSource = clean(extracted.provider || extracted.clinic || "Sin firma clínica");
+            const summary = clean(extracted.observations || extracted.diagnosis || extracted.aiGeneratedSummary || "").substring(0, 110);
+            pdf.setFillColor(248, 250, 252);
+            pdf.roundedRect(M, y, CW, 10, 1.8, 1.8, "F");
             pdf.setFontSize(8);
+            pdf.setFont("helvetica", "bold");
+            pdf.setTextColor(31, 41, 55);
+            pdf.text(`${fmt(extracted.eventDate || event.createdAt)} · ${studyTitle.substring(0, 70)}`, M + 2, y + 4.5);
             pdf.setFont("helvetica", "normal");
-            pdf.setTextColor(80, 80, 80);
-            pdf.text(`${clean(condition.normalizedName)} · última vez: ${fmt(condition.lastDetectedDate)}`, M + 3, y + 6);
+            pdf.setTextColor(71, 85, 105);
+            pdf.setFontSize(7.2);
+            const lineTwo = `${detailSource}${summary ? ` · ${summary}` : ""}`;
+            pdf.text(lineTwo.substring(0, 116), M + 2, y + 8);
             y += 11;
           }
         }
 
-        if (activeAlerts.length > 0) {
-          y += 2;
-          checkY(16);
-          pdf.setFontSize(10.5);
-          pdf.setFont("helvetica", "bold");
-          pdf.setTextColor(13, 148, 136);
-          pdf.text("Alertas clínicas activas", M, y);
-          y += 5;
-          pdf.setDrawColor(13, 148, 136);
-          pdf.line(M, y, M + CW, y);
-          y += 4;
+        sectionTitle("5. Línea de tiempo clínica (resumen)");
+        const timelineHeaders = ["Fecha", "Tipo", "Profesional/Centro", "Diagnóstico resumido"];
+        const timelineWidths = [24, 20, 48, 86];
+        checkY(9);
+        pdf.setFillColor(226, 232, 240);
+        pdf.roundedRect(M, y, CW, 8, 1.5, 1.5, "F");
+        pdf.setFontSize(7);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(15, 23, 42);
+        let tx = M;
+        timelineHeaders.forEach((header, idx) => {
+          pdf.text(header, tx + 1.2, y + 5.2);
+          tx += timelineWidths[idx];
+        });
+        y += 9;
 
-          for (const alert of activeAlerts.slice(0, 10)) {
-            const rowH = 14;
-            checkY(rowH + 2);
-            pdf.setFillColor(254, 242, 242);
-            pdf.roundedRect(M, y, CW, rowH, 2, 2, "F");
-            pdf.setFontSize(8);
-            pdf.setFont("helvetica", "bold");
-            pdf.setTextColor(153, 27, 27);
-            pdf.text(`${clean(alert.title).substring(0, 62)}`, M + 3, y + 5);
-            pdf.setFont("helvetica", "normal");
-            pdf.setTextColor(120, 120, 120);
-            pdf.setFontSize(7);
-            pdf.text(`${clean(alert.description).substring(0, 90)}`, M + 3, y + 10);
-            y += rowH + 1;
-          }
-        }
+        for (const event of sortedEvents.slice(0, 16)) {
+          checkY(8);
+          const extracted = event.extractedData;
+          pdf.setFillColor(248, 250, 252);
+          pdf.roundedRect(M, y, CW, 8, 1.5, 1.5, "F");
+          pdf.setFontSize(6.8);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(31, 41, 55);
 
-        // Historial médico como índice de evidencia (no fuente principal)
-        if (events.length > 0) {
-          checkY(16);
-          pdf.setFontSize(10.5);
-          pdf.setFont("helvetica", "bold");
-          pdf.setTextColor(13, 148, 136);
-          pdf.text("Índice de evidencia documental", M, y);
-          y += 5;
-          pdf.setDrawColor(13, 148, 136);
-          pdf.line(M, y, M + CW, y);
-          y += 4;
+          const cells = [
+            fmt(extracted.eventDate || event.createdAt),
+            toTypeLabel(extracted.documentType),
+            clean(extracted.provider || extracted.clinic || "—"),
+            clean(extracted.diagnosis || extracted.observations || event.title || extracted.suggestedTitle || "Sin resumen"),
+          ];
 
-          const typeLabel: Record<string, string> = {
-            vaccine: "Vacuna", lab_test: "Análisis", xray: "Radiografía", checkup: "Consulta",
-            medication: "Medicación", surgery: "Cirugía", echocardiogram: "Ecocardiograma",
-            electrocardiogram: "ECG", appointment: "Turno", other: "Otro",
-          };
-
-          for (const ev of events) {
-            const d = ev.extractedData;
-            const rowH = 20;
-            checkY(rowH + 2);
-            pdf.setFillColor(248, 249, 252);
-            pdf.roundedRect(M, y, CW, rowH, 2, 2, "F");
-            pdf.setFontSize(8.5);
-            pdf.setFont("helvetica", "bold");
-            pdf.setTextColor(30, 30, 30);
-            const evTitle = clean(ev.title || d.suggestedTitle) || typeLabel[d.documentType] || "Evento";
-            pdf.text(evTitle.substring(0, 60), M + 3, y + 6);
-            pdf.setFontSize(7.5);
-            pdf.setFont("helvetica", "normal");
-            pdf.setTextColor(90, 90, 90);
-            pdf.text(`Tipo: ${typeLabel[d.documentType] || "—"}`, M + 3, y + 12);
-            pdf.text(`Fecha: ${fmt(d.eventDate || ev.createdAt)}`, COL2, y + 12);
-            if (d.provider) {
-              pdf.text(`Profesional: ${clean(d.provider).substring(0, 40)}`, M + 3, y + 17);
-            }
-            if (d.diagnosis && !d.provider) {
-              pdf.text(`Dx: ${clean(d.diagnosis).substring(0, 60)}`, M + 3, y + 17);
-            }
-            y += rowH + 2;
-          }
-        }
-
-        // Tratamientos activos consolidados
-        if (activeTreatments.length > 0 || medications.length > 0) {
-          y += 2;
-          checkY(16);
-          pdf.setFontSize(10.5);
-          pdf.setFont("helvetica", "bold");
-          pdf.setTextColor(13, 148, 136);
-          pdf.text("Tratamientos activos", M, y);
-          y += 5;
-          pdf.setDrawColor(13, 148, 136);
-          pdf.line(M, y, M + CW, y);
-          y += 4;
-
-          const sourceTreatments = activeTreatments.length > 0
-            ? activeTreatments.map((item) => ({
-                name: item.normalizedName,
-                dosage: item.dosage,
-                frequency: item.frequency,
-              }))
-            : medications.map((item) => ({
-                name: item.name,
-                dosage: item.dosage,
-                frequency: item.frequency,
-              }));
-
-          for (const med of sourceTreatments) {
-            checkY(14);
-            pdf.setFillColor(240, 253, 250);
-            pdf.roundedRect(M, y, CW, 12, 2, 2, "F");
-            pdf.setFontSize(8.5);
-            pdf.setFont("helvetica", "bold");
-            pdf.setTextColor(30, 30, 30);
-            pdf.text(clean(med.name).substring(0, 50), M + 3, y + 5);
-            pdf.setFont("helvetica", "normal");
-            pdf.setTextColor(90, 90, 90);
-            pdf.setFontSize(7.5);
-            pdf.text(`${clean(med.dosage) || "—"} — ${clean(med.frequency) || "—"}`, M + 3, y + 10);
-            y += 13;
-          }
+          let cx = M;
+          cells.forEach((cell, idx) => {
+            const maxLen = idx === 3 ? 72 : idx === 2 ? 40 : 18;
+            pdf.text(cell.substring(0, maxLen), cx + 1.2, y + 5.2);
+            cx += timelineWidths[idx];
+          });
+          y += 9;
         }
       }
 
@@ -562,7 +662,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
   };
 
   const options = [
-    { id: "health" as ReportType, icon: "description", title: "Reporte de Salud Narrativo", subtitle: "Lectura clínica clara y cronológica", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-500", dot: "bg-teal-600" },
+    { id: "health" as ReportType, icon: "description", title: "Reporte Clínico Estructurado (V2)", subtitle: "Estado actual, vínculos clínicos y cronología", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-500", dot: "bg-teal-600" },
     { id: "vaccine" as ReportType, icon: "vaccines", title: "Cartilla de Vacunación", subtitle: "Cobertura vigente y próximos refuerzos", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-500", dot: "bg-teal-600" },
     { id: "treatment" as ReportType, icon: "medication", title: "Plan de Tratamiento", subtitle: "Terapias actuales y controles sugeridos", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-500", dot: "bg-teal-600" },
   ];
