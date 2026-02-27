@@ -151,6 +151,23 @@ export interface ExtractedData {
   // Payload estructurado con protocolo clínico longitudinal.
   masterClinical?: MasterClinicalPayload | null;
   extractionProtocol?: "pessy_clinical_processing_protocol_v1" | "pessy_master_clinical_protocol_v1" | "legacy_v1" | null;
+
+  // Estudios por mail/adjunto (tipificación explícita).
+  studyType?: string | null;
+  anatomyTags?: string[];
+  systemTags?: string[];
+
+  // Enlaces clínicos explícitos (evitar inferencia visual en timeline).
+  linkedConditionId?: string | null;
+  linkedConditionLabel?: string | null;
+  linkedEpisodeKey?: string | null;
+  topicTags?: string[];
+
+  // Metadatos de origen (correo).
+  sourceReceivedAt?: string | null;
+  sourceSubject?: string | null;
+  sourceSender?: string | null;
+  sourceFileName?: string | null;
 }
 
 export interface MedicationExtracted {
@@ -201,6 +218,9 @@ export interface MedicalEvent {
   overallConfidence?: number;
   dismissedNextAppointment?: boolean;
   derivedDataPersistedAt?: string | null;
+  hidden?: boolean;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
 
   // Datos extraídos automaticamente
   extractedData: ExtractedData;
@@ -235,7 +255,7 @@ export interface PendingAction {
   userId?: string;
 
   // Tipo de acción
-  type: "vaccine_due" | "checkup_due" | "medication_refill" | "test_pending" | "follow_up";
+  type: "vaccine_due" | "checkup_due" | "medication_refill" | "test_pending" | "follow_up" | "sync_review";
 
   // Información visible
   title: string;
@@ -282,6 +302,10 @@ export interface ActiveMedication {
 
   // Estado
   active: boolean;
+
+  // Adherencia y recordatorios (opcional)
+  lastDoseAt?: string | null; // ISO: última toma confirmada por el tutor
+  nextDoseAt?: string | null; // ISO: próxima toma estimada
 }
 
 // ============================================================================

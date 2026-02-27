@@ -30,6 +30,7 @@ const DOCUMENT_TYPES: DocumentType[] = [
 ];
 
 const CONFIDENCE_LEVELS = ["high", "medium", "low", "not_detected"] as const;
+const APPOINTMENT_HINT_REGEX = /(turno|confirmad|consulta|especialidad|prestaci[oó]n|centro de atenci[oó]n|agenda|cita)/i;
 
 const asStringOrNull = (value: unknown): string | null => {
   if (typeof value !== "string") return null;
@@ -167,6 +168,27 @@ const normalizeToMasterDocumentType = (value: unknown): MasterClinicalPayload["d
   return "other";
 };
 
+const MEDICATION_SIGNAL_REGEX = /(comprimid|capsul|tableta|pastilla|jarabe|gotas|ampolla|inyecci[oó]n|cada\s+\d+\s*(h|hs|hora|horas)|\b\d+\/\d+\s*comprimido|\b\d+\s*(mg|mcg)\b|pimobendan|ursomax|predni|furosemida|omeprazol|enroflox|amoxic|metronidazol|gabapentin|carprofeno)/i;
+const NON_MEDICATION_SIGNAL_REGEX = /(pr[oó]stata|diametr|volumen|vol:|ecograf|radiograf|ultrason|hallazgo|medida|eje|cm\b|mm\b|ml\s*x\s*|sin\s+fractura|sin\s+luxaci[oó]n)/i;
+
+const isLikelyMedicationTreatment = (
+  treatment: MasterClinicalPayload["treatments"][number]
+): boolean => {
+  const name = asStringOrNull(treatment.treatment_name) || "";
+  const dosage = asStringOrNull(treatment.dosage) || "";
+  const combined = `${name} ${dosage}`.toLowerCase();
+
+  const hasMedicationSignal = MEDICATION_SIGNAL_REGEX.test(combined);
+  const hasNonMedicationSignal = NON_MEDICATION_SIGNAL_REGEX.test(combined);
+
+  if (hasNonMedicationSignal && !hasMedicationSignal) return false;
+  if (hasMedicationSignal) return true;
+
+  // Requiere al menos nombre corto + dato de dosificación para evitar "hallazgos" como tratamiento.
+  if (name && dosage && name.split(/\s+/).length <= 4) return true;
+  return false;
+};
+
 const inferLegacyDocumentTypeFromMaster = (payload: MasterClinicalPayload): DocumentType => {
   const mapped = mapMasterDocumentType(payload.document_type);
   if (mapped !== "checkup") return mapped;
@@ -188,7 +210,7 @@ const inferLegacyDocumentTypeFromMaster = (payload: MasterClinicalPayload): Docu
   if (/(ecg|electrocardi|ritmo sinusal)/i.test(haystack)) return "electrocardiogram";
   if (/(laboratorio|hemograma|bioquim|analisis|glucosa|creatinina|urea|alt|ast)/i.test(haystack)) return "lab_test";
   if (/(cirug|quirurg|operatorio|postoperatorio)/i.test(haystack)) return "surgery";
-  if (payload.treatments.length > 0) return "medication";
+  if (payload.treatments.some((treatment) => isLikelyMedicationTreatment(treatment))) return "medication";
   return "checkup";
 };
 
@@ -283,8 +305,16 @@ const inferAppointmentByContent = (params: {
   appointmentTime: string | null;
   detectedAppointments: ExtractedData["detectedAppointments"];
 }): boolean => {
-  if (params.documentType === "appointment") return true;
-  if ((params.detectedAppointments || []).length > 0) return true;
+  const blockedByType: DocumentType[] = [
+    "medication",
+    "lab_test",
+    "xray",
+    "echocardiogram",
+    "electrocardiogram",
+    "vaccine",
+    "surgery",
+  ];
+  if (blockedByType.includes(params.documentType)) return false;
 
   const haystack = [
     params.title,
@@ -292,9 +322,21 @@ const inferAppointmentByContent = (params: {
     params.diagnosis,
   ].filter(Boolean).join(" ").toLowerCase();
 
-  const hasAppointmentKeywords = /(turno|confirmad|consulta|especialidad|prestaci[oó]n|centro de atenci[oó]n|agenda)/i.test(haystack);
-  const hasScheduleData = Boolean(params.eventDate && (params.appointmentTime || /\b\d{1,2}[:.]\d{2}\b/.test(haystack)));
-  return hasAppointmentKeywords && hasScheduleData;
+  const likelyClinicalResult = /(receta|prescrip|comprimido|cada\s+\d+\s*(h|hora|horas)|diagn[oó]stico|hallazgo|medici[oó]n|resultado|valor|vacun|se detecta|presenta)/i.test(
+    haystack
+  );
+  const hasAppointmentKeywords = APPOINTMENT_HINT_REGEX.test(haystack);
+  const hasScheduleData = Boolean(
+    params.eventDate && (params.appointmentTime || /\b\d{1,2}[:.]\d{2}\b/.test(haystack))
+  );
+  const hasDetectedAppointmentSignals = (params.detectedAppointments || []).some((item) => {
+    const text = [item.title, item.specialty, item.clinic, item.provider].filter(Boolean).join(" ").toLowerCase();
+    return Boolean(item.date && (item.time || APPOINTMENT_HINT_REGEX.test(text)));
+  });
+
+  if (likelyClinicalResult && !hasAppointmentKeywords) return false;
+  if (params.documentType === "appointment") return true;
+  return (hasAppointmentKeywords || hasDetectedAppointmentSignals) && hasScheduleData;
 };
 
 const toMasterPayload = (value: Record<string, unknown>): MasterClinicalPayload => {
@@ -401,7 +443,7 @@ const toMasterPayload = (value: Record<string, unknown>): MasterClinicalPayload 
       address: asStringOrNull(source.address ?? source.clinic_address),
       professional_name: asStringOrNull(source.professional_name ?? source.provider ?? source.veterinarian_name),
       preparation_required: asStringOrNull(source.preparation_required ?? source.preparation ?? source.instructions),
-      status: (statusRaw === "programado" ? "scheduled" : statusRaw) as MasterClinicalPayload["appointment_event"]["status"],
+      status: (statusRaw === "programado" ? "scheduled" : statusRaw) as any,
     };
   })();
 
@@ -420,11 +462,24 @@ const toMasterPayload = (value: Record<string, unknown>): MasterClinicalPayload 
   }
 
   const recommendationsSource = asArray(value.medical_recommendations ?? value.recommendations);
-  const normalizedDocumentType = normalizeToMasterDocumentType(
-    topLevelAppointmentEvent
-      ? "medical_appointment"
-      : (asStringOrNull(value.document_type) ?? asStringOrNull(documentInfo.type))
-  );
+  const requestedDocumentType = topLevelAppointmentEvent
+    ? "medical_appointment"
+    : (asStringOrNull(value.document_type) ?? asStringOrNull(documentInfo.type));
+  let normalizedDocumentType = normalizeToMasterDocumentType(requestedDocumentType);
+
+  const hasClinicalPayload =
+    diagnoses.some((row) => Boolean(row.condition_name)) ||
+    abnormalFindings.some((row) => Boolean(row.parameter || row.value)) ||
+    treatments.some((row) => Boolean(row.treatment_name || row.dosage));
+  if ((normalizedDocumentType === "medical_appointment" || normalizedDocumentType === "appointment") && hasClinicalPayload) {
+    if (treatments.some((row) => Boolean(row.treatment_name || row.dosage))) {
+      normalizedDocumentType = "prescription";
+    } else if (abnormalFindings.some((row) => Boolean(row.parameter || row.value))) {
+      normalizedDocumentType = "laboratory_result";
+    } else {
+      normalizedDocumentType = "clinical_report";
+    }
+  }
 
   return {
     document_type: normalizedDocumentType,
@@ -481,13 +536,13 @@ const mapMasterPayloadToLegacy = (payload: MasterClinicalPayload): Record<string
 
   const diagnosis = normalizedDiagnoses.length > 0
     ? normalizedDiagnoses
-        .map((entry) => {
-          const details = [entry.organ_system, entry.classification, entry.severity]
-            .filter(Boolean)
-            .join(", ");
-          return details ? `${entry.condition_name} (${details})` : entry.condition_name;
-        })
-        .join("; ")
+      .map((entry) => {
+        const details = [entry.organ_system, entry.classification, entry.severity]
+          .filter(Boolean)
+          .join(", ");
+        return details ? `${entry.condition_name} (${details})` : entry.condition_name;
+      })
+      .join("; ")
     : null;
 
   const measurements: Measurement[] = (canExtractDiagnoses ? payload.abnormal_findings : [])
@@ -503,7 +558,9 @@ const mapMasterPayloadToLegacy = (payload: MasterClinicalPayload): Record<string
     })
     .filter(Boolean) as Measurement[];
 
-  const medications: MedicationExtracted[] = (documentType === "appointment" ? [] : payload.treatments)
+  const medications: MedicationExtracted[] = (documentType === "appointment"
+    ? []
+    : payload.treatments.filter((treatment) => isLikelyMedicationTreatment(treatment)))
     .map((treatment) => {
       if (!treatment.treatment_name) return null;
       const dosage = treatment.dosage || null;
@@ -568,9 +625,9 @@ const mapMasterPayloadToLegacy = (payload: MasterClinicalPayload): Record<string
   const isAppointmentDocument = documentType === "appointment";
   const nextAppointment = !isAppointmentDocument
     ? detectedAppointments.find((item) => {
-        const timestamp = toTimestampSafe(item.date);
-        return timestamp >= Date.now() - 24 * 60 * 60 * 1000;
-      }) || null
+      const timestamp = toTimestampSafe(item.date);
+      return timestamp >= Date.now() - 24 * 60 * 60 * 1000;
+    }) || null
     : null;
 
   const recommendations = payload.recommendations || [];
@@ -585,41 +642,41 @@ const mapMasterPayloadToLegacy = (payload: MasterClinicalPayload): Record<string
 
   const aiGeneratedSummary = isAppointmentDocument
     ? buildSummaryFromMaster(
-        documentType,
-        sourceDocumentType,
-        diagnosis,
-        medications,
-        measurements,
-        recommendations,
-        {
-          petName: payload.pet.name,
-          eventDate,
-          appointmentTime,
-          appointments: detectedAppointments,
-          provider,
-          clinic,
-          title: appointmentEvent?.procedure,
-          observations: appointmentEvent?.preparation_required,
-        }
-      )
+      documentType,
+      sourceDocumentType,
+      diagnosis,
+      medications,
+      measurements,
+      recommendations,
+      {
+        petName: payload.pet.name,
+        eventDate,
+        appointmentTime,
+        appointments: detectedAppointments,
+        provider,
+        clinic,
+        title: appointmentEvent?.procedure,
+        observations: appointmentEvent?.preparation_required,
+      }
+    )
     : buildSummaryFromMaster(
-        documentType,
-        sourceDocumentType,
-        diagnosis,
-        medications,
-        measurements,
-        recommendations,
-        {
-          petName: payload.pet.name,
-          eventDate,
-          appointmentTime,
-          appointments: detectedAppointments,
-          provider,
-          clinic,
-          title: payload.document_info.record_number,
-          observations: observationsParts.join(". "),
-        }
-      );
+      documentType,
+      sourceDocumentType,
+      diagnosis,
+      medications,
+      measurements,
+      recommendations,
+      {
+        petName: payload.pet.name,
+        eventDate,
+        appointmentTime,
+        appointments: detectedAppointments,
+        provider,
+        clinic,
+        title: payload.document_info.record_number,
+        observations: observationsParts.join(". "),
+      }
+    );
   const suggestedTitle = (isAppointmentDocument
     ? (appointmentEvent?.procedure || appointmentEvent?.specialty || firstAppointment?.title || "Turno médico")
     : firstAppointment?.title)
@@ -646,8 +703,8 @@ const mapMasterPayloadToLegacy = (payload: MasterClinicalPayload): Record<string
     nextAppointmentReason: isAppointmentDocument
       ? null
       : nextAppointment
-      ? `Seguimiento sugerido: ${nextAppointment.title || nextAppointment.specialty || "control"}`
-      : recommendations[0] || null,
+        ? `Seguimiento sugerido: ${nextAppointment.title || nextAppointment.specialty || "control"}`
+        : recommendations[0] || null,
     nextAppointmentConfidence: isAppointmentDocument
       ? "not_detected"
       : (nextAppointment ? "high" : (recommendations.length > 0 ? "medium" : "not_detected")),
@@ -661,44 +718,51 @@ const mapMasterPayloadToLegacy = (payload: MasterClinicalPayload): Record<string
 
 const sanitizeDetectedAppointments = (
   value: unknown,
-  fallbackFields: { eventDate: string | null; appointmentTime: string | null; title: string | null; clinic: string | null; provider: string | null }
+  fallbackFields: {
+    eventDate: string | null;
+    appointmentTime: string | null;
+    title: string | null;
+    clinic: string | null;
+    provider: string | null;
+    allowDateFallback: boolean;
+  }
 ): ExtractedData["detectedAppointments"] => {
   const fromArray = Array.isArray(value)
     ? value
-        .map((item) => {
-          const row = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
-          const date = asDateKeyOrNull(row.date ?? row.eventDate);
-          const time = asAppointmentTimeOrNull(row.time ?? row.appointmentTime);
-          const title = asStringOrNull(row.title ?? row.reason ?? row.prestacion ?? row.specialty);
-          const specialty = asStringOrNull(row.specialty ?? row.especialidad);
-          const clinic = asStringOrNull(row.clinic ?? row.center ?? row.centro);
-          const provider = asStringOrNull(row.provider ?? row.professional ?? row.veterinarian);
-          const confidence = asConfidence(row.confidence);
+      .map((item) => {
+        const row = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+        const date = asDateKeyOrNull(row.date ?? row.eventDate);
+        const time = asAppointmentTimeOrNull(row.time ?? row.appointmentTime);
+        const title = asStringOrNull(row.title ?? row.reason ?? row.prestacion ?? row.specialty);
+        const specialty = asStringOrNull(row.specialty ?? row.especialidad);
+        const clinic = asStringOrNull(row.clinic ?? row.center ?? row.centro);
+        const provider = asStringOrNull(row.provider ?? row.professional ?? row.veterinarian);
+        const confidence = asConfidence(row.confidence);
 
-          if (!date) return null;
+        if (!date) return null;
 
-          return {
-            date,
-            time,
-            title,
-            specialty,
-            clinic,
-            provider,
-            confidence,
-          };
-        })
-        .filter(Boolean)
+        return {
+          date,
+          time,
+          title,
+          specialty,
+          clinic,
+          provider,
+          confidence,
+        };
+      })
+      .filter(Boolean)
     : [];
 
   if (fromArray.length > 0) {
     return fromArray as ExtractedData["detectedAppointments"];
   }
 
-  if (fallbackFields.eventDate) {
+  if (fallbackFields.allowDateFallback && fallbackFields.eventDate) {
     return [{
       date: fallbackFields.eventDate,
       time: fallbackFields.appointmentTime,
-      title: fallbackFields.title,
+      title: fallbackFields.title || "Turno médico",
       specialty: null,
       clinic: fallbackFields.clinic,
       provider: fallbackFields.provider,
@@ -717,48 +781,68 @@ const sanitizeExtractedData = (raw: unknown, fallbackRawText = ""): ExtractedDat
   const provider = asStringOrNull(parsed.provider);
   const clinic = asStringOrNull(parsed.clinic);
   const suggestedTitle = asStringOrNull(parsed.suggestedTitle) || fallback.suggestedTitle;
+  const rawDocumentType = asDocumentType(parsed.documentType);
+  const masterClinical = asObject(parsed.masterClinical);
+  const masterDocumentType = asStringOrNull(masterClinical.document_type)?.toLowerCase();
+  const appointmentHintText = [
+    suggestedTitle,
+    asStringOrNull(parsed.observations),
+    asStringOrNull(parsed.diagnosis),
+    asStringOrNull(parsed.aiGeneratedSummary),
+    asStringOrNull(parsed.nextAppointmentReason),
+    asStringOrNull(masterDocumentType),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  const hasClinicalHint = /(receta|prescrip|comprimido|diagn[oó]stic|hallazgo|laboratorio|radiograf|ecograf|vacuna|medici[oó]n|resultado|sesiones|tratamiento)/i.test(appointmentHintText);
+  const allowAppointmentFallback =
+    rawDocumentType === "appointment" ||
+    masterDocumentType === "medical_appointment" ||
+    masterDocumentType === "appointment" ||
+    (APPOINTMENT_HINT_REGEX.test(appointmentHintText) && Boolean(eventDate || appointmentTime) && !hasClinicalHint);
 
   const medications = Array.isArray(parsed.medications)
     ? parsed.medications
-        .map((item) => {
-          const med = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
-          const name = asStringOrNull(med.name);
-          if (!name) return null;
-          return {
-            name,
-            dosage: asStringOrNull(med.dosage),
-            frequency: asStringOrNull(med.frequency),
-            duration: asStringOrNull(med.duration),
-            confidence: asConfidence(med.confidence),
-          };
-        })
-        .filter(Boolean)
+      .map((item) => {
+        const med = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+        const name = asStringOrNull(med.name);
+        if (!name) return null;
+        return {
+          name,
+          dosage: asStringOrNull(med.dosage),
+          frequency: asStringOrNull(med.frequency),
+          duration: asStringOrNull(med.duration),
+          confidence: asConfidence(med.confidence),
+        };
+      })
+      .filter(Boolean)
     : [];
 
   const measurements = Array.isArray(parsed.measurements)
     ? parsed.measurements
-        .map((item) => {
-          const measurement = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
-          const name = asStringOrNull(measurement.name);
-          const value = asStringOrNull(measurement.value);
-          if (!name || !value) return null;
-          return {
-            name,
-            value,
-            unit: asStringOrNull(measurement.unit),
-            referenceRange: asStringOrNull(measurement.referenceRange),
-            confidence: asConfidence(measurement.confidence),
-          };
-        })
-        .filter(Boolean)
+      .map((item) => {
+        const measurement = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+        const name = asStringOrNull(measurement.name);
+        const value = asStringOrNull(measurement.value);
+        if (!name || !value) return null;
+        return {
+          name,
+          value,
+          unit: asStringOrNull(measurement.unit),
+          referenceRange: asStringOrNull(measurement.referenceRange),
+          confidence: asConfidence(measurement.confidence),
+        };
+      })
+      .filter(Boolean)
     : [];
 
   const detectedAppointments = sanitizeDetectedAppointments(
     parsed.detectedAppointments ?? parsed.appointments ?? null,
-    { eventDate, appointmentTime, title: suggestedTitle, clinic, provider }
+    { eventDate, appointmentTime, title: suggestedTitle, clinic, provider, allowDateFallback: allowAppointmentFallback }
   );
 
-  let inferredType = asDocumentType(parsed.documentType);
+  let inferredType = rawDocumentType;
   const forceAppointment = inferAppointmentByContent({
     documentType: inferredType,
     title: suggestedTitle,
@@ -805,9 +889,9 @@ const sanitizeExtractedData = (raw: unknown, fallbackRawText = ""): ExtractedDat
         ? "pessy_clinical_processing_protocol_v1"
         : asStringOrNull(parsed.extractionProtocol) === "pessy_master_clinical_protocol_v1"
           ? "pessy_master_clinical_protocol_v1"
-        : asStringOrNull(parsed.extractionProtocol) === "legacy_v1"
-          ? "legacy_v1"
-          : "legacy_v1",
+          : asStringOrNull(parsed.extractionProtocol) === "legacy_v1"
+            ? "legacy_v1"
+            : "legacy_v1",
   };
 };
 
@@ -1239,6 +1323,20 @@ Fecha de hoy: ${today}
 
 PESSY CLINICAL PROCESSING PROTOCOL
 
+FASE 0 — CLASIFICACIÓN OBLIGATORIA
+Clasificá primero el documento en UNA categoría:
+- clinical_report
+- laboratory_result
+- prescription
+- medical_appointment
+- vaccination_record
+- other
+
+Reglas críticas:
+- Si detectás fecha futura + hora + especialidad o términos de turno (turno, confirmado, centro de atención, consulta), tratar como medical_appointment.
+- Si es medical_appointment, NO generar diagnósticos ni hallazgos clínicos.
+- No inventar datos faltantes.
+
 FASE 1 — EXTRACCIÓN ESTRUCTURADA
 Analizá el documento completo en modo multimodal y devolvé SOLO JSON válido:
 {
@@ -1465,12 +1563,12 @@ const buildFallbackSynthesis = (input: ClinicalReportSynthesisInput): ClinicalRe
 
   const clinicalNarrative = latest
     ? [
-        `1. Introducción del paciente: ${input.pet.name}, ${cleanReportText(input.pet.species) || "especie no registrada"}, ${cleanReportText(input.pet.breed) || "raza no registrada"}. Seguimiento disponible: ${sortedEvents.length} documento(s).`,
-        `2. Resumen cronológico: el registro más reciente es "${cleanReportText(latest.title)}" (${formatIsoShort(latest.extractedData?.eventDate || latest.createdAt)}). La evolución se interpreta desde la base estructurada cargada por el tutor.`,
-        `3. Condiciones identificadas: ${cleanReportText(latest.extractedData?.diagnosis) || "sin diagnóstico consolidado en el último registro"}.`,
-        `4. Eventos relevantes: ${cleanReportText(latest.extractedData?.observations || latest.extractedData?.aiGeneratedSummary) || "sin eventos críticos explícitos"}.`,
-        `5. Estado clínico actual estimado: ${input.medications.length > 0 ? "en seguimiento con tratamiento activo" : "estable según datos disponibles, requiere controles periódicos"}.`,
-      ].join(" ")
+      `1. Introducción del paciente: ${input.pet.name}, ${cleanReportText(input.pet.species) || "especie no registrada"}, ${cleanReportText(input.pet.breed) || "raza no registrada"}. Seguimiento disponible: ${sortedEvents.length} documento(s).`,
+      `2. Resumen cronológico: el registro más reciente es "${cleanReportText(latest.title)}" (${formatIsoShort(latest.extractedData?.eventDate || latest.createdAt)}). La evolución se interpreta desde la base estructurada cargada por el tutor.`,
+      `3. Condiciones identificadas: ${cleanReportText(latest.extractedData?.diagnosis) || "sin diagnóstico consolidado en el último registro"}.`,
+      `4. Eventos relevantes: ${cleanReportText(latest.extractedData?.observations || latest.extractedData?.aiGeneratedSummary) || "sin eventos críticos explícitos"}.`,
+      `5. Estado clínico actual estimado: ${input.medications.length > 0 ? "en seguimiento con tratamiento activo" : "estable según datos disponibles, requiere controles periódicos"}.`,
+    ].join(" ")
     : "No hay antecedentes clínicos suficientes para construir narrativa longitudinal completa.";
 
   const carePlan =

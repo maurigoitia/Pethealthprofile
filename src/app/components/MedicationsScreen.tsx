@@ -3,9 +3,12 @@ import { MaterialIcon } from "./MaterialIcon";
 import { motion, AnimatePresence } from "motion/react";
 import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
+import { useReminders } from "../contexts/RemindersContext";
 import { MedicalEvent, TreatmentNote } from "../types/medical";
 import { cleanText } from "../utils/cleanText";
 import { formatDateSafe, parseDateSafe, toDateKeySafe, toTimestampSafe } from "../utils/dateUtils";
+import { downloadIcsEvent } from "../utils/calendarExport";
+import { NotificationService } from "../services/notificationService";
 
 interface MedicationsScreenProps {
   onBack: () => void;
@@ -27,6 +30,8 @@ type MedicationCardItem = {
   sourceLabel: "document" | "scan";
   status: MedicationStatus;
   daysLeft: number | null;       // null si crónico o vencido
+  linkedMedicationId: string | null;
+  lastDoseAt: string | null;
 };
 
 const NOTE_LABELS: Record<TreatmentNote["interpretedAs"], string> = {
@@ -112,11 +117,117 @@ function calcStatus(startIso: string, parsed: ReturnType<typeof parseDuration>):
   return { status: "completed", endDate: end.toISOString(), daysLeft: 0, durationDays: parsed.days };
 }
 
+function parseFrequencyHours(value?: string | null): number | null {
+  if (!value) return null;
+  const text = value
+    .toLowerCase()
+    .replace(",", ".")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const eachMatch =
+    text.match(/(?:cada|c\/|q)\s*(\d+(?:\.\d+)?)\s*(?:h|hs|hora|horas)\b/) ||
+    text.match(/\b(\d+(?:\.\d+)?)\s*(?:h|hs|hora|horas)\b/);
+  if (eachMatch) {
+    const num = Number(eachMatch[1]);
+    return Number.isFinite(num) && num > 0 ? num : null;
+  }
+  const dailyMatch = text.match(/(\d+)\s*vez(?:es)?\s*al\s*d[ií]a/);
+  if (dailyMatch) {
+    const times = Number(dailyMatch[1]);
+    if (Number.isFinite(times) && times > 0) return Math.round(24 / times);
+  }
+  if (/diario|diaria|cada\s+24\s*h/.test(text)) return 24;
+  return null;
+}
+
+function computeNextDoseDate(anchorIso: string, frequency: string): Date | null {
+  const hours = parseFrequencyHours(frequency);
+  if (!hours) return null;
+  const step = Math.round(hours * 60 * 60 * 1000);
+  let nextTs = toTimestampSafe(anchorIso, Date.now());
+  let guard = 0;
+  while (nextTs <= Date.now() && guard < 2000) {
+    nextTs += step;
+    guard += 1;
+  }
+  return new Date(nextTs);
+}
+
+function nextDoseLabel(anchorIso: string, frequency: string): string {
+  const next = computeNextDoseDate(anchorIso, frequency);
+  if (!next) return "según receta";
+  const dayLabel = toDateKeySafe(next.toISOString()) === toDateKeySafe(new Date().toISOString()) ? "hoy" : "próx.";
+  return `${dayLabel} ${next.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+function formatDoseMoment(value: string | null): string {
+  if (!value) return "sin registro";
+  const parsed = parseDateSafe(value);
+  if (!parsed) return "sin registro";
+  return parsed.toLocaleString("es-AR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 const STATUS_CONFIG: Record<MedicationStatus, { label: string; color: string; bg: string; accent: string }> = {
   active:    { label: "Activo",   color: "text-[#2b6fee]",   bg: "bg-[#2b6fee]/10",  accent: "#2b6fee" },
   chronic:   { label: "Crónico",  color: "text-violet-600",  bg: "bg-violet-100",     accent: "#7c3aed" },
   completed: { label: "Finalizado", color: "text-slate-500", bg: "bg-slate-100",      accent: "#94a3b8" },
 };
+
+const HARD_MEDICATION_SIGNAL_REGEX = /(comprimid|capsul|tableta|pastilla|jarabe|gotas|ampolla|inyecci[oó]n|\b\d+\/\d+\s*comprimido|\b\d+\s*(mg|mcg)\b|pimobendan|ursomax|predni|furosemida|omeprazol|enroflox|amoxic|metronidazol|gabapentin|carprofeno)/i;
+const SCHEDULE_MEDICATION_SIGNAL_REGEX = /(cada\s+\d+\s*(h|hs|hora|horas)|\b\d+\s*veces?\s*al\s*d[ií]a\b|(tomar|administrar|dar)[^\n]{0,32}\b\d+(?:[.,]\d+)?\s*ml\b)/i;
+const NON_MEDICATION_SIGNAL_REGEX = /(pr[oó]stata|diametr|volumen|vol:|ecograf|radiograf|ultrason|hallazgo|medida|eje|cm\b|mm\b|sin\s+fractura|sin\s+luxaci[oó]n)/i;
+
+function hasMedicationLikeSignal(event: MedicalEvent): boolean {
+  const text = [
+    event.title,
+    event.extractedData.diagnosis,
+    event.extractedData.observations,
+    event.extractedData.aiGeneratedSummary,
+    event.extractedData.suggestedTitle,
+  ]
+    .map((value) => cleanText(value))
+    .filter(Boolean)
+    .join(" ");
+
+  const hasHardMedicationSignal = HARD_MEDICATION_SIGNAL_REGEX.test(text);
+  const hasScheduleSignal = SCHEDULE_MEDICATION_SIGNAL_REGEX.test(text);
+  const hasStudySignal = NON_MEDICATION_SIGNAL_REGEX.test(text);
+  if (hasStudySignal && !hasHardMedicationSignal) return false;
+  return hasHardMedicationSignal || hasScheduleSignal;
+}
+
+function isPlausibleMedicationEntry(
+  event: MedicalEvent,
+  medication: { name?: string | null; dosage?: string | null; frequency?: string | null; duration?: string | null }
+): boolean {
+  const combined = [
+    cleanText(medication.name),
+    cleanText(medication.dosage),
+    cleanText(medication.frequency),
+    cleanText(medication.duration),
+    cleanText(event.extractedData.observations),
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const hasHardMedicationSignal = HARD_MEDICATION_SIGNAL_REGEX.test(combined);
+  const hasScheduleSignal = SCHEDULE_MEDICATION_SIGNAL_REGEX.test(combined);
+  const hasStudySignal = NON_MEDICATION_SIGNAL_REGEX.test(combined);
+
+  if (hasStudySignal && !hasHardMedicationSignal) return false;
+  if (hasHardMedicationSignal || hasScheduleSignal) return true;
+
+  return Boolean(
+    cleanText(medication.name) &&
+      (cleanText(medication.dosage) || cleanText(medication.frequency))
+  );
+}
 
 export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
@@ -125,8 +236,51 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   const [savingNoteByEvent, setSavingNoteByEvent] = useState<Record<string, boolean>>({});
   const [confirmingByEvent, setConfirmingByEvent] = useState<Record<string, boolean>>({});
 
-  const { activePetId } = usePet();
-  const { getEventsByPetId, updateEvent, confirmEvent } = useMedical();
+  // Editar
+  const [editingItem, setEditingItem] = useState<MedicationCardItem | null>(null);
+  const [editDosage, setEditDosage] = useState("");
+  const [editFrequency, setEditFrequency] = useState("");
+  const [editDuration, setEditDuration] = useState("");
+  const [editIntakeTime, setEditIntakeTime] = useState("09:00");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editFeedback, setEditFeedback] = useState("");
+
+  // Borrar con confirmación
+  type DeleteStage = "confirm" | "after_options";
+  const [deletingItem, setDeletingItem] = useState<MedicationCardItem | null>(null);
+  const [deleteStage, setDeleteStage] = useState<DeleteStage>("confirm");
+  const [deletingInProgress, setDeletingInProgress] = useState(false);
+
+  const { activePetId, activePet } = usePet();
+  const { getEventsByPetId, updateEvent, confirmEvent, deleteEvent, activeMedications, updateMedication } = useMedical();
+  const { addReminder } = useReminders();
+
+  const extractTimeHHmm = (isoDate: string): string => {
+    const parsed = parseDateSafe(isoDate);
+    if (!parsed) return "09:00";
+    const hh = String(parsed.getHours()).padStart(2, "0");
+    const mm = String(parsed.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  };
+
+  const applyTimeToIso = (baseIso: string, hhmm: string): string => {
+    const parsed = parseDateSafe(baseIso) || new Date();
+    const [rawH, rawM] = String(hhmm || "").split(":");
+    const h = Number(rawH);
+    const m = Number(rawM);
+    parsed.setHours(Number.isFinite(h) ? h : 9, Number.isFinite(m) ? m : 0, 0, 0);
+    return parsed.toISOString();
+  };
+
+  const computeEndDateFromDuration = (startIso: string, durationValue: string): string | null => {
+    const parsedDuration = parseDuration(durationValue);
+    if (!parsedDuration || parsedDuration.type === "chronic") return null;
+    const start = parseDateSafe(startIso);
+    if (!start) return null;
+    const end = new Date(start);
+    end.setDate(end.getDate() + parsedDuration.days);
+    return end.toISOString();
+  };
 
   const medicationItems = useMemo(() => {
     if (!activePetId) return [] as MedicationCardItem[];
@@ -152,26 +306,43 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
       .flatMap((event) => {
         const hasMeds = Boolean(event.extractedData.medications?.length);
         const isMedDoc = event.extractedData.documentType === "medication";
-        if (!hasMeds && !isMedDoc) return [];
+        const hasSignal = hasMedicationLikeSignal(event);
+        if (!hasMeds && (!isMedDoc || !hasSignal)) return [];
 
         const startDate = event.extractedData.eventDate || event.createdAt;
         const sourceLabel: "document" | "scan" = event.extractedData.eventDate ? "document" : "scan";
 
         const meds = hasMeds
-          ? event.extractedData.medications
-          : [{
-              name: cleanText(event.extractedData.diagnosis || event.title || event.fileName),
-              dosage: null,
-              frequency: null,
-              duration: null,
-              confidence: "not_detected" as const,
-            }];
+          ? event.extractedData.medications.filter((med) => isPlausibleMedicationEntry(event, med))
+          : hasSignal
+            ? [{
+                name: cleanText(event.extractedData.diagnosis || event.title || event.fileName),
+                dosage: null,
+                frequency: null,
+                duration: null,
+                confidence: "not_detected" as const,
+              }]
+            : [];
+
+        if (meds.length === 0) return [];
 
         return meds.flatMap((med, idx) => {
           const name = cleanText(med.name) || "Medicación";
           const key = normalizeKey(name, med.dosage, med.frequency, startDate, event.extractedData.provider);
           if (seen.has(key)) return [];
           seen.add(key);
+
+          const linkedMedication =
+            activeMedications.find(
+              (medication) =>
+                medication.active &&
+                medication.generatedFromEventId === event.id &&
+                cleanText(medication.name).toLowerCase() === name.toLowerCase()
+            ) ||
+            activeMedications.find(
+              (medication) => medication.active && medication.generatedFromEventId === event.id
+            ) ||
+            null;
 
           const parsed = parseDuration(med.duration);
           const { status: calcedStatus, endDate, daysLeft, durationDays } = calcStatus(startDate, parsed);
@@ -193,15 +364,22 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
             sourceLabel,
             status,
             daysLeft,
+            linkedMedicationId: linkedMedication?.id || null,
+            lastDoseAt: linkedMedication?.lastDoseAt || null,
           }];
         });
       })
       .sort((a, b) => toTimestampSafe(b.startDate) - toTimestampSafe(a.startDate));
-  }, [activePetId, getEventsByPetId]);
+  }, [activeMedications, activePetId, getEventsByPetId]);
 
   const activeItems = medicationItems.filter((i) => i.status === "active" || i.status === "chronic");
   const completedItems = medicationItems.filter((i) => i.status === "completed");
   const shownItems = activeTab === "active" ? activeItems : completedItems;
+  const reminderPills = activeItems.slice(0, 6).map((item) => ({
+    id: item.id,
+    name: item.medicationName,
+    when: nextDoseLabel(item.lastDoseAt || item.startDate, item.frequency),
+  }));
 
   const saveNote = async (event: MedicalEvent) => {
     const text = (draftNoteByEvent[event.id] || "").trim();
@@ -234,8 +412,231 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
     }
   };
 
+  const openEdit = (item: MedicationCardItem) => {
+    setEditingItem(item);
+    setEditDosage(item.dosage === "Según receta" ? "" : item.dosage);
+    setEditFrequency(item.frequency === "Frecuencia no especificada" ? "" : item.frequency);
+    setEditDuration(item.duration === "Sin duración definida" ? "" : item.duration);
+    setEditIntakeTime(extractTimeHHmm(item.startDate));
+  };
+
+  const saveEdit = async () => {
+    if (!editingItem) return;
+    setSavingEdit(true);
+    try {
+      const normalizedDosage = editDosage.trim();
+      const normalizedFrequency = editFrequency.trim();
+      const normalizedDuration = editDuration.trim();
+      const updatedStartDate = applyTimeToIso(editingItem.startDate, editIntakeTime);
+
+      const meds = editingItem.event.extractedData.medications || [];
+      // Encontrar índice de la medicación en el evento
+      const idx = Number(editingItem.id.split("-").at(-1)) || 0;
+      const updatedMeds = meds.map((m, i) =>
+        i === idx
+          ? {
+              ...m,
+              dosage: normalizedDosage || m.dosage,
+              frequency: normalizedFrequency || m.frequency,
+              duration: normalizedDuration || m.duration,
+            }
+          : m
+      );
+      await updateEvent(editingItem.event.id, {
+        extractedData: {
+          ...editingItem.event.extractedData,
+          eventDate: updatedStartDate,
+          medications: updatedMeds,
+        },
+      });
+
+      const linkedMedications = activeMedications.filter(
+        (medication) =>
+          medication.active &&
+          medication.generatedFromEventId === editingItem.event.id &&
+          cleanText(medication.name).toLowerCase() === cleanText(editingItem.medicationName).toLowerCase()
+      );
+
+      const fallbackLinkedMedications =
+        linkedMedications.length > 0
+          ? linkedMedications
+          : activeMedications.filter(
+              (medication) => medication.active && medication.generatedFromEventId === editingItem.event.id
+            );
+
+      const finalFrequency =
+        normalizedFrequency ||
+        (editingItem.frequency === "Frecuencia no especificada" ? "" : editingItem.frequency);
+      const finalDosage =
+        normalizedDosage || (editingItem.dosage === "Según receta" ? "" : editingItem.dosage);
+      const finalDuration =
+        normalizedDuration || (editingItem.duration === "Sin duración definida" ? "" : editingItem.duration);
+      const computedEndDate = computeEndDateFromDuration(updatedStartDate, finalDuration);
+
+      let remindersScheduled = 0;
+
+      for (const medication of fallbackLinkedMedications) {
+        await updateMedication(medication.id, {
+          dosage: finalDosage || medication.dosage,
+          frequency: finalFrequency || medication.frequency,
+          startDate: updatedStartDate,
+          endDate: finalDuration ? computedEndDate : medication.endDate,
+        });
+
+        if (activePet && finalFrequency) {
+          await NotificationService.scheduleMedicationReminders({
+            petId: medication.petId,
+            petName: activePet.name,
+            medicationName: medication.name,
+            dosage: finalDosage || medication.dosage || "Según receta",
+            frequency: finalFrequency,
+            startDate: updatedStartDate,
+            endDate: finalDuration ? computedEndDate : medication.endDate,
+            sourceEventId: editingItem.event.id,
+            sourceMedicationId: medication.id,
+          });
+          remindersScheduled += 1;
+        }
+      }
+
+      if (activePet && finalFrequency && fallbackLinkedMedications.length === 0) {
+        await NotificationService.scheduleMedicationReminders({
+          petId: editingItem.event.petId,
+          petName: activePet.name,
+          medicationName: editingItem.medicationName,
+          dosage: finalDosage || "Según receta",
+          frequency: finalFrequency,
+          startDate: updatedStartDate,
+          endDate: finalDuration ? computedEndDate : null,
+          sourceEventId: editingItem.event.id,
+        });
+        remindersScheduled += 1;
+      }
+
+      setEditingItem(null);
+      if (remindersScheduled > 0) {
+        setEditFeedback("Horario actualizado. Creamos un recordatorio automático en tu celular.");
+      } else {
+        setEditFeedback("Horario actualizado. Si completás una frecuencia válida, activamos recordatorios automáticos.");
+      }
+      window.setTimeout(() => setEditFeedback(""), 5000);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const registerDoseNow = async (item: MedicationCardItem) => {
+    if (!activePet) return;
+
+    const nowIso = new Date().toISOString();
+    const nextDose = computeNextDoseDate(nowIso, item.frequency);
+    const nextDoseIso = nextDose ? nextDose.toISOString() : null;
+
+    const linked = activeMedications.filter((medication) => {
+      if (!medication.active) return false;
+      if (item.linkedMedicationId && medication.id === item.linkedMedicationId) return true;
+      return (
+        medication.generatedFromEventId === item.event.id &&
+        cleanText(medication.name).toLowerCase() === cleanText(item.medicationName).toLowerCase()
+      );
+    });
+
+    const fallbackLinked = linked.length > 0
+      ? linked
+      : activeMedications.filter(
+          (medication) => medication.active && medication.generatedFromEventId === item.event.id
+        );
+
+    for (const medication of fallbackLinked) {
+      await updateMedication(medication.id, {
+        lastDoseAt: nowIso,
+        nextDoseAt: nextDoseIso,
+      });
+
+      if (parseFrequencyHours(item.frequency)) {
+        await NotificationService.scheduleMedicationReminders({
+          petId: medication.petId,
+          petName: activePet.name,
+          medicationName: medication.name,
+          dosage: item.dosage || medication.dosage || "Según receta",
+          frequency: item.frequency,
+          startDate: medication.startDate,
+          endDate: medication.endDate,
+          sourceEventId: item.event.id,
+          sourceMedicationId: medication.id,
+          lastDoseAt: nowIso,
+        });
+      }
+    }
+
+    const adherenceNote: TreatmentNote = {
+      id: `dose_${Date.now()}`,
+      text: `Dosis administrada el ${formatDoseMoment(nowIso)}.`,
+      interpretedAs: "general_note",
+      createdAt: nowIso,
+    };
+
+    await updateEvent(item.event.id, {
+      treatmentNotes: [...(item.event.treatmentNotes || []), adherenceNote],
+    });
+
+    const nextLabel = nextDose
+      ? nextDose.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
+      : "según receta";
+    setEditFeedback(`Dosis registrada. Próximo recordatorio: ${nextLabel}.`);
+    window.setTimeout(() => setEditFeedback(""), 5000);
+  };
+
+  const confirmDelete = async (item: MedicationCardItem, withReminder: boolean, withCalendar: boolean) => {
+    setDeletingInProgress(true);
+    try {
+      // Crear recordatorio en la app si eligió esa opción
+      if (withReminder && activePetId) {
+        await addReminder({
+          id: `rem_${Date.now()}`,
+          petId: activePetId,
+          userId: item.event.userId || "",
+          type: "medication",
+          title: `Verificar si retoma ${item.medicationName}`,
+          notes: "Recordatorio creado al eliminar tratamiento",
+          dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+          dueTime: null,
+          repeat: "none",
+          completed: false,
+          completedAt: null,
+          dismissed: false,
+          notifyEnabled: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+
+      // Crear evento en calendario si eligió esa opción
+      if (withCalendar && activePet) {
+        downloadIcsEvent(
+          {
+            title: `Fin de tratamiento: ${item.medicationName} — ${activePet.name}`,
+            date: new Date().toISOString().slice(0, 10),
+            time: "09:00",
+            durationMinutes: 30,
+            location: item.provider,
+            description: `Dosis: ${item.dosage} · Frecuencia: ${item.frequency}`,
+          },
+          `fin-tratamiento-${item.medicationName.toLowerCase().replace(/\s+/g, "-")}.ics`
+        );
+      }
+
+      await deleteEvent(item.event.id);
+      setDeletingItem(null);
+      setDeleteStage("confirm");
+    } finally {
+      setDeletingInProgress(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#f6f6f8] dark:bg-[#101622] flex flex-col">
+    <>
+      <div className="min-h-screen bg-[#f6f6f8] dark:bg-[#101622] flex flex-col">
       <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
 
         {/* Header */}
@@ -246,7 +647,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
               <MaterialIcon name="arrow_back" className="text-xl" />
             </button>
             <div>
-              <h1 className="text-2xl font-black text-slate-900 dark:text-white">Tratamientos</h1>
+              <h1 className="text-2xl font-black text-slate-900 dark:text-white">Tratamientos y medicación</h1>
               <p className="text-sm text-slate-500">{activeItems.length} activos · {completedItems.length} finalizados</p>
             </div>
           </div>
@@ -261,10 +662,33 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
               </button>
             ))}
           </div>
+          {editFeedback && (
+            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+              <p className="text-xs font-semibold text-emerald-700">{editFeedback}</p>
+            </div>
+          )}
         </div>
 
         {/* List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {activeTab === "active" && reminderPills.length > 0 && (
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3">
+              <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 mb-2">Recordatorios de hoy</p>
+              <div className="flex flex-wrap gap-1.5">
+                {reminderPills.map((pill) => (
+                  <span
+                    key={pill.id}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#2b6fee]/10 text-[#2b6fee] text-[11px] font-semibold"
+                  >
+                    <MaterialIcon name="schedule" className="text-sm" />
+                    <span className="max-w-[150px] truncate">{pill.name}</span>
+                    <span className="text-[10px] font-black">{pill.when}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {shownItems.length === 0 ? (
             <div className="text-center py-16">
               <div className="size-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -296,9 +720,26 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                         </h3>
                         <p className="text-xs text-slate-500">{item.provider}</p>
                       </div>
-                      <span className={`text-[10px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full ${sc.bg} ${sc.color}`}>
-                        {needsReview ? "Por confirmar" : sc.label}
-                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={`text-[10px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full ${sc.bg} ${sc.color}`}>
+                          {needsReview ? "Por confirmar" : sc.label}
+                        </span>
+                        {/* Acciones editar / borrar */}
+                        <button
+                          onClick={() => openEdit(item)}
+                          className="size-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                          title="Editar"
+                        >
+                          <MaterialIcon name="edit" className="text-sm text-slate-500" />
+                        </button>
+                        <button
+                          onClick={() => { setDeletingItem(item); setDeleteStage("confirm"); }}
+                          className="size-7 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                          title="Eliminar"
+                        >
+                          <MaterialIcon name="delete" className="text-sm text-red-500" />
+                        </button>
+                      </div>
                     </div>
 
                     {needsReview && (
@@ -380,6 +821,27 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                         {item.sourceLabel === "document" ? "Fecha del documento" : "Fecha de escaneo"}: {formatDate(item.startDate)}
                       </span>
                     </div>
+
+                    {(item.status === "active" || item.status === "chronic") && (
+                      <div className="mb-3 p-3 rounded-xl bg-blue-50/70 border border-blue-100">
+                        <div className="flex items-center justify-between text-xs mb-2">
+                          <span className="text-slate-500">Última dosis</span>
+                          <span className="font-semibold text-slate-700">{formatDoseMoment(item.lastDoseAt)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs mb-3">
+                          <span className="text-slate-500">Próxima dosis</span>
+                          <span className="font-bold text-[#2b6fee]">{nextDoseLabel(item.lastDoseAt || item.startDate, item.frequency)}</span>
+                        </div>
+                        {!needsReview && (
+                          <button
+                            onClick={() => void registerDoseNow(item)}
+                            className="w-full py-2 rounded-xl bg-[#2b6fee] text-white text-xs font-bold hover:bg-[#245ecf] transition-colors"
+                          >
+                            Marcar dosis dada ahora
+                          </button>
+                        )}
+                      </div>
+                    )}
 
                     {/* Treatment notes */}
                     <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
@@ -464,5 +926,146 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
         </div>
       </div>
     </div>
+
+    {/* ─── MODAL EDITAR ─────────────────────────────────────────────────── */}
+    <AnimatePresence>
+      {editingItem && (
+        <>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => setEditingItem(null)}
+            className="fixed inset-0 bg-black/60 z-50" />
+          <motion.div
+            initial={{ opacity: 0, y: "100%" }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: "100%" }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl p-6 shadow-xl"
+          >
+            <div className="w-10 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-5" />
+            <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1">{editingItem.medicationName}</h3>
+            <p className="text-xs text-slate-500 mb-5">Editá los datos que quieras corregir</p>
+
+            <div className="space-y-3">
+              <label className="block">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Dosis</span>
+                <input value={editDosage} onChange={(e) => setEditDosage(e.target.value)}
+                  placeholder={editingItem.dosage}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b6fee]" />
+              </label>
+              <label className="block">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Frecuencia</span>
+                <input value={editFrequency} onChange={(e) => setEditFrequency(e.target.value)}
+                  placeholder={editingItem.frequency}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b6fee]" />
+              </label>
+              <label className="block">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Duración</span>
+                <input value={editDuration} onChange={(e) => setEditDuration(e.target.value)}
+                  placeholder={editingItem.duration}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b6fee]" />
+              </label>
+              <label className="block">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Hora base de toma</span>
+                <input
+                  type="time"
+                  value={editIntakeTime}
+                  onChange={(e) => setEditIntakeTime(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b6fee]"
+                />
+                <span className="text-[11px] text-slate-500 mt-1 block">
+                  Al guardar, PESSY reprograma recordatorios automáticos en tu celular.
+                </span>
+              </label>
+            </div>
+
+            <div className="flex gap-2 mt-5">
+              <button onClick={() => setEditingItem(null)}
+                className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-400">
+                Cancelar
+              </button>
+              <button onClick={saveEdit} disabled={savingEdit}
+                className="flex-1 py-3 rounded-xl bg-[#2b6fee] text-white text-sm font-bold disabled:opacity-60">
+                {savingEdit ? "Guardando..." : "Guardar cambios"}
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+
+    {/* ─── MODAL BORRAR ─────────────────────────────────────────────────── */}
+    <AnimatePresence>
+      {deletingItem && (
+        <>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={() => !deletingInProgress && setDeletingItem(null)}
+            className="fixed inset-0 bg-black/60 z-50" />
+          <motion.div
+            initial={{ opacity: 0, y: "100%" }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: "100%" }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl p-6 shadow-xl"
+          >
+            <div className="w-10 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-5" />
+
+            {deleteStage === "confirm" ? (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="size-12 rounded-full bg-red-100 dark:bg-red-950/40 flex items-center justify-center shrink-0">
+                    <MaterialIcon name="delete" className="text-2xl text-red-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 dark:text-white">¿Eliminar tratamiento?</h3>
+                    <p className="text-xs text-slate-500">{deletingItem.medicationName}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-5 leading-relaxed">
+                  Se va a mover a Historial. El documento original se mantiene en el Timeline.
+                </p>
+                <div className="flex gap-2">
+                  <button onClick={() => setDeletingItem(null)}
+                    className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-400">
+                    Cancelar
+                  </button>
+                  <button onClick={() => setDeleteStage("after_options")}
+                    className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold">
+                    Sí, eliminar
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-base font-black text-slate-900 dark:text-white mb-1">¿Querés crear un registro?</h3>
+                <p className="text-sm text-slate-500 mb-5">Antes de eliminarlo, podés dejar un recordatorio o anotarlo en el calendario.</p>
+
+                <div className="space-y-2 mb-5">
+                  <button
+                    onClick={() => confirmDelete(deletingItem, true, false)}
+                    disabled={deletingInProgress}
+                    className="w-full py-3.5 rounded-xl border border-[#2b6fee]/30 bg-[#2b6fee]/5 text-[#2b6fee] text-sm font-bold flex items-center gap-2 justify-center disabled:opacity-60"
+                  >
+                    <MaterialIcon name="notifications" className="text-lg" />
+                    Crear recordatorio en PESSY
+                  </button>
+                  <button
+                    onClick={() => confirmDelete(deletingItem, false, true)}
+                    disabled={deletingInProgress}
+                    className="w-full py-3.5 rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-400 text-sm font-bold flex items-center gap-2 justify-center disabled:opacity-60"
+                  >
+                    <MaterialIcon name="event" className="text-lg" />
+                    Agregar al calendario (.ics)
+                  </button>
+                  <button
+                    onClick={() => confirmDelete(deletingItem, false, false)}
+                    disabled={deletingInProgress}
+                    className="w-full py-3 rounded-xl text-slate-500 text-sm font-bold disabled:opacity-60"
+                  >
+                    {deletingInProgress ? "Eliminando..." : "Eliminar sin crear registro"}
+                  </button>
+                </div>
+              </>
+            )}
+          </motion.div>
+        </>
+      )}
+      </AnimatePresence>
+    </>
   );
 }

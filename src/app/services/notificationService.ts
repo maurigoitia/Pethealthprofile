@@ -114,7 +114,7 @@ class NotificationServiceClass {
 
   // Escucha notificaciones cuando la app ESTÁ abierta (foreground)
   onForegroundMessage(callback: (payload: any) => void) {
-    if (!this.messaging) return () => {};
+    if (!this.messaging) return () => { };
     return onMessage(this.messaging, callback);
   }
 
@@ -130,6 +130,7 @@ class NotificationServiceClass {
     endDate: string | null;
     sourceEventId: string;
     sourceMedicationId?: string;
+    lastDoseAt?: string | null; // si está, la próxima alarma se calcula desde esta toma real
   }) {
     const user = auth.currentUser;
     if (!user) return;
@@ -141,19 +142,24 @@ class NotificationServiceClass {
     const hasExplicitEndTime = typeof params.endDate === "string" && /T\d{2}:\d{2}/.test(params.endDate);
 
     const start = parseDateSafe(params.startDate);
+    const lastDose = params.lastDoseAt ? parseDateSafe(params.lastDoseAt) : null;
     const end = params.endDate ? parseDateSafe(params.endDate) : null;
     if (!start) return;
     const now = new Date();
 
     // Si la fecha vino sin hora explícita, fijamos 09:00 local para evitar
     // recordatorios ambiguos en "mediodía por defecto".
-    let current = new Date(start);
-    if (!hasExplicitStartTime) {
+    let current = new Date(lastDose || start);
+    if (!lastDose && !hasExplicitStartTime) {
       current.setHours(9, 0, 0, 0);
     }
 
-    // Avanzar hasta ahora si la fecha de inicio ya pasó.
-    while (current < now) {
+    if (lastDose) {
+      current = new Date(current.getTime() + intervalHours * 3600000);
+    }
+
+    // Avanzar hasta ahora si quedó atrasado.
+    while (current <= now) {
       current = new Date(current.getTime() + intervalHours * 3600000);
     }
 
@@ -168,20 +174,38 @@ class NotificationServiceClass {
     }
 
     // Limpia pendientes previos del mismo tratamiento para evitar duplicados.
-    const existing = await getDocs(query(
-      collection(db, "scheduled_notifications"),
-      where("userId", "==", user.uid)
-    ));
-    const staleDocs = existing.docs.filter((docSnap) => {
-      const data = docSnap.data();
-      if (data.type !== "medication") return false;
-      if (!data.active || data.sent) return false;
-      if (params.sourceMedicationId && data.sourceMedicationId) {
-        return data.sourceMedicationId === params.sourceMedicationId;
+    const cleanupQueries = [];
+    if (params.sourceMedicationId) {
+      cleanupQueries.push(query(
+        collection(db, "scheduled_notifications"),
+        where("userId", "==", user.uid),
+        where("sourceMedicationId", "==", params.sourceMedicationId),
+        where("sent", "==", false)
+      ));
+    }
+    if (params.sourceEventId) {
+      cleanupQueries.push(query(
+        collection(db, "scheduled_notifications"),
+        where("userId", "==", user.uid),
+        where("sourceEventId", "==", params.sourceEventId),
+        where("type", "==", "medication"),
+        where("sent", "==", false)
+      ));
+    }
+
+    const snapResults = await Promise.all(cleanupQueries.map(q => getDocs(q)));
+    const seenIds = new Set<string>();
+    const deletePromises: Promise<void>[] = [];
+
+    for (const snap of snapResults) {
+      for (const docSnap of snap.docs) {
+        if (!seenIds.has(docSnap.id)) {
+          seenIds.add(docSnap.id);
+          deletePromises.push(deleteDoc(docSnap.ref));
+        }
       }
-      return data.sourceEventId === params.sourceEventId;
-    });
-    await Promise.all(staleDocs.map((docSnap) => deleteDoc(docSnap.ref)));
+    }
+    await Promise.all(deletePromises);
 
     const repeatRootId = `med_${params.sourceMedicationId || params.sourceEventId}`;
     const notification: ScheduledNotification = {
@@ -271,19 +295,34 @@ class NotificationServiceClass {
 
   // Parsea "Cada 12 horas" → 12, "Mensual" → 720, etc
   private parseFrequencyToHours(frequency: string): number | null {
-    const f = frequency.toLowerCase();
-    const genericHours = f.match(/(\d+)\s*h/);
-    if (genericHours) {
-      const parsed = Number(genericHours[1]);
+    const f = (frequency || "")
+      .toLowerCase()
+      .replace(",", ".")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    // "cada 12 horas", "c/12h", "q8h", "12 hs"
+    const eachHoursMatch =
+      f.match(/(?:cada|c\/|q)\s*(\d+(?:\.\d+)?)\s*(?:h|hs|hora|horas)\b/) ||
+      f.match(/\b(\d+(?:\.\d+)?)\s*(?:h|hs|hora|horas)\b/);
+    if (eachHoursMatch) {
+      const parsed = Number(eachHoursMatch[1]);
       if (Number.isFinite(parsed) && parsed > 0) return parsed;
     }
-    if (f.includes("12")) return 12;
-    if (f.includes("8")) return 8;
-    if (f.includes("6")) return 6;
-    if (f.includes("24") || f.includes("día") || f.includes("diario")) return 24;
-    if (f.includes("48") || f.includes("2 días")) return 48;
-    if (f.includes("semanal") || f.includes("7 días")) return 168;
-    if (f.includes("mensual") || f.includes("30 días")) return 720;
+
+    // "2 veces al día" => cada 12h, "3 veces al día" => cada 8h
+    const dailyMatch = f.match(/(\d+)\s*vez(?:es)?\s*al\s*d[ií]a/);
+    if (dailyMatch) {
+      const times = Number(dailyMatch[1]);
+      if (Number.isFinite(times) && times > 0) {
+        return Math.round(24 / times);
+      }
+    }
+
+    if (/diario|diaria|cada\s+24\s*h/.test(f)) return 24;
+    if (/cada\s+48\s*h|2\s*d[ií]as/.test(f)) return 48;
+    if (/semanal|7\s*d[ií]as/.test(f)) return 168;
+    if (/mensual|30\s*d[ií]as/.test(f)) return 720;
     return null;
   }
 }

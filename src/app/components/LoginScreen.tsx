@@ -11,12 +11,14 @@ import {
 } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
+import { createPasswordResetActionCodeSettings } from "../utils/authActionLinks";
 
 export function LoginScreen() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
@@ -41,22 +43,50 @@ export function LoginScreen() {
     setLoading(true);
 
     const cleanEmail = email.trim().toLowerCase();
-    const cleanPassword = password;
+    const rawPassword = password;
+    const trimmedPassword = password.trim();
+    const passwordsToTry =
+      trimmedPassword && trimmedPassword !== rawPassword
+        ? [rawPassword, trimmedPassword]
+        : [rawPassword];
 
     try {
-      await signInWithEmailAndPassword(auth, cleanEmail, cleanPassword);
+      let signedIn = false;
+      let lastError: any = null;
+
+      for (const candidatePassword of passwordsToTry) {
+        try {
+          await signInWithEmailAndPassword(auth, cleanEmail, candidatePassword);
+          signedIn = true;
+          break;
+        } catch (candidateError: any) {
+          lastError = candidateError;
+          const canRetryWithTrimmed =
+            candidatePassword === rawPassword &&
+            passwordsToTry.length > 1 &&
+            (candidateError?.code === "auth/wrong-password" ||
+              candidateError?.code === "auth/invalid-credential");
+          if (!canRetryWithTrimmed) {
+            throw candidateError;
+          }
+        }
+      }
+
+      if (!signedIn && lastError) throw lastError;
       navigate("/home", { replace: true });
     } catch (err: any) {
       if (err?.code === "auth/user-not-found" || err?.code === "auth/wrong-password" || err?.code === "auth/invalid-credential") {
+        const genericCredentialError =
+          "Correo o contraseña incorrectos. Si te registraste con Google, ingresá con Google o usá recuperación de contraseña.";
         try {
           const methods = await fetchSignInMethodsForEmail(auth, cleanEmail);
           if (methods.includes("google.com") && !methods.includes("password")) {
             setError("Este correo está registrado con Google. Ingresá con el botón Google.");
           } else {
-            setError("Correo o contraseña incorrectos.");
+            setError(genericCredentialError);
           }
         } catch {
-          setError("Correo o contraseña incorrectos.");
+          setError(genericCredentialError);
         }
       } else if (err?.code === "auth/too-many-requests") {
         setError("Demasiados intentos. Esperá unos minutos o recuperá tu contraseña.");
@@ -76,13 +106,21 @@ export function LoginScreen() {
     setResetSuccess("");
     setResetLoading(true);
     try {
-      await sendPasswordResetEmail(auth, resetEmail.trim().toLowerCase());
+      await sendPasswordResetEmail(
+        auth,
+        resetEmail.trim().toLowerCase(),
+        createPasswordResetActionCodeSettings()
+      );
       setResetSuccess("¡Listo! Revisá tu correo para restablecer la contraseña.");
     } catch (err: any) {
       if (err?.code === "auth/user-not-found") {
         setResetError("No encontramos una cuenta con ese correo.");
       } else if (err?.code === "auth/invalid-email") {
         setResetError("El correo ingresado no es válido.");
+      } else if (err?.code === "auth/operation-not-allowed") {
+        setResetError("En Firebase Auth falta habilitar Email/Password para recuperar contraseña.");
+      } else if (err?.code === "auth/unauthorized-continue-uri" || err?.code === "auth/invalid-continue-uri") {
+        setResetError("El dominio actual no está autorizado en Firebase Authentication.");
       } else {
         setResetError("No se pudo enviar el correo. Intentá nuevamente.");
       }
@@ -161,14 +199,23 @@ export function LoginScreen() {
             required
           />
 
-          <input
-            type="password"
-            placeholder="Contraseña"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-5 py-4 rounded-[24px] bg-white/92 text-slate-900 placeholder:text-slate-500 focus:ring-2 focus:ring-white/70 outline-none"
-            required
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-5 py-4 pr-28 rounded-[24px] bg-white/92 text-slate-900 placeholder:text-slate-500 focus:ring-2 focus:ring-white/70 outline-none"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#2b7cee] bg-white/80 border border-white rounded-full px-3 py-1"
+            >
+              {showPassword ? "Ocultar" : "Mostrar"}
+            </button>
+          </div>
 
           {/* Link olvidé contraseña */}
           <div className="flex justify-end">
