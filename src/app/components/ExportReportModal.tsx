@@ -292,7 +292,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           y += 5;
         }
         if (pendingManualReviewCount > 0) {
-          pdf.text(`• ${pendingManualReviewCount} ítem(s) pendiente(s) de validación manual (fuente correo).`, M, y + 1);
+          pdf.text(`• ${pendingManualReviewCount} ítem(s) pendiente(s) de validación manual.`, M, y + 1);
           y += 5;
         }
 

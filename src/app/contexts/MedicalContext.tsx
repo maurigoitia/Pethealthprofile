@@ -37,6 +37,50 @@ import {
   slugifyKey,
 } from "../utils/clinicalBrain";
 
+// Kill-switch operativo: desactiva visualización de datos provenientes de sincronización por mail.
+const EMAIL_SYNC_ENABLED = false;
+
+const normalizeForHint = (value?: string | null) =>
+  (value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+const hasMailSyncHint = (value?: string | null) => {
+  const text = normalizeForHint(value);
+  if (!text) return false;
+  return /(correo|mail|gmail|sincroniz|sync)/.test(text);
+};
+
+const isMailSyncedEvent = (event: MedicalEvent): boolean => {
+  if (EMAIL_SYNC_ENABLED) return false;
+  const extracted = event.extractedData || {};
+  if (
+    extracted.sourceSender ||
+    extracted.sourceReceivedAt ||
+    extracted.sourceSubject ||
+    extracted.sourceFileName
+  ) {
+    return true;
+  }
+
+  const reviewHints = event.reviewReasons || [];
+  const textHints = [
+    event.title,
+    extracted.suggestedTitle,
+    extracted.observations,
+    extracted.aiGeneratedSummary,
+    ...reviewHints,
+  ];
+  return textHints.some((value) => hasMailSyncHint(value));
+};
+
+const isMailSyncedPendingAction = (action: PendingAction): boolean => {
+  if (EMAIL_SYNC_ENABLED) return false;
+  if (action.type === "sync_review") return true;
+  return hasMailSyncHint(action.title) || hasMailSyncHint(action.subtitle);
+};
+
 interface MedicalContextType {
   events: MedicalEvent[];
   addEvent: (event: MedicalEvent) => Promise<boolean>;
@@ -684,7 +728,8 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   };
 
   const getEventsByPetId = (petId: string) => {
-    return dedupeEvents(events.filter(e => e.petId === petId)).sort((a, b) => {
+    const visibleEvents = events.filter((event) => event.petId === petId && !isMailSyncedEvent(event));
+    return dedupeEvents(visibleEvents).sort((a, b) => {
       // Ordenar por fecha del documento (eventDate), si no existe usar createdAt (fecha de escaneo)
       const dateA = a.extractedData?.eventDate || a.createdAt;
       const dateB = b.extractedData?.eventDate || b.createdAt;
@@ -716,7 +761,10 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   };
 
   const getPendingActionsByPetId = (petId: string) => {
-    return dedupePendingActions(pendingActions.filter(a => a.petId === petId && !a.completed))
+    const visiblePendingActions = pendingActions.filter(
+      (action) => action.petId === petId && !action.completed && !isMailSyncedPendingAction(action)
+    );
+    return dedupePendingActions(visiblePendingActions)
       .sort((a, b) => toTimestampSafe(a.dueDate) - toTimestampSafe(b.dueDate));
   };
 
@@ -811,6 +859,12 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   };
 
   const getAppointmentsByPetId = (petId: string) => {
+    const mailEventIds = new Set(
+      events
+        .filter((event) => event.petId === petId && isMailSyncedEvent(event))
+        .map((event) => event.id)
+    );
+
     const toTimestamp = (appointment: Appointment) => {
       const withTime = appointment.time
         ? `${appointment.date}T${appointment.time}:00`
@@ -820,7 +874,18 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       return toTimestampSafe(appointment.createdAt);
     };
 
-    return dedupeAppointments(appointments.filter(a => a.petId === petId))
+    const visibleAppointments = appointments.filter((appointment) => {
+      if (appointment.petId !== petId) return false;
+      if (EMAIL_SYNC_ENABLED) return true;
+      if (appointment.sourceEventId && mailEventIds.has(appointment.sourceEventId)) return false;
+      const hasTextHint =
+        hasMailSyncHint(appointment.notes || null) ||
+        hasMailSyncHint(appointment.title || null);
+      if (hasTextHint && Boolean(appointment.sourceEventId || appointment.sourceSuggestionKey)) return false;
+      return true;
+    });
+
+    return dedupeAppointments(visibleAppointments)
       .sort((a, b) => toTimestamp(a) - toTimestamp(b));
   };
 
