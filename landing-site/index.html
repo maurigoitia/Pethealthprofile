@@ -11,12 +11,14 @@
   <style>
     :root {
       --brand: #2b7cee;
-      --brand-2: #5da3ff;
-      --ink: #0f172a;
-      --muted: #64748b;
-      --surface: #f8fbff;
+      --brand-2: #60a5fa;
+      --ink: #081325;
+      --muted: #4d5f7a;
+      --line: rgba(103, 152, 224, 0.25);
+      --surface: rgba(255, 255, 255, 0.72);
+      --surface-2: rgba(244, 249, 255, 0.86);
+      --focus: rgba(43, 124, 238, 0.28);
       --white: #ffffff;
-      --ring: rgba(43, 124, 238, .18);
     }
 
     * { box-sizing: border-box; }
@@ -24,84 +26,141 @@
     html, body { margin: 0; padding: 0; }
 
     body {
-      font-family: Manrope, "Avenir Next", "Segoe UI", sans-serif;
-      color: var(--ink);
-      background:
-        radial-gradient(60rem 35rem at 100% -10%, rgba(93,163,255,.22), transparent 65%),
-        radial-gradient(55rem 30rem at -10% 0%, rgba(43,124,238,.16), transparent 60%),
-        linear-gradient(180deg, #ffffff, #f7fbff 40%, #f4f9ff);
       min-height: 100vh;
+      color: var(--ink);
+      font-family: "Space Grotesk", "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(58rem 32rem at -10% -10%, rgba(43, 124, 238, 0.26), transparent 65%),
+        radial-gradient(68rem 44rem at 120% 0%, rgba(96, 165, 250, 0.25), transparent 66%),
+        linear-gradient(180deg, #fbfdff 0%, #f4f8ff 55%, #edf4ff 100%);
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      pointer-events: none;
+      z-index: 0;
+      border-radius: 999px;
+      filter: blur(65px);
+      opacity: .36;
+    }
+
+    body::before {
+      width: 28rem;
+      height: 28rem;
+      left: -9rem;
+      top: 16vh;
+      background: #75aef9;
+      animation: driftA 13s ease-in-out infinite;
+    }
+
+    body::after {
+      width: 22rem;
+      height: 22rem;
+      right: -6rem;
+      top: 8vh;
+      background: #2b7cee;
+      animation: driftB 16s ease-in-out infinite;
+    }
+
+    .grid-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      opacity: .2;
+      background-image:
+        linear-gradient(to right, rgba(78, 118, 177, .14) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(78, 118, 177, .14) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: radial-gradient(circle at 50% 25%, black 15%, transparent 80%);
     }
 
     .wrap {
-      max-width: 1120px;
+      position: relative;
+      z-index: 1;
+      max-width: 1160px;
       margin: 0 auto;
-      padding: 28px 20px 56px;
+      padding: 26px 20px 56px;
     }
 
     .nav {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 44px;
+      margin-bottom: 38px;
+      padding: 6px 0;
     }
 
     .logo {
-      font-weight: 900;
-      letter-spacing: -.03em;
+      text-decoration: none;
+      font-weight: 800;
+      letter-spacing: -.04em;
       font-size: 2rem;
       color: var(--brand);
-      text-decoration: none;
     }
 
     .pill {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      font-size: 11px;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      font-weight: 800;
-      color: var(--brand);
-      background: rgba(43,124,238,.08);
-      border: 1px solid rgba(43,124,238,.16);
       border-radius: 999px;
+      border: 1px solid rgba(43, 124, 238, 0.28);
       padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--brand);
+      background: rgba(255,255,255,.64);
+      backdrop-filter: blur(6px);
     }
 
-    .hero {
+    .layout {
       display: grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap: 24px;
+      grid-template-columns: 1.25fr .75fr;
+      gap: 18px;
       align-items: stretch;
     }
 
-    .card {
-      background: rgba(255,255,255,.78);
-      border: 1px solid rgba(255,255,255,.9);
+    .panel {
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.92);
+      background: linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%);
       box-shadow:
-        0 32px 80px -32px rgba(15,23,42,.22),
-        0 2px 0 rgba(255,255,255,.85) inset;
-      backdrop-filter: blur(4px);
-      border-radius: 28px;
-      padding: 30px;
+        0 30px 80px -36px rgba(16, 40, 83, .34),
+        inset 0 1px 0 rgba(255, 255, 255, .78);
+      backdrop-filter: blur(12px);
+    }
+
+    .hero {
+      padding: 36px 34px;
+      animation: reveal .62s ease both;
     }
 
     h1 {
-      margin: 16px 0 12px;
-      font-size: clamp(2.1rem, 5.5vw, 4.5rem);
-      line-height: .95;
-      letter-spacing: -.035em;
+      margin: 18px 0 16px;
+      font-size: clamp(2.25rem, 6vw, 5.2rem);
+      letter-spacing: -.04em;
+      line-height: .9;
+      font-weight: 800;
+      max-width: 14ch;
     }
 
-    .accent { color: var(--brand); }
+    .accent {
+      color: var(--brand);
+      text-shadow: 0 9px 26px rgba(43, 124, 238, .22);
+    }
 
     .lead {
       margin: 0;
       color: var(--muted);
-      font-size: clamp(1rem, 2.2vw, 1.28rem);
-      line-height: 1.5;
-      max-width: 62ch;
+      font-size: clamp(1rem, 2.2vw, 1.2rem);
+      line-height: 1.58;
+      max-width: 61ch;
+      font-weight: 500;
     }
 
     .actions {
@@ -112,74 +171,93 @@
     }
 
     .btn {
+      text-decoration: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      text-decoration: none;
       border-radius: 999px;
-      padding: 14px 20px;
-      font-weight: 800;
+      padding: 13px 22px;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: .01em;
+      border: 1px solid transparent;
       transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+      will-change: transform;
     }
 
     .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
 
     .btn:focus-visible {
-      outline: 3px solid var(--ring);
+      outline: 3px solid var(--focus);
       outline-offset: 2px;
     }
 
     .btn-primary {
-      background: var(--brand);
       color: var(--white);
-      box-shadow: 0 14px 24px -12px rgba(43,124,238,.55);
+      background: linear-gradient(130deg, #2b7cee, #1e6de0);
+      box-shadow: 0 14px 28px -14px rgba(30, 96, 196, .62);
     }
 
     .btn-secondary {
-      background: #eef5ff;
       color: var(--brand);
-      border: 1px solid #d7e8ff;
+      border-color: rgba(43, 124, 238, .24);
+      background: rgba(255,255,255,.8);
     }
 
     .qa-note {
       margin-top: 16px;
-      font-size: 12px;
-      color: #5f6f86;
-      font-weight: 700;
-      letter-spacing: .03em;
+      margin-bottom: 0;
       text-transform: uppercase;
+      letter-spacing: .04em;
+      font-size: 12px;
+      color: #5b6f8c;
+      font-weight: 700;
     }
 
-    .side {
+    .stack {
       display: grid;
       gap: 12px;
     }
 
-    .kpi {
+    .info {
       padding: 20px;
-      border-radius: 20px;
-      background: linear-gradient(180deg, #ffffff, #f2f8ff);
-      border: 1px solid #dfecff;
+      position: relative;
+      overflow: hidden;
+      animation: reveal .68s ease both;
     }
 
-    .kpi h2 {
+    .info:nth-child(2) { animation-delay: .08s; }
+
+    .info::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 30px;
+      background: linear-gradient(120deg, rgba(255,255,255,.26), transparent 55%);
+      pointer-events: none;
+    }
+
+    .info h2 {
       margin: 0;
       color: var(--brand);
       font-size: 12px;
-      letter-spacing: .12em;
       text-transform: uppercase;
+      letter-spacing: .12em;
+      font-weight: 700;
     }
 
-    .kpi p {
+    .info p {
       margin: 10px 0 0;
+      color: #1f2f49;
+      line-height: 1.46;
       font-size: 1.02rem;
-      color: #1f2a44;
-      font-weight: 700;
-      line-height: 1.45;
+      font-weight: 600;
+      max-width: 38ch;
     }
 
     .checklist {
-      margin: 20px 0 0;
+      margin: 16px 0 0;
       padding: 0;
       list-style: none;
       display: grid;
@@ -187,40 +265,72 @@
     }
 
     .checklist li {
-      border: 1px solid #e5eefc;
-      background: #fbfdff;
       border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.72);
+      color: #304260;
       padding: 11px 12px;
       font-weight: 700;
-      color: #334155;
+      font-size: .94rem;
     }
 
     footer {
-      margin-top: 28px;
+      margin-top: 24px;
       text-align: center;
-      color: #94a3b8;
       font-size: 11px;
-      letter-spacing: .16em;
+      color: #90a0b8;
       text-transform: uppercase;
-      font-weight: 800;
+      letter-spacing: .16em;
+      font-weight: 700;
     }
 
-    @media (max-width: 900px) {
-      .hero { grid-template-columns: 1fr; }
-      .card { border-radius: 24px; padding: 24px; }
-      .wrap { padding: 20px 14px 38px; }
+    @keyframes reveal {
+      from {
+        opacity: 0;
+        transform: translateY(9px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes driftA {
+      0%, 100% { transform: translateY(0) translateX(0); }
+      50% { transform: translateY(-18px) translateX(10px); }
+    }
+
+    @keyframes driftB {
+      0%, 100% { transform: translateY(0) translateX(0); }
+      50% { transform: translateY(14px) translateX(-12px); }
+    }
+
+    @media (max-width: 940px) {
+      .layout { grid-template-columns: 1fr; }
+      .hero { padding: 28px 24px; }
+      .panel { border-radius: 24px; }
+      .wrap { padding: 18px 14px 34px; }
+      h1 { max-width: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
     }
   </style>
 </head>
 <body>
+  <div class="grid-overlay" aria-hidden="true"></div>
   <main class="wrap">
     <nav class="nav" aria-label="Navegación principal">
       <a class="logo" href="https://pessy.app/inicio">Pessy</a>
       <span class="pill">Landing QA</span>
     </nav>
 
-    <section class="hero" aria-label="Contenido principal de la landing QA">
-      <article class="card">
+    <section class="layout" aria-label="Contenido principal de la landing QA">
+      <article class="panel hero">
         <span class="pill">Tu mascota, sus cosas, todo en orden</span>
         <h1>
           Diseñamos mejor,
@@ -238,12 +348,13 @@
         <p class="qa-note">Ambiente QA Landing separado del QA App</p>
       </article>
 
-      <aside class="side" aria-label="Resumen funcional">
-        <div class="kpi">
+      <aside class="stack" aria-label="Resumen funcional">
+        <div class="panel info">
           <h2>Qué se conserva</h2>
           <p>CTAs originales y objetivo de revisión QA, sin mezclar despliegue productivo.</p>
         </div>
-        <div class="kpi">
+
+        <div class="panel info">
           <h2>SEO QA</h2>
           <p>No indexable por buscadores para evitar canibalización de la landing principal.</p>
           <ul class="checklist" aria-label="Checklist de control QA SEO">
