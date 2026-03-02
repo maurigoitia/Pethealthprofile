@@ -11,334 +11,236 @@
   <style>
     :root {
       --brand: #2b7cee;
-      --brand-2: #60a5fa;
-      --ink: #081325;
-      --muted: #4d5f7a;
-      --line: rgba(103, 152, 224, 0.25);
-      --surface: rgba(255, 255, 255, 0.72);
-      --surface-2: rgba(244, 249, 255, 0.86);
-      --focus: rgba(43, 124, 238, 0.28);
+      --ink: #0f172a;
+      --muted: #64748b;
+      --soft: #f8fafc;
+      --line: #e2e8f0;
       --white: #ffffff;
     }
 
     * { box-sizing: border-box; }
-
     html, body { margin: 0; padding: 0; }
 
     body {
       min-height: 100vh;
+      font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--ink);
-      font-family: "Space Grotesk", "Manrope", "Avenir Next", "Segoe UI", sans-serif;
-      background:
-        radial-gradient(58rem 32rem at -10% -10%, rgba(43, 124, 238, 0.26), transparent 65%),
-        radial-gradient(68rem 44rem at 120% 0%, rgba(96, 165, 250, 0.25), transparent 66%),
-        linear-gradient(180deg, #fbfdff 0%, #f4f8ff 55%, #edf4ff 100%);
+      background: #ffffff;
       overflow-x: hidden;
     }
 
-    body::before,
-    body::after {
-      content: "";
-      position: fixed;
-      pointer-events: none;
-      z-index: 0;
-      border-radius: 999px;
-      filter: blur(65px);
-      opacity: .36;
-    }
-
-    body::before {
-      width: 28rem;
-      height: 28rem;
-      left: -9rem;
-      top: 16vh;
-      background: #75aef9;
-      animation: driftA 13s ease-in-out infinite;
-    }
-
-    body::after {
-      width: 22rem;
-      height: 22rem;
-      right: -6rem;
-      top: 8vh;
-      background: #2b7cee;
-      animation: driftB 16s ease-in-out infinite;
-    }
-
-    .grid-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      opacity: .2;
-      background-image:
-        linear-gradient(to right, rgba(78, 118, 177, .14) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(78, 118, 177, .14) 1px, transparent 1px);
-      background-size: 34px 34px;
-      mask-image: radial-gradient(circle at 50% 25%, black 15%, transparent 80%);
-    }
-
-    .wrap {
-      position: relative;
-      z-index: 1;
-      max-width: 1160px;
-      margin: 0 auto;
-      padding: 26px 20px 56px;
-    }
-
     .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(255,255,255,.86);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .nav-inner,
+    .container {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    .nav-inner {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 38px;
-      padding: 6px 0;
+      justify-content: space-between;
+      padding: 16px 0;
     }
 
     .logo {
-      text-decoration: none;
-      font-weight: 800;
-      letter-spacing: -.04em;
       font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: -.03em;
       color: var(--brand);
+      text-decoration: none;
     }
 
     .pill {
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      padding: 8px 14px;
       border-radius: 999px;
-      border: 1px solid rgba(43, 124, 238, 0.28);
-      padding: 8px 12px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      color: #475569;
       font-size: 11px;
       font-weight: 800;
+      letter-spacing: .18em;
       text-transform: uppercase;
-      letter-spacing: .12em;
-      color: var(--brand);
-      background: rgba(255,255,255,.64);
-      backdrop-filter: blur(6px);
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 1.25fr .75fr;
-      gap: 18px;
-      align-items: stretch;
-    }
-
-    .panel {
-      border-radius: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.92);
-      background: linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%);
-      box-shadow:
-        0 30px 80px -36px rgba(16, 40, 83, .34),
-        inset 0 1px 0 rgba(255, 255, 255, .78);
-      backdrop-filter: blur(12px);
     }
 
     .hero {
-      padding: 36px 34px;
-      animation: reveal .62s ease both;
+      padding: 160px 0 88px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 40px auto auto 50%;
+      transform: translateX(-50%);
+      width: min(760px, 95%);
+      height: 320px;
+      background: radial-gradient(circle, rgba(43,124,238,.14), rgba(43,124,238,0) 68%);
+      pointer-events: none;
+      z-index: -1;
     }
 
     h1 {
-      margin: 18px 0 16px;
-      font-size: clamp(2.25rem, 6vw, 5.2rem);
+      margin: 18px auto 20px;
+      font-size: clamp(2.5rem, 8vw, 6.2rem);
+      font-weight: 900;
       letter-spacing: -.04em;
       line-height: .9;
-      font-weight: 800;
-      max-width: 14ch;
+      max-width: 11ch;
     }
 
-    .accent {
-      color: var(--brand);
-      text-shadow: 0 9px 26px rgba(43, 124, 238, .22);
-    }
+    .accent { color: var(--brand); }
 
     .lead {
-      margin: 0;
+      margin: 0 auto;
+      max-width: 800px;
+      font-size: clamp(1rem, 2.3vw, 1.32rem);
       color: var(--muted);
-      font-size: clamp(1rem, 2.2vw, 1.2rem);
-      line-height: 1.58;
-      max-width: 61ch;
-      font-weight: 500;
+      line-height: 1.55;
+      font-weight: 600;
     }
 
     .actions {
-      margin-top: 24px;
+      margin-top: 34px;
       display: flex;
-      flex-wrap: wrap;
       gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
     }
 
     .btn {
       text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
       border-radius: 999px;
-      padding: 13px 22px;
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: .01em;
-      border: 1px solid transparent;
-      transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
-      will-change: transform;
+      padding: 15px 24px;
+      font-weight: 800;
+      font-size: 1rem;
+      transition: transform .16s ease, box-shadow .16s ease;
     }
 
     .btn:hover { transform: translateY(-1px); }
-    .btn:active { transform: translateY(0); }
-
-    .btn:focus-visible {
-      outline: 3px solid var(--focus);
-      outline-offset: 2px;
-    }
 
     .btn-primary {
+      background: var(--brand);
       color: var(--white);
-      background: linear-gradient(130deg, #2b7cee, #1e6de0);
-      box-shadow: 0 14px 28px -14px rgba(30, 96, 196, .62);
+      box-shadow: 0 18px 30px -16px rgba(43,124,238,.45);
     }
 
     .btn-secondary {
+      background: #eef4ff;
+      border: 1px solid #dbeafe;
       color: var(--brand);
-      border-color: rgba(43, 124, 238, .24);
-      background: rgba(255,255,255,.8);
     }
 
     .qa-note {
-      margin-top: 16px;
-      margin-bottom: 0;
+      margin-top: 18px;
+      color: #94a3b8;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: .04em;
-      font-size: 12px;
-      color: #5b6f8c;
-      font-weight: 700;
+      letter-spacing: .18em;
+      font-size: 11px;
     }
 
-    .stack {
+    .summary {
+      background: var(--soft);
+      padding: 78px 0;
+      border-top: 1px solid #f1f5f9;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .summary-grid {
       display: grid;
-      gap: 12px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
     }
 
-    .info {
-      padding: 20px;
-      position: relative;
-      overflow: hidden;
-      animation: reveal .68s ease both;
+    .card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 36px;
+      padding: 30px;
+      box-shadow: 0 8px 20px -18px rgba(15,23,42,.35);
     }
 
-    .info:nth-child(2) { animation-delay: .08s; }
-
-    .info::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: 30px;
-      background: linear-gradient(120deg, rgba(255,255,255,.26), transparent 55%);
-      pointer-events: none;
-    }
-
-    .info h2 {
-      margin: 0;
+    .card h2 {
+      margin: 0 0 12px;
       color: var(--brand);
-      font-size: 12px;
+      font-size: .78rem;
+      letter-spacing: .16em;
       text-transform: uppercase;
-      letter-spacing: .12em;
-      font-weight: 700;
+      font-weight: 900;
     }
 
-    .info p {
-      margin: 10px 0 0;
-      color: #1f2f49;
-      line-height: 1.46;
-      font-size: 1.02rem;
+    .card p {
+      margin: 0;
+      font-size: 1.05rem;
+      color: #475569;
       font-weight: 600;
-      max-width: 38ch;
+      line-height: 1.5;
     }
 
     .checklist {
-      margin: 16px 0 0;
-      padding: 0;
       list-style: none;
+      margin: 18px 0 0;
+      padding: 0;
       display: grid;
-      gap: 8px;
+      gap: 9px;
     }
 
     .checklist li {
       border-radius: 14px;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.72);
-      color: #304260;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
       padding: 11px 12px;
       font-weight: 700;
-      font-size: .94rem;
+      color: #334155;
+      font-size: .93rem;
     }
 
     footer {
-      margin-top: 24px;
+      padding: 26px 0 34px;
       text-align: center;
+      color: #cbd5e1;
       font-size: 11px;
-      color: #90a0b8;
+      font-weight: 900;
+      letter-spacing: .24em;
       text-transform: uppercase;
-      letter-spacing: .16em;
-      font-weight: 700;
     }
 
-    @keyframes reveal {
-      from {
-        opacity: 0;
-        transform: translateY(9px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @keyframes driftA {
-      0%, 100% { transform: translateY(0) translateX(0); }
-      50% { transform: translateY(-18px) translateX(10px); }
-    }
-
-    @keyframes driftB {
-      0%, 100% { transform: translateY(0) translateX(0); }
-      50% { transform: translateY(14px) translateX(-12px); }
-    }
-
-    @media (max-width: 940px) {
-      .layout { grid-template-columns: 1fr; }
-      .hero { padding: 28px 24px; }
-      .panel { border-radius: 24px; }
-      .wrap { padding: 18px 14px 34px; }
-      h1 { max-width: none; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after {
-        animation: none !important;
-        transition: none !important;
-      }
+    @media (max-width: 900px) {
+      .hero { padding: 130px 0 66px; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .card { border-radius: 28px; padding: 24px; }
     }
   </style>
 </head>
 <body>
-  <div class="grid-overlay" aria-hidden="true"></div>
-  <main class="wrap">
-    <nav class="nav" aria-label="Navegación principal">
+  <nav class="nav" aria-label="Navegación principal">
+    <div class="nav-inner">
       <a class="logo" href="https://pessy.app/inicio">Pessy</a>
       <span class="pill">Landing QA</span>
-    </nav>
+    </div>
+  </nav>
 
-    <section class="layout" aria-label="Contenido principal de la landing QA">
-      <article class="panel hero">
+  <main>
+    <section class="hero" aria-label="Contenido principal de la landing QA">
+      <div class="container">
         <span class="pill">Tu mascota, sus cosas, todo en orden</span>
-        <h1>
-          Diseñamos mejor,
-          <span class="accent">sin romper QA.</span>
-        </h1>
-        <p class="lead">
-          Esta landing mantiene el contenido de validación de QA e integra una estética más cercana al nuevo concepto visual de Pessy para revisión rápida antes de decidir publicación.
-        </p>
+        <h1>Diseñamos mejor, <span class="accent">sin romper QA.</span></h1>
+        <p class="lead">Esta landing mantiene el contenido de validación de QA e integra una estética más cercana al nuevo concepto visual de Pessy para revisión rápida antes de decidir publicación.</p>
 
         <div class="actions">
           <a class="btn btn-primary" href="https://pessy.app">Entrar a la app</a>
@@ -346,15 +248,17 @@
         </div>
 
         <p class="qa-note">Ambiente QA Landing separado del QA App</p>
-      </article>
+      </div>
+    </section>
 
-      <aside class="stack" aria-label="Resumen funcional">
-        <div class="panel info">
+    <section class="summary" aria-label="Resumen funcional">
+      <div class="container summary-grid">
+        <article class="card">
           <h2>Qué se conserva</h2>
           <p>CTAs originales y objetivo de revisión QA, sin mezclar despliegue productivo.</p>
-        </div>
+        </article>
 
-        <div class="panel info">
+        <article class="card">
           <h2>SEO QA</h2>
           <p>No indexable por buscadores para evitar canibalización de la landing principal.</p>
           <ul class="checklist" aria-label="Checklist de control QA SEO">
@@ -362,8 +266,8 @@
             <li>Canonical apuntando a /inicio</li>
             <li>Sin inclusión en sitemap público</li>
           </ul>
-        </div>
-      </aside>
+        </article>
+      </div>
     </section>
 
     <footer>pessy qa review build</footer>
