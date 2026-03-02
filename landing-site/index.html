@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pessy QA | Landing de revisión</title>
+  <meta name="description" content="Landing QA de Pessy para revisión de diseño y contenido antes de publicar en producción." />
+  <meta name="robots" content="noindex,nofollow,noarchive,nosnippet" />
+  <link rel="canonical" href="https://pessy.app/inicio" />
+  <meta name="theme-color" content="#2b7cee" />
+  <style>
+    :root {
+      --brand: #2b7cee;
+      --brand-2: #5da3ff;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --surface: #f8fbff;
+      --white: #ffffff;
+      --ring: rgba(43, 124, 238, .18);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { margin: 0; padding: 0; }
+
+    body {
+      font-family: Manrope, "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(60rem 35rem at 100% -10%, rgba(93,163,255,.22), transparent 65%),
+        radial-gradient(55rem 30rem at -10% 0%, rgba(43,124,238,.16), transparent 60%),
+        linear-gradient(180deg, #ffffff, #f7fbff 40%, #f4f9ff);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 28px 20px 56px;
+    }
+
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 44px;
+    }
+
+    .logo {
+      font-weight: 900;
+      letter-spacing: -.03em;
+      font-size: 2rem;
+      color: var(--brand);
+      text-decoration: none;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      font-weight: 800;
+      color: var(--brand);
+      background: rgba(43,124,238,.08);
+      border: 1px solid rgba(43,124,238,.16);
+      border-radius: 999px;
+      padding: 8px 12px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .card {
+      background: rgba(255,255,255,.78);
+      border: 1px solid rgba(255,255,255,.9);
+      box-shadow:
+        0 32px 80px -32px rgba(15,23,42,.22),
+        0 2px 0 rgba(255,255,255,.85) inset;
+      backdrop-filter: blur(4px);
+      border-radius: 28px;
+      padding: 30px;
+    }
+
+    h1 {
+      margin: 16px 0 12px;
+      font-size: clamp(2.1rem, 5.5vw, 4.5rem);
+      line-height: .95;
+      letter-spacing: -.035em;
+    }
+
+    .accent { color: var(--brand); }
+
+    .lead {
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 2.2vw, 1.28rem);
+      line-height: 1.5;
+      max-width: 62ch;
+    }
+
+    .actions {
+      margin-top: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      border-radius: 999px;
+      padding: 14px 20px;
+      font-weight: 800;
+      transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+
+    .btn:focus-visible {
+      outline: 3px solid var(--ring);
+      outline-offset: 2px;
+    }
+
+    .btn-primary {
+      background: var(--brand);
+      color: var(--white);
+      box-shadow: 0 14px 24px -12px rgba(43,124,238,.55);
+    }
+
+    .btn-secondary {
+      background: #eef5ff;
+      color: var(--brand);
+      border: 1px solid #d7e8ff;
+    }
+
+    .qa-note {
+      margin-top: 16px;
+      font-size: 12px;
+      color: #5f6f86;
+      font-weight: 700;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+    }
+
+    .side {
+      display: grid;
+      gap: 12px;
+    }
+
+    .kpi {
+      padding: 20px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, #ffffff, #f2f8ff);
+      border: 1px solid #dfecff;
+    }
+
+    .kpi h2 {
+      margin: 0;
+      color: var(--brand);
+      font-size: 12px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .kpi p {
+      margin: 10px 0 0;
+      font-size: 1.02rem;
+      color: #1f2a44;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    .checklist {
+      margin: 20px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .checklist li {
+      border: 1px solid #e5eefc;
+      background: #fbfdff;
+      border-radius: 14px;
+      padding: 11px 12px;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    footer {
+      margin-top: 28px;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 11px;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      font-weight: 800;
+    }
+
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; }
+      .card { border-radius: 24px; padding: 24px; }
+      .wrap { padding: 20px 14px 38px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <nav class="nav" aria-label="Navegación principal">
+      <a class="logo" href="https://pessy.app/inicio">Pessy</a>
+      <span class="pill">Landing QA</span>
+    </nav>
+
+    <section class="hero" aria-label="Contenido principal de la landing QA">
+      <article class="card">
+        <span class="pill">Tu mascota, sus cosas, todo en orden</span>
+        <h1>
+          Diseñamos mejor,
+          <span class="accent">sin romper QA.</span>
+        </h1>
+        <p class="lead">
+          Esta landing mantiene el contenido de validación de QA e integra una estética más cercana al nuevo concepto visual de Pessy para revisión rápida antes de decidir publicación.
+        </p>
+
+        <div class="actions">
+          <a class="btn btn-primary" href="https://pessy.app">Entrar a la app</a>
+          <a class="btn btn-secondary" href="https://pessy.app/inicio">Ver landing live</a>
+        </div>
+
+        <p class="qa-note">Ambiente QA Landing separado del QA App</p>
+      </article>
+
+      <aside class="side" aria-label="Resumen funcional">
+        <div class="kpi">
+          <h2>Qué se conserva</h2>
+          <p>CTAs originales y objetivo de revisión QA, sin mezclar despliegue productivo.</p>
+        </div>
+        <div class="kpi">
+          <h2>SEO QA</h2>
+          <p>No indexable por buscadores para evitar canibalización de la landing principal.</p>
+          <ul class="checklist" aria-label="Checklist de control QA SEO">
+            <li>Meta robots: noindex, nofollow</li>
+            <li>Canonical apuntando a /inicio</li>
+            <li>Sin inclusión en sitemap público</li>
+          </ul>
+        </div>
+      </aside>
+    </section>
+
+    <footer>pessy qa review build</footer>
+  </main>
+</body>
+</html>
