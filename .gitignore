@@ -75,3 +75,22 @@ dist/
 .vite/
 qa-artifacts/
 cleanup_dev_*.log
+
+# Archivos temporales y de diagnóstico
+tmp/
+*.DS_Store
+.DS_Store
+
+# Outputs de diseño y assets de landing
+design/
+public/concet-assets/
+public/legacy-landing-assets/
+public/team/
+
+# Compiled Cloud Functions (solo fuentes al repo)
+functions/lib/
+
+# Imágenes de snapshot/screenshots de CI
+*.png
+!public/icons/**/*.png
+!src/**/*.png

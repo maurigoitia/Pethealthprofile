@@ -1,7 +1,0 @@
-{
-  "error": {
-    "code": 404,
-    "message": "Document \"projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_user_locks/veBVBs9olTeppTYjjTCnhFaEQIc2\" not found.",
-    "status": "NOT_FOUND"
-  }
-}

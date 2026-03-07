@@ -1,5 +1,0 @@
-projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ai_jobs/c43d5eba-de08-41fa-85f8-3cfa05267a13
-projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ai_jobs/c9d6d00a-9e15-4d98-9985-9de7d9863cb6
-projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ai_jobs/d11547df-b618-4584-bcf0-734f98575afe
-projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ai_jobs/d4a229d4-7496-42ab-9138-b223d1e4c9cd
-projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ai_jobs/efa6bdb3-1ef0-4fc0-949f-f7b262884191
