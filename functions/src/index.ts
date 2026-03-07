@@ -1,5 +1,78 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import { Resend } from "resend";
+
+// Resend — email fallback para notificaciones de medicación
+// API key se configura en: firebase functions:secrets:set RESEND_API_KEY
+const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
+const resendClient = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
+
+async function sendEmailReminder(args: {
+  toEmail: string;
+  petName: string;
+  medicationName: string;
+  dosage: string;
+  scheduledFor: string; // ISO — hora de la toma
+  minutesBefore: number;
+}) {
+  if (!resendClient) {
+    console.warn("[EMAIL] RESEND_API_KEY no configurada — email omitido");
+    return;
+  }
+  const doseTime = new Date(args.scheduledFor);
+  // Sumar los minutos para obtener la hora real de la toma
+  const actualDoseTime = new Date(doseTime.getTime() + args.minutesBefore * 60 * 1000);
+  const timeStr = actualDoseTime.toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+  const dateStr = actualDoseTime.toLocaleDateString("es-AR", {
+    weekday: "long", day: "numeric", month: "long",
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+
+  const subject = args.minutesBefore === 0
+    ? `⏰ Hora de la medicación — ${args.petName}`
+    : `🐾 En ${args.minutesBefore} min: medicación de ${args.petName}`;
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+      <div style="background:#2b6fee;border-radius:16px;padding:20px 24px;margin-bottom:20px;">
+        <h1 style="color:white;margin:0;font-size:22px;">🐾 PESSY</h1>
+        <p style="color:rgba(255,255,255,0.85);margin:4px 0 0;font-size:13px;">Recordatorio de medicación</p>
+      </div>
+      <h2 style="color:#1a1a2e;font-size:18px;margin:0 0 8px;">
+        ${args.minutesBefore > 0 ? `En ${args.minutesBefore} minutos toca la medicación de <strong>${args.petName}</strong>` : `¡Hora de la medicación de <strong>${args.petName}</strong>!`}
+      </h2>
+      <div style="background:#f6f6f8;border-radius:12px;padding:16px;margin:16px 0;">
+        <p style="margin:0 0 8px;color:#555;font-size:13px;">MEDICAMENTO</p>
+        <p style="margin:0;font-size:18px;font-weight:800;color:#1a1a2e;">${args.medicationName}</p>
+        <p style="margin:4px 0 0;font-size:14px;color:#555;">${args.dosage}</p>
+      </div>
+      <div style="background:#2b6fee10;border-radius:12px;padding:16px;margin:16px 0;border-left:4px solid #2b6fee;">
+        <p style="margin:0;font-size:14px;color:#2b6fee;font-weight:700;">
+          🕐 ${dateStr} a las ${timeStr}
+        </p>
+      </div>
+      <p style="color:#888;font-size:12px;margin-top:24px;">
+        Este recordatorio fue configurado en <a href="https://pessy.app" style="color:#2b6fee;">pessy.app</a>
+      </p>
+    </div>
+  `;
+
+  try {
+    await resendClient.emails.send({
+      from: "PESSY <noreply@pessy.app>",
+      to: args.toEmail,
+      subject,
+      html,
+    });
+    console.log(`[EMAIL] ✅ Enviado a ${args.toEmail} — ${args.medicationName} (${args.minutesBefore}min antes)`);
+  } catch (err) {
+    console.error("[EMAIL] Error enviando:", err);
+  }
+}
 import {
   disconnectGmailSync,
   getGmailConnectUrl,
@@ -208,6 +281,15 @@ function parseLocalToUtc(dateStr: string, timeStr: string, timeZone: string): Da
 
   // Paso 5: Aplicar el offset inverso para obtener la fecha UTC real
   return new Date(tempDate.getTime() - offsetMs);
+}
+
+async function getUserEmail(userId: string): Promise<string | null> {
+  try {
+    const userRecord = await admin.auth().getUser(userId);
+    return userRecord.email || null;
+  } catch {
+    return null;
+  }
 }
 
 async function getUserSettings(userId: string): Promise<NotificationSettings> {
@@ -567,6 +649,41 @@ export const sendScheduledNotifications = functions.pubsub
           sourceEventId: notification.sourceEventId,
           notificationId: docSnap.id,
         });
+
+        // Email fallback para medicaciones (solo pre-aviso de 15 min o menos)
+        if (type === "medication") {
+          const scheduledFor = notification.scheduledFor as string;
+          const repeatRootId = (notification.repeatRootId as string) || "";
+          const isPre5 = repeatRootId.endsWith("_pre5");
+          const isPre60 = repeatRootId.endsWith("_pre60");
+          // Solo mandamos email en el aviso de 5 min (isPre5) — es el más cercano a la toma
+          if (isPre5) {
+            const userEmail = await getUserEmail(userId);
+            if (userEmail) {
+              await sendEmailReminder({
+                toEmail: userEmail,
+                petName: (notification.petName as string) || "tu mascota",
+                medicationName: ((notification.body as string) || "").split(" · ")[0] || "Medicación",
+                dosage: ((notification.body as string) || "").split(" · ")[1] || "",
+                scheduledFor,
+                minutesBefore: 5,
+              });
+            }
+          } else if (!isPre60 && !isPre5) {
+            // Es la dosis exacta — también mandamos email
+            const userEmail = await getUserEmail(userId);
+            if (userEmail) {
+              await sendEmailReminder({
+                toEmail: userEmail,
+                petName: (notification.petName as string) || "tu mascota",
+                medicationName: ((notification.body as string) || "").split(" · ")[0] || "Medicación",
+                dosage: ((notification.body as string) || "").split(" · ")[1] || "",
+                scheduledFor,
+                minutesBefore: 0,
+              });
+            }
+          }
+        }
 
         await docSnap.ref.update({ sent: true, sentAt: nowIso });
 

@@ -13,7 +13,8 @@
     "@google-cloud/vertexai": "^1.10.0",
     "firebase-admin": "^11.11.1",
     "firebase-functions": "^4.5.0",
-    "mammoth": "^1.11.0"
+    "mammoth": "^1.11.0",
+    "resend": "^6.9.3"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
