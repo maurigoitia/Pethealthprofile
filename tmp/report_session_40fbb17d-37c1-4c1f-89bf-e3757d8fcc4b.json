@@ -1,0 +1,127 @@
+{
+  "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_sessions/40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b",
+  "fields": {
+    "metrics.ai_tokens_estimated": {
+      "integerValue": "10371"
+    },
+    "session_id": {
+      "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+    },
+    "user_id": {
+      "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+    },
+    "metrics.classification_count": {
+      "integerValue": "10"
+    },
+    "qa_disable_fallback_query": {
+      "booleanValue": true
+    },
+    "summary": {
+      "nullValue": null
+    },
+    "updated_at": {
+      "stringValue": "2026-03-06T02:02:29.969Z"
+    },
+    "status": {
+      "stringValue": "processing"
+    },
+    "qa_total_scan_cap": {
+      "integerValue": "40"
+    },
+    "counters": {
+      "mapValue": {
+        "fields": {
+          "emails_with_images": {
+            "integerValue": "12"
+          },
+          "duplicates_removed": {
+            "integerValue": "0"
+          },
+          "events_requiring_review": {
+            "integerValue": "0"
+          },
+          "new_medical_events_created": {
+            "integerValue": "0"
+          },
+          "emails_with_attachments": {
+            "integerValue": "18"
+          },
+          "total_emails_scanned": {
+            "integerValue": "30"
+          },
+          "total_attachments_processed": {
+            "integerValue": "0"
+          },
+          "errors_count": {
+            "integerValue": "0"
+          },
+          "candidate_emails_detected": {
+            "integerValue": "26"
+          }
+        }
+      }
+    },
+    "fallback_query": {
+      "stringValue": "(\"veterinaria\" OR \"veterinario\" OR \"veterinary\" OR \"clinic\" OR \"clinica\" OR \"hospital veterinario\" OR \"turno veterinario\" OR \"diagnosis\" OR \"diagnostico\" OR \"diagnóstico\" OR \"vacuna\" OR \"vaccine\" OR \"tratamiento\" OR \"medicacion\" OR \"medicación\" OR \"receta\" OR \"prescription\" OR \"laboratorio\" OR \"lab\" OR \"ecografia\" OR \"ultrasound\" OR \"radiografia\" OR \"radiography\" OR \"electrocardiograma\" OR \"ecg\" OR filename:receta OR filename:prescription OR filename:laboratorio OR filename:analisis OR filename:informe OR filename:radiografia OR filename:ecografia OR filename:ultrasound OR filename:ecg OR (from:vet OR from:veterinaria OR from:veterinary OR from:clinic OR from:clinica)) after:2024/09/06 before:2026/03/06"
+    },
+    "metrics.scan_ms": {
+      "integerValue": "10644"
+    },
+    "metrics.attachment_count": {
+      "integerValue": "4"
+    },
+    "query": {
+      "stringValue": "(\"thor\" OR \"iVoXhESOZ8FvuiWT43Ey\") AND (\"veterinaria\" OR \"veterinario\" OR \"veterinary\" OR \"clinic\" OR \"clinica\" OR \"hospital veterinario\" OR \"turno veterinario\" OR \"diagnosis\" OR \"diagnostico\" OR \"diagnóstico\" OR \"vacuna\" OR \"vaccine\" OR \"tratamiento\" OR \"medicacion\" OR \"medicación\" OR \"receta\" OR \"prescription\" OR \"laboratorio\" OR \"lab\" OR \"ecografia\" OR \"ultrasound\" OR \"radiografia\" OR \"radiography\" OR \"electrocardiograma\" OR \"ecg\" OR filename:receta OR filename:prescription OR filename:laboratorio OR filename:analisis OR filename:informe OR filename:radiografia OR filename:ecografia OR filename:ultrasound OR filename:ecg OR (from:vet OR from:veterinaria OR from:veterinary OR from:clinic OR from:clinica)) after:2024/09/06 before:2026/03/06"
+    },
+    "next_page_token": {
+      "nullValue": null
+    },
+    "fallback_query_applied": {
+      "booleanValue": false
+    },
+    "started_at": {
+      "stringValue": "2026-03-06T01:37:57.566Z"
+    },
+    "lookback_after": {
+      "stringValue": "2024-09-06"
+    },
+    "metrics.ai_calls_total": {
+      "integerValue": "10"
+    },
+    "counters.errors_count": {
+      "integerValue": "6"
+    },
+    "max_mails_per_sync": {
+      "integerValue": "40"
+    },
+    "metrics.classification_ms": {
+      "integerValue": "15331"
+    },
+    "pet_id": {
+      "stringValue": "iVoXhESOZ8FvuiWT43Ey"
+    },
+    "qa_disable_dedup": {
+      "booleanValue": true
+    },
+    "counters.total_attachments_processed": {
+      "integerValue": "12"
+    },
+    "effective_scan_cap": {
+      "integerValue": "40"
+    },
+    "lookback_before": {
+      "stringValue": "2026-03-06"
+    },
+    "metrics.scan_count": {
+      "integerValue": "2"
+    },
+    "metrics.attachment_ms": {
+      "integerValue": "37884"
+    },
+    "scan_complete": {
+      "booleanValue": true
+    }
+  },
+  "createTime": "2026-03-06T01:37:57.619138Z",
+  "updateTime": "2026-03-06T02:02:30.135045Z"
+}

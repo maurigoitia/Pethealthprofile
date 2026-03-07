@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": 404,
+    "message": "Document \"projects/gen-lang-client-0123805751/databases/(default)/documents/users/veBVBs9olTeppTYjjTCnhFaEQIc2/mail_sync_tokens/gmail\" not found.",
+    "status": "NOT_FOUND"
+  }
+}

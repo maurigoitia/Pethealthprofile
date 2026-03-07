@@ -34,7 +34,7 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
           {/* About */}
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
             <div className="flex items-center gap-3 mb-4">
-              <div className="size-12 rounded-xl overflow-hidden bg-white flex items-center justify-center shadow-lg text-[#2b7cee] font-black text-2xl">
+              <div className="size-12 rounded-xl overflow-hidden bg-white flex items-center justify-center shadow-lg text-[#074738] font-black text-2xl">
                 P
               </div>
               <div>
@@ -45,7 +45,7 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     Versión 1.0.0
                   </p>
-                  <div className="flex items-center gap-1 bg-[#2b7cee]/10 text-[#2b7cee] px-2 py-0.5 rounded-full">
+                  <div className="flex items-center gap-1 bg-[#074738]/10 text-[#074738] px-2 py-0.5 rounded-full">
                     <MaterialIcon name="verified" className="text-xs" />
                     <span className="text-[10px] font-bold">Verificada</span>
                   </div>

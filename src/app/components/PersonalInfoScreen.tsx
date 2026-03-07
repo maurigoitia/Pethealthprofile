@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { MaterialIcon } from "./MaterialIcon";
 import { useAuth } from "../contexts/AuthContext";
-import { db, storage } from "../../lib/firebase";
+import { db } from "../../lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getDownloadURL } from "firebase/storage";
 import { updateProfile } from "firebase/auth";
 import { COUNTRIES } from "../data/countries";
+import { uploadWithAuthFallback } from "../utils/storageUpload";
 
 interface PersonalInfoScreenProps {
   onBack: () => void;
@@ -36,9 +37,16 @@ export function PersonalInfoScreen({ onBack }: PersonalInfoScreenProps) {
     if (file.size > 5 * 1024 * 1024) { alert("La imagen es muy grande. Máximo 5MB."); return; }
     setUploadingPhoto(true);
     try {
-      const storageRef = ref(storage, `users/${user.uid}/profile_photo`);
-      const result = await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(result.ref);
+      const timestamp = Date.now();
+      const uploadResult = await uploadWithAuthFallback({
+        uid: user.uid,
+        file,
+        attempts: [
+          { path: `users/${user.uid}/profile_photo_${timestamp}` },
+          { path: `documents/${user.uid}/profile/profile_photo_${timestamp}` },
+        ],
+      });
+      const url = await getDownloadURL(uploadResult.result.ref);
       await updateProfile(user, { photoURL: url });
       await setDoc(doc(db, "users", user.uid), { photo: url }, { merge: true });
       setFormData(prev => ({ ...prev, photo: url }));
@@ -97,12 +105,12 @@ export function PersonalInfoScreen({ onBack }: PersonalInfoScreenProps) {
                   <img src={formData.photo} alt="Foto"
                     className="size-24 rounded-full object-cover border-4 border-white dark:border-slate-900 shadow-lg" />
                 ) : (
-                  <div className="size-24 rounded-full bg-gradient-to-br from-[#2b6fee] to-[#5a8aff] flex items-center justify-center text-white shadow-lg">
+                  <div className="size-24 rounded-full bg-gradient-to-br from-[#074738] to-[#1a9b7d] flex items-center justify-center text-white shadow-lg">
                     <MaterialIcon name="person" className="text-5xl" />
                   </div>
                 )}
                 <label htmlFor="photo-upload"
-                  className="absolute bottom-0 right-0 size-8 rounded-full bg-[#2b6fee] text-white flex items-center justify-center cursor-pointer shadow-lg">
+                  className="absolute bottom-0 right-0 size-8 rounded-full bg-[#074738] text-white flex items-center justify-center cursor-pointer shadow-lg">
                   {uploadingPhoto
                     ? <span className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     : <MaterialIcon name="photo_camera" className="text-lg" />}
@@ -118,7 +126,7 @@ export function PersonalInfoScreen({ onBack }: PersonalInfoScreenProps) {
             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Nombre completo</label>
             <input type="text" value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b6fee]"
+              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#074738]"
               placeholder="Tu nombre completo" />
           </div>
 
@@ -135,7 +143,7 @@ export function PersonalInfoScreen({ onBack }: PersonalInfoScreenProps) {
             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Teléfono</label>
             <input type="tel" value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b6fee]"
+              className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#074738]"
               placeholder="+54 9 11 1234-5678" />
           </div>
 
@@ -145,7 +153,7 @@ export function PersonalInfoScreen({ onBack }: PersonalInfoScreenProps) {
             <div className="relative">
               <select value={formData.country}
                 onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b6fee] appearance-none cursor-pointer">
+                className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#074738] appearance-none cursor-pointer">
                 <option value="">🌍 Seleccioná tu país</option>
                 {COUNTRIES.map((c) => (
                   <option key={c.code} value={c.code}>{c.flag} {c.name}</option>
@@ -162,7 +170,7 @@ export function PersonalInfoScreen({ onBack }: PersonalInfoScreenProps) {
           )}
 
           <button onClick={handleSave} disabled={isSaving}
-            className="w-full py-4 rounded-xl bg-[#2b6fee] text-white font-bold disabled:opacity-50 flex items-center justify-center gap-2">
+            className="w-full py-4 rounded-xl bg-[#074738] text-white font-bold disabled:opacity-50 flex items-center justify-center gap-2">
             {isSaving
               ? <><span className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Guardando...</>
               : "Guardar cambios"}

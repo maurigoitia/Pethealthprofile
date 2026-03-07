@@ -1,0 +1,1300 @@
+[{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_192edbfe9a945111",
+    "fields": {
+      "attachment_metadata": {
+        "arrayValue": {}
+      },
+      "thread_id": {
+        "stringValue": "192edbfe9a945111"
+      },
+      "email_date": {
+        "stringValue": "2024-11-02T16:40:28.000Z"
+      },
+      "from_email": {
+        "stringValue": "\"Veterinaria Honorio S.R.L.\" \u003cinfo@veterinariahonorio.com.ar\u003e"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "subject": {
+        "stringValue": "Turno para Thor (ACTUALIZADO) - Número de Cliente: 105152 - VH-AP"
+      },
+      "hash_signature_raw": {
+        "stringValue": "224baa20f5084addc363a9751376c55f45aacb1a568cf3ea22b6444101aab14b"
+      },
+      "processing_status": {
+        "stringValue": "queued_classification"
+      },
+      "session_id": {
+        "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+      },
+      "message_id": {
+        "stringValue": "192edbfe9a945111"
+      },
+      "attachment_count": {
+        "integerValue": "0"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T01:38:49.378Z"
+      }
+    },
+    "createTime": "2026-03-06T01:38:04.013328Z",
+    "updateTime": "2026-03-06T01:38:49.416602Z"
+  },
+  "readTime": "2026-03-06T02:04:36.109802Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_192edca101866ac8",
+    "fields": {
+      "thread_id": {
+        "stringValue": "192edca101866ac8"
+      },
+      "email_date": {
+        "stringValue": "2024-11-02T16:51:35.000Z"
+      },
+      "from_email": {
+        "stringValue": "\"Veterinaria Honorio S.R.L.\" \u003cinfo@veterinariahonorio.com.ar\u003e"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "subject": {
+        "stringValue": "Comprobantes de Cliente - Número de Cliente: 105152 - VH-AP"
+      },
+      "hash_signature_raw": {
+        "stringValue": "249c7207375cec8f9a2f221b6c213f4809cf8a40018c92f4e10d996340e59cdb"
+      },
+      "session_id": {
+        "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+      },
+      "message_id": {
+        "stringValue": "192edca101866ac8"
+      },
+      "attachment_count": {
+        "integerValue": "2"
+      },
+      "attachment_metadata": {
+        "arrayValue": {
+          "values": [
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "105152-CC-[B]-0001-00833108.pdf"
+                  },
+                  "mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "size_bytes": {
+                    "integerValue": "12076"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "ocr_reason": {
+                    "stringValue": ""
+                  },
+                  "ocr_detail": {
+                    "nullValue": null
+                  },
+                  "original_mimetype": {
+                    "stringValue": "application/octet-stream"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "application/pdf"
+                  }
+                }
+              }
+            },
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "105152-FC-[B]-0001-00833108.pdf"
+                  },
+                  "mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "size_bytes": {
+                    "integerValue": "13496"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "ocr_reason": {
+                    "stringValue": ""
+                  },
+                  "ocr_detail": {
+                    "nullValue": null
+                  },
+                  "original_mimetype": {
+                    "stringValue": "application/octet-stream"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "application/pdf"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T02:02:30.146Z"
+      },
+      "processing_status": {
+        "stringValue": "discarded_non_clinical"
+      },
+      "ai_classification": {
+        "mapValue": {
+          "fields": {
+            "confidence": {
+              "integerValue": "0"
+            },
+            "is_clinical": {
+              "booleanValue": false
+            }
+          }
+        }
+      }
+    },
+    "createTime": "2026-03-06T01:38:03.599263Z",
+    "updateTime": "2026-03-06T02:02:30.334576Z"
+  },
+  "readTime": "2026-03-06T02:04:36.109802Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_192f3e7b206a7e88",
+    "fields": {
+      "attachment_metadata": {
+        "arrayValue": {}
+      },
+      "thread_id": {
+        "stringValue": "192f3e7b206a7e88"
+      },
+      "email_date": {
+        "stringValue": "2024-11-03T21:21:40.000Z"
+      },
+      "from_email": {
+        "stringValue": "\"Veterinaria Honorio S.R.L.\" \u003cinfo@veterinariahonorio.com.ar\u003e"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "subject": {
+        "stringValue": "Veterinaria Honorio - Recordatorio de Turno - Número de Cliente: 105152 - VH-AP"
+      },
+      "hash_signature_raw": {
+        "stringValue": "331420fa323decca1a5e622512a9c70b1ce885be47a03e9a3e2e4e30d575de65"
+      },
+      "session_id": {
+        "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+      },
+      "message_id": {
+        "stringValue": "192f3e7b206a7e88"
+      },
+      "attachment_count": {
+        "integerValue": "0"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T01:43:41.748Z"
+      },
+      "processing_status": {
+        "stringValue": "discarded_non_clinical"
+      },
+      "ai_classification": {
+        "mapValue": {
+          "fields": {
+            "confidence": {
+              "integerValue": "0"
+            },
+            "is_clinical": {
+              "booleanValue": false
+            }
+          }
+        }
+      }
+    },
+    "createTime": "2026-03-06T01:38:03.235057Z",
+    "updateTime": "2026-03-06T01:43:41.777929Z"
+  },
+  "readTime": "2026-03-06T02:04:36.109802Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_192f923ccce6ec52",
+    "fields": {
+      "attachment_metadata": {
+        "arrayValue": {}
+      },
+      "thread_id": {
+        "stringValue": "192f923ccce6ec52"
+      },
+      "email_date": {
+        "stringValue": "2024-11-04T21:45:24.000Z"
+      },
+      "from_email": {
+        "stringValue": "\"Veterinaria Honorio S.R.L.\" \u003cinfo@veterinariahonorio.com.ar\u003e"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "subject": {
+        "stringValue": "Turno para Thor (ACTUALIZADO) - Número de Cliente: 105152 - VH-AP"
+      },
+      "hash_signature_raw": {
+        "stringValue": "e09ac48504c3f638faae73e0a9ec10f938ee93f5caff151eab0dba9e2e6c437f"
+      },
+      "processing_status": {
+        "stringValue": "queued_classification"
+      },
+      "session_id": {
+        "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+      },
+      "message_id": {
+        "stringValue": "192f923ccce6ec52"
+      },
+      "attachment_count": {
+        "integerValue": "0"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T01:38:48.448Z"
+      }
+    },
+    "createTime": "2026-03-06T01:38:02.918514Z",
+    "updateTime": "2026-03-06T01:38:48.501634Z"
+  },
+  "readTime": "2026-03-06T02:04:36.109802Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_192f9256d2fd89f3",
+    "fields": {
+      "attachment_metadata": {
+        "arrayValue": {
+          "values": [
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "105152-FC-[B]-0001-00833563.pdf"
+                  },
+                  "mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "size_bytes": {
+                    "integerValue": "13619"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "application/octet-stream"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "application/pdf"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "thread_id": {
+        "stringValue": "192f9256d2fd89f3"
+      },
+      "email_date": {
+        "stringValue": "2024-11-04T21:47:12.000Z"
+      },
+      "from_email": {
+        "stringValue": "\"Veterinaria Honorio S.R.L.\" \u003cinfo@veterinariahonorio.com.ar\u003e"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "subject": {
+        "stringValue": "Comprobantes de Cliente - Número de Cliente: 105152 - VH-AP"
+      },
+      "hash_signature_raw": {
+        "stringValue": "5ceecff89e35ff80affc69d15832b0c5d56e7640f6c0aa10c177d0ab792acc70"
+      },
+      "processing_status": {
+        "stringValue": "queued_classification"
+      },
+      "session_id": {
+        "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+      },
+      "message_id": {
+        "stringValue": "192f9256d2fd89f3"
+      },
+      "attachment_count": {
+        "integerValue": "1"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T01:38:48.105Z"
+      }
+    },
+    "createTime": "2026-03-06T01:38:02.579689Z",
+    "updateTime": "2026-03-06T01:38:48.141669Z"
+  },
+  "readTime": "2026-03-06T02:04:36.109802Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_193035ad3668c66c",
+    "fields": {
+      "attachment_metadata": {
+        "arrayValue": {}
+      },
+      "thread_id": {
+        "stringValue": "193035ad3668c66c"
+      },
+      "email_date": {
+        "stringValue": "2024-11-06T21:21:42.000Z"
+      },
+      "from_email": {
+        "stringValue": "\"Veterinaria Honorio S.R.L.\" \u003cinfo@veterinariahonorio.com.ar\u003e"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "subject": {
+        "stringValue": "Veterinaria Honorio - Recordatorio de Turno - Número de Cliente: 105152 - VH-AP"
+      },
+      "hash_signature_raw": {
+        "stringValue": "e6b0dbac5d56d5f3512cdd4c6fa9927de5469fe5447b7f888803d0f31bf71423"
+      },
+      "session_id": {
+        "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+      },
+      "message_id": {
+        "stringValue": "193035ad3668c66c"
+      },
+      "attachment_count": {
+        "integerValue": "0"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T01:38:47.788Z"
+      },
+      "updated_at": {
+        "stringValue": "2026-03-06T01:43:35.826Z"
+      },
+      "processing_status": {
+        "stringValue": "queued_attachment_ocr"
+      },
+      "ai_classification": {
+        "mapValue": {
+          "fields": {
+            "confidence": {
+              "doubleValue": 0.95
+            },
+            "is_clinical": {
+              "booleanValue": true
+            }
+          }
+        }
+      }
+    },
+    "createTime": "2026-03-06T01:38:02.125845Z",
+    "updateTime": "2026-03-06T01:43:35.941140Z"
+  },
+  "readTime": "2026-03-06T02:04:36.109802Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_19308948d9ed19d9",
+    "fields": {
+      "attachment_metadata": {
+        "arrayValue": {
+          "values": [
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "105152-FC-[B]-0001-00834377.pdf"
+                  },
+                  "mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "size_bytes": {
+                    "integerValue": "13432"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "application/octet-stream"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "application/pdf"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "thread_id": {
+        "stringValue": "19308948d9ed19d9"
+      },
+      "email_date": {
+        "stringValue": "2024-11-07T21:42:52.000Z"
+      },
+      "from_email": {
+        "stringValue": "\"Veterinaria Honorio S.R.L.\" \u003cinfo@veterinariahonorio.com.ar\u003e"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "subject": {
+        "stringValue": "Comprobantes de Cliente - Número de Cliente: 105152 - VH-AP"
+      },
+      "hash_signature_raw": {
+        "stringValue": "d5c3d51d7965a25347298fcd3e8cd88b6356a00ca22ef5d0b1308e1bb36f95cd"
+      },
+      "processing_status": {
+        "stringValue": "queued_classification"
+      },
+      "session_id": {
+        "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+      },
+      "message_id": {
+        "stringValue": "19308948d9ed19d9"
+      },
+      "attachment_count": {
+        "integerValue": "1"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T01:38:47.456Z"
+      }
+    },
+    "createTime": "2026-03-06T01:38:01.786310Z",
+    "updateTime": "2026-03-06T01:38:47.504369Z"
+  },
+  "readTime": "2026-03-06T02:04:36.109802Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_193aaf81cea039bc",
+    "fields": {
+      "attachment_metadata": {
+        "arrayValue": {}
+      },
+      "thread_id": {
+        "stringValue": "193aaf81cea039bc"
+      },
+      "email_date": {
+        "stringValue": "2024-12-09T10:30:05.000Z"
+      },
+      "from_email": {
+        "stringValue": "\"noreply@myvete.com\" \u003cnoreply@myvete.com\u003e"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "subject": {
+        "stringValue": "Recordatorio de Vacuna para Thor"
+      },
+      "hash_signature_raw": {
+        "stringValue": "51d19368f89a0ddc2e72a98964bd017cf6a0107efc1412a1223ff243c8e1c184"
+      },
+      "processing_status": {
+        "stringValue": "queued_classification"
+      },
+      "session_id": {
+        "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+      },
+      "message_id": {
+        "stringValue": "193aaf81cea039bc"
+      },
+      "attachment_count": {
+        "integerValue": "0"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T01:38:47.136Z"
+      }
+    },
+    "createTime": "2026-03-06T01:38:01.353733Z",
+    "updateTime": "2026-03-06T01:38:47.175854Z"
+  },
+  "readTime": "2026-03-06T02:04:36.109802Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_19ada796e42306ab",
+    "fields": {
+      "thread_id": {
+        "stringValue": "18d23bc96b370753"
+      },
+      "email_date": {
+        "stringValue": "2025-12-01T15:13:02.000Z"
+      },
+      "from_email": {
+        "stringValue": "Mauricio Goitia \u003cmauriciogoitia@gmail.com\u003e"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "subject": {
+        "stringValue": "Fwd: Radiografias de Thor"
+      },
+      "hash_signature_raw": {
+        "stringValue": "4da0c20ce6d68a2c1f4b1668d04f9dac00741a5afedd3dfe12524b7268d92e4f"
+      },
+      "session_id": {
+        "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+      },
+      "message_id": {
+        "stringValue": "19ada796e42306ab"
+      },
+      "attachment_count": {
+        "integerValue": "4"
+      },
+      "attachment_metadata": {
+        "arrayValue": {
+          "values": [
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "260973.jpg"
+                  },
+                  "mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "size_bytes": {
+                    "integerValue": "21364"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "ocr_reason": {
+                    "stringValue": ""
+                  },
+                  "ocr_detail": {
+                    "nullValue": null
+                  },
+                  "original_mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "image/jpeg"
+                  }
+                }
+              }
+            },
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "260972.jpg"
+                  },
+                  "mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "size_bytes": {
+                    "integerValue": "41411"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "ocr_reason": {
+                    "stringValue": ""
+                  },
+                  "ocr_detail": {
+                    "nullValue": null
+                  },
+                  "original_mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "image/jpeg"
+                  }
+                }
+              }
+            },
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "260971.pdf"
+                  },
+                  "mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "size_bytes": {
+                    "integerValue": "260447"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "ocr_reason": {
+                    "stringValue": ""
+                  },
+                  "ocr_detail": {
+                    "nullValue": null
+                  },
+                  "original_mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "application/pdf"
+                  }
+                }
+              }
+            },
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "HistoriaClinica.pdf"
+                  },
+                  "mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "size_bytes": {
+                    "integerValue": "121298"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "ocr_reason": {
+                    "stringValue": ""
+                  },
+                  "ocr_detail": {
+                    "nullValue": null
+                  },
+                  "original_mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "application/pdf"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T01:55:17.409Z"
+      },
+      "processing_status": {
+        "stringValue": "discarded_non_clinical"
+      },
+      "ai_classification": {
+        "mapValue": {
+          "fields": {
+            "confidence": {
+              "integerValue": "0"
+            },
+            "is_clinical": {
+              "booleanValue": false
+            }
+          }
+        }
+      }
+    },
+    "createTime": "2026-03-06T01:38:00.852767Z",
+    "updateTime": "2026-03-06T01:55:17.450381Z"
+  },
+  "readTime": "2026-03-06T02:04:36.109802Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_19ada831cb0b52a4",
+    "fields": {
+      "attachment_metadata": {
+        "arrayValue": {
+          "values": [
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "260973.jpg"
+                  },
+                  "mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "size_bytes": {
+                    "integerValue": "21364"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "image/jpeg"
+                  }
+                }
+              }
+            },
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "260972.jpg"
+                  },
+                  "mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "size_bytes": {
+                    "integerValue": "41411"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "image/jpeg"
+                  }
+                }
+              }
+            },
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "260971.pdf"
+                  },
+                  "mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "size_bytes": {
+                    "integerValue": "260447"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "application/pdf"
+                  }
+                }
+              }
+            },
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "HistoriaClinica.pdf"
+                  },
+                  "mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "size_bytes": {
+                    "integerValue": "121298"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "application/pdf"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "thread_id": {
+        "stringValue": "18d23bc96b370753"
+      },
+      "email_date": {
+        "stringValue": "2025-12-01T15:23:36.000Z"
+      },
+      "from_email": {
+        "stringValue": "Mauricio Goitia \u003cmauriciogoitia@gmail.com\u003e"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "subject": {
+        "stringValue": "Fwd: Radiografias de Thor"
+      },
+      "hash_signature_raw": {
+        "stringValue": "4d183ca8727cc64f6b5b4716ae5b6a317d722892fddbfc444843e1abb1bd6688"
+      },
+      "processing_status": {
+        "stringValue": "queued_classification"
+      },
+      "session_id": {
+        "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+      },
+      "message_id": {
+        "stringValue": "19ada831cb0b52a4"
+      },
+      "attachment_count": {
+        "integerValue": "4"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T01:38:46.186Z"
+      }
+    },
+    "createTime": "2026-03-06T01:38:00.558231Z",
+    "updateTime": "2026-03-06T01:38:46.230592Z"
+  },
+  "readTime": "2026-03-06T02:04:36.109802Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_19ada8457b75d7f0",
+    "fields": {
+      "attachment_metadata": {
+        "arrayValue": {
+          "values": [
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "302044.jpg"
+                  },
+                  "mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "size_bytes": {
+                    "integerValue": "19321"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "image/jpeg"
+                  }
+                }
+              }
+            },
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "302043.jpg"
+                  },
+                  "mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "size_bytes": {
+                    "integerValue": "44996"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "image/jpeg"
+                  }
+                }
+              }
+            },
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "302042.pdf"
+                  },
+                  "mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "size_bytes": {
+                    "integerValue": "260796"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "application/pdf"
+                  }
+                }
+              }
+            },
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "HistoriaClinica.pdf"
+                  },
+                  "mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "size_bytes": {
+                    "integerValue": "172938"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "application/pdf"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "thread_id": {
+        "stringValue": "190d0ffab88b2177"
+      },
+      "email_date": {
+        "stringValue": "2025-12-01T15:24:56.000Z"
+      },
+      "from_email": {
+        "stringValue": "Mauricio Goitia \u003cmauriciogoitia@gmail.com\u003e"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "subject": {
+        "stringValue": "Fwd: Radiografias de Thor"
+      },
+      "hash_signature_raw": {
+        "stringValue": "90e330629a5d1c3baae267adc3d914533d94e6d0b20cbcd28855d3d5f1b6f0f2"
+      },
+      "processing_status": {
+        "stringValue": "queued_classification"
+      },
+      "session_id": {
+        "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+      },
+      "message_id": {
+        "stringValue": "19ada8457b75d7f0"
+      },
+      "attachment_count": {
+        "integerValue": "4"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T01:38:45.861Z"
+      }
+    },
+    "createTime": "2026-03-06T01:38:00.197360Z",
+    "updateTime": "2026-03-06T01:38:45.907419Z"
+  },
+  "readTime": "2026-03-06T02:04:36.109802Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_19ada84a8a7067ba",
+    "fields": {
+      "attachment_metadata": {
+        "arrayValue": {
+          "values": [
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "302044.jpg"
+                  },
+                  "mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "size_bytes": {
+                    "integerValue": "19321"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "image/jpeg"
+                  }
+                }
+              }
+            },
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "302043.jpg"
+                  },
+                  "mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "size_bytes": {
+                    "integerValue": "44996"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "image/jpeg"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "image/jpeg"
+                  }
+                }
+              }
+            },
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "302042.pdf"
+                  },
+                  "mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "size_bytes": {
+                    "integerValue": "260796"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "application/pdf"
+                  }
+                }
+              }
+            },
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "HistoriaClinica.pdf"
+                  },
+                  "mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "size_bytes": {
+                    "integerValue": "172938"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "application/pdf"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "application/pdf"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "thread_id": {
+        "stringValue": "190d0ffab88b2177"
+      },
+      "email_date": {
+        "stringValue": "2025-12-01T15:25:18.000Z"
+      },
+      "from_email": {
+        "stringValue": "Mauricio Goitia \u003cmauriciogoitia@gmail.com\u003e"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "subject": {
+        "stringValue": "Fwd: Radiografias de Thor"
+      },
+      "hash_signature_raw": {
+        "stringValue": "f8006cf0ddef0654554b35a6f2c1b2a3afaaf9ee245628f3f9f223efb40be8a0"
+      },
+      "processing_status": {
+        "stringValue": "queued_classification"
+      },
+      "session_id": {
+        "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+      },
+      "message_id": {
+        "stringValue": "19ada84a8a7067ba"
+      },
+      "attachment_count": {
+        "integerValue": "4"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T01:38:45.511Z"
+      }
+    },
+    "createTime": "2026-03-06T01:37:59.797721Z",
+    "updateTime": "2026-03-06T01:38:45.555840Z"
+  },
+  "readTime": "2026-03-06T02:04:36.109802Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_19cb03815d118c50",
+    "fields": {
+      "attachment_metadata": {
+        "arrayValue": {
+          "values": [
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "IMG_8617.png"
+                  },
+                  "mimetype": {
+                    "stringValue": "image/png"
+                  },
+                  "size_bytes": {
+                    "integerValue": "355964"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "image/png"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "image/png"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "thread_id": {
+        "stringValue": "19c71c30847e8aba"
+      },
+      "email_date": {
+        "stringValue": "2026-03-02T20:23:10.000Z"
+      },
+      "from_email": {
+        "stringValue": "Mauricio Goitia \u003cmauriciogoitia@gmail.com\u003e"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "subject": {
+        "stringValue": "Re: Mauricio G Onboarding"
+      },
+      "hash_signature_raw": {
+        "stringValue": "220d59d6369157caadbd77caf54b00677f811e468450e06f0acf061ffabf5c75"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T01:38:45.201Z"
+      },
+      "processing_status": {
+        "stringValue": "queued_classification"
+      },
+      "session_id": {
+        "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+      },
+      "message_id": {
+        "stringValue": "19cb03815d118c50"
+      },
+      "attachment_count": {
+        "integerValue": "1"
+      }
+    },
+    "createTime": "2026-03-06T01:38:45.251395Z",
+    "updateTime": "2026-03-06T01:38:45.251395Z"
+  },
+  "readTime": "2026-03-06T02:04:36.109802Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_19cb03a43fdb24c7",
+    "fields": {
+      "attachment_metadata": {
+        "arrayValue": {
+          "values": [
+            {
+              "mapValue": {
+                "fields": {
+                  "filename": {
+                    "stringValue": "IMG_8617.png"
+                  },
+                  "mimetype": {
+                    "stringValue": "image/png"
+                  },
+                  "size_bytes": {
+                    "integerValue": "355964"
+                  },
+                  "ocr_success": {
+                    "booleanValue": true
+                  },
+                  "original_mimetype": {
+                    "stringValue": "image/png"
+                  },
+                  "normalized_mimetype": {
+                    "stringValue": "image/png"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "thread_id": {
+        "stringValue": "19c71c30847e8aba"
+      },
+      "email_date": {
+        "stringValue": "2026-03-02T20:25:29.000Z"
+      },
+      "from_email": {
+        "stringValue": "Magui Gaona \u003cmaria.gaona@abstra.co\u003e"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "subject": {
+        "stringValue": "Re: Mauricio G Onboarding"
+      },
+      "hash_signature_raw": {
+        "stringValue": "481019321756c0f7498846b4418e195f8e26010041416ffd1f5e2bedde06a90b"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T01:38:44.698Z"
+      },
+      "processing_status": {
+        "stringValue": "queued_classification"
+      },
+      "session_id": {
+        "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+      },
+      "message_id": {
+        "stringValue": "19cb03a43fdb24c7"
+      },
+      "attachment_count": {
+        "integerValue": "1"
+      }
+    },
+    "createTime": "2026-03-06T01:38:44.746486Z",
+    "updateTime": "2026-03-06T01:38:44.746486Z"
+  },
+  "readTime": "2026-03-06T02:04:36.109802Z"
+}
+]

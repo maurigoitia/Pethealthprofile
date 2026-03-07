@@ -1,0 +1,160 @@
+2026-03-05T19:27:03.915945524Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T19:27:04.077203336Z D runEmailClinicalAttachmentWorker: Function execution took 161 ms, finished with status: 'ok'
+2026-03-05T19:32:03.924144600Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T19:32:04.157749352Z D runEmailClinicalAttachmentWorker: Function execution took 233 ms, finished with status: 'ok'
+2026-03-05T19:37:03.298275202Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T19:37:03.453784055Z D runEmailClinicalAttachmentWorker: Function execution took 155 ms, finished with status: 'ok'
+2026-03-05T19:42:03.167355629Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T19:42:03.446012641Z D runEmailClinicalAttachmentWorker: Function execution took 278 ms, finished with status: 'ok'
+2026-03-05T19:47:03.299623461Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T19:47:03.521363812Z D runEmailClinicalAttachmentWorker: Function execution took 221 ms, finished with status: 'ok'
+2026-03-05T19:52:04.063148358Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T19:52:04.234577764Z D runEmailClinicalAttachmentWorker: Function execution took 171 ms, finished with status: 'ok'
+2026-03-05T19:57:04.288537856Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T19:57:04.523280642Z D runEmailClinicalAttachmentWorker: Function execution took 234 ms, finished with status: 'ok'
+2026-03-05T20:02:03.316604549Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T20:02:03.587975742Z D runEmailClinicalAttachmentWorker: Function execution took 271 ms, finished with status: 'ok'
+2026-03-05T20:07:03.797638458Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T20:07:03.922424457Z D runEmailClinicalAttachmentWorker: Function execution took 124 ms, finished with status: 'ok'
+2026-03-05T20:12:03.242642907Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T20:12:03.406327745Z D runEmailClinicalAttachmentWorker: Function execution took 163 ms, finished with status: 'ok'
+2026-03-05T20:17:03.280835153Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T20:17:03.515108433Z D runEmailClinicalAttachmentWorker: Function execution took 234 ms, finished with status: 'ok'
+2026-03-05T20:22:03.182559013Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T20:22:03.315111248Z D runEmailClinicalAttachmentWorker: Function execution took 132 ms, finished with status: 'ok'
+2026-03-05T20:27:03.597404556Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T20:27:03.749330086Z D runEmailClinicalAttachmentWorker: Function execution took 151 ms, finished with status: 'ok'
+2026-03-05T20:32:03.809674132Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T20:32:04.003906325Z D runEmailClinicalAttachmentWorker: Function execution took 194 ms, finished with status: 'ok'
+2026-03-05T20:37:03.242502502Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T20:37:03.592381853Z D runEmailClinicalAttachmentWorker: Function execution took 349 ms, finished with status: 'ok'
+2026-03-05T20:42:03.244891772Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T20:42:03.389205884Z D runEmailClinicalAttachmentWorker: Function execution took 144 ms, finished with status: 'ok'
+2026-03-05T20:47:03.217393619Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T20:47:03.397403460Z D runEmailClinicalAttachmentWorker: Function execution took 180 ms, finished with status: 'ok'
+2026-03-05T20:52:03.213120688Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T20:52:03.417395100Z D runEmailClinicalAttachmentWorker: Function execution took 204 ms, finished with status: 'ok'
+2026-03-05T20:57:03.774564443Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T20:57:04.003751690Z D runEmailClinicalAttachmentWorker: Function execution took 229 ms, finished with status: 'ok'
+2026-03-05T21:02:03.684384924Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T21:02:03.918718391Z D runEmailClinicalAttachmentWorker: Function execution took 234 ms, finished with status: 'ok'
+2026-03-05T21:07:04.171054071Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T21:07:04.434067330Z D runEmailClinicalAttachmentWorker: Function execution took 263 ms, finished with status: 'ok'
+2026-03-05T21:12:03.225382375Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T21:12:03.374983932Z D runEmailClinicalAttachmentWorker: Function execution took 149 ms, finished with status: 'ok'
+2026-03-05T21:17:03.960320708Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T21:17:04.157829286Z D runEmailClinicalAttachmentWorker: Function execution took 197 ms, finished with status: 'ok'
+2026-03-05T21:22:02.614313210Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T21:22:03.343694689Z D runEmailClinicalAttachmentWorker: Function execution took 729 ms, finished with status: 'ok'
+2026-03-05T21:27:02.728226964Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T21:27:03.159731432Z D runEmailClinicalAttachmentWorker: Function execution took 431 ms, finished with status: 'ok'
+2026-03-05T21:32:03.462487824Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T21:32:03.682620485Z D runEmailClinicalAttachmentWorker: Function execution took 220 ms, finished with status: 'ok'
+2026-03-05T21:37:03.463637106Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T21:37:03.623479029Z D runEmailClinicalAttachmentWorker: Function execution took 159 ms, finished with status: 'ok'
+2026-03-05T21:42:03.311669062Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T21:42:03.536353284Z D runEmailClinicalAttachmentWorker: Function execution took 224 ms, finished with status: 'ok'
+2026-03-05T21:47:04.828546587Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T21:47:05.120108371Z D runEmailClinicalAttachmentWorker: Function execution took 291 ms, finished with status: 'ok'
+2026-03-05T21:52:03.650584869Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T21:52:03.844224676Z D runEmailClinicalAttachmentWorker: Function execution took 193 ms, finished with status: 'ok'
+2026-03-05T21:57:03.141846933Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T21:57:03.278924172Z D runEmailClinicalAttachmentWorker: Function execution took 137 ms, finished with status: 'ok'
+2026-03-05T22:02:03.541798124Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T22:02:03.863958219Z D runEmailClinicalAttachmentWorker: Function execution took 322 ms, finished with status: 'ok'
+2026-03-05T22:07:03.177619646Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T22:07:03.357488934Z D runEmailClinicalAttachmentWorker: Function execution took 179 ms, finished with status: 'ok'
+2026-03-05T22:12:03.268128830Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T22:12:03.514503964Z D runEmailClinicalAttachmentWorker: Function execution took 246 ms, finished with status: 'ok'
+2026-03-05T22:17:04.597907380Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T22:17:04.892978583Z D runEmailClinicalAttachmentWorker: Function execution took 295 ms, finished with status: 'ok'
+2026-03-05T22:22:03.251389873Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T22:22:03.488005959Z D runEmailClinicalAttachmentWorker: Function execution took 236 ms, finished with status: 'ok'
+2026-03-05T22:27:03.638942866Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T22:27:03.828204278Z D runEmailClinicalAttachmentWorker: Function execution took 189 ms, finished with status: 'ok'
+2026-03-05T22:32:03.353182523Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T22:32:03.569154528Z D runEmailClinicalAttachmentWorker: Function execution took 215 ms, finished with status: 'ok'
+2026-03-05T22:37:03.248165946Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T22:37:03.448742933Z D runEmailClinicalAttachmentWorker: Function execution took 200 ms, finished with status: 'ok'
+2026-03-05T22:42:03.231253761Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T22:42:03.369101012Z D runEmailClinicalAttachmentWorker: Function execution took 137 ms, finished with status: 'ok'
+2026-03-05T22:47:03.415364720Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T22:47:03.618696940Z D runEmailClinicalAttachmentWorker: Function execution took 203 ms, finished with status: 'ok'
+2026-03-05T22:52:03.476781229Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T22:52:03.650515650Z D runEmailClinicalAttachmentWorker: Function execution took 173 ms, finished with status: 'ok'
+2026-03-05T22:57:03.854895282Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T22:57:04.159977544Z D runEmailClinicalAttachmentWorker: Function execution took 305 ms, finished with status: 'ok'
+2026-03-05T23:02:03.519809808Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T23:02:03.763705376Z D runEmailClinicalAttachmentWorker: Function execution took 243 ms, finished with status: 'ok'
+2026-03-05T23:07:04.741238444Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T23:07:04.895423376Z D runEmailClinicalAttachmentWorker: Function execution took 154 ms, finished with status: 'ok'
+2026-03-05T23:12:03.234304430Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T23:12:03.401307685Z D runEmailClinicalAttachmentWorker: Function execution took 167 ms, finished with status: 'ok'
+2026-03-05T23:17:03.505220967Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T23:17:03.779345068Z D runEmailClinicalAttachmentWorker: Function execution took 274 ms, finished with status: 'ok'
+2026-03-05T23:22:03.287153135Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T23:22:03.547337040Z D runEmailClinicalAttachmentWorker: Function execution took 260 ms, finished with status: 'ok'
+2026-03-05T23:27:03.286672860Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T23:27:03.483013787Z D runEmailClinicalAttachmentWorker: Function execution took 196 ms, finished with status: 'ok'
+2026-03-05T23:32:03.276894392Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T23:32:03.539474103Z D runEmailClinicalAttachmentWorker: Function execution took 262 ms, finished with status: 'ok'
+2026-03-05T23:37:03.254689988Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T23:37:03.430871365Z D runEmailClinicalAttachmentWorker: Function execution took 176 ms, finished with status: 'ok'
+2026-03-05T23:42:03.213824736Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T23:42:03.396963849Z D runEmailClinicalAttachmentWorker: Function execution took 183 ms, finished with status: 'ok'
+2026-03-05T23:47:03.306175499Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T23:47:03.599971320Z D runEmailClinicalAttachmentWorker: Function execution took 293 ms, finished with status: 'ok'
+2026-03-05T23:52:03.723760887Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T23:52:03.867494495Z D runEmailClinicalAttachmentWorker: Function execution took 143 ms, finished with status: 'ok'
+2026-03-05T23:57:03.779479348Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-05T23:57:04.012226646Z D runEmailClinicalAttachmentWorker: Function execution took 232 ms, finished with status: 'ok'
+2026-03-06T00:02:03.291772631Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T00:02:03.521814202Z D runEmailClinicalAttachmentWorker: Function execution took 230 ms, finished with status: 'ok'
+2026-03-06T00:07:03.602100672Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T00:07:03.862078380Z D runEmailClinicalAttachmentWorker: Function execution took 259 ms, finished with status: 'ok'
+2026-03-06T00:12:03.886407863Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T00:12:04.080912666Z D runEmailClinicalAttachmentWorker: Function execution took 194 ms, finished with status: 'ok'
+2026-03-06T00:17:03.685681542Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T00:17:03.872423556Z D runEmailClinicalAttachmentWorker: Function execution took 186 ms, finished with status: 'ok'
+2026-03-06T00:22:03.477345577Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T00:22:03.618642556Z D runEmailClinicalAttachmentWorker: Function execution took 141 ms, finished with status: 'ok'
+2026-03-06T00:27:04.394873068Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T00:27:04.563044026Z D runEmailClinicalAttachmentWorker: Function execution took 168 ms, finished with status: 'ok'
+2026-03-06T00:32:03.274698657Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T00:32:03.478174342Z D runEmailClinicalAttachmentWorker: Function execution took 203 ms, finished with status: 'ok'
+2026-03-06T00:37:03.194703548Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T00:37:03.422173447Z D runEmailClinicalAttachmentWorker: Function execution took 227 ms, finished with status: 'ok'
+2026-03-06T00:42:03.692592762Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T00:42:03.855626339Z D runEmailClinicalAttachmentWorker: Function execution took 163 ms, finished with status: 'ok'
+2026-03-06T00:47:03.271652927Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T00:47:03.559507093Z D runEmailClinicalAttachmentWorker: Function execution took 287 ms, finished with status: 'ok'
+2026-03-06T00:52:03.173495771Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T00:52:03.451288391Z D runEmailClinicalAttachmentWorker: Function execution took 277 ms, finished with status: 'ok'
+2026-03-06T00:57:03.212119099Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T00:57:03.410772235Z D runEmailClinicalAttachmentWorker: Function execution took 198 ms, finished with status: 'ok'
+2026-03-06T01:02:03.279155441Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T01:02:03.462884102Z D runEmailClinicalAttachmentWorker: Function execution took 183 ms, finished with status: 'ok'
+2026-03-06T01:07:03.917225569Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T01:07:04.074357240Z D runEmailClinicalAttachmentWorker: Function execution took 157 ms, finished with status: 'ok'
+2026-03-06T01:12:03.138699170Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T01:12:03.310767211Z D runEmailClinicalAttachmentWorker: Function execution took 172 ms, finished with status: 'ok'
+2026-03-06T01:17:03.925151128Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T01:17:04.123883321Z D runEmailClinicalAttachmentWorker: Function execution took 198 ms, finished with status: 'ok'
+2026-03-06T01:22:03.204167071Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T01:22:03.438295696Z D runEmailClinicalAttachmentWorker: Function execution took 234 ms, finished with status: 'ok'
+2026-03-06T01:27:03.952792057Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T01:27:04.158106457Z D runEmailClinicalAttachmentWorker: Function execution took 205 ms, finished with status: 'ok'
+2026-03-06T01:30:39.819604089Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T01:30:39.988716568Z D runEmailClinicalAttachmentWorker: Function execution took 169 ms, finished with status: 'ok'
+2026-03-06T01:32:44.057279941Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T01:32:44.211344583Z D runEmailClinicalAttachmentWorker: Function execution took 154 ms, finished with status: 'ok'
+2026-03-06T01:33:01.390247018Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T01:33:01.548430184Z D runEmailClinicalAttachmentWorker: Function execution took 158 ms, finished with status: 'ok'
+2026-03-06T01:33:20.874326341Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T01:33:21.010559671Z D runEmailClinicalAttachmentWorker: Function execution took 136 ms, finished with status: 'ok'
+2026-03-06T01:33:40.969205441Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T01:33:41.107950531Z D runEmailClinicalAttachmentWorker: Function execution took 138 ms, finished with status: 'ok'
+2026-03-06T01:34:00.813921029Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T01:34:00.953099964Z D runEmailClinicalAttachmentWorker: Function execution took 139 ms, finished with status: 'ok'
+2026-03-06T01:34:17.675509824Z D runEmailClinicalAttachmentWorker: Function execution started
+2026-03-06T01:34:17.793005621Z D runEmailClinicalAttachmentWorker: Function execution took 117 ms, finished with status: 'ok'

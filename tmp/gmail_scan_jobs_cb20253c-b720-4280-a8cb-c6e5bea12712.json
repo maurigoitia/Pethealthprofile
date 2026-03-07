@@ -1,0 +1,47 @@
+[{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_scan_jobs/01c1ead8-5f8e-45c5-81ee-1c9478dbf1c6",
+    "fields": {
+      "id": {
+        "stringValue": "01c1ead8-5f8e-45c5-81ee-1c9478dbf1c6"
+      },
+      "stage": {
+        "stringValue": "scan"
+      },
+      "status": {
+        "stringValue": "pending"
+      },
+      "session_id": {
+        "stringValue": "cb20253c-b720-4280-a8cb-c6e5bea12712"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "attempts": {
+        "integerValue": "0"
+      },
+      "available_at": {
+        "stringValue": "2026-03-06T01:30:04.286Z"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T01:30:04.286Z"
+      },
+      "updated_at": {
+        "stringValue": "2026-03-06T01:30:04.286Z"
+      },
+      "payload": {
+        "mapValue": {
+          "fields": {
+            "page_token": {
+              "nullValue": null
+            }
+          }
+        }
+      }
+    },
+    "createTime": "2026-03-06T01:30:04.330427Z",
+    "updateTime": "2026-03-06T01:30:04.330427Z"
+  },
+  "readTime": "2026-03-06T01:32:19.687256Z"
+}
+]

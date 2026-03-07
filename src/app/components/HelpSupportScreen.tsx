@@ -123,7 +123,7 @@ export function HelpSupportScreen({ onBack }: HelpSupportScreenProps) {
                   PESSY para Web
                 </p>
               </div>
-              <span className="text-sm font-bold text-[#2b7cee]">1.0.0</span>
+              <span className="text-sm font-bold text-[#074738]">1.0.0</span>
             </div>
           </div>
         </div>

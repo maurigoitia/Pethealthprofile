@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-03-06T02:55:24Z",
+  "smoke_checks": {
+    "validate_config": "pass",
+    "gmail_e2e_smoke": "pass"
+  },
+  "sessions": {
+    "loki_force_run": "89a703e6-f853-4215-8a52-874370b98cf2",
+    "thor_force_run": "962576ed-d93d-4786-b59b-12644059f4b1"
+  },
+  "artifacts": [
+    "tmp/prod_ingestion_force_postfix_latest.json",
+    "tmp/prod_ingestion_force_thor_postfix_latest.json",
+    "tmp/prod_capture_thor_962576ed-d93d-4786-b59b-12644059f4b1.json",
+    "tmp/prod_events_for_thor_source_messages.json",
+    "tmp/prod_mail_capture_report_20260305_230437.json"
+  ],
+  "notes": [
+    "Se corrigio bloqueo por status processing en sesiones con scan_complete=true y scan_job residual.",
+    "Se corrigio bloqueo de cola por jobs pendientes sin user_id (poison jobs).",
+    "Se mejoro fallback de pickPendingJobs para evitar starvation cuando falta indice compuesto."
+  ]
+}

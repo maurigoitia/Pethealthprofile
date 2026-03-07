@@ -9,3 +9,10 @@
 
   Run `npm run dev` to start the development server.
   
+## Firebase Push Notifications (VAPID)
+
+Create `.env.local` (or copy from `.env.example`) and set:
+
+`VITE_FIREBASE_VAPID_KEY=<PUBLIC_VAPID_KEY>`
+
+Important: use only the public VAPID key on frontend. Never store the private VAPID key in this repository.

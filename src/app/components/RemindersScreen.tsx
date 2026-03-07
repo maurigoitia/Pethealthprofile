@@ -13,7 +13,7 @@ interface RemindersScreenProps {
 // ── Config visual por tipo ────────────────────────────────────────────────────
 const TYPE_CONFIG: Record<ReminderType, { label: string; icon: string; color: string; bg: string }> = {
   vaccine:    { label: "Vacuna",      icon: "vaccines",         color: "#10b981", bg: "#d1fae5" },
-  medication: { label: "Medicación",  icon: "medication",       color: "#2b6fee", bg: "#dbeafe" },
+  medication: { label: "Medicación",  icon: "medication",       color: "#074738", bg: "#e0f2f1" },
   checkup:    { label: "Control",     icon: "stethoscope",      color: "#8b5cf6", bg: "#ede9fe" },
   grooming:   { label: "Peluquería",  icon: "content_cut",      color: "#f59e0b", bg: "#fef3c7" },
   deworming:  { label: "Desparasit.", icon: "bug_report",       color: "#ef4444", bg: "#fee2e2" },
@@ -48,7 +48,7 @@ function urgencyGroup(r: ManualReminder): "overdue" | "today" | "week" | "upcomi
 
 const GROUP_CONFIG = {
   overdue:  { label: "Vencidos",      color: "text-red-600",    dot: "bg-red-500"    },
-  today:    { label: "Hoy",           color: "text-[#2b6fee]",  dot: "bg-[#2b6fee]"  },
+  today:    { label: "Hoy",           color: "text-[#074738]",  dot: "bg-[#074738]"  },
   week:     { label: "Esta semana",   color: "text-amber-600",  dot: "bg-amber-400"  },
   upcoming: { label: "Próximos",      color: "text-slate-500",  dot: "bg-slate-300"  },
 };
@@ -92,7 +92,7 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
               </p>
             </div>
             <button onClick={() => setShowAdd(true)}
-              className="size-10 rounded-full bg-[#2b6fee] flex items-center justify-center shadow-md shadow-[#2b6fee]/30">
+              className="size-10 rounded-full bg-[#074738] flex items-center justify-center shadow-md shadow-[#074738]/30">
               <MaterialIcon name="add" className="text-white text-xl" />
             </button>
           </div>
@@ -103,7 +103,7 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
               <button key={t} onClick={() => setTab(t)}
                 className={`flex-1 pb-3 text-sm font-bold border-b-2 transition-all ${
                   tab === t
-                    ? "border-[#2b6fee] text-[#2b6fee]"
+                    ? "border-[#074738] text-[#074738]"
                     : "border-transparent text-slate-400"
                 }`}>
                 {t === "pending" ? `Pendientes (${pending.length})` : `Completados (${done.length})`}
@@ -113,7 +113,7 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto pb-28">
           <AnimatePresence mode="wait">
 
             {/* ── PENDIENTES ── */}
@@ -129,7 +129,7 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                     <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1">¡Todo al día!</h3>
                     <p className="text-sm text-slate-500 max-w-xs">No tenés recordatorios pendientes. Agregá uno para no olvidar nada.</p>
                     <button onClick={() => setShowAdd(true)}
-                      className="mt-5 px-6 py-3 rounded-2xl bg-[#2b6fee] text-white font-bold text-sm">
+                      className="mt-5 px-6 py-3 rounded-2xl bg-[#074738] text-white font-bold text-sm">
                       Agregar recordatorio
                     </button>
                   </div>
@@ -175,7 +175,7 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                               <div
                                 className={`relative bg-white dark:bg-slate-900 rounded-2xl border transition-all ${
                                   isOverdue ? "border-red-200 dark:border-red-900/50" :
-                                  isToday   ? "border-[#2b6fee]/30" :
+                                  isToday   ? "border-[#074738]/30" :
                                               "border-slate-200 dark:border-slate-800"
                                 }`}
                                 style={{ transform: isSwiped ? "translateX(-80px)" : "translateX(0)", transition: "transform 0.2s" }}
@@ -193,7 +193,7 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                                     <div className="flex items-center gap-1.5 mt-0.5">
                                       <span className={`text-xs font-semibold ${
                                         isOverdue ? "text-red-500" :
-                                        isToday   ? "text-[#2b6fee]" :
+                                        isToday   ? "text-[#074738]" :
                                         diff <= 3  ? "text-amber-500" :
                                                     "text-slate-500"
                                       }`}>
@@ -219,7 +219,7 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                                         isOverdue
                                           ? "bg-red-50 dark:bg-red-950/30 text-red-500"
                                           : isToday
-                                          ? "bg-[#2b6fee]/10 text-[#2b6fee]"
+                                          ? "bg-[#074738]/10 text-[#074738]"
                                           : "bg-slate-100 dark:bg-slate-800 text-slate-500"
                                       }`}
                                     >
@@ -236,7 +236,7 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
 
                                 {/* Urgency strip for overdue/today */}
                                 {(isOverdue || isToday) && (
-                                  <div className={`h-0.5 mx-3 mb-3 rounded-full ${isOverdue ? "bg-red-400" : "bg-[#2b6fee]"}`} />
+                                  <div className={`h-0.5 mx-3 mb-3 rounded-full ${isOverdue ? "bg-red-400" : "bg-[#074738]"}`} />
                                 )}
                               </div>
                             </motion.div>
@@ -283,12 +283,6 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
           </AnimatePresence>
         </div>
       </div>
-
-      {/* FAB */}
-      <button onClick={() => setShowAdd(true)}
-        className="fixed bottom-24 right-4 size-14 rounded-full bg-[#2b6fee] shadow-xl shadow-[#2b6fee]/40 flex items-center justify-center z-40 active:scale-95 transition-transform">
-        <MaterialIcon name="add" className="text-white text-2xl" />
-      </button>
 
       <AddReminderModal isOpen={showAdd} onClose={() => setShowAdd(false)} />
     </div>

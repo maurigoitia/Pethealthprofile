@@ -30,6 +30,38 @@ export function LoginScreen() {
   const [resetSuccess, setResetSuccess] = useState("");
   const [resetError, setResetError] = useState("");
 
+  const isStandalonePwa = () => {
+    if (typeof window === "undefined") return false;
+    const iosStandalone = (window.navigator as any)?.standalone === true;
+    const mediaStandalone = window.matchMedia?.("(display-mode: standalone)")?.matches === true;
+    return iosStandalone || mediaStandalone;
+  };
+
+  const getGoogleAuthErrorMessage = (code?: string): string => {
+    const domain = window.location.hostname;
+    const suffix = code ? ` [${code}]` : "";
+    switch (code) {
+      case "auth/unauthorized-domain":
+        return `Google no está autorizado para este dominio (${domain}). Falta agregarlo en Firebase Auth > Settings > Authorized domains.${suffix}`;
+      case "auth/operation-not-allowed":
+      case "auth/configuration-not-found":
+        return `El proveedor Google no está habilitado en Firebase Authentication.${suffix}`;
+      case "auth/network-request-failed":
+        return `No hay conexión con Google/Firebase. Revisá internet e intentá nuevamente.${suffix}`;
+      case "auth/popup-blocked":
+        return `El navegador bloqueó la ventana de Google. Permití popups o reintentá.${suffix}`;
+      case "auth/popup-closed-by-user":
+        return `Cerraste la ventana de Google antes de completar el acceso.${suffix}`;
+      case "auth/cancelled-popup-request":
+        return `Se canceló el intento anterior de popup. Reintentá una sola vez.${suffix}`;
+      case "auth/invalid-api-key":
+      case "auth/app-not-authorized":
+        return `Configuración Firebase inválida para este entorno (API key / dominio).${suffix}`;
+      default:
+        return `No se pudo iniciar con Google. Revisá configuración de Auth en Firebase.${suffix}`;
+    }
+  };
+
   useEffect(() => {
     if (user && !authLoading) {
       navigate("/home", { replace: true });
@@ -134,7 +166,12 @@ export function LoginScreen() {
     setError("");
     setLoadingGoogle(true);
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
     try {
+      if (isStandalonePwa()) {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
       await signInWithPopup(auth, provider);
       navigate("/home");
     } catch (err: any) {
@@ -142,9 +179,22 @@ export function LoginScreen() {
         try {
           await signInWithRedirect(auth, provider);
           return;
-        } catch {}
+        } catch (redirectErr: any) {
+          console.error("Google redirect sign-in error:", {
+            code: redirectErr?.code,
+            message: redirectErr?.message,
+            domain: window.location.hostname,
+          });
+          setError(getGoogleAuthErrorMessage(redirectErr?.code));
+          return;
+        }
       }
-      setError("No se pudo iniciar con Google. Revisá que el proveedor esté habilitado.");
+      console.error("Google popup sign-in error:", {
+        code: err?.code,
+        message: err?.message,
+        domain: window.location.hostname,
+      });
+      setError(getGoogleAuthErrorMessage(err?.code));
     } finally {
       setLoadingGoogle(false);
     }
@@ -154,13 +204,13 @@ export function LoginScreen() {
     <div
       className="min-h-screen flex flex-col items-center justify-between px-8 py-12 relative overflow-hidden"
       style={{
-        backgroundImage: "linear-gradient(rgb(43, 124, 238) 0%, rgb(61, 139, 255) 50%, rgb(93, 163, 255) 100%)",
+        backgroundImage: "linear-gradient(180deg, #074738 0%, #0e6a5a 50%, #1a9b7d 100%)",
       }}
     >
       {/* Fondo decorativo */}
       <div className="absolute left-0 top-0 h-[853px] w-full flex items-center justify-center overflow-hidden pointer-events-none">
         <div className="relative rotate-6 opacity-25" style={{ width: "670px", height: "1228px", filter: "brightness(0) invert(1)" }}>
-          <img src="/pessy-logo.png" alt="" className="w-full h-full object-contain" />
+          <img src="/pessy-logo.svg" alt="" className="w-full h-full object-contain" />
         </div>
       </div>
       <div className="absolute left-[120px] top-[-128px] size-[400px] bg-white/10 rounded-full blur-[64px] pointer-events-none" />
@@ -174,6 +224,11 @@ export function LoginScreen() {
           transition={{ duration: 0.5 }}
           className="flex flex-col items-center mb-10"
         >
+          <img
+            src="/pessy-logo.svg"
+            alt="Logo Pessy"
+            className="w-24 h-24 mb-3 object-contain drop-shadow-[0_14px_32px_rgba(0,0,0,0.25)]"
+          />
           <h1 className="text-[72px] font-black text-white tracking-[-3.6px] leading-[72px] mb-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             Pessy
           </h1>
@@ -211,7 +266,7 @@ export function LoginScreen() {
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#2b7cee] bg-white/80 border border-white rounded-full px-3 py-1"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#074738] bg-white/80 border border-white rounded-full px-3 py-1"
             >
               {showPassword ? "Ocultar" : "Mostrar"}
             </button>
@@ -233,7 +288,7 @@ export function LoginScreen() {
           <button
             type="submit"
             disabled={loading || authLoading}
-            className="w-full py-5 rounded-[40px] bg-white text-[#2b7cee] font-bold text-[16px] shadow-[0px_25px_50px_0px_rgba(0,0,0,0.25)] disabled:opacity-60 tracking-[1.2px] uppercase"
+            className="w-full py-5 rounded-[40px] bg-white text-[#074738] font-bold text-[16px] shadow-[0px_25px_50px_0px_rgba(0,0,0,0.25)] disabled:opacity-60 tracking-[1.2px] uppercase"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
             {authLoading ? "Validando sesión..." : loading ? "Ingresando..." : "Ingresar"}
@@ -302,7 +357,7 @@ export function LoginScreen() {
                   placeholder="Tu correo electrónico"
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2b7cee]"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#074738]"
                   required
                 />
 
@@ -318,7 +373,7 @@ export function LoginScreen() {
                   <button
                     type="submit"
                     disabled={resetLoading}
-                    className="w-full py-3 rounded-xl bg-[#2b7cee] text-white font-bold disabled:opacity-60 flex items-center justify-center gap-2"
+                    className="w-full py-3 rounded-xl bg-[#074738] text-white font-bold disabled:opacity-60 flex items-center justify-center gap-2"
                   >
                     {resetLoading
                       ? <><span className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Enviando...</>

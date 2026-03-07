@@ -1,0 +1,58 @@
+{
+  "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/46b83b9f-da52-4ff0-b550-2aea66ff38c8_19c731ff5465c82f",
+  "fields": {
+    "hash_signature_raw": {
+      "stringValue": "49278d4cba0aca5c7a6fda91c8c2278550ee6e3c52ab231c7365863d12ba962e"
+    },
+    "session_id": {
+      "stringValue": "46b83b9f-da52-4ff0-b550-2aea66ff38c8"
+    },
+    "attachment_metadata": {
+      "arrayValue": {}
+    },
+    "created_at": {
+      "stringValue": "2026-03-05T05:45:04.442Z"
+    },
+    "subject": {
+      "stringValue": "Resultados de estudios"
+    },
+    "processing_status": {
+      "stringValue": "discarded_non_clinical"
+    },
+    "message_id": {
+      "stringValue": "19c731ff5465c82f"
+    },
+    "ai_classification": {
+      "mapValue": {
+        "fields": {
+          "is_clinical": {
+            "booleanValue": false
+          },
+          "confidence": {
+            "integerValue": "0"
+          }
+        }
+      }
+    },
+    "user_id": {
+      "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+    },
+    "from_email": {
+      "stringValue": "\"Panda - Clínica Veterinaria\" \u003cdriveaplicacionmedica@gmail.com\u003e"
+    },
+    "thread_id": {
+      "stringValue": "19c731d6b53a05a1"
+    },
+    "updated_at": {
+      "stringValue": "2026-03-05T05:34:50.153Z"
+    },
+    "email_date": {
+      "stringValue": "2026-02-18T22:04:33.000Z"
+    },
+    "attachment_count": {
+      "integerValue": "0"
+    }
+  },
+  "createTime": "2026-03-05T05:29:05.678359Z",
+  "updateTime": "2026-03-05T05:45:04.462258Z"
+}

@@ -1,0 +1,120 @@
+2026-03-06T18:02:02.469652475Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T18:02:03.467488320Z D runEmailClinicalAiWorker: Function execution took 997 ms, finished with status: 'ok'
+2026-03-06T18:07:02.388013Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:07:15.023402Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:07:31.075814Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:07:48.543837983Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T18:07:49.758815276Z D runEmailClinicalAiWorker: Function execution took 1214 ms, finished with status: 'ok'
+2026-03-06T18:12:03.092108Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:12:15.653901Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:12:30.726600Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:12:52.687297Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:13:11.760363230Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T18:13:12.758723898Z D runEmailClinicalAiWorker: Function execution took 998 ms, finished with status: 'ok'
+2026-03-06T18:17:02.428518Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:17:14.056574Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:17:29.081360Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:17:47.119091Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:18:11.072296Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:18:36.097255893Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T18:18:37.103141758Z D runEmailClinicalAiWorker: Function execution took 1005 ms, finished with status: 'ok'
+2026-03-06T18:22:02.434066Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:22:15.059598Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:22:29.082190Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:22:45.072159Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:23:10.139845Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:23:35.155393Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:24:03.139418560Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T18:24:04.686132790Z D runEmailClinicalAiWorker: Function execution took 1546 ms, finished with status: 'ok'
+2026-03-06T18:27:04.308077925Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T18:27:04.819589751Z D runEmailClinicalAiWorker: Function execution took 511 ms, finished with status: 'ok'
+2026-03-06T18:32:03.115017053Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T18:32:04.385598242Z D runEmailClinicalAiWorker: Function execution took 1270 ms, finished with status: 'ok'
+2026-03-06T18:37:02.960485195Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T18:37:04.083612570Z D runEmailClinicalAiWorker: Function execution took 1123 ms, finished with status: 'ok'
+2026-03-06T18:42:02.572342756Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T18:42:03.817970746Z D runEmailClinicalAiWorker: Function execution took 1245 ms, finished with status: 'ok'
+2026-03-06T18:47:02.542158627Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T18:47:03.558175439Z D runEmailClinicalAiWorker: Function execution took 1016 ms, finished with status: 'ok'
+2026-03-06T18:52:03.666814493Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T18:52:04.934658450Z D runEmailClinicalAiWorker: Function execution took 1267 ms, finished with status: 'ok'
+2026-03-06T18:57:02.365243Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:57:14.006879Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T18:57:28.067973446Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T18:57:29.243875590Z D runEmailClinicalAiWorker: Function execution took 1175 ms, finished with status: 'ok'
+2026-03-06T19:02:02.448859Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:02:16.088228Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:02:33.037555Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:02:52.087638600Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T19:02:53.238283801Z D runEmailClinicalAiWorker: Function execution took 1150 ms, finished with status: 'ok'
+2026-03-06T19:07:02.397923Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:07:16.047461Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:07:32.048682Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:07:49.989975Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:08:09.038618280Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T19:08:10.111778329Z D runEmailClinicalAiWorker: Function execution took 1073 ms, finished with status: 'ok'
+2026-03-06T19:12:03.141524Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:12:15.755794Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:12:33.785370Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:12:54.837981Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:13:16.798146Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:13:41.865297113Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T19:13:42.835128317Z D runEmailClinicalAiWorker: Function execution took 969 ms, finished with status: 'ok'
+2026-03-06T19:17:02.410174Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:17:13.016286Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:17:30.046639Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:17:50.075632Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:18:15.035384Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:18:40.076775Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:19:12.189813230Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T19:19:13.193263235Z D runEmailClinicalAiWorker: Function execution took 1003 ms, finished with status: 'ok'
+2026-03-06T19:22:03.117305Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:22:17.691065Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:22:34.725405Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:22:51.762481Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:23:17.822779Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:23:50.797066Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:24:27.830767896Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T19:24:28.917583058Z D runEmailClinicalAiWorker: Function execution took 1086 ms, finished with status: 'ok'
+2026-03-06T19:27:02.442630Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:27:16.085110Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:27:30.108779Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:27:46.045952Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:28:13.117832Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:28:42.145815Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:29:17.218602Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:29:57.204363129Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T19:29:58.125107565Z D runEmailClinicalAiWorker: Function execution took 920 ms, finished with status: 'ok'
+2026-03-06T19:32:02.437274Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:32:16.079554Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:32:32.103957Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:32:51.135719Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:33:12.078816Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:33:39.152668Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:34:17.232544Z W runEmailClinicalAiWorker: The request was aborted because there was no available instance. Additional troubleshooting documentation can be found at: https://cloud.google.com/functions/docs/troubleshooting#scalability
+2026-03-06T19:35:05.238583573Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T19:35:06.410736752Z D runEmailClinicalAiWorker: Function execution took 1172 ms, finished with status: 'ok'
+2026-03-06T19:37:02.984259129Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T19:37:03.757703354Z D runEmailClinicalAiWorker: Function execution took 773 ms, finished with status: 'ok'
+2026-03-06T19:42:01.808632996Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T19:42:02.859453668Z D runEmailClinicalAiWorker: Function execution took 1050 ms, finished with status: 'ok'
+2026-03-06T19:47:03.009493774Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T19:47:03.962548665Z D runEmailClinicalAiWorker: Function execution took 953 ms, finished with status: 'ok'
+2026-03-06T19:52:02.406407713Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T19:52:03.498895403Z D runEmailClinicalAiWorker: Function execution took 1092 ms, finished with status: 'ok'
+2026-03-06T19:57:02.428995284Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T19:57:03.501215295Z D runEmailClinicalAiWorker: Function execution took 1072 ms, finished with status: 'ok'
+2026-03-06T20:02:02.649018236Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T20:02:03.683838437Z D runEmailClinicalAiWorker: Function execution took 1034 ms, finished with status: 'ok'
+2026-03-06T20:07:02.982978955Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T20:07:04.110943089Z D runEmailClinicalAiWorker: Function execution took 1127 ms, finished with status: 'ok'
+2026-03-06T20:12:02.785535813Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T20:12:04.183808806Z D runEmailClinicalAiWorker: Function execution took 1398 ms, finished with status: 'ok'
+2026-03-06T20:17:02.353209340Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T20:17:04.027227560Z D runEmailClinicalAiWorker: Function execution took 1674 ms, finished with status: 'ok'
+2026-03-06T20:22:02.461591124Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T20:22:02.916697700Z D runEmailClinicalAiWorker: Function execution took 455 ms, finished with status: 'ok'
+2026-03-06T20:27:02.562403366Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T20:27:02.778316395Z D runEmailClinicalAiWorker: Function execution took 215 ms, finished with status: 'ok'
+2026-03-06T20:32:02.780993995Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T20:32:03.004080362Z D runEmailClinicalAiWorker: Function execution took 223 ms, finished with status: 'ok'

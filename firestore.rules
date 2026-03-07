@@ -164,9 +164,26 @@ service cloud.firestore {
       allow read, update, delete: if canAccessPetById(resource.data.petId);
     }
 
+    match /clinical_events/{eventId} {
+      allow create: if
+        (request.resource.data.petId is string && canAccessPetById(request.resource.data.petId)) ||
+        (signedIn() && request.resource.data.userId == request.auth.uid);
+      allow read, update, delete: if
+        (resource.data.petId is string && canAccessPetById(resource.data.petId)) ||
+        (signedIn() && resource.data.userId == request.auth.uid);
+    }
+
     match /pending_actions/{actionId} {
       allow create: if canAccessPetById(request.resource.data.petId);
       allow read, update, delete: if canAccessPetById(resource.data.petId);
+    }
+
+    match /pending_reviews/{reviewId} {
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if signedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.petId is string && canAccessPetById(resource.data.petId))
+      );
     }
 
     match /medications/{medicationId} {
@@ -199,6 +216,11 @@ service cloud.firestore {
       allow read, update, delete: if canAccessPetById(resource.data.petId);
     }
 
+    match /clinical_review_drafts/{reviewId} {
+      allow create: if canAccessPetById(request.resource.data.petId);
+      allow read, update, delete: if canAccessPetById(resource.data.petId);
+    }
+
     match /reminders/{reminderId} {
       allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
       allow read, update, delete: if signedIn() && resource.data.userId == request.auth.uid;
@@ -212,10 +234,42 @@ service cloud.firestore {
       );
     }
 
+    match /scheduled_reminders/{id} {
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if signedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.petId is string && canAccessPetById(resource.data.petId))
+      );
+    }
+
+    match /dose_events/{id} {
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow read, update, delete: if signedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.petId is string && canAccessPetById(resource.data.petId))
+      );
+    }
+
     match /verified_reports/{reportId} {
-      allow read: if true;
-      allow create: if signedIn();
-      allow update, delete: if false;
+      allow read: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.generatedAt is string
+        && request.resource.data.summary is string
+        && request.resource.data.summary.size() <= 1200
+        && request.resource.data.keys().hasOnly([
+          "ownerId",
+          "generatedAt",
+          "summary",
+          "visibility",
+          "isRedactedPublic",
+          "certificateType",
+          "documentCount",
+          "includesAiNarrative",
+          "sourceTruthLevel",
+          "verificationVersion"
+        ]);
+      allow update, delete: if signedIn() && resource.data.ownerId == request.auth.uid;
     }
   }
 }

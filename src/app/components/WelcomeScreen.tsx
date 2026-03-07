@@ -1,94 +1,55 @@
-import { useNavigate } from "react-router";
-import { useEffect } from "react";
+import { Link, useNavigate } from "react-router";
 import { motion } from "motion/react";
-import { useAuth } from "../contexts/AuthContext";
 
 export function WelcomeScreen() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
-
-  useEffect(() => {
-    if (user && !loading) {
-      navigate("/home", { replace: true });
-    }
-  }, [user, loading, navigate]);
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-between px-8 py-12 relative overflow-hidden"
-      style={{
-        backgroundImage: "linear-gradient(rgb(43, 124, 238) 0%, rgb(61, 139, 255) 50%, rgb(93, 163, 255) 100%)"
-      }}
-    >
-      {/* Logo de fondo con opacidad */}
-      <div className="absolute left-0 top-0 h-[853px] w-full flex items-center justify-center overflow-hidden pointer-events-none">
-        <div
-          className="relative rotate-6 opacity-25"
-          style={{
-            width: "670px",
-            height: "1228px",
-            filter: "brightness(0) invert(1)"
-          }}
-        >
-          <img
-            src="/pessy-logo.png"
-            alt=""
-            className="w-full h-full object-contain"
-          />
+    <div className="min-h-screen bg-[#f4f7fc] font-['Manrope'] text-slate-900">
+      <header className="mx-auto max-w-5xl px-5 pt-5">
+        <div className="rounded-[2rem] border border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur">
+          <div className="flex items-center justify-between">
+            <Link to="/" className="inline-flex items-center gap-2" aria-label="Pessy inicio">
+              <img src="/pessy-logo.svg" alt="Pessy" className="size-7" />
+              <span className="text-3xl font-black tracking-tight text-[#2b7cee]">Pessy</span>
+            </Link>
+
+            <div className="flex items-center gap-3">
+              <span className="text-lg font-black uppercase text-slate-500">ES</span>
+              <button
+                onClick={() => navigate("/login")}
+                className="rounded-full bg-[#2b7cee] px-6 py-2.5 text-sm font-black uppercase tracking-widest text-white"
+              >
+                Entrar
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Decorative blurred elements */}
-      <div className="absolute left-[120px] top-[-128px] size-[400px] bg-white/10 rounded-full blur-[64px] pointer-events-none" />
-      <div className="absolute left-[-80px] top-[473px] size-[300px] bg-white/5 rounded-full blur-[64px] pointer-events-none" />
-
-      <div className="flex flex-col items-center relative z-10 w-full max-w-md flex-1 justify-center">
-        {/* Título y subtítulo */}
+      <main className="px-5 pb-16 pt-8">
         <motion.div
-          initial={{ y: -20, opacity: 0 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6 }}
-          className="flex flex-col items-center mb-12"
+          transition={{ duration: 0.45 }}
+          className="mx-auto max-w-4xl text-center"
         >
-          <h1
-            className="text-[72px] font-black text-white tracking-[-3.6px] leading-[72px] mb-6"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
-          >
-            Pessy
+          <h1 className="mx-auto max-w-3xl text-6xl font-black leading-[0.95] tracking-tight text-slate-900 md:text-8xl">
+            No le expliques mas de cero al veterinario.
           </h1>
-
-          <p
-            className="text-white/80 text-[16px] font-medium text-center tracking-[0.4px] leading-[24px]"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
-          >
-            tu mascota sus cosas todo en orden
+          <p className="mx-auto mt-8 max-w-3xl text-2xl font-semibold leading-relaxed text-slate-500 md:text-3xl">
+            Sacale una foto a cualquier papel y la IA organiza todo. El historial de tu mascota, siempre con vos.
           </p>
-        </motion.div>
 
-        {/* Botones */}
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="w-full space-y-5 mt-[224px]"
-        >
           <button
             onClick={() => navigate("/login")}
-            className="w-full py-6 rounded-[40px] bg-white text-[#2b7cee] font-bold text-[16px] shadow-[0px_25px_50px_0px_rgba(0,0,0,0.25)] hover:bg-white/95 active:scale-[0.98] transition-all tracking-[1.6px] uppercase"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
+            className="mt-10 rounded-full bg-[#2b7cee] px-14 py-5 text-2xl font-black text-white shadow-xl shadow-[#2b7cee]/30"
           >
-            Ingresar
+            Probar ahora
           </button>
-
-          <button
-            onClick={() => navigate("/register-user")}
-            className="w-full py-6 rounded-[40px] bg-white/20 backdrop-blur-sm text-white font-bold text-[16px] border-[1.5px] border-white/30 hover:bg-white/30 active:scale-[0.98] transition-all tracking-[1.6px] uppercase"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
-          >
-            Registrarse gratis
-          </button>
+          <p className="mt-8 text-sm font-black uppercase tracking-[0.35em] text-slate-400">SIN PAPELES. SIN VUELTAS.</p>
         </motion.div>
-      </div>
+      </main>
     </div>
   );
 }

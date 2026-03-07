@@ -1,0 +1,236 @@
+[{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ai_jobs/1accec07-4646-4f43-8384-4b80ff6e3cb8",
+    "fields": {
+      "id": {
+        "stringValue": "1accec07-4646-4f43-8384-4b80ff6e3cb8"
+      },
+      "stage": {
+        "stringValue": "ai_extract"
+      },
+      "status": {
+        "stringValue": "pending"
+      },
+      "session_id": {
+        "stringValue": "962576ed-d93d-4786-b59b-12644059f4b1"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "attempts": {
+        "integerValue": "0"
+      },
+      "available_at": {
+        "stringValue": "2026-03-06T02:24:13.981Z"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T02:24:13.981Z"
+      },
+      "updated_at": {
+        "stringValue": "2026-03-06T02:24:13.981Z"
+      },
+      "payload": {
+        "mapValue": {
+          "fields": {
+            "message_id": {
+              "stringValue": "19ada831cb0b52a4"
+            },
+            "raw_doc_id": {
+              "stringValue": "962576ed-d93d-4786-b59b-12644059f4b1_19ada831cb0b52a4"
+            },
+            "source_sender": {
+              "stringValue": "Mauricio Goitia <mauriciogoitia@gmail.com>"
+            },
+            "source_subject": {
+              "stringValue": "Fwd: Radiografias de Thor"
+            },
+            "mode": {
+              "stringValue": "classify"
+            }
+          }
+        }
+      }
+    },
+    "createTime": "2026-03-06T02:24:14.019534Z",
+    "updateTime": "2026-03-06T02:24:14.019534Z"
+  },
+  "readTime": "2026-03-06T02:32:19.430013Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ai_jobs/613bfe22-a27a-48b9-8a63-06cc6d1277a7",
+    "fields": {
+      "id": {
+        "stringValue": "613bfe22-a27a-48b9-8a63-06cc6d1277a7"
+      },
+      "stage": {
+        "stringValue": "ai_extract"
+      },
+      "status": {
+        "stringValue": "pending"
+      },
+      "session_id": {
+        "stringValue": "962576ed-d93d-4786-b59b-12644059f4b1"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "attempts": {
+        "integerValue": "0"
+      },
+      "available_at": {
+        "stringValue": "2026-03-06T02:24:13.598Z"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T02:24:13.598Z"
+      },
+      "updated_at": {
+        "stringValue": "2026-03-06T02:24:13.598Z"
+      },
+      "payload": {
+        "mapValue": {
+          "fields": {
+            "message_id": {
+              "stringValue": "19ada8457b75d7f0"
+            },
+            "raw_doc_id": {
+              "stringValue": "962576ed-d93d-4786-b59b-12644059f4b1_19ada8457b75d7f0"
+            },
+            "source_sender": {
+              "stringValue": "Mauricio Goitia <mauriciogoitia@gmail.com>"
+            },
+            "source_subject": {
+              "stringValue": "Fwd: Radiografias de Thor"
+            },
+            "mode": {
+              "stringValue": "classify"
+            }
+          }
+        }
+      }
+    },
+    "createTime": "2026-03-06T02:24:13.652947Z",
+    "updateTime": "2026-03-06T02:24:13.652947Z"
+  },
+  "readTime": "2026-03-06T02:32:19.430013Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ai_jobs/6816b093-d894-4c5a-b050-ff824a4e36a9",
+    "fields": {
+      "id": {
+        "stringValue": "6816b093-d894-4c5a-b050-ff824a4e36a9"
+      },
+      "stage": {
+        "stringValue": "ai_extract"
+      },
+      "status": {
+        "stringValue": "pending"
+      },
+      "session_id": {
+        "stringValue": "962576ed-d93d-4786-b59b-12644059f4b1"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "attempts": {
+        "integerValue": "0"
+      },
+      "available_at": {
+        "stringValue": "2026-03-06T02:24:14.326Z"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T02:24:14.326Z"
+      },
+      "updated_at": {
+        "stringValue": "2026-03-06T02:24:14.326Z"
+      },
+      "payload": {
+        "mapValue": {
+          "fields": {
+            "message_id": {
+              "stringValue": "19ada796e42306ab"
+            },
+            "raw_doc_id": {
+              "stringValue": "962576ed-d93d-4786-b59b-12644059f4b1_19ada796e42306ab"
+            },
+            "source_sender": {
+              "stringValue": "Mauricio Goitia <mauriciogoitia@gmail.com>"
+            },
+            "source_subject": {
+              "stringValue": "Fwd: Radiografias de Thor"
+            },
+            "mode": {
+              "stringValue": "classify"
+            }
+          }
+        }
+      }
+    },
+    "createTime": "2026-03-06T02:24:14.374997Z",
+    "updateTime": "2026-03-06T02:24:14.374997Z"
+  },
+  "readTime": "2026-03-06T02:32:19.430013Z"
+}
+,
+{
+  "document": {
+    "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ai_jobs/bedebcd2-c45a-49eb-8dd4-a1926edbbf34",
+    "fields": {
+      "id": {
+        "stringValue": "bedebcd2-c45a-49eb-8dd4-a1926edbbf34"
+      },
+      "stage": {
+        "stringValue": "ai_extract"
+      },
+      "status": {
+        "stringValue": "pending"
+      },
+      "session_id": {
+        "stringValue": "962576ed-d93d-4786-b59b-12644059f4b1"
+      },
+      "user_id": {
+        "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+      },
+      "attempts": {
+        "integerValue": "0"
+      },
+      "available_at": {
+        "stringValue": "2026-03-06T02:24:13.176Z"
+      },
+      "created_at": {
+        "stringValue": "2026-03-06T02:24:13.176Z"
+      },
+      "updated_at": {
+        "stringValue": "2026-03-06T02:24:13.176Z"
+      },
+      "payload": {
+        "mapValue": {
+          "fields": {
+            "message_id": {
+              "stringValue": "19ada84a8a7067ba"
+            },
+            "raw_doc_id": {
+              "stringValue": "962576ed-d93d-4786-b59b-12644059f4b1_19ada84a8a7067ba"
+            },
+            "source_sender": {
+              "stringValue": "Mauricio Goitia <mauriciogoitia@gmail.com>"
+            },
+            "source_subject": {
+              "stringValue": "Fwd: Radiografias de Thor"
+            },
+            "mode": {
+              "stringValue": "classify"
+            }
+          }
+        }
+      }
+    },
+    "createTime": "2026-03-06T02:24:13.304685Z",
+    "updateTime": "2026-03-06T02:24:13.304685Z"
+  },
+  "readTime": "2026-03-06T02:32:19.430013Z"
+}
+]

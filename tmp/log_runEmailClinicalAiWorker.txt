@@ -1,0 +1,160 @@
+2026-03-05T19:27:02.433281927Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T19:27:02.621882392Z D runEmailClinicalAiWorker: Function execution took 188 ms, finished with status: 'ok'
+2026-03-05T19:32:03.539409915Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T19:32:03.815839739Z D runEmailClinicalAiWorker: Function execution took 276 ms, finished with status: 'ok'
+2026-03-05T19:37:02.379283513Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T19:37:02.604763376Z D runEmailClinicalAiWorker: Function execution took 225 ms, finished with status: 'ok'
+2026-03-05T19:42:02.390064116Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T19:42:02.564809334Z D runEmailClinicalAiWorker: Function execution took 174 ms, finished with status: 'ok'
+2026-03-05T19:47:02.520607572Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T19:47:02.780428957Z D runEmailClinicalAiWorker: Function execution took 259 ms, finished with status: 'ok'
+2026-03-05T19:52:03.102163051Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T19:52:03.398418551Z D runEmailClinicalAiWorker: Function execution took 296 ms, finished with status: 'ok'
+2026-03-05T19:57:02.467255012Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T19:57:02.676599466Z D runEmailClinicalAiWorker: Function execution took 209 ms, finished with status: 'ok'
+2026-03-05T20:02:02.524447449Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T20:02:02.757877766Z D runEmailClinicalAiWorker: Function execution took 233 ms, finished with status: 'ok'
+2026-03-05T20:07:02.420186129Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T20:07:02.838002700Z D runEmailClinicalAiWorker: Function execution took 417 ms, finished with status: 'ok'
+2026-03-05T20:12:02.480673498Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T20:12:02.663486155Z D runEmailClinicalAiWorker: Function execution took 182 ms, finished with status: 'ok'
+2026-03-05T20:17:02.782580910Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T20:17:03.045158343Z D runEmailClinicalAiWorker: Function execution took 262 ms, finished with status: 'ok'
+2026-03-05T20:22:02.410135376Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T20:22:02.639616387Z D runEmailClinicalAiWorker: Function execution took 229 ms, finished with status: 'ok'
+2026-03-05T20:27:02.537478196Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T20:27:02.870242083Z D runEmailClinicalAiWorker: Function execution took 332 ms, finished with status: 'ok'
+2026-03-05T20:32:02.483383276Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T20:32:02.900170079Z D runEmailClinicalAiWorker: Function execution took 416 ms, finished with status: 'ok'
+2026-03-05T20:37:02.395540703Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T20:37:02.656266448Z D runEmailClinicalAiWorker: Function execution took 260 ms, finished with status: 'ok'
+2026-03-05T20:42:02.380147383Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T20:42:02.574138319Z D runEmailClinicalAiWorker: Function execution took 193 ms, finished with status: 'ok'
+2026-03-05T20:47:02.997272505Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T20:47:03.164561337Z D runEmailClinicalAiWorker: Function execution took 167 ms, finished with status: 'ok'
+2026-03-05T20:52:02.487405325Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T20:52:02.711474872Z D runEmailClinicalAiWorker: Function execution took 224 ms, finished with status: 'ok'
+2026-03-05T20:57:02.550300214Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T20:57:02.804129687Z D runEmailClinicalAiWorker: Function execution took 253 ms, finished with status: 'ok'
+2026-03-05T21:02:02.994831422Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T21:02:03.187311218Z D runEmailClinicalAiWorker: Function execution took 192 ms, finished with status: 'ok'
+2026-03-05T21:07:03.058158669Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T21:07:03.312826426Z D runEmailClinicalAiWorker: Function execution took 254 ms, finished with status: 'ok'
+2026-03-05T21:12:02.993233468Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T21:12:03.199612509Z D runEmailClinicalAiWorker: Function execution took 206 ms, finished with status: 'ok'
+2026-03-05T21:17:02.401432576Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T21:17:02.637964491Z D runEmailClinicalAiWorker: Function execution took 236 ms, finished with status: 'ok'
+2026-03-05T21:22:02.984998284Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T21:22:03.286802099Z D runEmailClinicalAiWorker: Function execution took 301 ms, finished with status: 'ok'
+2026-03-05T21:27:02.508492290Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T21:27:02.689671808Z D runEmailClinicalAiWorker: Function execution took 181 ms, finished with status: 'ok'
+2026-03-05T21:32:03.024020365Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T21:32:03.333227035Z D runEmailClinicalAiWorker: Function execution took 309 ms, finished with status: 'ok'
+2026-03-05T21:37:02.409309647Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T21:37:02.607684540Z D runEmailClinicalAiWorker: Function execution took 198 ms, finished with status: 'ok'
+2026-03-05T21:42:02.476724248Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T21:42:02.642526128Z D runEmailClinicalAiWorker: Function execution took 165 ms, finished with status: 'ok'
+2026-03-05T21:47:03.072907206Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T21:47:03.370947782Z D runEmailClinicalAiWorker: Function execution took 298 ms, finished with status: 'ok'
+2026-03-05T21:52:02.521187569Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T21:52:02.709221449Z D runEmailClinicalAiWorker: Function execution took 188 ms, finished with status: 'ok'
+2026-03-05T21:57:02.316672671Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T21:57:02.490131412Z D runEmailClinicalAiWorker: Function execution took 173 ms, finished with status: 'ok'
+2026-03-05T22:02:02.440117889Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T22:02:02.621593082Z D runEmailClinicalAiWorker: Function execution took 181 ms, finished with status: 'ok'
+2026-03-05T22:07:02.460409933Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T22:07:02.749388106Z D runEmailClinicalAiWorker: Function execution took 288 ms, finished with status: 'ok'
+2026-03-05T22:12:03.022850326Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T22:12:03.310600944Z D runEmailClinicalAiWorker: Function execution took 287 ms, finished with status: 'ok'
+2026-03-05T22:17:01.827360537Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T22:17:02.489815541Z D runEmailClinicalAiWorker: Function execution took 662 ms, finished with status: 'ok'
+2026-03-05T22:22:02.771355133Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T22:22:02.952932765Z D runEmailClinicalAiWorker: Function execution took 181 ms, finished with status: 'ok'
+2026-03-05T22:27:02.490892058Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T22:27:02.748751942Z D runEmailClinicalAiWorker: Function execution took 257 ms, finished with status: 'ok'
+2026-03-05T22:32:03.030298685Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T22:32:03.232982415Z D runEmailClinicalAiWorker: Function execution took 202 ms, finished with status: 'ok'
+2026-03-05T22:37:02.969510470Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T22:37:03.179644979Z D runEmailClinicalAiWorker: Function execution took 210 ms, finished with status: 'ok'
+2026-03-05T22:42:02.555798682Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T22:42:02.706446930Z D runEmailClinicalAiWorker: Function execution took 150 ms, finished with status: 'ok'
+2026-03-05T22:47:03.026213602Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T22:47:03.223679200Z D runEmailClinicalAiWorker: Function execution took 197 ms, finished with status: 'ok'
+2026-03-05T22:52:02.923479475Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T22:52:03.125566124Z D runEmailClinicalAiWorker: Function execution took 202 ms, finished with status: 'ok'
+2026-03-05T22:57:02.442224279Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T22:57:02.648163054Z D runEmailClinicalAiWorker: Function execution took 205 ms, finished with status: 'ok'
+2026-03-05T23:02:02.397787040Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T23:02:02.597356461Z D runEmailClinicalAiWorker: Function execution took 199 ms, finished with status: 'ok'
+2026-03-05T23:07:02.411827098Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T23:07:02.654145438Z D runEmailClinicalAiWorker: Function execution took 242 ms, finished with status: 'ok'
+2026-03-05T23:12:02.903662193Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T23:12:03.151606461Z D runEmailClinicalAiWorker: Function execution took 247 ms, finished with status: 'ok'
+2026-03-05T23:17:02.379375771Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T23:17:02.567023258Z D runEmailClinicalAiWorker: Function execution took 187 ms, finished with status: 'ok'
+2026-03-05T23:22:02.324723251Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T23:22:02.561503968Z D runEmailClinicalAiWorker: Function execution took 236 ms, finished with status: 'ok'
+2026-03-05T23:27:02.468765864Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T23:27:02.635082219Z D runEmailClinicalAiWorker: Function execution took 166 ms, finished with status: 'ok'
+2026-03-05T23:32:02.474146514Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T23:32:02.719671205Z D runEmailClinicalAiWorker: Function execution took 245 ms, finished with status: 'ok'
+2026-03-05T23:37:02.455102130Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T23:37:02.768632483Z D runEmailClinicalAiWorker: Function execution took 313 ms, finished with status: 'ok'
+2026-03-05T23:42:02.434660232Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T23:42:02.645098212Z D runEmailClinicalAiWorker: Function execution took 210 ms, finished with status: 'ok'
+2026-03-05T23:47:02.439089573Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T23:47:02.622006744Z D runEmailClinicalAiWorker: Function execution took 182 ms, finished with status: 'ok'
+2026-03-05T23:52:02.388756873Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T23:52:02.603387111Z D runEmailClinicalAiWorker: Function execution took 214 ms, finished with status: 'ok'
+2026-03-05T23:57:02.430005414Z D runEmailClinicalAiWorker: Function execution started
+2026-03-05T23:57:02.632370861Z D runEmailClinicalAiWorker: Function execution took 202 ms, finished with status: 'ok'
+2026-03-06T00:02:02.942489297Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T00:02:03.155512576Z D runEmailClinicalAiWorker: Function execution took 213 ms, finished with status: 'ok'
+2026-03-06T00:07:03.067337152Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T00:07:03.389131408Z D runEmailClinicalAiWorker: Function execution took 321 ms, finished with status: 'ok'
+2026-03-06T00:12:02.448816598Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T00:12:02.720619400Z D runEmailClinicalAiWorker: Function execution took 271 ms, finished with status: 'ok'
+2026-03-06T00:17:02.478070940Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T00:17:02.737555792Z D runEmailClinicalAiWorker: Function execution took 259 ms, finished with status: 'ok'
+2026-03-06T00:22:02.477276104Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T00:22:02.728528678Z D runEmailClinicalAiWorker: Function execution took 251 ms, finished with status: 'ok'
+2026-03-06T00:27:02.786513482Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T00:27:03.074997237Z D runEmailClinicalAiWorker: Function execution took 288 ms, finished with status: 'ok'
+2026-03-06T00:32:02.973894309Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T00:32:03.239902463Z D runEmailClinicalAiWorker: Function execution took 266 ms, finished with status: 'ok'
+2026-03-06T00:37:02.364120370Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T00:37:02.562407746Z D runEmailClinicalAiWorker: Function execution took 198 ms, finished with status: 'ok'
+2026-03-06T00:42:02.493935144Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T00:42:02.660284898Z D runEmailClinicalAiWorker: Function execution took 166 ms, finished with status: 'ok'
+2026-03-06T00:47:02.407654071Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T00:47:02.586436865Z D runEmailClinicalAiWorker: Function execution took 178 ms, finished with status: 'ok'
+2026-03-06T00:52:02.411100096Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T00:52:02.634971175Z D runEmailClinicalAiWorker: Function execution took 223 ms, finished with status: 'ok'
+2026-03-06T00:57:02.412654975Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T00:57:02.590835588Z D runEmailClinicalAiWorker: Function execution took 178 ms, finished with status: 'ok'
+2026-03-06T01:02:08.299584012Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T01:02:08.469335488Z D runEmailClinicalAiWorker: Function execution took 169 ms, finished with status: 'ok'
+2026-03-06T01:07:02.441406611Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T01:07:02.623491843Z D runEmailClinicalAiWorker: Function execution took 182 ms, finished with status: 'ok'
+2026-03-06T01:12:01.867023158Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T01:12:02.069184529Z D runEmailClinicalAiWorker: Function execution took 202 ms, finished with status: 'ok'
+2026-03-06T01:17:01.840678147Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T01:17:02.155680723Z D runEmailClinicalAiWorker: Function execution took 315 ms, finished with status: 'ok'
+2026-03-06T01:22:02.726000417Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T01:22:02.947621919Z D runEmailClinicalAiWorker: Function execution took 221 ms, finished with status: 'ok'
+2026-03-06T01:27:03.087471017Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T01:27:03.317263047Z D runEmailClinicalAiWorker: Function execution took 229 ms, finished with status: 'ok'
+2026-03-06T01:30:41.873709027Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T01:30:42.328623177Z D runEmailClinicalAiWorker: Function execution took 454 ms, finished with status: 'ok'
+2026-03-06T01:32:46.267182630Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T01:32:46.443890389Z D runEmailClinicalAiWorker: Function execution took 176 ms, finished with status: 'ok'
+2026-03-06T01:33:02.515757360Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T01:33:02.681448224Z D runEmailClinicalAiWorker: Function execution took 165 ms, finished with status: 'ok'
+2026-03-06T01:33:23.055757067Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T01:33:23.205414656Z D runEmailClinicalAiWorker: Function execution took 149 ms, finished with status: 'ok'
+2026-03-06T01:33:43.097822070Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T01:33:43.210842229Z D runEmailClinicalAiWorker: Function execution took 113 ms, finished with status: 'ok'
+2026-03-06T01:34:01.835936503Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T01:34:01.992358459Z D runEmailClinicalAiWorker: Function execution took 156 ms, finished with status: 'ok'
+2026-03-06T01:34:19.184599578Z D runEmailClinicalAiWorker: Function execution started
+2026-03-06T01:34:19.462642258Z D runEmailClinicalAiWorker: Function execution took 278 ms, finished with status: 'ok'

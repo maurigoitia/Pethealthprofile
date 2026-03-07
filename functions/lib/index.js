@@ -1,8 +1,37 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanupOldNotifications = exports.onAppointmentCreated = exports.recomputeClinicalAlertsDaily = exports.reconcileExistingTreatments = exports.sendBroadcastPushCampaigns = exports.sendDailyCareSummary = exports.sendScheduledNotifications = void 0;
+exports.syncTreatmentTimezoneV3 = exports.evaluateTreatmentDedupV3 = exports.recordDoseEventV3 = exports.markMissedTreatmentDosesV3 = exports.dispatchTreatmentRemindersV3 = exports.onTreatmentWriteScheduleV3 = exports.onMedicationWriteScheduleV3 = exports.uploadPetPhoto = exports.provisionPessyVertexDatastore = exports.pessyClinicalBrainGrounding = exports.ingestClinicalEmailWebhook = exports.forceRunEmailClinicalIngestion = exports.runEmailClinicalAiWorker = exports.runEmailClinicalAttachmentWorker = exports.runEmailClinicalScanWorker = exports.runEmailClinicalIngestionQueue = exports.triggerEmailClinicalIngestion = exports.syncAppointmentCalendarEvent = exports.disconnectGmailSync = exports.gmailAuthCallback = exports.getGmailConnectUrl = exports.resolveBrainPayload = exports.generateClinicalSummary = exports.analyzeDocument = exports.cleanupOldNotifications = exports.onAppointmentDeleted = exports.onAppointmentUpdated = exports.onAppointmentCreated = exports.recomputeClinicalAlertsDaily = exports.reconcileExistingTreatments = exports.sendGmailSyncConsentReminders = exports.sendBroadcastPushCampaigns = exports.sendDailyCareSummary = exports.sendScheduledNotifications = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const oauth_1 = require("./gmail/oauth");
+Object.defineProperty(exports, "disconnectGmailSync", { enumerable: true, get: function () { return oauth_1.disconnectGmailSync; } });
+Object.defineProperty(exports, "getGmailConnectUrl", { enumerable: true, get: function () { return oauth_1.getGmailConnectUrl; } });
+Object.defineProperty(exports, "gmailAuthCallback", { enumerable: true, get: function () { return oauth_1.gmailAuthCallback; } });
+Object.defineProperty(exports, "syncAppointmentCalendarEvent", { enumerable: true, get: function () { return oauth_1.syncAppointmentCalendarEvent; } });
+const clinicalIngestion_1 = require("./gmail/clinicalIngestion");
+Object.defineProperty(exports, "forceRunEmailClinicalIngestion", { enumerable: true, get: function () { return clinicalIngestion_1.forceRunEmailClinicalIngestion; } });
+Object.defineProperty(exports, "ingestClinicalEmailWebhook", { enumerable: true, get: function () { return clinicalIngestion_1.ingestClinicalEmailWebhook; } });
+Object.defineProperty(exports, "runEmailClinicalAiWorker", { enumerable: true, get: function () { return clinicalIngestion_1.runEmailClinicalAiWorker; } });
+Object.defineProperty(exports, "runEmailClinicalAttachmentWorker", { enumerable: true, get: function () { return clinicalIngestion_1.runEmailClinicalAttachmentWorker; } });
+Object.defineProperty(exports, "runEmailClinicalIngestionQueue", { enumerable: true, get: function () { return clinicalIngestion_1.runEmailClinicalIngestionQueue; } });
+Object.defineProperty(exports, "runEmailClinicalScanWorker", { enumerable: true, get: function () { return clinicalIngestion_1.runEmailClinicalScanWorker; } });
+Object.defineProperty(exports, "triggerEmailClinicalIngestion", { enumerable: true, get: function () { return clinicalIngestion_1.triggerEmailClinicalIngestion; } });
+const petPhotos_1 = require("./media/petPhotos");
+Object.defineProperty(exports, "uploadPetPhoto", { enumerable: true, get: function () { return petPhotos_1.uploadPetPhoto; } });
+const knowledgeBase_1 = require("./clinical/knowledgeBase");
+const brainResolver_1 = require("./clinical/brainResolver");
+const groundedBrain_1 = require("./clinical/groundedBrain");
+Object.defineProperty(exports, "pessyClinicalBrainGrounding", { enumerable: true, get: function () { return groundedBrain_1.pessyClinicalBrainGrounding; } });
+const vertexDatastoreAdmin_1 = require("./clinical/vertexDatastoreAdmin");
+Object.defineProperty(exports, "provisionPessyVertexDatastore", { enumerable: true, get: function () { return vertexDatastoreAdmin_1.provisionPessyVertexDatastore; } });
+const treatmentReminderEngine_1 = require("./clinical/treatmentReminderEngine");
+Object.defineProperty(exports, "dispatchTreatmentRemindersV3", { enumerable: true, get: function () { return treatmentReminderEngine_1.dispatchTreatmentRemindersV3; } });
+Object.defineProperty(exports, "evaluateTreatmentDedupV3", { enumerable: true, get: function () { return treatmentReminderEngine_1.evaluateTreatmentDedupV3; } });
+Object.defineProperty(exports, "markMissedTreatmentDosesV3", { enumerable: true, get: function () { return treatmentReminderEngine_1.markMissedTreatmentDosesV3; } });
+Object.defineProperty(exports, "onMedicationWriteScheduleV3", { enumerable: true, get: function () { return treatmentReminderEngine_1.onMedicationWriteScheduleV3; } });
+Object.defineProperty(exports, "onTreatmentWriteScheduleV3", { enumerable: true, get: function () { return treatmentReminderEngine_1.onTreatmentWriteScheduleV3; } });
+Object.defineProperty(exports, "recordDoseEventV3", { enumerable: true, get: function () { return treatmentReminderEngine_1.recordDoseEventV3; } });
+Object.defineProperty(exports, "syncTreatmentTimezoneV3", { enumerable: true, get: function () { return treatmentReminderEngine_1.syncTreatmentTimezoneV3; } });
 admin.initializeApp();
 const db = admin.firestore();
 const messaging = admin.messaging();
@@ -11,6 +40,9 @@ const userSettingsCache = new Map();
 const userTokenCache = new Map();
 const userTimezoneCache = new Map();
 const petNameCache = new Map();
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const GMAIL_SYNC_REMINDER_LAST_DAY = 3;
+const GMAIL_SYNC_AUTO_ACCEPT_DAY = 4;
 function toDateKeyInTimezone(date, timeZone) {
     const formatter = new Intl.DateTimeFormat("en-CA", {
         timeZone,
@@ -86,6 +118,8 @@ function isTypeEnabled(settings, type) {
         return settings.appointments !== false;
     if (type === "vaccine_reminder")
         return settings.vaccines !== false;
+    if (type === "results")
+        return settings.results !== false;
     return true;
 }
 /**
@@ -131,14 +165,24 @@ async function getUserTokenAndTimezone(userId) {
     let token = userTokenCache.get(userId);
     let timezone = userTimezoneCache.get(userId);
     if (token === undefined || !timezone) {
-        const tokenDoc = await db
-            .collection("users")
-            .doc(userId)
-            .collection("fcm_tokens")
-            .doc("primary")
-            .get();
-        token = tokenDoc.exists ? ((_a = tokenDoc.data()) === null || _a === void 0 ? void 0 : _a.token) || null : null;
-        timezone = tokenDoc.exists ? ((_b = tokenDoc.data()) === null || _b === void 0 ? void 0 : _b.timezone) || "UTC" : "UTC";
+        const tokenCol = db.collection("users").doc(userId).collection("fcm_tokens");
+        const primaryDoc = await tokenCol.doc("primary").get();
+        if (primaryDoc.exists) {
+            token = ((_a = primaryDoc.data()) === null || _a === void 0 ? void 0 : _a.token) || null;
+            timezone = ((_b = primaryDoc.data()) === null || _b === void 0 ? void 0 : _b.timezone) || "UTC";
+        }
+        else {
+            const fallbackSnap = await tokenCol.limit(1).get();
+            if (!fallbackSnap.empty) {
+                const fallback = fallbackSnap.docs[0].data();
+                token = (fallback === null || fallback === void 0 ? void 0 : fallback.token) || null;
+                timezone = (fallback === null || fallback === void 0 ? void 0 : fallback.timezone) || "UTC";
+            }
+            else {
+                token = null;
+                timezone = "UTC";
+            }
+        }
         userTokenCache.set(userId, token);
         userTimezoneCache.set(userId, timezone);
     }
@@ -232,6 +276,30 @@ function asRecord(value) {
     if (!value || typeof value !== "object")
         return {};
     return value;
+}
+function parseIsoToMs(value) {
+    if (typeof value !== "string" || !value.trim())
+        return 0;
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? 0 : parsed;
+}
+function getGmailReminderCopy(dayNumber) {
+    if (dayNumber >= 3) {
+        return {
+            title: "⚠️ Último aviso: activá Gmail Sync",
+            body: "Último día para activar la sincronización de correos veterinarios en Pessy.",
+        };
+    }
+    if (dayNumber === 2) {
+        return {
+            title: "📧 Recordatorio día 2: activá Gmail Sync",
+            body: "Falta 1 día para cerrar este recordatorio. Podés activar Gmail Sync en segundos.",
+        };
+    }
+    return {
+        title: "📧 Recordatorio día 1: activá Gmail Sync",
+        body: "Danos permiso para leer correos veterinarios y completar historial, turnos y tratamientos.",
+    };
 }
 function slugifyKey(value) {
     if (typeof value !== "string")
@@ -449,7 +517,7 @@ exports.sendScheduledNotifications = functions.pubsub
 // CRON: Avisos diarios core ("hoy toca medicación" / "hoy toca turno")
 // ─────────────────────────────────────────────────────────────────────────────
 exports.sendDailyCareSummary = functions.pubsub
-    .schedule("every 60 minutes")
+    .schedule("every 3 hours")
     .onRun(async () => {
     const now = new Date();
     const usersSnap = await db.collection("users").get();
@@ -458,12 +526,21 @@ exports.sendDailyCareSummary = functions.pubsub
     const sends = [];
     for (const userDoc of usersSnap.docs) {
         const userId = userDoc.id;
+        const userData = userDoc.data();
         const settings = await getUserSettings(userId);
         if (settings.enabled === false)
             continue;
-        const { token, timezone } = await getUserTokenAndTimezone(userId);
-        if (!token)
+        const appointmentsEnabled = settings.appointments !== false;
+        const medicationsEnabled = settings.medications !== false;
+        if (!appointmentsEnabled && !medicationsEnabled)
             continue;
+        let timezone = typeof userData.timezone === "string" && userData.timezone.trim()
+            ? userData.timezone.trim()
+            : "";
+        if (!timezone) {
+            const tokenData = await getUserTokenAndTimezone(userId);
+            timezone = tokenData.timezone || "UTC";
+        }
         const localHour = Number(new Intl.DateTimeFormat("en-GB", {
             timeZone: timezone,
             hour: "2-digit",
@@ -472,8 +549,11 @@ exports.sendDailyCareSummary = functions.pubsub
         // Ventana de envío diaria: mañana.
         if (localHour < 7 || localHour > 10)
             continue;
+        const { token } = await getUserTokenAndTimezone(userId);
+        if (!token)
+            continue;
         const todayKey = toDateKeyInTimezone(now, timezone);
-        if (settings.appointments !== false) {
+        if (appointmentsEnabled) {
             const appointmentsSnap = await db.collection("appointments").where("userId", "==", userId).get();
             const appointmentsToday = appointmentsSnap.docs
                 .map((d) => (Object.assign({ id: d.id }, d.data())))
@@ -497,7 +577,7 @@ exports.sendDailyCareSummary = functions.pubsub
                 }).then(() => logRef.set({ userId, kind: "appointment", petId: appointment.petId || "", date: todayKey, sentAt: now.toISOString() })));
             }
         }
-        if (settings.medications !== false) {
+        if (medicationsEnabled) {
             const medsSnap = await db.collection("medications").where("userId", "==", userId).get();
             const activeByPet = new Map();
             for (const medDoc of medsSnap.docs) {
@@ -689,12 +769,123 @@ exports.sendBroadcastPushCampaigns = functions.pubsub
     return null;
 });
 // ─────────────────────────────────────────────────────────────────────────────
+// CRON: Recordatorio de consentimiento Gmail Sync (Día 1, 2, 3 + auto-cierre en día 4)
+// - Usuarios sin Gmail Sync conectado
+// - Envío por push si hay token activo
+// ─────────────────────────────────────────────────────────────────────────────
+exports.sendGmailSyncConsentReminders = functions.pubsub
+    .schedule("every 24 hours")
+    .onRun(async () => {
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const nowMs = now.getTime();
+    const usersSnap = await db.collection("users").get();
+    if (usersSnap.empty) {
+        console.log("[GMAIL_CONSENT_REMINDER] No hay usuarios para revisar.");
+        return null;
+    }
+    let sent = 0;
+    let skippedConnected = 0;
+    let skippedNotDue = 0;
+    let skippedNoToken = 0;
+    let autoAccepted = 0;
+    let failed = 0;
+    for (const userDoc of usersSnap.docs) {
+        const userId = userDoc.id;
+        const userData = userDoc.data();
+        const gmailSync = asRecord(userData.gmailSync);
+        const reminderMeta = asRecord(userData.gmailSyncReminder);
+        const connected = gmailSync.connected === true;
+        if (connected) {
+            skippedConnected += 1;
+            continue;
+        }
+        const status = typeof reminderMeta.status === "string" ? reminderMeta.status : "pending_permission";
+        if (status === "auto-accepted") {
+            skippedNotDue += 1;
+            continue;
+        }
+        const anchorMs = parseIsoToMs(gmailSync.consentRequestedAt) ||
+            parseIsoToMs(reminderMeta.consentRequestedAt) ||
+            parseIsoToMs(userData.createdAt) ||
+            nowMs;
+        const daysElapsed = Math.floor((nowMs - anchorMs) / ONE_DAY_MS);
+        const dayNumberRaw = Number(reminderMeta.dayNumber);
+        const dayNumber = Number.isFinite(dayNumberRaw) && dayNumberRaw > 0 ? Math.floor(dayNumberRaw) : 0;
+        if (daysElapsed >= GMAIL_SYNC_AUTO_ACCEPT_DAY) {
+            await userDoc.ref.set({
+                gmailSyncReminder: {
+                    status: "auto-accepted",
+                    dayNumber: GMAIL_SYNC_REMINDER_LAST_DAY,
+                    autoAcceptedAt: nowIso,
+                    updatedAt: nowIso,
+                    lastError: null,
+                },
+            }, { merge: true });
+            autoAccepted += 1;
+            continue;
+        }
+        const nextDayNumber = dayNumber + 1;
+        const isDue = nextDayNumber >= 1 &&
+            nextDayNumber <= GMAIL_SYNC_REMINDER_LAST_DAY &&
+            daysElapsed >= nextDayNumber;
+        if (!isDue) {
+            skippedNotDue += 1;
+            continue;
+        }
+        const { token } = await getUserTokenAndTimezone(userId);
+        if (!token) {
+            skippedNoToken += 1;
+            continue;
+        }
+        try {
+            const copy = getGmailReminderCopy(nextDayNumber);
+            await sendPushMessage({
+                token,
+                title: copy.title,
+                body: copy.body,
+                type: "results",
+            });
+            await userDoc.ref.set({
+                gmailSync: {
+                    consentRequestedAt: typeof gmailSync.consentRequestedAt === "string"
+                        ? gmailSync.consentRequestedAt
+                        : nowIso,
+                    updatedAt: nowIso,
+                },
+                gmailSyncReminder: {
+                    lastPushSentAt: nowIso,
+                    sentCount: Number(reminderMeta.sentCount || 0) + 1,
+                    dayNumber: nextDayNumber,
+                    updatedAt: nowIso,
+                    status: `day_${nextDayNumber}_sent`,
+                    lastError: null,
+                },
+            }, { merge: true });
+            sent += 1;
+        }
+        catch (error) {
+            failed += 1;
+            console.error(`[GMAIL_CONSENT_REMINDER] Error user=${userId}`, error);
+            await userDoc.ref.set({
+                gmailSyncReminder: {
+                    updatedAt: nowIso,
+                    status: `day_${nextDayNumber}_failed`,
+                    lastError: String(error).slice(0, 300),
+                },
+            }, { merge: true });
+        }
+    }
+    console.log(`[GMAIL_CONSENT_REMINDER] sent=${sent} connected=${skippedConnected} not_due=${skippedNotDue} noToken=${skippedNoToken} autoAccepted=${autoAccepted} failed=${failed}`);
+    return null;
+});
+// ─────────────────────────────────────────────────────────────────────────────
 // CRON: Reconciliación de tratamientos existentes
 // - Completa frecuencia/fin usando el documento médico fuente cuando falta.
 // - Si no alcanza la info, crea pendiente y avisa al usuario.
 // ─────────────────────────────────────────────────────────────────────────────
 exports.reconcileExistingTreatments = functions.pubsub
-    .schedule("every 6 hours")
+    .schedule("every 12 hours")
     .onRun(async () => {
     var _a, _b;
     const now = new Date();
@@ -825,7 +1016,7 @@ exports.reconcileExistingTreatments = functions.pubsub
 // - Reevalúa R1/R2/R3/R4 una vez por día
 // ─────────────────────────────────────────────────────────────────────────────
 exports.recomputeClinicalAlertsDaily = functions.pubsub
-    .schedule("every 24 hours")
+    .schedule("every 48 hours")
     .onRun(async () => {
     const now = new Date();
     const nowIso = now.toISOString();
@@ -1059,25 +1250,46 @@ exports.onAppointmentCreated = functions.firestore
     .document("appointments/{appointmentId}")
     .onCreate(async (snap, context) => {
     const appointment = snap.data();
-    if (!appointment || !appointment.date)
+    if (!appointment)
+        return;
+    await scheduleAppointmentReminders(context.params.appointmentId, appointment);
+});
+async function clearPendingAppointmentNotifications(appointmentId) {
+    const pendingSnap = await db
+        .collection("scheduled_notifications")
+        .where("sourceEventId", "==", appointmentId)
+        .where("type", "==", "appointment")
+        .where("sent", "==", false)
+        .get();
+    if (pendingSnap.empty)
+        return;
+    const batch = db.batch();
+    pendingSnap.docs.forEach((docSnap) => batch.delete(docSnap.ref));
+    await batch.commit();
+}
+async function scheduleAppointmentReminders(appointmentId, appointment) {
+    await clearPendingAppointmentNotifications(appointmentId);
+    if (!appointment.date)
+        return;
+    const appointmentStatus = typeof appointment.status === "string" ? appointment.status.toLowerCase() : "upcoming";
+    if (!["upcoming", "scheduled", "confirmed"].includes(appointmentStatus))
         return;
     const now = new Date();
     const nowIso = now.toISOString();
     const userId = appointment.userId || appointment.ownerId;
     if (!userId)
         return;
-    // Obtener la zona horaria del usuario para parsear la fecha correctamente
     const { timezone } = await getUserTokenAndTimezone(userId);
     const appointmentDate = parseLocalToUtc(appointment.date, appointment.time || "09:00", timezone);
     if (Number.isNaN(appointmentDate.getTime())) {
-        console.warn(`[TRIGGER] Fecha/hora inválida para cita ${context.params.appointmentId}`);
+        console.warn(`[TRIGGER] Fecha/hora inválida para cita ${appointmentId}`);
         return;
     }
     const reminders = [];
     const oneDayBefore = new Date(appointmentDate.getTime() - 24 * 3600000);
     if (oneDayBefore > now) {
         reminders.push({
-            id: `appt_${context.params.appointmentId}_24h`,
+            id: `appt_${appointmentId}_24h`,
             payload: {
                 userId,
                 petId: appointment.petId || "",
@@ -1086,10 +1298,10 @@ exports.onAppointmentCreated = functions.firestore
                 title: `📅 Turno mañana — ${appointment.petName || "Tu mascota"}`,
                 body: `${appointment.title || "Consulta"}${appointment.clinic ? ` · ${appointment.clinic}` : ""}`,
                 scheduledFor: oneDayBefore.toISOString(),
-                sourceEventId: context.params.appointmentId,
+                sourceEventId: appointmentId,
                 repeat: "none",
                 repeatInterval: null,
-                repeatRootId: `appt_${context.params.appointmentId}`,
+                repeatRootId: `appt_${appointmentId}`,
                 endAt: null,
                 active: true,
                 sent: false,
@@ -1100,7 +1312,7 @@ exports.onAppointmentCreated = functions.firestore
     const twoHoursBefore = new Date(appointmentDate.getTime() - 2 * 3600000);
     if (twoHoursBefore > now) {
         reminders.push({
-            id: `appt_${context.params.appointmentId}_2h`,
+            id: `appt_${appointmentId}_2h`,
             payload: {
                 userId,
                 petId: appointment.petId || "",
@@ -1109,10 +1321,10 @@ exports.onAppointmentCreated = functions.firestore
                 title: `⏰ Turno en 2 horas — ${appointment.petName || "Tu mascota"}`,
                 body: `${appointment.title || "Consulta"}${appointment.veterinarian ? ` · Dr. ${appointment.veterinarian}` : ""}`,
                 scheduledFor: twoHoursBefore.toISOString(),
-                sourceEventId: context.params.appointmentId,
+                sourceEventId: appointmentId,
                 repeat: "none",
                 repeatInterval: null,
-                repeatRootId: `appt_${context.params.appointmentId}`,
+                repeatRootId: `appt_${appointmentId}`,
                 endAt: null,
                 active: true,
                 sent: false,
@@ -1120,20 +1332,18 @@ exports.onAppointmentCreated = functions.firestore
             },
         });
     }
-    // Mensaje explícito de "hoy toca turno" para el mismo día.
     const appointmentDayKey = toDateKeyInTimezone(appointmentDate, timezone);
     const localHour = Number(new Intl.DateTimeFormat("en-GB", {
         timeZone: timezone,
         hour: "2-digit",
         hour12: false,
     }).format(appointmentDate));
-    // Recordatorio a las 7 AM o 3 horas antes del turno (lo que sea más tarde)
     const targetHour = Math.max(7, localHour - 3);
     const sameDayReminderTime = `${targetHour.toString().padStart(2, "0")}:00`;
     const sameDayReminder = parseLocalToUtc(appointmentDayKey, sameDayReminderTime, timezone);
     if (sameDayReminder > now && sameDayReminder < appointmentDate) {
         reminders.push({
-            id: `appt_${context.params.appointmentId}_today`,
+            id: `appt_${appointmentId}_today`,
             payload: {
                 userId,
                 petId: appointment.petId || "",
@@ -1142,10 +1352,10 @@ exports.onAppointmentCreated = functions.firestore
                 title: `📌 Hoy toca turno — ${appointment.petName || "Tu mascota"}`,
                 body: `${appointment.title || "Consulta"}${appointment.time ? ` a las ${appointment.time}` : ""}`,
                 scheduledFor: sameDayReminder.toISOString(),
-                sourceEventId: context.params.appointmentId,
+                sourceEventId: appointmentId,
                 repeat: "none",
                 repeatInterval: null,
-                repeatRootId: `appt_${context.params.appointmentId}`,
+                repeatRootId: `appt_${appointmentId}`,
                 endAt: null,
                 active: true,
                 sent: false,
@@ -1155,8 +1365,32 @@ exports.onAppointmentCreated = functions.firestore
     }
     if (reminders.length > 0) {
         await Promise.all(reminders.map((r) => db.collection("scheduled_notifications").doc(r.id).set(r.payload)));
-        console.log(`[TRIGGER] ${reminders.length} recordatorios creados para cita ${context.params.appointmentId}`);
+        console.log(`[TRIGGER] ${reminders.length} recordatorios creados para cita ${appointmentId}`);
     }
+}
+exports.onAppointmentUpdated = functions.firestore
+    .document("appointments/{appointmentId}")
+    .onUpdate(async (change, context) => {
+    const before = change.before.data();
+    const after = change.after.data();
+    if (!after)
+        return null;
+    const significantChange = ((before === null || before === void 0 ? void 0 : before.date) || "") !== (after.date || "") ||
+        ((before === null || before === void 0 ? void 0 : before.time) || "") !== (after.time || "") ||
+        ((before === null || before === void 0 ? void 0 : before.status) || "") !== (after.status || "") ||
+        ((before === null || before === void 0 ? void 0 : before.clinic) || "") !== (after.clinic || "") ||
+        ((before === null || before === void 0 ? void 0 : before.veterinarian) || "") !== (after.veterinarian || "") ||
+        ((before === null || before === void 0 ? void 0 : before.title) || "") !== (after.title || "");
+    if (!significantChange)
+        return null;
+    await scheduleAppointmentReminders(context.params.appointmentId, after);
+    return null;
+});
+exports.onAppointmentDeleted = functions.firestore
+    .document("appointments/{appointmentId}")
+    .onDelete(async (_snap, context) => {
+    await clearPendingAppointmentNotifications(context.params.appointmentId);
+    return null;
 });
 // ─────────────────────────────────────────────────────────────────────────────
 // CLEANUP: Borra notificaciones enviadas con más de 7 días
@@ -1187,5 +1421,397 @@ exports.cleanupOldNotifications = functions.pubsub
         console.log(`[CLEANUP] Borrados ${dailyOld.size} logs diarios`);
     }
     return null;
+});
+// ─────────────────────────────────────────────────────────────────────────────
+// ANALISIS IA (BACKEND-ONLY): evita exponer API keys en frontend
+// ─────────────────────────────────────────────────────────────────────────────
+const ANALYSIS_PROMPT_TEMPLATE = `Sos el motor de extracción clínica de PESSY.
+Fecha de hoy: __TODAY__
+
+PESSY CLINICAL PROCESSING PROTOCOL
+
+FASE 0 — CLASIFICACIÓN OBLIGATORIA
+Clasificá primero el documento en UNA categoría:
+- clinical_report
+- laboratory_result
+- prescription
+- medical_study
+- medical_appointment
+- vaccination_record
+- other
+
+Reglas críticas:
+- Si detectás fecha futura + hora + especialidad o términos de turno (turno, confirmado, centro de atención, consulta), tratar como medical_appointment.
+- Si es medical_appointment, NO generar diagnósticos ni hallazgos clínicos.
+- No inventar datos faltantes.
+
+FASE 0.5 — LECTURA CLÍNICA OBLIGATORIA (informes cualitativos: KOH, tricograma, citología, raspado)
+1) Identificá estudio solicitado y técnica.
+2) Extraé resultado principal literal (ej. "no se observaron...", "compatible con...", "positivo/negativo").
+3) Diferenciá explícitamente:
+   - qué descarta en esta muestra,
+   - qué NO descarta de forma global.
+4) Capturá limitaciones/disclaimers del informe (ej. "su ausencia no es excluyente").
+5) Listá observaciones secundarias separadas del resultado principal.
+6) Traducí términos técnicos en lenguaje simple dentro de recomendaciones.
+
+FASE 1 — EXTRACCIÓN ESTRUCTURADA
+Analizá el documento completo en modo multimodal y devolvé SOLO JSON válido:
+{
+  "pet": {
+    "name": "string|null",
+    "species": "string|null",
+    "breed": "string|null",
+    "age_at_study": "string|null",
+    "owner": "string|null"
+  },
+  "document": {
+    "type": "radiografia|ecografia|laboratorio|receta|informe|otro",
+    "study_date": "YYYY-MM-DD|null",
+    "clinic_name": "string|null",
+    "clinic_address": "string|null",
+    "veterinarian_name": "string|null",
+    "veterinarian_license": "string|null",
+    "protocol_or_record_number": "string|null"
+  },
+  "diagnoses_detected": [
+    {
+      "condition_name": "string|null",
+      "organ_system": "string|null",
+      "status": "nuevo|recurrente|persistente|null",
+      "severity": "leve|moderado|severo|no_especificado|null"
+    }
+  ],
+  "abnormal_findings": [
+    {
+      "parameter": "string|null",
+      "value": "string|null",
+      "reference_range": "string|null",
+      "interpretation": "alto|bajo|alterado|normal|no_observado|inconcluso|null"
+    }
+  ],
+  "imaging_findings": [
+    {
+      "region": "torax|abdomen|pelvis|columna|cadera|otro|null",
+      "view": "ventrodorsal|lateral|dorsoventral|oblicua|otro|null",
+      "finding": "string|null",
+      "severity": "leve|moderado|severo|no_especificado|null"
+    }
+  ],
+  "treatments_detected": [
+    {
+      "treatment_name": "string|null",
+      "start_date": "YYYY-MM-DD|null",
+      "end_date": "YYYY-MM-DD|null",
+      "dosage": "string|null",
+      "status": "activo|finalizado|desconocido|null"
+    }
+  ],
+  "medical_recommendations": ["string"],
+  "requires_followup": true
+}
+
+Opcional para documentos de turno:
+{
+  "appointment_event": {
+    "event_type": "medical_appointment",
+    "date": "YYYY-MM-DD|null",
+    "time": "HH:MM|null",
+    "specialty": "string|null",
+    "procedure": "string|null",
+    "clinic": "string|null",
+    "address": "string|null",
+    "professional_name": "string|null",
+    "preparation_required": "string|null",
+    "status": "scheduled|programado|confirmado|recordatorio|null"
+  }
+}
+
+Opcional para certificados/carnets de vacunación:
+{
+  "vaccine_artifacts": {
+    "sticker_detected": true,
+    "stamp_detected": true,
+    "signature_detected": true,
+    "product_name": "string|null",
+    "manufacturer": "string|null",
+    "lot_number": "string|null",
+    "serial_number": "string|null",
+    "expiry_date": "YYYY-MM-DD|null",
+    "application_date": "YYYY-MM-DD|null",
+    "revaccination_date": "YYYY-MM-DD|null"
+  }
+}
+
+FASE 2 — NORMALIZACIÓN
+- Fechas en ISO YYYY-MM-DD.
+- Unificar patologías equivalentes.
+- Estandarizar órgano/sistema cuando esté explícito.
+
+Reglas:
+- Si un campo no está presente: null.
+- No inventar información.
+- No devolver texto fuera del JSON.
+- No exceder 6 elementos por lista.
+- Ignorar fecha de impresión y priorizar fecha clínica principal.
+- Si el documento es turno, no completar diagnósticos ni hallazgos clínicos.
+- En estudios cualitativos, usar "abnormal_findings.value" con literal clínico (ej. "no se observaron estructuras compatibles...").
+- Si aparece "ausencia no excluyente" o equivalente, incluirlo textualmente en "medical_recommendations".
+- Si el documento es por imágenes (radiografía/ecografía/ECG), completar "imaging_findings" con región, vista/proyección y hallazgo.
+- Para radiografía, mapear abreviaturas de proyección cuando aparezcan (VD, DV, LL) a "view".
+- Priorizar recomendaciones con prefijos:
+  1) "Resultado principal: ..."
+  2) "No descarta: ..." (si aplica)
+  3) "Limitación: ..." (si aplica)
+  4) "Siguiente paso: ..." (si aplica).
+- Si hay troquel/sello/firma visibles, registrarlo en "vaccine_artifacts".
+- Si el troquel tiene lote o serie, priorizar esos valores como fuente de verdad sobre texto libre.`;
+const ANALYSIS_PDF_MIME_ALIASES = new Set([
+    "application/pdf",
+    "application/x-pdf",
+    "application/acrobat",
+    "applications/vnd.pdf",
+    "text/pdf",
+]);
+const ANALYSIS_IMAGE_MIME_NORMALIZATION = {
+    "image/jpg": "image/jpeg",
+    "image/pjpeg": "image/jpeg",
+};
+const ANALYSIS_OCTET_STREAM_MIME_TYPES = new Set([
+    "",
+    "application/octet-stream",
+    "binary/octet-stream",
+]);
+const SUPPORTED_ANALYSIS_MIME_TYPES = new Set([
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+]);
+function inferMimeTypeFromFilename(fileName) {
+    const lowerName = fileName.toLowerCase();
+    if (lowerName.endsWith(".pdf"))
+        return "application/pdf";
+    if (lowerName.endsWith(".jpg") || lowerName.endsWith(".jpeg"))
+        return "image/jpeg";
+    if (lowerName.endsWith(".png"))
+        return "image/png";
+    if (lowerName.endsWith(".webp"))
+        return "image/webp";
+    if (lowerName.endsWith(".heic") || lowerName.endsWith(".heif"))
+        return "image/heic";
+    return "";
+}
+function inferMimeTypeFromBase64(base64) {
+    const normalized = base64.trim().replace(/\s+/g, "");
+    if (!normalized)
+        return "";
+    if (normalized.startsWith("JVBERi0"))
+        return "application/pdf";
+    if (normalized.startsWith("/9j/"))
+        return "image/jpeg";
+    if (normalized.startsWith("iVBORw0KGgo"))
+        return "image/png";
+    if (normalized.startsWith("UklGR"))
+        return "image/webp";
+    return "";
+}
+function normalizeAnalysisMimeType(args) {
+    const raw = args.rawMimeType.toLowerCase().trim();
+    if (ANALYSIS_PDF_MIME_ALIASES.has(raw))
+        return "application/pdf";
+    if (ANALYSIS_IMAGE_MIME_NORMALIZATION[raw])
+        return ANALYSIS_IMAGE_MIME_NORMALIZATION[raw];
+    if (!ANALYSIS_OCTET_STREAM_MIME_TYPES.has(raw))
+        return raw;
+    const fromFilename = inferMimeTypeFromFilename(args.fileName);
+    if (fromFilename)
+        return fromFilename;
+    const fromBase64 = inferMimeTypeFromBase64(args.base64);
+    if (fromBase64)
+        return fromBase64;
+    return raw || "application/octet-stream";
+}
+const getGeminiSettings = () => {
+    const keyFromEnv = process.env.GEMINI_API_KEY || "";
+    const modelFromEnv = process.env.ANALYSIS_MODEL || "";
+    return {
+        apiKey: keyFromEnv,
+        model: modelFromEnv || "gemini-2.5-flash",
+    };
+};
+async function callGeminiBackend(payload) {
+    var _a, _b, _c, _d, _e, _f;
+    const { apiKey, model } = getGeminiSettings();
+    if (!apiKey) {
+        throw new functions.https.HttpsError("failed-precondition", "GEMINI_API_KEY no configurada en backend.");
+    }
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new functions.https.HttpsError("internal", `Gemini backend error (${response.status}): ${errorText.slice(0, 600)}`);
+    }
+    const data = await response.json();
+    const rawText = ((_e = (_d = (_c = (_b = (_a = data === null || data === void 0 ? void 0 : data.candidates) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.content) === null || _c === void 0 ? void 0 : _c.parts) === null || _d === void 0 ? void 0 : _d[0]) === null || _e === void 0 ? void 0 : _e.text) || "";
+    const totalTokenCount = Number(((_f = data === null || data === void 0 ? void 0 : data.usageMetadata) === null || _f === void 0 ? void 0 : _f.totalTokenCount) || 0);
+    return { rawText, totalTokenCount };
+}
+exports.analyzeDocument = functions
+    .runWith({ secrets: ["GEMINI_API_KEY"] })
+    .region("us-central1")
+    .https.onCall(async (data, context) => {
+    var _a;
+    if (!((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid)) {
+        throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión para analizar documentos.");
+    }
+    const requestedMimeType = typeof (data === null || data === void 0 ? void 0 : data.mimeType) === "string" ? data.mimeType.trim() : "";
+    const fileName = typeof (data === null || data === void 0 ? void 0 : data.fileName) === "string" ? data.fileName.trim().slice(0, 260) : "";
+    const base64 = typeof (data === null || data === void 0 ? void 0 : data.base64) === "string" ? data.base64.trim() : "";
+    const normalizedMimeType = normalizeAnalysisMimeType({
+        rawMimeType: requestedMimeType,
+        fileName,
+        base64,
+    });
+    if (!base64) {
+        throw new functions.https.HttpsError("invalid-argument", "Falta el contenido del archivo (base64).");
+    }
+    if (!SUPPORTED_ANALYSIS_MIME_TYPES.has(normalizedMimeType)) {
+        throw new functions.https.HttpsError("invalid-argument", "Formato no compatible. Subí PDF, JPG, PNG o WEBP.");
+    }
+    // Base64 aproximado <= 8MB de binario
+    const approxBytes = Math.floor((base64.length * 3) / 4);
+    if (approxBytes > 8 * 1024 * 1024) {
+        throw new functions.https.HttpsError("invalid-argument", "Documento demasiado grande para análisis en tiempo real.");
+    }
+    const today = new Date().toISOString().slice(0, 10);
+    const contextHint = typeof (data === null || data === void 0 ? void 0 : data.contextHint) === "string" ? data.contextHint.slice(0, 1200) : "";
+    const knowledgeContext = await (0, knowledgeBase_1.resolveClinicalKnowledgeContext)({
+        query: [contextHint, fileName, normalizedMimeType, today].filter(Boolean).join(" "),
+        maxSections: 7,
+    });
+    const prompt = `${ANALYSIS_PROMPT_TEMPLATE.replace("__TODAY__", today)}\n\n${knowledgeContext.contextText}`;
+    const startedAt = Date.now();
+    const { rawText, totalTokenCount } = await callGeminiBackend({
+        contents: [
+            {
+                parts: [
+                    { text: prompt },
+                    {
+                        inline_data: {
+                            mime_type: normalizedMimeType,
+                            data: base64,
+                        },
+                    },
+                ],
+            },
+        ],
+        generationConfig: {
+            temperature: 0,
+            topK: 1,
+            topP: 1,
+            responseMimeType: "application/json",
+            maxOutputTokens: 2600,
+            thinkingConfig: {
+                thinkingBudget: 0,
+            },
+        },
+    });
+    const { model } = getGeminiSettings();
+    return {
+        rawText,
+        model,
+        tokensUsed: totalTokenCount,
+        processingTimeMs: Date.now() - startedAt,
+        resolvedMimeType: normalizedMimeType,
+        knowledgeVersion: knowledgeContext.version,
+        knowledgeSectionIds: knowledgeContext.sectionIds,
+        knowledgeSource: knowledgeContext.source,
+    };
+});
+exports.generateClinicalSummary = functions
+    .runWith({ secrets: ["GEMINI_API_KEY"] })
+    .region("us-central1")
+    .https.onCall(async (data, context) => {
+    var _a, _b;
+    if (!((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid)) {
+        throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión para generar resúmenes.");
+    }
+    const prompt = typeof (data === null || data === void 0 ? void 0 : data.prompt) === "string" ? data.prompt.trim() : "";
+    if (!prompt) {
+        throw new functions.https.HttpsError("invalid-argument", "Falta prompt.");
+    }
+    if (prompt.length > 35000) {
+        throw new functions.https.HttpsError("invalid-argument", "Prompt demasiado largo.");
+    }
+    const maxOutputTokens = Number((data === null || data === void 0 ? void 0 : data.maxOutputTokens) || 1200);
+    const temperature = Number((_b = data === null || data === void 0 ? void 0 : data.temperature) !== null && _b !== void 0 ? _b : 0.1);
+    const responseMimeType = typeof (data === null || data === void 0 ? void 0 : data.responseMimeType) === "string" && data.responseMimeType.trim()
+        ? data.responseMimeType.trim()
+        : undefined;
+    const knowledgeContext = await (0, knowledgeBase_1.resolveClinicalKnowledgeContext)({
+        query: prompt.slice(0, 6000),
+        maxSections: 8,
+    });
+    const promptWithKnowledge = `${knowledgeContext.contextText}\n\nINSTRUCCION_CLINICA:\n${prompt}`;
+    const startedAt = Date.now();
+    const { rawText, totalTokenCount } = await callGeminiBackend({
+        contents: [{ parts: [{ text: promptWithKnowledge }] }],
+        generationConfig: Object.assign({ temperature, topK: 1, topP: 1, maxOutputTokens }, (responseMimeType ? { responseMimeType } : {})),
+    });
+    const { model } = getGeminiSettings();
+    return {
+        rawText,
+        model,
+        tokensUsed: totalTokenCount,
+        processingTimeMs: Date.now() - startedAt,
+        knowledgeVersion: knowledgeContext.version,
+        knowledgeSectionIds: knowledgeContext.sectionIds,
+        knowledgeSource: knowledgeContext.source,
+    };
+});
+exports.resolveBrainPayload = functions
+    .region("us-central1")
+    .https.onCall(async (data, context) => {
+    var _a, _b, _c;
+    if (!((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid)) {
+        throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión para resolver datos clínicos.");
+    }
+    const payload = asRecord(data === null || data === void 0 ? void 0 : data.brainOutput);
+    const category = String(payload.category || "").trim();
+    if (!category) {
+        throw new functions.https.HttpsError("invalid-argument", "Falta brainOutput.category.");
+    }
+    const rawConfidence = Number((_b = payload.confidence) !== null && _b !== void 0 ? _b : 0);
+    const confidence = rawConfidence > 1 ? rawConfidence / 100 : rawConfidence;
+    const entities = Array.isArray(payload.entities)
+        ? payload.entities.map((item) => asRecord(item))
+        : [];
+    const sourceMetadata = asRecord(data === null || data === void 0 ? void 0 : data.sourceMetadata);
+    const reviewThresholdRaw = Number((_c = data === null || data === void 0 ? void 0 : data.reviewThreshold) !== null && _c !== void 0 ? _c : 0.85);
+    const reviewThreshold = Number.isFinite(reviewThresholdRaw) ? reviewThresholdRaw : 0.85;
+    const result = await (0, brainResolver_1.resolveBrainOutput)({
+        userId: context.auth.uid,
+        brainOutput: {
+            schema_version: typeof payload.schema_version === "string" ? payload.schema_version : undefined,
+            pet_reference: typeof payload.pet_reference === "string" ? payload.pet_reference : null,
+            category,
+            document_type: typeof payload.document_type === "string" ? payload.document_type : null,
+            study_type: typeof payload.study_type === "string" ? payload.study_type : null,
+            primary_finding: typeof payload.primary_finding === "string" ? payload.primary_finding : null,
+            entities,
+            confidence: Math.min(1, Math.max(0, confidence)),
+            review_required: payload.review_required === true,
+            reason_if_review_needed: typeof payload.reason_if_review_needed === "string" ? payload.reason_if_review_needed : null,
+            semantic_flags: asRecord(payload.semantic_flags),
+            ui_hint: asRecord(payload.ui_hint),
+        },
+        sourceMetadata: Object.assign({ source: typeof sourceMetadata.source === "string" ? sourceMetadata.source : "manual" }, sourceMetadata),
+        reviewThreshold: Math.min(1, Math.max(0, reviewThreshold)),
+    });
+    return Object.assign({ ok: true }, result);
 });
 //# sourceMappingURL=index.js.map

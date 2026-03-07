@@ -17,7 +17,7 @@ interface AppointmentsScreenProps {
 }
 
 const TYPE_CONFIG: Record<Appointment["type"], { icon: string; label: string; color: string; accent: string }> = {
-  checkup: { icon: "stethoscope", label: "Control", color: "text-[#2b6fee]", accent: "#2b6fee" },
+  checkup: { icon: "stethoscope", label: "Control", color: "text-[#074738]", accent: "#074738" },
   vaccine: { icon: "vaccines", label: "Vacuna", color: "text-emerald-600", accent: "#10b981" },
   surgery: { icon: "local_hospital", label: "Cirugía", color: "text-red-600", accent: "#dc2626" },
   emergency: { icon: "emergency", label: "Urgencia", color: "text-orange-600", accent: "#ea580c" },
@@ -68,7 +68,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
   const { user } = useAuth();
   const { activePetId, activePet } = usePet();
   const { permission, requestPermission } = useNotifications();
-  const { getAppointmentsByPetId, getEventsByPetId, addAppointment, updateAppointment, updateEvent } = useMedical();
+  const { getAppointmentsByPetId, getEventsByPetId, addAppointment, updateAppointment, deleteAppointment, updateEvent } = useMedical();
 
   const getAppointmentTimestamp = (appointment: AppointmentView): number => {
     const normalizedTime = appointment.time && appointment.time.trim() ? appointment.time : "00:00";
@@ -223,11 +223,10 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
     }
   };
 
-  const onAppointmentCreated = async (appointment: Appointment) => {
+  const onAppointmentCreated = async (_appointment: Appointment) => {
     await ensureNotificationsPermission();
-    if (confirm("Turno guardado. ¿Querés agregarlo también al calendario?")) {
-      addToCalendar(appointment);
-    }
+    // La app sincroniza automáticamente con Google Calendar cuando hay permiso OAuth.
+    // Este callback mantiene solo el permiso de notificaciones; la exportación manual queda opcional desde el botón de cada cita.
   };
 
   const handleComplete = async (appointment: AppointmentView) => {
@@ -239,6 +238,13 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
     if (appointment.isVirtual) return;
     if (!confirm("¿Cancelar esta cita?")) return;
     await updateAppointment(appointment.id, { status: "cancelled" });
+  };
+
+  const handleDelete = async (appointment: AppointmentView) => {
+    if (appointment.isVirtual) return;
+    const confirmed = confirm(`¿Eliminar definitivamente la cita "${cleanText(appointment.title)}"? Esta acción no se puede deshacer.`);
+    if (!confirmed) return;
+    await deleteAppointment(appointment.id);
   };
 
   const handleDismissSuggestedAppointment = async (appointment: AppointmentView) => {
@@ -319,7 +325,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
             </div>
             <button
               onClick={() => openCreateAppointmentModal()}
-              className="size-10 rounded-full bg-[#2b6fee] text-white flex items-center justify-center shadow-lg shadow-[#2b6fee]/30"
+              className="size-10 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-lg shadow-[#074738]/30"
             >
               <MaterialIcon name="add" className="text-2xl" />
             </button>
@@ -332,7 +338,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                 onClick={() => setActiveTab(tab)}
                 className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${
                   activeTab === tab
-                    ? "bg-white dark:bg-slate-900 text-[#2b6fee] shadow-sm"
+                    ? "bg-white dark:bg-slate-900 text-[#074738] shadow-sm"
                     : "text-slate-600 dark:text-slate-400"
                 }`}
               >
@@ -359,7 +365,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
               {activeTab === "upcoming" && (
                 <button
                   onClick={() => openCreateAppointmentModal()}
-                  className="px-6 py-3 rounded-xl bg-[#2b6fee] text-white font-bold shadow-lg shadow-[#2b6fee]/30"
+                  className="px-6 py-3 rounded-xl bg-[#074738] text-white font-bold shadow-lg shadow-[#074738]/30"
                 >
                   Agendar cita
                 </button>
@@ -413,7 +419,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                                 ? "bg-red-100 text-red-700"
                                 : isSoon
                                   ? "bg-amber-100 text-amber-700"
-                                  : "bg-[#2b6fee]/10 text-[#2b6fee]"
+                                  : "bg-[#074738]/10 text-[#074738]"
                             }`}>
                               {isToday ? "Hoy" : isTomorrow ? "Mañana" : `${daysFromNow}d`}
                             </span>
@@ -457,7 +463,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                       </div>
                     </div>
 
-                    {!pastAppointment && (
+                    {(!appointment.isVirtual) || (!pastAppointment && appointment.isVirtual) ? (
                       <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                         {appointment.isVirtual ? (
                           <div className="grid grid-cols-3 gap-2">
@@ -481,29 +487,39 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                             </button>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-3 gap-2">
+                          <div className={`grid gap-2 ${pastAppointment ? "grid-cols-1" : "grid-cols-4"}`}>
+                            {!pastAppointment && (
+                              <>
+                                <button
+                                  onClick={() => addToCalendar(appointment)}
+                                  className="py-2.5 rounded-xl bg-[#074738]/10 text-[#074738] font-bold text-xs active:scale-95 transition-transform"
+                                >
+                                  Calendario
+                                </button>
+                                <button
+                                  onClick={() => handleCancel(appointment)}
+                                  className="py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs active:scale-95 transition-transform"
+                                >
+                                  Cancelar
+                                </button>
+                                <button
+                                  onClick={() => handleComplete(appointment)}
+                                  className="py-2.5 rounded-xl bg-[#074738] text-white font-bold text-xs shadow-lg shadow-[#074738]/25 active:scale-95 transition-transform"
+                                >
+                                  Completada
+                                </button>
+                              </>
+                            )}
                             <button
-                              onClick={() => addToCalendar(appointment)}
-                              className="py-2.5 rounded-xl bg-[#2b6fee]/10 text-[#2b6fee] font-bold text-xs active:scale-95 transition-transform"
+                              onClick={() => handleDelete(appointment)}
+                              className="py-2.5 rounded-xl bg-red-100 text-red-700 font-bold text-xs active:scale-95 transition-transform"
                             >
-                              Calendario
-                            </button>
-                            <button
-                              onClick={() => handleCancel(appointment)}
-                              className="py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs active:scale-95 transition-transform"
-                            >
-                              Cancelar
-                            </button>
-                            <button
-                              onClick={() => handleComplete(appointment)}
-                              className="py-2.5 rounded-xl bg-[#2b6fee] text-white font-bold text-xs shadow-lg shadow-[#2b6fee]/25 active:scale-95 transition-transform"
-                            >
-                              Completada
+                              Eliminar
                             </button>
                           </div>
                         )}
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 </motion.div>
               );
@@ -514,7 +530,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
           <button
             onClick={() => openCreateAppointmentModal()}
-            className="w-full py-4 rounded-xl bg-[#2b6fee] text-white font-bold shadow-lg shadow-[#2b6fee]/30 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            className="w-full py-4 rounded-xl bg-[#074738] text-white font-bold shadow-lg shadow-[#074738]/30 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
             <MaterialIcon name="add_circle" className="text-xl" />
             Agendar nueva cita

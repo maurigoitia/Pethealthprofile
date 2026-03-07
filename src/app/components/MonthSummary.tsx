@@ -1,16 +1,19 @@
 import { MaterialIcon } from "./MaterialIcon";
 import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
+import { isPendingActionsEnabled } from "../utils/runtimeFlags";
 
 export function MonthSummary() {
   const { activePetId } = usePet();
   const { getMonthSummary } = useMedical();
+  const pendingEnabled = isPendingActionsEnabled();
 
   // Get summary for current month
   const summary = getMonthSummary(activePetId, new Date());
+  const pendingActionsCount = pendingEnabled ? summary.pendingActions : 0;
 
   // Don't show if there are no events
-  if (summary.totalEvents === 0 && summary.pendingActions === 0 && summary.activeMedications === 0) {
+  if (summary.totalEvents === 0 && pendingActionsCount === 0 && summary.activeMedications === 0) {
     return null;
   }
 
@@ -18,7 +21,7 @@ export function MonthSummary() {
     <section>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-black flex items-center gap-2">
-          <MaterialIcon name="calendar_month" className="text-[#2b7cee] dark:text-[#5a8aff] text-xl" />
+          <MaterialIcon name="calendar_month" className="text-[#074738] dark:text-[#1a9b7d] text-xl" />
           Resumen de {summary.month}
         </h2>
       </div>
@@ -26,8 +29,8 @@ export function MonthSummary() {
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
         <div className="grid grid-cols-2 gap-3">
           {/* Total Events */}
-          <div className="bg-[#2b7cee]/5 dark:bg-[#2b7cee]/10 rounded-xl p-4 text-center">
-            <div className="text-3xl font-black text-[#2b7cee] dark:text-[#5a8aff] mb-1">
+          <div className="bg-[#074738]/5 dark:bg-[#074738]/10 rounded-xl p-4 text-center">
+            <div className="text-3xl font-black text-[#074738] dark:text-[#1a9b7d] mb-1">
               {summary.totalEvents}
             </div>
             <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
@@ -35,15 +38,16 @@ export function MonthSummary() {
             </p>
           </div>
 
-          {/* Pending Actions */}
-          <div className="bg-amber-500/5 dark:bg-amber-500/10 rounded-xl p-4 text-center">
-            <div className="text-3xl font-black text-amber-600 dark:text-amber-400 mb-1">
-              {summary.pendingActions}
+          {pendingEnabled && (
+            <div className="bg-amber-500/5 dark:bg-amber-500/10 rounded-xl p-4 text-center">
+              <div className="text-3xl font-black text-amber-600 dark:text-amber-400 mb-1">
+                {summary.pendingActions}
+              </div>
+              <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
+                Pendientes
+              </p>
             </div>
-            <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-              Pendientes
-            </p>
-          </div>
+          )}
 
           {/* Completed Actions */}
           <div className="bg-emerald-500/5 dark:bg-emerald-500/10 rounded-xl p-4 text-center">
@@ -56,8 +60,8 @@ export function MonthSummary() {
           </div>
 
           {/* Active Medications */}
-          <div className="bg-purple-500/5 dark:bg-purple-500/10 rounded-xl p-4 text-center">
-            <div className="text-3xl font-black text-purple-600 dark:text-purple-400 mb-1">
+          <div className="bg-emerald-500/5 dark:bg-emerald-500/10 rounded-xl p-4 text-center">
+            <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mb-1">
               {summary.activeMedications}
             </div>
             <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
@@ -85,7 +89,7 @@ export function MonthSummary() {
               )}
               {summary.eventsByType.lab_test > 0 && (
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
-                  <div className="text-sm font-black text-purple-500 mb-0.5">
+                  <div className="text-sm font-black text-emerald-500 mb-0.5">
                     {summary.eventsByType.lab_test}
                   </div>
                   <p className="text-[9px] font-semibold text-slate-600 dark:text-slate-400 uppercase">
@@ -95,7 +99,7 @@ export function MonthSummary() {
               )}
               {(summary.eventsByType.xray + summary.eventsByType.echocardiogram + summary.eventsByType.electrocardiogram) > 0 && (
                 <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-2">
-                  <div className="text-sm font-black text-purple-500 mb-0.5">
+                  <div className="text-sm font-black text-emerald-500 mb-0.5">
                     {summary.eventsByType.xray + summary.eventsByType.echocardiogram + summary.eventsByType.electrocardiogram}
                   </div>
                   <p className="text-[9px] font-semibold text-slate-600 dark:text-slate-400 uppercase">

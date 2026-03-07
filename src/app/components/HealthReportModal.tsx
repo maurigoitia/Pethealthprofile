@@ -246,7 +246,7 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                                   href={row.documentUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-[11px] font-bold text-[#2b6fee]"
+                                  className="text-[11px] font-bold text-[#074738]"
                                 >
                                   Ver
                                 </a>

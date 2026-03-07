@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
 import jsPDF from "jspdf";
 import { PetPhoto } from "./PetPhoto";
+import { savePdfWithFallback } from "../utils/pdfExport";
 
 interface Vaccine {
   id: number;
@@ -131,7 +132,10 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
     pdf.text("Generado por PESSY — pessy.app", margin, 291);
     pdf.text("Documento de uso informativo.", pageW - margin, 291, { align: "right" });
 
-    pdf.save(`PESSY_Carnet_Vacunacion_${petData.name}_${new Date().toISOString().slice(0, 10)}.pdf`);
+    await savePdfWithFallback(
+      pdf,
+      `PESSY_Carnet_Vacunacion_${petData.name}_${new Date().toISOString().slice(0, 10)}.pdf`,
+    );
   };
 
   const hasOverdue = vaccines.some(v => v.status === "overdue");
@@ -182,7 +186,7 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
 
               {/* Mini card oficial */}
-              <div className="bg-gradient-to-br from-[#2b7cee] to-[#5a8aff] rounded-2xl p-5 text-white shadow-xl">
+              <div className="bg-gradient-to-br from-[#074738] to-[#1a9b7d] rounded-2xl p-5 text-white shadow-xl">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="size-12 rounded-xl overflow-hidden border border-white/30 bg-white/15">

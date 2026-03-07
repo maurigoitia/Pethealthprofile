@@ -60,7 +60,7 @@ export function VerifyReportScreen() {
           </Link>
 
           <div className="flex items-center gap-4 mb-4">
-            <div className="size-14 bg-[#2b7cee] dark:bg-white/10 text-white dark:text-white rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg transition-colors">
+            <div className="size-14 bg-[#074738] dark:bg-white/10 text-white dark:text-white rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg transition-colors">
               P
             </div>
             <div>
@@ -88,7 +88,7 @@ export function VerifyReportScreen() {
 
           {status === "loading" ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#2b7cee] border-t-transparent mb-4"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#074738] border-t-transparent mb-4"></div>
               <p className="text-sm text-slate-500 font-bold">Verificando integridad...</p>
             </div>
           ) : status === "found" && report ? (
@@ -136,7 +136,7 @@ export function VerifyReportScreen() {
 
                 <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
-                    Resumen Clínico
+                    Resumen Clínico (Vista Pública Redaccionada)
                   </p>
                   <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl mb-6">
                     <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
@@ -145,25 +145,31 @@ export function VerifyReportScreen() {
                   </div>
 
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
-                    Información Registrada
+                    Metadatos Públicos del Certificado
                   </p>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Mascota</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Tipo</p>
                       <p className="text-base font-bold text-slate-900 dark:text-white">
-                        {report.petName || "No disponible"}
+                        {report.certificateType || "Certificado clínico"}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Raza</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Versión</p>
                       <p className="text-base font-bold text-slate-900 dark:text-white">
-                        {report.petBreed || "No registrada"}
+                        {report.verificationVersion || "pessy_verified_v2"}
                       </p>
                     </div>
-                    <div className="col-span-2">
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Tutor Certificado</p>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Documentos resumidos</p>
                       <p className="text-base font-bold text-slate-900 dark:text-white">
-                        {report.ownerName || "No registrado"}
+                        {typeof report.documentCount === "number" ? report.documentCount : 0}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Fuente narrativa</p>
+                      <p className="text-base font-bold text-slate-900 dark:text-white">
+                        {report.includesAiNarrative ? "Resumen IA (no canónico)" : "No aplica"}
                       </p>
                     </div>
                   </div>
@@ -237,7 +243,7 @@ export function VerifyReportScreen() {
         {/* Footer Info */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6">
           <div className="flex items-start gap-3">
-            <MaterialIcon name="info" className="text-[#2b7cee] text-xl mt-0.5" />
+            <MaterialIcon name="info" className="text-[#074738] text-xl mt-0.5" />
             <div>
               <p className="text-xs font-bold text-slate-900 dark:text-white mb-2">
                 Sobre este sistema

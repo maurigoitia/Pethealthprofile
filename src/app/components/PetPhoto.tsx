@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface PetPhotoProps {
   src?: string | null;
@@ -22,12 +22,16 @@ export function PetPhoto({
     return src.trim();
   }, [src]);
 
+  useEffect(() => {
+    setImageError(false);
+  }, [normalizedSrc]);
+
   const shouldShowFallback = !normalizedSrc || imageError;
 
   if (shouldShowFallback) {
     return (
       <div
-        className={`relative overflow-hidden bg-gradient-to-br from-[#2b7cee] to-[#5ea8ff] ${className} ${fallbackClassName}`}
+        className={`relative overflow-hidden bg-gradient-to-br from-[#074738] to-[#1a9b7d] ${className} ${fallbackClassName}`}
         aria-label={alt}
       >
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.28),transparent_45%),radial-gradient(circle_at_85%_85%,rgba(255,255,255,0.16),transparent_40%)]" />
@@ -51,4 +55,3 @@ export function PetPhoto({
     />
   );
 }
-

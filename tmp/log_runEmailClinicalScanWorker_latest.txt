@@ -1,0 +1,120 @@
+2026-03-05T22:27:01.823795638Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T22:27:01.997221982Z D runEmailClinicalScanWorker: Function execution took 173 ms, finished with status: 'ok'
+2026-03-05T22:32:01.685990194Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T22:32:02.028816051Z D runEmailClinicalScanWorker: Function execution took 342 ms, finished with status: 'ok'
+2026-03-05T22:37:02.331750062Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T22:37:02.632668799Z D runEmailClinicalScanWorker: Function execution took 300 ms, finished with status: 'ok'
+2026-03-05T22:42:01.846638247Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T22:42:02.251678062Z D runEmailClinicalScanWorker: Function execution took 405 ms, finished with status: 'ok'
+2026-03-05T22:47:01.751708965Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T22:47:02.100855689Z D runEmailClinicalScanWorker: Function execution took 349 ms, finished with status: 'ok'
+2026-03-05T22:52:01.855714469Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T22:52:02.098965868Z D runEmailClinicalScanWorker: Function execution took 243 ms, finished with status: 'ok'
+2026-03-05T22:57:01.726251944Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T22:57:02.028773918Z D runEmailClinicalScanWorker: Function execution took 302 ms, finished with status: 'ok'
+2026-03-05T23:02:01.706824462Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T23:02:01.904434055Z D runEmailClinicalScanWorker: Function execution took 197 ms, finished with status: 'ok'
+2026-03-05T23:07:01.701173229Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T23:07:01.959411718Z D runEmailClinicalScanWorker: Function execution took 258 ms, finished with status: 'ok'
+2026-03-05T23:12:02.342802509Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T23:12:02.674050223Z D runEmailClinicalScanWorker: Function execution took 331 ms, finished with status: 'ok'
+2026-03-05T23:17:01.525361736Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T23:17:02.075848733Z D runEmailClinicalScanWorker: Function execution took 550 ms, finished with status: 'ok'
+2026-03-05T23:22:01.784039345Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T23:22:02.079551288Z D runEmailClinicalScanWorker: Function execution took 295 ms, finished with status: 'ok'
+2026-03-05T23:27:01.855880773Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T23:27:02.138329708Z D runEmailClinicalScanWorker: Function execution took 282 ms, finished with status: 'ok'
+2026-03-05T23:32:02.119018462Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T23:32:02.319820903Z D runEmailClinicalScanWorker: Function execution took 200 ms, finished with status: 'ok'
+2026-03-05T23:37:02.291647584Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T23:37:02.649935304Z D runEmailClinicalScanWorker: Function execution took 358 ms, finished with status: 'ok'
+2026-03-05T23:42:01.841972872Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T23:42:02.078877700Z D runEmailClinicalScanWorker: Function execution took 236 ms, finished with status: 'ok'
+2026-03-05T23:47:01.688497268Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T23:47:02.014970791Z D runEmailClinicalScanWorker: Function execution took 326 ms, finished with status: 'ok'
+2026-03-05T23:52:01.214193603Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T23:52:01.471321064Z D runEmailClinicalScanWorker: Function execution took 257 ms, finished with status: 'ok'
+2026-03-05T23:57:01.757021430Z D runEmailClinicalScanWorker: Function execution started
+2026-03-05T23:57:02.066509204Z D runEmailClinicalScanWorker: Function execution took 309 ms, finished with status: 'ok'
+2026-03-06T00:02:01.866181866Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T00:02:02.133501526Z D runEmailClinicalScanWorker: Function execution took 267 ms, finished with status: 'ok'
+2026-03-06T00:07:01.807914041Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T00:07:02.164145063Z D runEmailClinicalScanWorker: Function execution took 356 ms, finished with status: 'ok'
+2026-03-06T00:12:01.783967056Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T00:12:01.999237959Z D runEmailClinicalScanWorker: Function execution took 215 ms, finished with status: 'ok'
+2026-03-06T00:17:02.389547482Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T00:17:02.744374402Z D runEmailClinicalScanWorker: Function execution took 354 ms, finished with status: 'ok'
+2026-03-06T00:22:02.232989064Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T00:22:02.747300165Z D runEmailClinicalScanWorker: Function execution took 514 ms, finished with status: 'ok'
+2026-03-06T00:27:01.780797783Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T00:27:01.961528556Z D runEmailClinicalScanWorker: Function execution took 180 ms, finished with status: 'ok'
+2026-03-06T00:32:01.777518469Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T00:32:02.013628283Z D runEmailClinicalScanWorker: Function execution took 236 ms, finished with status: 'ok'
+2026-03-06T00:37:01.713297761Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T00:37:01.909778977Z D runEmailClinicalScanWorker: Function execution took 196 ms, finished with status: 'ok'
+2026-03-06T00:42:01.869264290Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T00:42:02.123953420Z D runEmailClinicalScanWorker: Function execution took 254 ms, finished with status: 'ok'
+2026-03-06T00:47:01.717516707Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T00:47:01.924377895Z D runEmailClinicalScanWorker: Function execution took 206 ms, finished with status: 'ok'
+2026-03-06T00:52:01.768044503Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T00:52:02.074946546Z D runEmailClinicalScanWorker: Function execution took 306 ms, finished with status: 'ok'
+2026-03-06T00:57:01.790707298Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T00:57:02.036324861Z D runEmailClinicalScanWorker: Function execution took 245 ms, finished with status: 'ok'
+2026-03-06T01:02:01.747590431Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:02:02.018061310Z D runEmailClinicalScanWorker: Function execution took 270 ms, finished with status: 'ok'
+2026-03-06T01:07:02.739690193Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:07:02.987865214Z D runEmailClinicalScanWorker: Function execution took 248 ms, finished with status: 'ok'
+2026-03-06T01:12:01.860626273Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:12:02.064551904Z D runEmailClinicalScanWorker: Function execution took 203 ms, finished with status: 'ok'
+2026-03-06T01:17:01.715042385Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:17:01.950462512Z D runEmailClinicalScanWorker: Function execution took 235 ms, finished with status: 'ok'
+2026-03-06T01:22:02.339984641Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:22:02.498164263Z D runEmailClinicalScanWorker: Function execution took 158 ms, finished with status: 'ok'
+2026-03-06T01:27:02.222633209Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:27:05.623005303Z D runEmailClinicalScanWorker: Function execution took 3400 ms, finished with status: 'ok'
+2026-03-06T01:30:38.302393700Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:30:41.078117628Z D runEmailClinicalScanWorker: Function execution took 2775 ms, finished with status: 'ok'
+2026-03-06T01:32:42.870142292Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:32:48.841311790Z D runEmailClinicalScanWorker: Function execution took 5971 ms, finished with status: 'ok'
+2026-03-06T01:32:59.840967655Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:32:59.925523991Z D runEmailClinicalScanWorker: Function execution took 84 ms, finished with status: 'ok'
+2026-03-06T01:33:19.346653852Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:33:19.466493180Z D runEmailClinicalScanWorker: Function execution took 119 ms, finished with status: 'ok'
+2026-03-06T01:33:39.543341658Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:33:39.641066341Z D runEmailClinicalScanWorker: Function execution took 97 ms, finished with status: 'ok'
+2026-03-06T01:33:57.997685817Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:33:58.082472138Z D runEmailClinicalScanWorker: Function execution took 84 ms, finished with status: 'ok'
+2026-03-06T01:34:16.703418738Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:34:16.846100905Z D runEmailClinicalScanWorker: Function execution took 142 ms, finished with status: 'ok'
+2026-03-06T01:38:42.667483708Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:38:50.109591902Z D runEmailClinicalScanWorker: Function execution took 7442 ms, finished with status: 'ok'
+2026-03-06T01:39:01.559111020Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:39:01.672291767Z D runEmailClinicalScanWorker: Function execution took 113 ms, finished with status: 'ok'
+2026-03-06T01:39:20.536908583Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:39:20.633085260Z D runEmailClinicalScanWorker: Function execution took 96 ms, finished with status: 'ok'
+2026-03-06T01:39:39.016575711Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:39:39.149544315Z D runEmailClinicalScanWorker: Function execution took 132 ms, finished with status: 'ok'
+2026-03-06T01:39:59.320238128Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:39:59.416241546Z D runEmailClinicalScanWorker: Function execution took 96 ms, finished with status: 'ok'
+2026-03-06T01:40:17.759076369Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:40:17.867015214Z D runEmailClinicalScanWorker: Function execution took 107 ms, finished with status: 'ok'
+2026-03-06T01:40:37.821436488Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:40:37.911375366Z D runEmailClinicalScanWorker: Function execution took 89 ms, finished with status: 'ok'
+2026-03-06T01:40:56.729391704Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:40:56.837514262Z D runEmailClinicalScanWorker: Function execution took 108 ms, finished with status: 'ok'
+2026-03-06T01:45:01.826030873Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:45:01.989349802Z D runEmailClinicalScanWorker: Function execution took 163 ms, finished with status: 'ok'
+2026-03-06T01:50:01.223569160Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:50:01.404082571Z D runEmailClinicalScanWorker: Function execution took 180 ms, finished with status: 'ok'
+2026-03-06T01:55:01.760786465Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T01:55:02.017205511Z D runEmailClinicalScanWorker: Function execution took 256 ms, finished with status: 'ok'
+2026-03-06T01:58:18.796345Z N runEmailClinicalScanWorker: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","authenticationInfo":{"principalEmail":"mauriciogoitia@gmail.com","principalSubject":"user:mauriciogoitia@gmail.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"callerIp":"2800:810:4f8:af:4d6:d96f:760b:ac3c","callerSuppliedUserAgent":"FirebaseCLI/15.7.0,gzip(gfe),gzip(gfe)","requestAttributes":{"time":"2026-03-06T01:58:19.270230Z","auth":{}},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.UpdateFunction","authorizationInfo":[{"resource":"projects/gen-lang-client-0123805751/locations/us-central1/functions/runEmailClinicalScanWorker","permission":"cloudfunctions.functions.update","granted":true,"resourceAttributes":{},"permissionType":"ADMIN_WRITE"}],"resourceName":"projects/gen-lang-client-0123805751/locations/us-central1/functions/runEmailClinicalScanWorker","request":{"@type":"type.googleapis.com/google.cloud.functions.v1.UpdateFunctionRequest","function":{"dockerRegistry":"ARTIFACT_REGISTRY","entryPoint":"runEmailClinicalScanWorker","name":"projects/gen-lang-client-0123805751/locations/us-central1/functions/runEmailClinicalScanWorker","timeout":"540s","secretEnvironmentVariables":[{"secret":"GMAIL_OAUTH_CLIENT_ID","key":"GMAIL_OAUTH_CLIENT_ID","version":"1","projectId":"gen-lang-client-0123805751"},{"version":"1","projectId":"gen-lang-client-0123805751","secret":"GMAIL_OAUTH_CLIENT_SECRET","key":"GMAIL_OAUTH_CLIENT_SECRET"},{"secret":"MAIL_TOKEN_ENCRYPTION_KEY","key":"MAIL_TOKEN_ENCRYPTION_KEY","version":"1","projectId":"gen-lang-client-0123805751"},{"secret":"GEMINI_API_KEY","key":"GEMINI_API_KEY","version":"1","projectId":"gen-lang-client-0123805751"}],"availableMemoryMb":1024,"eventTrigger":{"resource":"projects/gen-lang-client-0123805751/topics/firebase-schedule-runEmailClinicalScanWorker-us-central1","eventType":"google.pubsub.topic.publish"},"labels":{"deployment-scheduled":"true","firebase-functions-hash":"bd085bc5aa83c63b32b7524b77154eda42021089","deployment-tool":"cli-firebase"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-287804128350.us-central1.cloudfunctions.appspot.com/2088bab8-92cd-4b04-ae44-dbafe93d18cf.zip?GoogleAccessId=service-1014436216914@gcf-admin-robot.iam.gserviceaccount.com&Expires=1772764096&Signature=m03FDJKEOOxqCbSPyvsJE0ezkO8uFHTQUMbs0FnSFrQ4N8OXAF%2F3MirqOrvo0wvxicgb4JWFJ5SIX459Gn3dVbf5hw69XPZ1Q17zCiw319y7aEQvr0hrRonXkwBS7xZuHOOb0l6jJmb6AZhClK8qIoAofgfcFIJ7DMZEOVgnUbFvUgenVdcx64Kc9VLn2xk2bY5QFN1cP1uGLedUu28Tq1UEpcL8qnrxwfJcyguzkrbglUP1CE%2FHhSoPs63y192nqwFcLSFxw0FtX%2F6QaHgnzp8F8LI5tCczUBTNNlXGos57M7r2V95tgeXDopQDbURkYiho6kre0DO8ZR7I3fYKuw%3D%3D","runtime":"nodejs20"},"updateMask":"name,sourceUploadUrl,entryPoint,runtime,dockerRegistry,labels,eventTrigger.eventType,eventTrigger.resource,minInstances,maxInstances,ingressSettings,environmentVariables,secretEnvironmentVariables,serviceAccountEmail,availableMemoryMb,timeout,vpcConnector,vpcConnectorEgressSettings,sourceToken,buildEnvironmentVariables"},"resourceLocation":{"currentLocations":["us-central1"]}}
+2026-03-06T01:59:43.793492Z N runEmailClinicalScanWorker: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.UpdateFunction","resourceName":"projects/gen-lang-client-0123805751/locations/us-central1/functions/runEmailClinicalScanWorker"}
+2026-03-06T02:04:00.802368869Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T02:04:02.168949932Z D runEmailClinicalScanWorker: Function execution took 1366 ms, finished with status: 'ok'
+2026-03-06T02:09:02.437230100Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T02:09:02.591296262Z D runEmailClinicalScanWorker: Function execution took 154 ms, finished with status: 'ok'
+2026-03-06T02:11:16.693910Z N runEmailClinicalScanWorker: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","authenticationInfo":{"principalEmail":"mauriciogoitia@gmail.com","principalSubject":"user:mauriciogoitia@gmail.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"callerIp":"2800:810:4f8:af:4d6:d96f:760b:ac3c","callerSuppliedUserAgent":"FirebaseCLI/15.7.0,gzip(gfe),gzip(gfe)","requestAttributes":{"time":"2026-03-06T02:11:17.134155Z","auth":{}},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.UpdateFunction","authorizationInfo":[{"resource":"projects/gen-lang-client-0123805751/locations/us-central1/functions/runEmailClinicalScanWorker","permission":"cloudfunctions.functions.update","granted":true,"resourceAttributes":{},"permissionType":"ADMIN_WRITE"}],"resourceName":"projects/gen-lang-client-0123805751/locations/us-central1/functions/runEmailClinicalScanWorker","request":{"@type":"type.googleapis.com/google.cloud.functions.v1.UpdateFunctionRequest","updateMask":"name,sourceUploadUrl,entryPoint,runtime,dockerRegistry,labels,eventTrigger.eventType,eventTrigger.resource,minInstances,maxInstances,ingressSettings,environmentVariables,secretEnvironmentVariables,serviceAccountEmail,availableMemoryMb,timeout,vpcConnector,vpcConnectorEgressSettings,sourceToken,buildEnvironmentVariables","function":{"labels":{"deployment-scheduled":"true","deployment-tool":"cli-firebase","firebase-functions-hash":"4ad3f6c5aa9f9c2f52c07b56f8b0e145d591c4df"},"sourceToken":"031b8d44-b81b-498c-9d8c-1f1855dfee8a","availableMemoryMb":1024,"secretEnvironmentVariables":[{"version":"1","key":"GMAIL_OAUTH_CLIENT_ID","projectId":"gen-lang-client-0123805751","secret":"GMAIL_OAUTH_CLIENT_ID"},{"version":"1","projectId":"gen-lang-client-0123805751","secret":"GMAIL_OAUTH_CLIENT_SECRET","key":"GMAIL_OAUTH_CLIENT_SECRET"},{"projectId":"gen-lang-client-0123805751","secret":"MAIL_TOKEN_ENCRYPTION_KEY","key":"MAIL_TOKEN_ENCRYPTION_KEY","version":"1"},{"version":"1","key":"GEMINI_API_KEY","projectId":"gen-lang-client-0123805751","secret":"GEMINI_API_KEY"}],"entryPoint":"runEmailClinicalScanWorker","name":"projects/gen-lang-client-0123805751/locations/us-central1/functions/runEmailClinicalScanWorker","timeout":"540s","sourceUploadUrl":"https://storage.googleapis.com/uploads-287804128350.us-central1.cloudfunctions.appspot.com/6cf1468a-7214-4c6a-8323-b6392a8f668d.zip?GoogleAccessId=service-1014436216914@gcf-admin-robot.iam.gserviceaccount.com&Expires=1772764823&Signature=TEdXIGJaA17C458d8IlsaSlgwQS9Ksj08p5%2Fj%2B8uj38WQ7zPnv6mreawpxAM%2B%2BpK5TJpq060b%2B6QWtDmTpMIHYqTStgIya6v3vOi9kmxZtqIvsJQWyqOE%2BcsjwGhVXsarlm5mSIQBE%2FgSYzVrXXpG3%2B5VzARNOnEug3200BojWsAR5ASmy0DREXmgLslwl3pXUheRWHRnWrkiJmQd6FA6PctiJkHmhpeyTmYWCotOc3oCAPdnXWg%2Bn7jn5zXz%2FpCVtruqYeC7G0OAcDAEsrb7%2BdpxVN%2FZyoM1nfLLEcyTChpOmHlAWtGq7OTRMG8zuvrFyFESSv3FUWho%2FVQcCbtLQ%3D%3D","dockerRegistry":"ARTIFACT_REGISTRY","runtime":"nodejs20","eventTrigger":{"resource":"projects/gen-lang-client-0123805751/topics/firebase-schedule-runEmailClinicalScanWorker-us-central1","eventType":"google.pubsub.topic.publish"}}},"resourceLocation":{"currentLocations":["us-central1"]}}
+2026-03-06T02:11:34.321598Z N runEmailClinicalScanWorker: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.UpdateFunction","resourceName":"projects/gen-lang-client-0123805751/locations/us-central1/functions/runEmailClinicalScanWorker"}
+2026-03-06T02:16:00.828323931Z D runEmailClinicalScanWorker: Function execution started
+2026-03-06T02:16:05.063264950Z D runEmailClinicalScanWorker: Function execution took 4234 ms, finished with status: 'ok'

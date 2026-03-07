@@ -5,6 +5,7 @@ import {
 } from "firebase/firestore";
 import { sendSignInLinkToEmail } from "firebase/auth";
 import { useAuth } from "./AuthContext";
+import { buildAuthActionUrl, createCoTutorActionCodeSettings } from "../utils/authActionLinks";
 
 export interface WeightEntry {
   date: string;
@@ -18,6 +19,8 @@ export interface CoTutor {
   addedAt: string;
 }
 
+export type BirthDatePrecision = "exact" | "month" | "year" | "unknown";
+
 export interface Pet {
   id: string;
   name: string;
@@ -27,6 +30,7 @@ export interface Pet {
   age?: string;
   weight?: string;
   birthDate?: string;
+  birthDatePrecision?: BirthDatePrecision;
   sex?: "male" | "female";
   isNeutered?: boolean;
   ownerId?: string;
@@ -177,6 +181,9 @@ export function PetProvider({ children }: { children: ReactNode }) {
       coTutorUids: [],
       createdAt: new Date().toISOString(),
     });
+    // Al crear una mascota nueva, se selecciona automáticamente como activa.
+    setActivePetIdState(docRef.id);
+    localStorage.setItem("activePetId", docRef.id);
     return docRef.id;
   };
 
@@ -223,13 +230,23 @@ export function PetProvider({ children }: { children: ReactNode }) {
     }
 
     const code = await generateInviteCode(petId, normalizedEmail);
-    const baseUrl = window.location.origin;
-    const inviteLink = `${baseUrl}/email-link?invite=${encodeURIComponent(code)}`;
+    const inviteLink = buildAuthActionUrl("/email-link", { invite: code });
 
-    await sendSignInLinkToEmail(auth, normalizedEmail, {
-      url: inviteLink,
-      handleCodeInApp: true,
-    });
+    try {
+      await sendSignInLinkToEmail(auth, normalizedEmail, createCoTutorActionCodeSettings(code));
+    } catch (err: any) {
+      const codeErr = err?.code || "";
+      if (codeErr === "auth/operation-not-allowed") {
+        throw new Error("Email Link no está habilitado en Firebase Auth. Activá Sign-in method > Email/Password > Email link.");
+      }
+      if (codeErr === "auth/unauthorized-domain") {
+        throw new Error("Dominio no autorizado en Firebase Auth. Agregá este dominio en Authorized domains.");
+      }
+      if (codeErr === "auth/invalid-continue-uri" || codeErr === "auth/invalid-dynamic-link-domain") {
+        throw new Error("La URL de invitación no es válida en Firebase Auth. Revisá Action URL / dominio.");
+      }
+      throw new Error("No se pudo enviar el correo de invitación. Revisá configuración de Auth.");
+    }
 
     localStorage.setItem("pessy_magic_link_email", normalizedEmail);
     return { code, inviteLink };

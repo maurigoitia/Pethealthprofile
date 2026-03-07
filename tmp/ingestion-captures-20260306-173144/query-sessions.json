@@ -1,0 +1,14 @@
+{
+  "structuredQuery": {
+    "from": [{"collectionId": "gmail_ingestion_sessions"}],
+    "where": {
+      "fieldFilter": {
+        "field": {"fieldPath": "user_id"},
+        "op": "EQUAL",
+        "value": {"stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"}
+      }
+    },
+    "orderBy": [{"field": {"fieldPath": "updated_at"}, "direction": "DESCENDING"}],
+    "limit": 3
+  }
+}

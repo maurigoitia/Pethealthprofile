@@ -1,5 +1,27 @@
 {
   "projects": {
     "default": "gen-lang-client-0123805751"
-  }
+  },
+  "targets": {
+    "gen-lang-client-0123805751": {
+      "hosting": {
+        "app": [
+          "gen-lang-client-0123805751"
+        ],
+        "landing": [
+          "gen-lang-client-landing-qa"
+        ],
+        "landingqa": [
+          "pessy-qa-landing"
+        ],
+        "appqa": [
+          "pessy-qa-app"
+        ],
+        "appit": [
+          "itpessy"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

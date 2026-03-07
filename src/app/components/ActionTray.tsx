@@ -1,21 +1,27 @@
 import { MaterialIcon } from "./MaterialIcon";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { EmptyState } from "./EmptyState";
+import { useNavigate } from "react-router";
 import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
 import { PendingAction } from "../types/medical";
 import { formatDateSafe, parseDateSafe } from "../utils/dateUtils";
+import { isPendingActionsEnabled } from "../utils/runtimeFlags";
 
 export function ActionTray() {
+  const pendingEnabled = isPendingActionsEnabled();
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [showList, setShowList] = useState(false);
+  const navigate = useNavigate();
   
   const { activePetId } = usePet();
-  const { getPendingActionsByPetId, completePendingAction } = useMedical();
+  const { getPendingActionsByPetId, completePendingAction, deletePendingAction } = useMedical();
 
   // Get real pending actions from context
   const pendingActions = getPendingActionsByPetId(activePetId);
   const hasActions = pendingActions.length > 0;
+  const incompleteActions = pendingActions.filter((action) => action.type === "incomplete_data");
+  const shouldRender = pendingEnabled || incompleteActions.length > 0;
 
   const toggleCard = (id: string) => {
     setExpandedCard(expandedCard === id ? null : id);
@@ -23,6 +29,11 @@ export function ActionTray() {
 
   const handleComplete = (id: string) => {
     completePendingAction(id);
+  };
+
+  const openReview = (action: PendingAction) => {
+    if (!action.reviewId) return;
+    navigate(`/review/${action.reviewId}`);
   };
 
   // Map action type to icon
@@ -38,6 +49,10 @@ export function ActionTray() {
         return "biotech";
       case "follow_up":
         return "event";
+      case "incomplete_data":
+        return "warning";
+      case "sync_review":
+        return "visibility";
       default:
         return "task_alt";
     }
@@ -87,31 +102,47 @@ export function ActionTray() {
     return date.toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" });
   };
 
+  if (!shouldRender || !hasActions) return null;
+
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-black flex items-center gap-2">
-          <MaterialIcon name="inbox" className="text-[#2b7cee] dark:text-[#5a8aff] text-xl" />
-          Pendientes
+        <h2 className="text-base font-black flex items-center gap-2 text-slate-700 dark:text-slate-200">
+          <MaterialIcon name="inbox" className="text-slate-500 dark:text-slate-300 text-lg" />
+          Seguimientos
         </h2>
-        {hasActions && (
-          <span className="bg-[#2b7cee]/10 text-[#2b7cee] dark:text-[#5a8aff] text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
-            {pendingActions.length}
-          </span>
-        )}
+        <button
+          onClick={() => setShowList((prev) => !prev)}
+          className="text-[11px] font-black uppercase tracking-wide text-[#074738] hover:underline"
+        >
+          {showList ? "Ocultar" : `Ver ${pendingActions.length}`}
+        </button>
       </div>
 
-      {!hasActions ? (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-          <EmptyState
-            icon="task_alt"
-            title="¡Todo al día!"
-            description="No tienes tareas pendientes. Tus mascotas están al día con sus cuidados médicos."
-            illustration="medical"
-          />
-        </div>
+      {!showList ? (
+        <button
+          onClick={() => setShowList(true)}
+          className="w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+        >
+          <p className="text-sm font-bold text-slate-900 dark:text-white">
+            {pendingActions.length} pendiente{pendingActions.length !== 1 ? "s" : ""} activo{pendingActions.length !== 1 ? "s" : ""}
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Se movieron acá para no tapar el historial principal.
+          </p>
+        </button>
       ) : (
         <div className="space-y-2.5">
+          {incompleteActions.length > 0 && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+              <p className="text-xs font-black uppercase tracking-wide text-red-700">
+                Datos clínicos incompletos
+              </p>
+              <p className="text-xs text-red-700 mt-1">
+                Detectamos {incompleteActions.length} registro{incompleteActions.length > 1 ? "s" : ""} con medicación incompleta. Revisalo para activarlo.
+              </p>
+            </div>
+          )}
           {pendingActions.map((action) => {
             const isExpanded = expandedCard === action.id;
             const priority = getPriority(action.dueDate);
@@ -128,7 +159,7 @@ export function ActionTray() {
                   className="w-full p-4 flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <div className="relative">
-                    <div className="size-11 bg-[#2b7cee]/10 text-[#2b7cee] dark:text-[#5a8aff] rounded-xl flex items-center justify-center shrink-0">
+                    <div className="size-11 bg-[#074738]/10 text-[#074738] dark:text-[#1a9b7d] rounded-xl flex items-center justify-center shrink-0">
                       <MaterialIcon name={icon} className="text-xl" />
                     </div>
                     <div
@@ -143,7 +174,7 @@ export function ActionTray() {
                       {action.title}
                     </h3>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-xs text-[#2b7cee] dark:text-[#5a8aff] font-semibold">
+                      <p className="text-xs text-[#074738] dark:text-[#1a9b7d] font-semibold">
                         {action.subtitle}
                       </p>
                       <span className="text-xs text-slate-300 dark:text-slate-700">•</span>
@@ -173,7 +204,6 @@ export function ActionTray() {
                       transition={{ duration: 0.2 }}
                     >
                       <div className="px-4 pb-4 space-y-3 border-t border-slate-100 dark:border-slate-800 pt-3">
-                        {/* Info */}
                         <div className="space-y-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-slate-500 dark:text-slate-400">
@@ -200,19 +230,35 @@ export function ActionTray() {
                           )}
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="flex gap-2">
+                          {action.type === "incomplete_data" && action.reviewId && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openReview(action);
+                              }}
+                              className="flex-1 px-4 py-2.5 rounded-lg text-xs font-bold bg-red-600 text-white hover:bg-red-700 transition-colors"
+                            >
+                              Ver y editar
+                            </button>
+                          )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleComplete(action.id);
                             }}
-                            className="flex-1 px-4 py-2.5 rounded-lg text-xs font-bold bg-[#2b7cee] text-white hover:bg-[#5a8aff] transition-colors"
+                            className="flex-1 px-4 py-2.5 rounded-lg text-xs font-bold bg-[#074738] text-white hover:bg-[#1a9b7d] transition-colors"
                           >
-                            Marcar como completado
+                            Marcar completado
                           </button>
-                          <button className="px-4 py-2.5 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                            Posponer
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void deletePendingAction(action.id);
+                            }}
+                            className="px-4 py-2.5 rounded-lg text-xs font-bold bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                          >
+                            Eliminar
                           </button>
                         </div>
                       </div>

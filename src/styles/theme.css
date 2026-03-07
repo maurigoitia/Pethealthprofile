@@ -2,8 +2,20 @@
 
 :root {
   --font-size: 16px;
-  --pessy-blue: #2b7cee;
-  --pessy-blue-light: #5d9fff;
+  --pessy-primary-deep: #074738;
+  --pessy-primary-action: #1a9b7d;
+  --pessy-primary-soft: #e0f2f1;
+  --pessy-primary-bg: #f0faf9;
+  --pessy-neutral-900: #1a1a1a;
+  --pessy-neutral-700: #404040;
+  --pessy-neutral-400: #b0b0b0;
+  --pessy-white: #ffffff;
+  --pessy-success: #4caf50;
+  --pessy-warning: #ffc107;
+  --pessy-error: #f44336;
+  --pessy-info: #2196f3;
+  --pessy-gradient-main: linear-gradient(135deg, #074738 0%, #1a9b7d 100%);
+  --pessy-gradient-soft: linear-gradient(180deg, #f0faf9 0%, #e0f2f1 100%);
   --background: #ffffff;
   --foreground: oklch(0.145 0 0);
   --card: #ffffff;

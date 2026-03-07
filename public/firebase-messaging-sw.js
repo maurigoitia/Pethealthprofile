@@ -9,8 +9,8 @@ firebase.initializeApp({
   authDomain: "gen-lang-client-0123805751.firebaseapp.com",
   projectId: "gen-lang-client-0123805751",
   storageBucket: "gen-lang-client-0123805751.firebasestorage.app",
-  messagingSenderId: "921474261073",
-  appId: "1:921474261073:web:9f8cb655e8df8177699119"
+  messagingSenderId: "1014436216914",
+  appId: "1:1014436216914:web:98f94f55738c08a20b9f8b"
 });
 
 const messaging = firebase.messaging();
@@ -28,15 +28,15 @@ messaging.onBackgroundMessage((payload) => {
     tag: data?.notificationId || 'pessy-reminder',
     data: data || {},
     actions: [
-      { action: 'view', title: '👁 Ver detalles' },
+      { action: 'view', title: 'Ver detalles' },
       { action: 'dismiss', title: 'Descartar' }
     ],
-    requireInteraction: true, // No desaparece hasta que el usuario interactúa
+    requireInteraction: true,
     vibrate: [200, 100, 200],
   });
 });
 
-// Click en la notificación → abre la app
+// Click en la notificación -> abre la app
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   if (event.action === 'dismiss') return;

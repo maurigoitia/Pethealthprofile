@@ -1,0 +1,103 @@
+{
+  "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_sessions/962576ed-d93d-4786-b59b-12644059f4b1",
+  "fields": {
+    "updated_at": {
+      "stringValue": "2026-03-06T02:24:14.767Z"
+    },
+    "qa_disable_fallback_query": {
+      "booleanValue": true
+    },
+    "metrics.scan_count": {
+      "integerValue": "1"
+    },
+    "fallback_query": {
+      "stringValue": "(\"veterinaria\" OR \"veterinario\" OR \"veterinary\" OR \"clinic\" OR \"clinica\" OR \"hospital veterinario\" OR \"turno veterinario\" OR \"diagnosis\" OR \"diagnostico\" OR \"diagnóstico\" OR \"vacuna\" OR \"vaccine\" OR \"tratamiento\" OR \"medicacion\" OR \"medicación\" OR \"receta\" OR \"prescription\" OR \"laboratorio\" OR \"lab\" OR \"ecografia\" OR \"ultrasound\" OR \"radiografia\" OR \"radiography\" OR \"electrocardiograma\" OR \"ecg\" OR filename:receta OR filename:prescription OR filename:laboratorio OR filename:analisis OR filename:informe OR filename:radiografia OR filename:ecografia OR filename:ultrasound OR filename:ecg OR (from:vet OR from:veterinaria OR from:veterinary OR from:clinic OR from:clinica)) after:2025/03/06 before:2026/03/06"
+    },
+    "qa_total_scan_cap": {
+      "integerValue": "40"
+    },
+    "fallback_query_applied": {
+      "booleanValue": false
+    },
+    "effective_scan_cap": {
+      "integerValue": "40"
+    },
+    "status": {
+      "stringValue": "processing"
+    },
+    "counters": {
+      "mapValue": {
+        "fields": {
+          "events_requiring_review": {
+            "integerValue": "0"
+          },
+          "candidate_emails_detected": {
+            "integerValue": "4"
+          },
+          "duplicates_removed": {
+            "integerValue": "0"
+          },
+          "emails_with_images": {
+            "integerValue": "6"
+          },
+          "total_attachments_processed": {
+            "integerValue": "0"
+          },
+          "errors_count": {
+            "integerValue": "0"
+          },
+          "new_medical_events_created": {
+            "integerValue": "0"
+          },
+          "emails_with_attachments": {
+            "integerValue": "6"
+          },
+          "total_emails_scanned": {
+            "integerValue": "7"
+          }
+        }
+      }
+    },
+    "next_page_token": {
+      "nullValue": null
+    },
+    "started_at": {
+      "stringValue": "2026-03-06T02:24:11.163Z"
+    },
+    "lookback_before": {
+      "stringValue": "2026-03-06"
+    },
+    "session_id": {
+      "stringValue": "962576ed-d93d-4786-b59b-12644059f4b1"
+    },
+    "max_mails_per_sync": {
+      "integerValue": "40"
+    },
+    "qa_disable_dedup": {
+      "booleanValue": true
+    },
+    "lookback_after": {
+      "stringValue": "2025-03-06"
+    },
+    "query": {
+      "stringValue": "(\"thor\" OR \"iVoXhESOZ8FvuiWT43Ey\") AND (\"veterinaria\" OR \"veterinario\" OR \"veterinary\" OR \"clinic\" OR \"clinica\" OR \"hospital veterinario\" OR \"turno veterinario\" OR \"diagnosis\" OR \"diagnostico\" OR \"diagnóstico\" OR \"vacuna\" OR \"vaccine\" OR \"tratamiento\" OR \"medicacion\" OR \"medicación\" OR \"receta\" OR \"prescription\" OR \"laboratorio\" OR \"lab\" OR \"ecografia\" OR \"ultrasound\" OR \"radiografia\" OR \"radiography\" OR \"electrocardiograma\" OR \"ecg\" OR filename:receta OR filename:prescription OR filename:laboratorio OR filename:analisis OR filename:informe OR filename:radiografia OR filename:ecografia OR filename:ultrasound OR filename:ecg OR (from:vet OR from:veterinaria OR from:veterinary OR from:clinic OR from:clinica)) after:2025/03/06 before:2026/03/06"
+    },
+    "metrics.scan_ms": {
+      "integerValue": "2554"
+    },
+    "user_id": {
+      "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+    },
+    "pet_id": {
+      "stringValue": "iVoXhESOZ8FvuiWT43Ey"
+    },
+    "scan_complete": {
+      "booleanValue": true
+    },
+    "summary": {
+      "nullValue": null
+    }
+  },
+  "createTime": "2026-03-06T02:24:11.218346Z",
+  "updateTime": "2026-03-06T02:24:14.812686Z"
+}

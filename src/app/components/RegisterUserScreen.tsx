@@ -4,6 +4,7 @@ import { auth, db } from "../../lib/firebase";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { COUNTRIES } from "../data/countries";
+import { startGmailConnectFlow } from "../services/gmailSyncService";
 
 export function RegisterUserScreen() {
   const navigate = useNavigate();
@@ -13,6 +14,8 @@ export function RegisterUserScreen() {
   const [country, setCountry] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showGmailStep, setShowGmailStep] = useState(false);
+  const [gmailStepLoading, setGmailStepLoading] = useState(false);
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,17 +27,48 @@ export function RegisterUserScreen() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, password);
       const user = userCredential.user;
+      const inviteEnabled = true;
 
       await updateProfile(user, { displayName: name.trim() });
+      const nowIso = new Date().toISOString();
       await setDoc(doc(db, "users", user.uid), {
         fullName: name.trim(),
         name: name.trim(),
         email: cleanEmail,
         country: country || null,
-        createdAt: new Date().toISOString(),
+        createdAt: nowIso,
+        gmailSync: {
+          connected: false,
+          accountEmail: null,
+          grantedScopes: [],
+          inviteEnabled,
+          inviteStatus: inviteEnabled ? "open_access" : "not_invited",
+          consentRequestedAt: nowIso,
+          lastInAppPromptAt: nowIso,
+          updatedAt: nowIso,
+        },
+        gmailSyncInvitation: {
+          enabled: inviteEnabled,
+          status: inviteEnabled ? "open_access" : "not_invited",
+          reason: null,
+          updatedAt: nowIso,
+        },
+        gmailSyncReminder: {
+          status: "pending_permission",
+          dayNumber: 0,
+          sentCount: 0,
+          consentRequestedAt: nowIso,
+          lastPushSentAt: null,
+          updatedAt: nowIso,
+          lastError: null,
+        },
       });
 
-      navigate("/register-pet");
+      if (inviteEnabled) {
+        setShowGmailStep(true);
+      } else {
+        navigate("/register-pet");
+      }
     } catch (err: any) {
       if (err?.code === "auth/email-already-in-use") {
         setError("Ese correo ya está registrado.");
@@ -52,16 +86,32 @@ export function RegisterUserScreen() {
     }
   };
 
+  const handleConnectGmailNow = async () => {
+    if (gmailStepLoading) return;
+    setGmailStepLoading(true);
+    try {
+      await startGmailConnectFlow({ returnPath: "/register-pet" });
+    } catch (error) {
+      console.error("No se pudo iniciar OAuth Gmail en registro:", error);
+      alert("No se pudo iniciar la conexión con Gmail. Podés continuar y conectarlo después.");
+      setGmailStepLoading(false);
+    }
+  };
+
+  const handleContinueWithoutGmail = () => {
+    navigate("/register-pet");
+  };
+
   return (
     <div
       className="min-h-screen flex items-center justify-center px-6"
       style={{
-        backgroundImage: "linear-gradient(rgb(43,124,238) 0%, rgb(61,139,255) 50%, rgb(93,163,255) 100%)",
+        backgroundImage: "linear-gradient(180deg, #074738 0%, #0e6a5a 50%, #1a9b7d 100%)",
       }}
     >
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl px-6 pt-10 pb-10">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-black text-[#2b7cee]">Pessy</h1>
+          <h1 className="text-3xl font-black text-[#074738]">Pessy</h1>
           <p className="text-slate-500 text-sm mt-2">Que su historia no se pierda.</p>
         </div>
 
@@ -71,7 +121,7 @@ export function RegisterUserScreen() {
             placeholder="Nombre completo"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#2b7cee] outline-none"
+            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
             required
           />
 
@@ -80,7 +130,7 @@ export function RegisterUserScreen() {
             placeholder="Correo electrónico"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#2b7cee] outline-none"
+            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
             required
           />
 
@@ -89,7 +139,7 @@ export function RegisterUserScreen() {
             placeholder="Contraseña"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#2b7cee] outline-none"
+            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
             required
           />
 
@@ -98,7 +148,7 @@ export function RegisterUserScreen() {
             <select
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#2b7cee] outline-none appearance-none bg-white text-slate-700 cursor-pointer"
+              className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none appearance-none bg-white text-slate-700 cursor-pointer"
             >
               <option value="">🌍 ¿De dónde sos?</option>
               {COUNTRIES.map((c) => (
@@ -117,7 +167,7 @@ export function RegisterUserScreen() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 rounded-2xl bg-[#2b7cee] text-white font-bold disabled:opacity-60"
+            className="w-full py-4 rounded-2xl bg-[#074738] text-white font-bold disabled:opacity-60"
           >
             {loading ? "Creando..." : "Crear cuenta"}
           </button>
@@ -125,12 +175,44 @@ export function RegisterUserScreen() {
           <button
             type="button"
             onClick={() => navigate("/login")}
-            className="w-full py-4 rounded-2xl border-2 border-[#2b7cee] text-[#2b7cee] font-bold hover:bg-[#2b7cee]/5 transition-all"
+            className="w-full py-4 rounded-2xl border-2 border-[#074738] text-[#074738] font-bold hover:bg-[#074738]/5 transition-all"
           >
             Ya tengo cuenta
           </button>
         </form>
       </div>
+
+      {showGmailStep && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+            <div className="size-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+              <span className="material-symbols-outlined text-emerald-600 text-3xl">mail</span>
+            </div>
+            <h2 className="text-xl font-black text-slate-900 text-center mb-2">
+              Activá sincronización de correo
+            </h2>
+            <p className="text-sm text-slate-600 text-center leading-relaxed mb-5">
+              Pessy puede leer correos veterinarios para completar historial, tratamientos y turnos.
+              Vas a autorizarlo en Google como <span className="font-bold">pessy.app</span>.
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => void handleConnectGmailNow()}
+                disabled={gmailStepLoading}
+                className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors disabled:opacity-60"
+              >
+                {gmailStepLoading ? "Abriendo Google..." : "Dar permiso ahora"}
+              </button>
+              <button
+                onClick={handleContinueWithoutGmail}
+                className="w-full py-3 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors"
+              >
+                Continuar sin conectar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

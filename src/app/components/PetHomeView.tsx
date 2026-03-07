@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useMedical } from "../contexts/MedicalContext";
 import { formatDateSafe, toTimestampSafe } from "../utils/dateUtils";
 import { PetPhoto } from "./PetPhoto";
+import { isHomeDoseCardsEnabled } from "../utils/runtimeFlags";
 
 interface PetHomeViewProps {
   userName: string;
@@ -36,9 +37,11 @@ export function PetHomeView({
   const [isDragging, setIsDragging] = useState(false);
   const { getEventsByPetId, getActiveMedicationsByPetId } = useMedical();
   const safeUserName = (userName || "").trim() || "Tutor";
+  const homeDoseCardsEnabled = isHomeDoseCardsEnabled();
 
   const currentIndex = pets.findIndex(p => p.id === activePetId);
-  const activePet = pets[currentIndex];
+  const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
+  const activePet = pets[safeCurrentIndex];
   const hasMultiplePets = pets.length > 1;
 
   // Calcular estado real de vacunas
@@ -89,11 +92,32 @@ export function PetHomeView({
   const parseFrequencyHours = (value: string | null | undefined): number | null => {
     if (!value) return null;
     const text = value.toLowerCase().replace(",", ".");
+    const compact = text.replace(/\s+/g, "");
+
+    const compactHoursMatch = compact.match(/c\/(\d+(?:\.\d+)?)h/);
+    if (compactHoursMatch) {
+      const num = Number(compactHoursMatch[1]);
+      return Number.isFinite(num) && num > 0 ? num : null;
+    }
+
+    const compactDaysMatch = compact.match(/c\/(\d+(?:\.\d+)?)d/);
+    if (compactDaysMatch) {
+      const num = Number(compactDaysMatch[1]);
+      return Number.isFinite(num) && num > 0 ? num * 24 : null;
+    }
+
     const everyMatch = text.match(/cada\s+(\d+(?:\.\d+)?)\s*h/);
     if (everyMatch) {
       const num = Number(everyMatch[1]);
       return Number.isFinite(num) && num > 0 ? num : null;
     }
+
+    const everyDaysMatch = text.match(/cada\s+(\d+(?:\.\d+)?)\s*d[ií]a/);
+    if (everyDaysMatch) {
+      const num = Number(everyDaysMatch[1]);
+      return Number.isFinite(num) && num > 0 ? num * 24 : null;
+    }
+
     const dailyMatch = text.match(/(\d+)\s*vez(?:es)?\s*al\s*d[ií]a/);
     if (dailyMatch) {
       const times = Number(dailyMatch[1]);
@@ -143,7 +167,7 @@ export function PetHomeView({
     });
   };
 
-  const upcomingTreatments = activePetId
+  const upcomingTreatments = homeDoseCardsEnabled && activePetId
     ? getActiveMedicationsByPetId(activePetId)
         .slice(0, 6)
         .map((med) => ({
@@ -230,7 +254,7 @@ export function PetHomeView({
             {/* Status Badge */}
             {petData.isActive && (
               <div className="absolute top-4 right-4">
-                <div className="bg-[#2b6fee] text-white px-4 py-2 rounded-full text-xs font-black uppercase tracking-wide shadow-lg backdrop-blur-sm">
+                <div className="bg-[#074738] text-white px-4 py-2 rounded-full text-xs font-black uppercase tracking-wide shadow-lg backdrop-blur-sm">
                   ACTIVO
                 </div>
               </div>
@@ -252,8 +276,8 @@ export function PetHomeView({
                   {petData.age} • {activePet.breed}
                 </p>
               </div>
-              <div className="size-12 rounded-full bg-[#2b6fee]/10 flex items-center justify-center">
-                <MaterialIcon name="ecg_heart" className="text-[#2b6fee] text-2xl" />
+              <div className="size-12 rounded-full bg-[#074738]/10 flex items-center justify-center">
+                <MaterialIcon name="ecg_heart" className="text-[#074738] text-2xl" />
               </div>
             </div>
 
@@ -262,7 +286,7 @@ export function PetHomeView({
               {/* Vaccine Stat */}
               <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <MaterialIcon name="vaccines" className="text-[#2b6fee] text-lg" />
+                  <MaterialIcon name="vaccines" className="text-[#074738] text-lg" />
                   <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Vacuna
                   </span>
@@ -275,7 +299,7 @@ export function PetHomeView({
               {/* Weight Stat */}
               <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <MaterialIcon name="monitor_weight" className="text-[#2b6fee] text-lg" />
+                  <MaterialIcon name="monitor_weight" className="text-[#074738] text-lg" />
                   <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
                     Peso
                   </span>
@@ -292,26 +316,42 @@ export function PetHomeView({
                 e.stopPropagation();
                 onViewHistory();
               }}
-              className="w-full py-4 rounded-2xl bg-[#2b6fee] text-white font-bold text-base hover:bg-[#5a8aff] transition-all shadow-lg shadow-[#2b6fee]/30 hover:shadow-xl hover:shadow-[#2b6fee]/40 active:scale-[0.98]"
+              className="w-full py-4 rounded-2xl bg-[#074738] text-white font-bold text-base hover:bg-[#1a9b7d] transition-all shadow-lg shadow-[#074738]/30 hover:shadow-xl hover:shadow-[#074738]/40 active:scale-[0.98]"
             >
               Ver Historial Médico
             </button>
           </div>
         </motion.div>
 
-        {/* Dots Indicator - Only if multiple pets */}
+        {/* Selector inferior (elegante) - Only if multiple pets */}
         {hasMultiplePets && (
-          <div className="flex items-center justify-center gap-2 mt-4">
-            {pets.map((pet, idx) => (
+          <div className="mt-4 bg-white/80 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-slate-800 px-3 py-2.5">
+            <div className="flex items-center justify-between px-1">
+              <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Mascota {safeCurrentIndex + 1} de {pets.length}
+              </p>
               <button
-                key={pet.id}
-                onClick={() => onPetChange(pet.id)}
-                className={`h-2 rounded-full transition-all ${pet.id === activePetId
-                  ? "w-8 bg-[#2b6fee]"
-                  : "w-2 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400"
+                onClick={onPetClick}
+                className="text-[11px] font-bold text-[#074738] hover:underline"
+              >
+                Ver todas
+              </button>
+            </div>
+            <div className="flex items-center justify-center gap-2.5 mt-2">
+              {pets.map((pet) => (
+                <button
+                  key={pet.id}
+                  onClick={() => onPetChange(pet.id)}
+                  aria-label={`Cambiar a ${pet.name}`}
+                  title={pet.name}
+                  className={`h-2.5 rounded-full transition-all ${
+                    pet.id === activePetId
+                      ? "w-8 bg-[#074738]"
+                      : "w-2.5 bg-slate-300 dark:bg-slate-600 hover:bg-slate-400 dark:hover:bg-slate-500"
                   }`}
-              />
-            ))}
+                />
+              ))}
+            </div>
           </div>
         )}
       </motion.div>
@@ -342,8 +382,8 @@ export function PetHomeView({
           className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm active:scale-[0.98]"
         >
           <div className="flex flex-col items-center gap-2">
-            <div className="size-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-              <MaterialIcon name="medication" className="text-purple-500 text-2xl" />
+            <div className="size-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
+              <MaterialIcon name="medication" className="text-emerald-500 text-2xl" />
             </div>
             <span className="text-sm font-bold text-slate-900 dark:text-white">
               Tratamientos
@@ -352,7 +392,7 @@ export function PetHomeView({
         </button>
       </motion.div>
 
-      {upcomingTreatments.length > 0 && (
+      {homeDoseCardsEnabled && upcomingTreatments.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
@@ -365,7 +405,7 @@ export function PetHomeView({
             </p>
             <button
               onClick={onMedicationsClick}
-              className="text-[11px] font-bold text-[#2b6fee] hover:underline"
+              className="text-[11px] font-bold text-[#074738] hover:underline"
             >
               Ver tratamientos
             </button>
@@ -378,14 +418,14 @@ export function PetHomeView({
                 className={`snap-start shrink-0 w-[180px] rounded-2xl border p-2.5 transition-all ${
                   takenMap[treatment.id]
                     ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-900/20"
-                    : "border-[#2b6fee]/20 bg-[#2b6fee]/5 dark:border-[#2b6fee]/40 dark:bg-[#2b6fee]/10"
+                    : "border-[#074738]/20 bg-[#074738]/5 dark:border-[#074738]/40 dark:bg-[#074738]/10"
                 }`}
               >
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
                     takenMap[treatment.id]
                       ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                      : "bg-white/90 text-[#2b6fee] dark:bg-slate-900 dark:text-[#7da8ff]"
+                      : "bg-white/90 text-[#074738] dark:bg-slate-900 dark:text-[#1a9b7d]"
                   }`}>
                     {(() => {
                       const hours = parseFrequencyHours(treatment.rawFrequency);
@@ -413,7 +453,7 @@ export function PetHomeView({
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">
                   {treatment.dosage || "Dosis según receta"}
                 </p>
-                <p className="text-[10px] font-semibold text-[#2b6fee] dark:text-[#7da8ff] mt-1">
+                <p className="text-[10px] font-semibold text-[#074738] dark:text-[#1a9b7d] mt-1">
                   {treatment.frequency || "Frecuencia no especificada"}
                 </p>
               </div>

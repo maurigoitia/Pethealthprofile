@@ -1,0 +1,120 @@
+2026-03-05T21:22:04.922277126Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T21:22:05.180530030Z D runEmailClinicalIngestionQueue: Function execution took 258 ms, finished with status: 'ok'
+2026-03-05T21:27:04.895331959Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T21:27:05.109163988Z D runEmailClinicalIngestionQueue: Function execution took 213 ms, finished with status: 'ok'
+2026-03-05T21:32:05.248429215Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T21:32:05.510060195Z D runEmailClinicalIngestionQueue: Function execution took 261 ms, finished with status: 'ok'
+2026-03-05T21:37:04.820026389Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T21:37:05.189525956Z D runEmailClinicalIngestionQueue: Function execution took 369 ms, finished with status: 'ok'
+2026-03-05T21:42:05.395163320Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T21:42:05.672491729Z D runEmailClinicalIngestionQueue: Function execution took 277 ms, finished with status: 'ok'
+2026-03-05T21:47:04.532579746Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T21:47:04.838761587Z D runEmailClinicalIngestionQueue: Function execution took 306 ms, finished with status: 'ok'
+2026-03-05T21:52:04.721863194Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T21:52:04.898120610Z D runEmailClinicalIngestionQueue: Function execution took 176 ms, finished with status: 'ok'
+2026-03-05T21:57:04.735556753Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T21:57:05.013075627Z D runEmailClinicalIngestionQueue: Function execution took 277 ms, finished with status: 'ok'
+2026-03-05T22:02:04.809576599Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T22:02:05.085260685Z D runEmailClinicalIngestionQueue: Function execution took 275 ms, finished with status: 'ok'
+2026-03-05T22:07:05.098833032Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T22:07:05.430340926Z D runEmailClinicalIngestionQueue: Function execution took 331 ms, finished with status: 'ok'
+2026-03-05T22:12:05.517985475Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T22:12:05.718694182Z D runEmailClinicalIngestionQueue: Function execution took 200 ms, finished with status: 'ok'
+2026-03-05T22:17:05.952951793Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T22:17:06.368821440Z D runEmailClinicalIngestionQueue: Function execution took 415 ms, finished with status: 'ok'
+2026-03-05T22:22:05.708509359Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T22:22:05.983354494Z D runEmailClinicalIngestionQueue: Function execution took 274 ms, finished with status: 'ok'
+2026-03-05T22:27:04.875795471Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T22:27:05.072349970Z D runEmailClinicalIngestionQueue: Function execution took 196 ms, finished with status: 'ok'
+2026-03-05T22:32:04.762819135Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T22:32:04.982520970Z D runEmailClinicalIngestionQueue: Function execution took 219 ms, finished with status: 'ok'
+2026-03-05T22:37:04.858695486Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T22:37:05.442108895Z D runEmailClinicalIngestionQueue: Function execution took 583 ms, finished with status: 'ok'
+2026-03-05T22:42:04.870042838Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T22:42:05.061411477Z D runEmailClinicalIngestionQueue: Function execution took 191 ms, finished with status: 'ok'
+2026-03-05T22:47:04.769864051Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T22:47:04.993612640Z D runEmailClinicalIngestionQueue: Function execution took 223 ms, finished with status: 'ok'
+2026-03-05T22:52:05.187445156Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T22:52:05.529616593Z D runEmailClinicalIngestionQueue: Function execution took 342 ms, finished with status: 'ok'
+2026-03-05T22:57:04.803101152Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T22:57:05.060237776Z D runEmailClinicalIngestionQueue: Function execution took 257 ms, finished with status: 'ok'
+2026-03-05T23:02:05.523795926Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T23:02:05.778387443Z D runEmailClinicalIngestionQueue: Function execution took 254 ms, finished with status: 'ok'
+2026-03-05T23:07:04.769426385Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T23:07:05.047530624Z D runEmailClinicalIngestionQueue: Function execution took 278 ms, finished with status: 'ok'
+2026-03-05T23:12:04.733488576Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T23:12:04.960839001Z D runEmailClinicalIngestionQueue: Function execution took 227 ms, finished with status: 'ok'
+2026-03-05T23:17:04.826073568Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T23:17:05.047684630Z D runEmailClinicalIngestionQueue: Function execution took 221 ms, finished with status: 'ok'
+2026-03-05T23:22:04.776038225Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T23:22:06.332126028Z D runEmailClinicalIngestionQueue: Function execution took 1556 ms, finished with status: 'ok'
+2026-03-05T23:27:04.785680869Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T23:27:05.173328288Z D runEmailClinicalIngestionQueue: Function execution took 387 ms, finished with status: 'ok'
+2026-03-05T23:32:04.863384388Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T23:32:05.176690368Z D runEmailClinicalIngestionQueue: Function execution took 313 ms, finished with status: 'ok'
+2026-03-05T23:37:04.843532586Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T23:37:05.233400823Z D runEmailClinicalIngestionQueue: Function execution took 389 ms, finished with status: 'ok'
+2026-03-05T23:42:04.816227474Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T23:42:05.044337651Z D runEmailClinicalIngestionQueue: Function execution took 228 ms, finished with status: 'ok'
+2026-03-05T23:47:04.839522226Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T23:47:05.287410007Z D runEmailClinicalIngestionQueue: Function execution took 447 ms, finished with status: 'ok'
+2026-03-05T23:52:04.209906445Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T23:52:04.432801242Z D runEmailClinicalIngestionQueue: Function execution took 222 ms, finished with status: 'ok'
+2026-03-05T23:57:05.137422570Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-05T23:57:06.013411371Z D runEmailClinicalIngestionQueue: Function execution took 875 ms, finished with status: 'ok'
+2026-03-06T00:02:05.870511363Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T00:02:07.114422824Z D runEmailClinicalIngestionQueue: Function execution took 1243 ms, finished with status: 'ok'
+2026-03-06T00:07:05.412281770Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T00:07:05.686472107Z D runEmailClinicalIngestionQueue: Function execution took 274 ms, finished with status: 'ok'
+2026-03-06T00:12:04.847963996Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T00:12:05.134683016Z D runEmailClinicalIngestionQueue: Function execution took 286 ms, finished with status: 'ok'
+2026-03-06T00:17:04.795715972Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T00:17:05.254626188Z D runEmailClinicalIngestionQueue: Function execution took 458 ms, finished with status: 'ok'
+2026-03-06T00:22:04.739398368Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T00:22:05.056019307Z D runEmailClinicalIngestionQueue: Function execution took 316 ms, finished with status: 'ok'
+2026-03-06T00:27:06.577952277Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T00:27:06.903442916Z D runEmailClinicalIngestionQueue: Function execution took 325 ms, finished with status: 'ok'
+2026-03-06T00:32:05.303761890Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T00:32:05.507876429Z D runEmailClinicalIngestionQueue: Function execution took 204 ms, finished with status: 'ok'
+2026-03-06T00:37:05.332839806Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T00:37:05.570668147Z D runEmailClinicalIngestionQueue: Function execution took 237 ms, finished with status: 'ok'
+2026-03-06T00:42:04.773333496Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T00:42:05.006825140Z D runEmailClinicalIngestionQueue: Function execution took 233 ms, finished with status: 'ok'
+2026-03-06T00:47:05.226270768Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T00:47:05.981904971Z D runEmailClinicalIngestionQueue: Function execution took 755 ms, finished with status: 'ok'
+2026-03-06T00:52:04.755412589Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T00:52:05.045127666Z D runEmailClinicalIngestionQueue: Function execution took 289 ms, finished with status: 'ok'
+2026-03-06T00:57:04.787795766Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T00:57:05.099728421Z D runEmailClinicalIngestionQueue: Function execution took 311 ms, finished with status: 'ok'
+2026-03-06T01:02:04.723465992Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T01:02:05.070986474Z D runEmailClinicalIngestionQueue: Function execution took 347 ms, finished with status: 'ok'
+2026-03-06T01:07:04.863130232Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T01:07:05.050748511Z D runEmailClinicalIngestionQueue: Function execution took 187 ms, finished with status: 'ok'
+2026-03-06T01:12:04.719043240Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T01:12:05.404618604Z D runEmailClinicalIngestionQueue: Function execution took 685 ms, finished with status: 'ok'
+2026-03-06T01:17:05.366787874Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T01:17:05.648265015Z D runEmailClinicalIngestionQueue: Function execution took 281 ms, finished with status: 'ok'
+2026-03-06T01:22:05.314320810Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T01:22:05.553334502Z D runEmailClinicalIngestionQueue: Function execution took 239 ms, finished with status: 'ok'
+2026-03-06T01:27:05.462317129Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T01:27:05.695649839Z D runEmailClinicalIngestionQueue: Function execution took 233 ms, finished with status: 'ok'
+2026-03-06T01:32:05.408934065Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T01:32:05.888661184Z D runEmailClinicalIngestionQueue: Function execution took 479 ms, finished with status: 'ok'
+2026-03-06T01:37:04.843709079Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T01:37:05.210691536Z D runEmailClinicalIngestionQueue: Function execution took 366 ms, finished with status: 'ok'
+2026-03-06T01:42:04.777853113Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T01:42:05.035209335Z D runEmailClinicalIngestionQueue: Function execution took 257 ms, finished with status: 'ok'
+2026-03-06T01:47:04.834605572Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T01:47:05.244205914Z D runEmailClinicalIngestionQueue: Function execution took 409 ms, finished with status: 'ok'
+2026-03-06T01:52:04.786397893Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T01:52:05.070384428Z D runEmailClinicalIngestionQueue: Function execution took 283 ms, finished with status: 'ok'
+2026-03-06T01:57:04.984698225Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T01:57:05.366757756Z D runEmailClinicalIngestionQueue: Function execution took 382 ms, finished with status: 'ok'
+2026-03-06T02:02:09.151585388Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T02:02:09.660434377Z D runEmailClinicalIngestionQueue: Function execution took 508 ms, finished with status: 'ok'
+2026-03-06T02:07:04.793321471Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T02:07:05.052532045Z D runEmailClinicalIngestionQueue: Function execution took 259 ms, finished with status: 'ok'
+2026-03-06T02:10:26.175419Z N runEmailClinicalIngestionQueue: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","authenticationInfo":{"principalEmail":"mauriciogoitia@gmail.com","principalSubject":"user:mauriciogoitia@gmail.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"callerIp":"2800:810:4f8:af:4d6:d96f:760b:ac3c","callerSuppliedUserAgent":"FirebaseCLI/15.7.0,gzip(gfe),gzip(gfe)","requestAttributes":{"time":"2026-03-06T02:10:26.651268Z","auth":{}},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.UpdateFunction","authorizationInfo":[{"resource":"projects/gen-lang-client-0123805751/locations/us-central1/functions/runEmailClinicalIngestionQueue","permission":"cloudfunctions.functions.update","granted":true,"resourceAttributes":{},"permissionType":"ADMIN_WRITE"}],"resourceName":"projects/gen-lang-client-0123805751/locations/us-central1/functions/runEmailClinicalIngestionQueue","request":{"function":{"runtime":"nodejs20","sourceUploadUrl":"https://storage.googleapis.com/uploads-287804128350.us-central1.cloudfunctions.appspot.com/6cf1468a-7214-4c6a-8323-b6392a8f668d.zip?GoogleAccessId=service-1014436216914@gcf-admin-robot.iam.gserviceaccount.com&Expires=1772764823&Signature=TEdXIGJaA17C458d8IlsaSlgwQS9Ksj08p5%2Fj%2B8uj38WQ7zPnv6mreawpxAM%2B%2BpK5TJpq060b%2B6QWtDmTpMIHYqTStgIya6v3vOi9kmxZtqIvsJQWyqOE%2BcsjwGhVXsarlm5mSIQBE%2FgSYzVrXXpG3%2B5VzARNOnEug3200BojWsAR5ASmy0DREXmgLslwl3pXUheRWHRnWrkiJmQd6FA6PctiJkHmhpeyTmYWCotOc3oCAPdnXWg%2Bn7jn5zXz%2FpCVtruqYeC7G0OAcDAEsrb7%2BdpxVN%2FZyoM1nfLLEcyTChpOmHlAWtGq7OTRMG8zuvrFyFESSv3FUWho%2FVQcCbtLQ%3D%3D","secretEnvironmentVariables":[{"secret":"GMAIL_OAUTH_CLIENT_ID","version":"1","projectId":"gen-lang-client-0123805751","key":"GMAIL_OAUTH_CLIENT_ID"},{"version":"1","projectId":"gen-lang-client-0123805751","secret":"GMAIL_OAUTH_CLIENT_SECRET","key":"GMAIL_OAUTH_CLIENT_SECRET"},{"version":"1","projectId":"gen-lang-client-0123805751","secret":"MAIL_TOKEN_ENCRYPTION_KEY","key":"MAIL_TOKEN_ENCRYPTION_KEY"},{"secret":"GEMINI_API_KEY","version":"1","projectId":"gen-lang-client-0123805751","key":"GEMINI_API_KEY"}],"entryPoint":"runEmailClinicalIngestionQueue","availableMemoryMb":1024,"labels":{"deployment-scheduled":"true","firebase-functions-hash":"4ad3f6c5aa9f9c2f52c07b56f8b0e145d591c4df","deployment-tool":"cli-firebase"},"dockerRegistry":"ARTIFACT_REGISTRY","eventTrigger":{"eventType":"google.pubsub.topic.publish","resource":"projects/gen-lang-client-0123805751/topics/firebase-schedule-runEmailClinicalIngestionQueue-us-central1"},"timeout":"540s","name":"projects/gen-lang-client-0123805751/locations/us-central1/functions/runEmailClinicalIngestionQueue"},"@type":"type.googleapis.com/google.cloud.functions.v1.UpdateFunctionRequest","updateMask":"name,sourceUploadUrl,entryPoint,runtime,dockerRegistry,labels,eventTrigger.eventType,eventTrigger.resource,minInstances,maxInstances,ingressSettings,environmentVariables,secretEnvironmentVariables,serviceAccountEmail,availableMemoryMb,timeout,vpcConnector,vpcConnectorEgressSettings,sourceToken,buildEnvironmentVariables"},"resourceLocation":{"currentLocations":["us-central1"]}}
+2026-03-06T02:11:28.692143Z N runEmailClinicalIngestionQueue: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.UpdateFunction","resourceName":"projects/gen-lang-client-0123805751/locations/us-central1/functions/runEmailClinicalIngestionQueue"}
+2026-03-06T02:16:01.270854013Z D runEmailClinicalIngestionQueue: Function execution started
+2026-03-06T02:16:03.120637077Z D runEmailClinicalIngestionQueue: Function execution took 1849 ms, finished with status: 'ok'

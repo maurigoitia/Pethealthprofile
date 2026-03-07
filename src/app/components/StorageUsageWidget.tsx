@@ -26,7 +26,7 @@ export function StorageUsageWidget({ premiumPrice }: StorageUsageWidgetProps) {
 
   const barColor = quota.isOverLimit ? "bg-red-500"
     : quota.isNearLimit ? "bg-amber-400"
-    : "bg-[#2b6fee]";
+    : "bg-[#074738]";
 
   return (
     <>
@@ -47,7 +47,7 @@ export function StorageUsageWidget({ premiumPrice }: StorageUsageWidgetProps) {
           </div>
           <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${
             quota.plan === "premium"
-              ? "bg-[#2b6fee]/10 text-[#2b6fee]"
+              ? "bg-[#074738]/10 text-[#074738]"
               : "bg-slate-100 dark:bg-slate-800 text-slate-500"
           }`}>
             {quota.plan === "premium" ? "✦ Premium" : "Free"}

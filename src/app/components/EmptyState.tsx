@@ -28,19 +28,19 @@ export function EmptyState({
       {/* Illustration or Icon */}
       <div className="mb-6 relative">
         {illustration ? (
-          <div className="size-48 rounded-3xl bg-gradient-to-br from-[#2b6fee]/5 to-purple-50 dark:from-[#2b6fee]/10 dark:to-purple-950/20 p-6 flex items-center justify-center border-2 border-dashed border-[#2b6fee]/20">
+          <div className="size-48 rounded-3xl bg-gradient-to-br from-[#074738]/5 to-emerald-50 dark:from-[#074738]/10 dark:to-emerald-950/20 p-6 flex items-center justify-center border-2 border-dashed border-[#074738]/20">
             {/* Simple decorative markers */}
-            <div className="absolute top-4 right-4 size-6 rounded-full bg-[#2b6fee]/15" />
-            <div className="absolute bottom-6 left-6 size-4 rounded-full bg-[#2b6fee]/15" />
+            <div className="absolute top-4 right-4 size-6 rounded-full bg-[#074738]/15" />
+            <div className="absolute bottom-6 left-6 size-4 rounded-full bg-[#074738]/15" />
             
             {/* Main icon */}
-            <div className="size-24 rounded-2xl bg-[#2b6fee]/10 flex items-center justify-center">
-              <MaterialIcon name={icon} className="text-[#2b6fee] text-6xl" />
+            <div className="size-24 rounded-2xl bg-[#074738]/10 flex items-center justify-center">
+              <MaterialIcon name={icon} className="text-[#074738] text-6xl" />
             </div>
           </div>
         ) : (
-          <div className="size-24 rounded-full bg-gradient-to-br from-[#2b6fee]/10 to-purple-100/50 dark:from-[#2b6fee]/20 dark:to-purple-950/30 flex items-center justify-center">
-            <MaterialIcon name={icon} className="text-[#2b6fee] text-5xl" />
+          <div className="size-24 rounded-full bg-gradient-to-br from-[#074738]/10 to-emerald-100/50 dark:from-[#074738]/20 dark:to-emerald-950/30 flex items-center justify-center">
+            <MaterialIcon name={icon} className="text-[#074738] text-5xl" />
           </div>
         )}
       </div>
@@ -57,7 +57,7 @@ export function EmptyState({
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="flex items-center gap-2 px-6 py-3 bg-[#2b6fee] text-white rounded-xl font-bold hover:bg-[#5a8aff] transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[#2b6fee]/30"
+          className="flex items-center gap-2 px-6 py-3 bg-[#074738] text-white rounded-xl font-bold hover:bg-[#1a9b7d] transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[#074738]/30"
         >
           <MaterialIcon name="add_circle" className="text-xl" />
           <span>{actionLabel}</span>
@@ -66,8 +66,8 @@ export function EmptyState({
 
       {/* Decorative gradient orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
-        <div className="absolute -top-20 -right-20 size-40 bg-[#2b6fee]/5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-20 -left-20 size-40 bg-purple-500/5 rounded-full blur-3xl" />
+        <div className="absolute -top-20 -right-20 size-40 bg-[#074738]/5 rounded-full blur-3xl" />
+        <div className="absolute -bottom-20 -left-20 size-40 bg-emerald-500/5 rounded-full blur-3xl" />
       </div>
     </motion.div>
   );

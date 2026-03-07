@@ -13,11 +13,8 @@ import { MaterialIcon } from "./MaterialIcon";
 import { PetHomeView } from "./PetHomeView";
 import { AppointmentsScreen } from "./AppointmentsScreen";
 import { MedicationsScreen } from "./MedicationsScreen";
-import { RemindersScreen } from "./RemindersScreen";
 import { usePet } from "../contexts/PetContext";
 import { useAuth } from "../contexts/AuthContext";
-import { useNotifications } from "../contexts/NotificationContext";
-import { useReminders } from "../contexts/RemindersContext";
 
 const ExportReportModal = lazy(() =>
   import("./ExportReportModal").then((module) => ({ default: module.ExportReportModal }))
@@ -30,11 +27,10 @@ export default function HomeScreen() {
   const [showExportReport, setShowExportReport] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showPetSelector, setShowPetSelector] = useState(false);
-  const [currentTab, setCurrentTab] = useState<"home" | "reminders" | "settings">("home");
+  const [currentTab, setCurrentTab] = useState<"home" | "settings">("home");
   const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications">("card");
-  const [showNotificationsNudge, setShowNotificationsNudge] = useState(false);
-  const NUDGE_UNTIL_KEY = "pessy_notifications_nudge_until";
-  const { permission, requestPermission } = useNotifications();
+  const { activePetId, setActivePetId, pets, activePet, loading: petsLoading } = usePet();
+  const { user, loading: authLoading, userName } = useAuth();
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -58,24 +54,6 @@ export default function HomeScreen() {
     }
   }, [location.search]);
 
-  useEffect(() => {
-    if (permission === "granted") {
-      setShowNotificationsNudge(false);
-      return;
-    }
-    const rawUntil = localStorage.getItem(NUDGE_UNTIL_KEY);
-    const until = rawUntil ? Number(rawUntil) : 0;
-    if (Number.isFinite(until) && until > Date.now()) {
-      setShowNotificationsNudge(false);
-      return;
-    }
-    setShowNotificationsNudge(true);
-  }, [permission]);
-
-  // Get pet and auth data from context
-  const { activePetId, setActivePetId, pets, activePet, loading: petsLoading } = usePet();
-  const { user, loading: authLoading, userName } = useAuth();
-  const { getPendingCount } = useReminders();
   const safeUserName = (() => {
     const fromContext = (userName || "").trim();
     if (fromContext) return fromContext;
@@ -91,11 +69,11 @@ export default function HomeScreen() {
       <div
         className="min-h-screen flex items-center justify-center px-6"
         style={{
-          backgroundImage: "linear-gradient(rgb(43,124,238) 0%, rgb(61,139,255) 50%, rgb(93,163,255) 100%)",
+          backgroundImage: "linear-gradient(180deg, #074738 0%, #0e6a5a 50%, #1a9b7d 100%)",
         }}
       >
         <div className="w-full max-w-sm bg-white/95 rounded-3xl border border-white/50 p-8 text-center shadow-2xl">
-          <div className="mx-auto mb-4 size-10 rounded-full border-4 border-[#2b7cee]/20 border-t-[#2b7cee] animate-spin" />
+          <div className="mx-auto mb-4 size-10 rounded-full border-4 border-[#074738]/20 border-t-[#074738] animate-spin" />
           <p className="text-base font-bold text-slate-900">Validando sesión...</p>
           <p className="text-sm text-slate-500 mt-1">Un instante, por favor.</p>
         </div>
@@ -105,11 +83,11 @@ export default function HomeScreen() {
 
   // Guard de autenticación para evitar navegación en bucle hacia pantallas internas
   if (!user) {
-    return <Navigate to="/welcome" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   // Handle tab change and reset viewMode to "card" when going to home tab
-  const handleTabChange = (tab: "home" | "reminders" | "settings") => {
+  const handleTabChange = (tab: "home" | "settings") => {
     setCurrentTab(tab);
     if (tab === "home") setViewMode("card");
   };
@@ -117,13 +95,6 @@ export default function HomeScreen() {
   const handlePetChange = (petId: string) => {
     setActivePetId(petId);
     // Refresh all data for new pet
-  };
-
-  const handleDismissNotificationsNudge = () => {
-    // Oculta por 24h para no ser invasivos.
-    const tomorrow = Date.now() + 24 * 60 * 60 * 1000;
-    localStorage.setItem(NUDGE_UNTIL_KEY, String(tomorrow));
-    setShowNotificationsNudge(false);
   };
 
   const handleAddNewPet = () => {
@@ -150,8 +121,8 @@ export default function HomeScreen() {
         <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24">
           <div className="flex-1 flex items-center justify-center px-6">
             <div className="text-center space-y-6">
-              <div className="size-32 mx-auto bg-[#2b7cee]/10 rounded-full flex items-center justify-center">
-                <span className="material-symbols-outlined text-[#2b7cee]" style={{ fontSize: "64px" }}>
+              <div className="size-32 mx-auto bg-[#074738]/10 rounded-full flex items-center justify-center">
+                <span className="material-symbols-outlined text-[#074738]" style={{ fontSize: "64px" }}>
                   folder_shared
                 </span>
               </div>
@@ -165,7 +136,7 @@ export default function HomeScreen() {
               </div>
               <button
                 onClick={handleAddNewPet}
-                className="px-6 py-3 bg-[#2b7cee] text-white rounded-full font-semibold hover:bg-[#2563d4] transition-colors shadow-lg"
+                className="px-6 py-3 bg-[#074738] text-white rounded-full font-semibold hover:bg-[#074738] transition-colors shadow-lg"
               >
                 Agregar primera mascota
               </button>
@@ -197,7 +168,7 @@ export default function HomeScreen() {
             </p>
             <button
               onClick={() => setShowPetSelector(true)}
-              className="px-5 py-3 rounded-xl bg-[#2b7cee] text-white font-bold"
+              className="px-5 py-3 rounded-xl bg-[#074738] text-white font-bold"
             >
               Seleccionar mascota
             </button>
@@ -266,18 +237,7 @@ export default function HomeScreen() {
     return (
       <>
         <MedicationsScreen onBack={() => setViewMode("card")} />
-        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} reminderBadge={activePetId ? getPendingCount(activePetId) : 0} />
-        <DocumentScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
-      </>
-    );
-  }
-
-  // Recordatorios
-  if (currentTab === "reminders") {
-    return (
-      <>
-        <RemindersScreen onBack={() => handleTabChange("home")} />
-        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} reminderBadge={activePetId ? getPendingCount(activePetId) : 0} />
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} />
         <DocumentScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
       </>
     );
@@ -304,41 +264,10 @@ export default function HomeScreen() {
         {/* Card View - New Design */}
         {viewMode === "card" && (
           <>
-            {showNotificationsNudge && (
-              <div className="mx-4 mt-4 mb-1 bg-[#2b7cee]/10 border border-[#2b7cee]/20 rounded-2xl p-4">
-                <div className="flex items-start gap-3">
-                  <div className="size-10 rounded-full bg-[#2b7cee]/20 flex items-center justify-center shrink-0">
-                    <MaterialIcon name="notifications_active" className="text-[#2b7cee] text-xl" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-black text-slate-900 dark:text-white">
-                      Activá notificaciones de PESSY
-                    </h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
-                      Te avisamos a tiempo cuando hay medicación o turnos para evitar olvidos.
-                    </p>
-                    <div className="flex gap-2 mt-3">
-                      <button
-                        onClick={() => void requestPermission()}
-                        className="px-3 py-2 rounded-lg bg-[#2b7cee] text-white text-xs font-bold hover:bg-[#245fc9] transition-colors"
-                      >
-                        Activar ahora
-                      </button>
-                      <button
-                        onClick={handleDismissNotificationsNudge}
-                        className="px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300"
-                      >
-                        Recordar luego
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
             <PetHomeView
               userName={safeUserName}
               onViewHistory={() => setViewMode("feed")}
-              onPetClick={() => setShowPetProfile(true)}
+              onPetClick={() => setShowPetSelector(true)}
               onAppointmentsClick={() => setViewMode("appointments")}
               onMedicationsClick={() => setViewMode("medications")}
               pets={pets}
@@ -361,7 +290,6 @@ export default function HomeScreen() {
             />
 
             <main className="flex-1 px-4 space-y-6 mt-4">
-              <ActionTray />
               <Timeline
                 activePet={{
                   name: activePet.name,
@@ -370,6 +298,7 @@ export default function HomeScreen() {
                 onExportReport={() => setShowExportReport(true)}
               />
               <MonthSummary />
+              <ActionTray />
             </main>
           </>
         )}

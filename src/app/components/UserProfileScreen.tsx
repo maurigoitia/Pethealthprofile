@@ -52,7 +52,7 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate("/welcome");
+      navigate("/login");
     } catch (error) {
       console.error("Scale logut error:", error);
     }
@@ -155,23 +155,23 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
                 <img
                   src={userData.photo}
                   alt={userData.name}
-                  className="size-24 rounded-full object-cover border-4 border-white dark:border-slate-900 shadow-xl shadow-[#2b7cee]/30 mb-4"
+                  className="size-24 rounded-full object-cover border-4 border-white dark:border-slate-900 shadow-xl shadow-[#074738]/30 mb-4"
                 />
                 <button
                   onClick={() => setCurrentScreen("personal-info")}
-                  className="absolute bottom-4 right-0 size-8 rounded-full bg-[#2b7cee] text-white flex items-center justify-center shadow-lg hover:bg-[#5a8aff] transition-colors"
+                  className="absolute bottom-4 right-0 size-8 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-lg hover:bg-[#1a9b7d] transition-colors"
                 >
                   <MaterialIcon name="edit" className="text-sm" />
                 </button>
               </div>
             ) : (
               <div className="relative">
-                <div className="size-24 rounded-full bg-gradient-to-br from-[#2b7cee] to-[#5a8aff] flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-[#2b7cee]/30 mb-4">
+                <div className="size-24 rounded-full bg-gradient-to-br from-[#074738] to-[#1a9b7d] flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-[#074738]/30 mb-4">
                   <MaterialIcon name="person" className="text-5xl" />
                 </div>
                 <button
                   onClick={() => setCurrentScreen("personal-info")}
-                  className="absolute bottom-4 right-0 size-8 rounded-full bg-[#2b7cee] text-white flex items-center justify-center shadow-lg hover:bg-[#5a8aff] transition-colors"
+                  className="absolute bottom-4 right-0 size-8 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-lg hover:bg-[#1a9b7d] transition-colors"
                 >
                   <MaterialIcon name="add_a_photo" className="text-sm" />
                 </button>
@@ -185,7 +185,7 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">
               {userData.email}
             </p>
-            <div className="flex items-center gap-2 bg-[#2b7cee]/10 text-[#2b7cee] px-3 py-1.5 rounded-full mt-2">
+            <div className="flex items-center gap-2 bg-[#074738]/10 text-[#074738] px-3 py-1.5 rounded-full mt-2">
               <MaterialIcon name={userData.verified ? "verified" : "warning"} className="text-base" />
               <span className="text-xs font-bold">
                 {userData.verified ? "Cuenta verificada" : "Email no verificado"}
@@ -196,19 +196,19 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3 mt-6">
             <div className="bg-white dark:bg-slate-900 rounded-xl p-3 text-center border border-slate-200 dark:border-slate-800">
-              <p className="text-2xl font-black text-[#2b7cee]">{userData.petsCount}</p>
+              <p className="text-2xl font-black text-[#074738]">{userData.petsCount}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
                 Mascotas
               </p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-xl p-3 text-center border border-slate-200 dark:border-slate-800">
-              <p className="text-2xl font-black text-[#2b7cee]">{userData.recordsCount}</p>
+              <p className="text-2xl font-black text-[#074738]">{userData.recordsCount}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
                 Registros
               </p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-xl p-3 text-center border border-slate-200 dark:border-slate-800">
-              <p className="text-2xl font-black text-[#2b7cee]">{userData.daysActive}</p>
+              <p className="text-2xl font-black text-[#074738]">{userData.daysActive}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
                 Días
               </p>
@@ -239,7 +239,7 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
               onClick={item.onClick}
               className="w-full bg-white dark:bg-slate-900 rounded-xl p-4 flex items-center gap-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-800"
             >
-              <div className="size-10 rounded-lg bg-[#2b7cee]/10 text-[#2b7cee] flex items-center justify-center shrink-0">
+              <div className="size-10 rounded-lg bg-[#074738]/10 text-[#074738] flex items-center justify-center shrink-0">
                 <MaterialIcon name={item.icon} className="text-xl" />
               </div>
               <div className="flex-1 text-left">

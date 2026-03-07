@@ -75,7 +75,7 @@ export function StorageLimitModal({ isOpen, onClose, quota, triggerUpgrade }: St
             </div>
 
             {/* Header gradiente */}
-            <div className="mx-3 mt-1 mb-0 rounded-2xl bg-gradient-to-br from-[#1a3fa0] via-[#2b6fee] to-[#4f8fff] px-5 py-5 shrink-0">
+            <div className="mx-3 mt-1 mb-0 rounded-2xl bg-gradient-to-br from-[#074738] via-[#074738] to-[#1a9b7d] px-5 py-5 shrink-0">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2 mb-2">
                   <MaterialIcon name="workspace_premium" className="text-amber-300 text-2xl" />
@@ -131,13 +131,13 @@ export function StorageLimitModal({ isOpen, onClose, quota, triggerUpgrade }: St
               <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
                 <button onClick={() => setBilling("monthly")}
                   className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${
-                    billing === "monthly" ? "bg-white dark:bg-slate-900 text-[#2b6fee] shadow-sm" : "text-slate-600 dark:text-slate-400"
+                    billing === "monthly" ? "bg-white dark:bg-slate-900 text-[#074738] shadow-sm" : "text-slate-600 dark:text-slate-400"
                   }`}>
                   Mensual
                 </button>
                 <button onClick={() => setBilling("annual")}
                   className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                    billing === "annual" ? "bg-white dark:bg-slate-900 text-[#2b6fee] shadow-sm" : "text-slate-600 dark:text-slate-400"
+                    billing === "annual" ? "bg-white dark:bg-slate-900 text-[#074738] shadow-sm" : "text-slate-600 dark:text-slate-400"
                   }`}>
                   Anual
                   {savingsPct > 0 && (
@@ -164,7 +164,7 @@ export function StorageLimitModal({ isOpen, onClose, quota, triggerUpgrade }: St
                     </div>
                     {billing === "annual" && prices.monthly && (
                       <p className="text-sm text-slate-500 mt-1">
-                        Equivale a <span className="font-bold text-[#2b6fee]">
+                        Equivale a <span className="font-bold text-[#074738]">
                           {(currentPrice.amount / 12).toLocaleString("es-AR", { maximumFractionDigits: 0 })} {currentPrice.currency}/mes
                         </span>
                       </p>
@@ -191,8 +191,8 @@ export function StorageLimitModal({ isOpen, onClose, quota, triggerUpgrade }: St
                 <div className="space-y-2.5">
                   {FEATURES.map((f, i) => (
                     <div key={i} className="flex items-center gap-3">
-                      <div className="size-8 rounded-lg bg-[#2b6fee]/10 flex items-center justify-center shrink-0">
-                        <MaterialIcon name={f.icon} className="text-[#2b6fee] text-base" />
+                      <div className="size-8 rounded-lg bg-[#074738]/10 flex items-center justify-center shrink-0">
+                        <MaterialIcon name={f.icon} className="text-[#074738] text-base" />
                       </div>
                       <span className="text-sm text-slate-700 dark:text-slate-300 font-medium flex-1">{f.text}</span>
                       <MaterialIcon name="check" className="text-emerald-500 text-lg shrink-0" />
@@ -206,7 +206,7 @@ export function StorageLimitModal({ isOpen, onClose, quota, triggerUpgrade }: St
                 <div className="grid grid-cols-3 bg-slate-50 dark:bg-slate-800 text-xs font-black uppercase tracking-wider text-slate-400 px-4 py-2.5">
                   <span>Feature</span>
                   <span className="text-center">Free</span>
-                  <span className="text-center text-[#2b6fee]">Premium</span>
+                  <span className="text-center text-[#074738]">Premium</span>
                 </div>
                 {[
                   ["Almacenamiento", "1 GB", "10 GB"],
@@ -219,7 +219,7 @@ export function StorageLimitModal({ isOpen, onClose, quota, triggerUpgrade }: St
                   <div key={feat} className="grid grid-cols-3 px-4 py-2.5 border-t border-slate-100 dark:border-slate-800">
                     <span className="text-slate-700 dark:text-slate-300 font-medium">{feat}</span>
                     <span className="text-center text-slate-500">{free}</span>
-                    <span className="text-center font-bold text-[#2b6fee]">{premium}</span>
+                    <span className="text-center font-bold text-[#074738]">{premium}</span>
                   </div>
                 ))}
               </div>

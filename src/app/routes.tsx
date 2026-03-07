@@ -8,8 +8,9 @@ import HomeScreen from "./components/HomeScreen";
 import { VerifyReportScreen } from "./components/VerifyReportScreen";
 import { EmailLinkSignInScreen } from "./components/EmailLinkSignInScreen";
 import { RouteErrorFallback } from "./components/RouteErrorFallback";
+import { ClinicalReviewScreen } from "./components/ClinicalReviewScreen";
 
-const withErrorBoundary = <T extends Record<string, any>>(route: T): T => ({
+const withErrorBoundary = <T extends Record<string, unknown>>(route: T): T => ({
   ...route,
   errorElement: <RouteErrorFallback />,
 });
@@ -25,8 +26,10 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/register-pet/step2", Component: RegisterPetStep2 }),
   withErrorBoundary({ path: "/register-pet-step2", element: <Navigate to="/register-pet/step2" replace /> }),
   withErrorBoundary({ path: "/login", Component: LoginScreen }),
+  withErrorBoundary({ path: "/inicio", element: <Navigate to="/login" replace /> }),
   withErrorBoundary({ path: "/register-pet-old", element: <Navigate to="/register-pet" replace /> }),
   withErrorBoundary({ path: "/home", Component: HomeScreen }),
+  withErrorBoundary({ path: "/review/:reviewId", Component: ClinicalReviewScreen }),
   withErrorBoundary({ path: "/email-link", Component: EmailLinkSignInScreen }),
   withErrorBoundary({ path: "/verify/:hash", Component: VerifyReportScreen }),
   withErrorBoundary({ path: "*", element: <Navigate to="/" replace /> }),

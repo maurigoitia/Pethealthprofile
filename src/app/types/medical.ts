@@ -42,7 +42,7 @@ export interface MasterClinicalFinding {
   parameter: string | null;
   value: string | null;
   reference_range: string | null;
-  status: "alto" | "bajo" | "alterado" | null;
+  status: "alto" | "bajo" | "alterado" | "normal" | "no_observado" | "inconcluso" | null;
 }
 
 export interface MasterClinicalTreatment {
@@ -51,6 +51,13 @@ export interface MasterClinicalTreatment {
   end_date: string | null;
   dosage: string | null;
   status: "activo" | "finalizado" | "desconocido" | null;
+}
+
+export interface MasterClinicalImagingFinding {
+  region: "torax" | "abdomen" | "pelvis" | "columna" | "cadera" | "otro" | null;
+  view: "ventrodorsal" | "lateral" | "dorsoventral" | "oblicua" | "otro" | null;
+  finding: string | null;
+  severity: "leve" | "moderado" | "severo" | "no_especificado" | null;
 }
 
 export interface MasterClinicalAppointment {
@@ -83,10 +90,23 @@ export interface MasterClinicalPayload {
   };
   diagnoses: MasterClinicalDiagnosis[];
   abnormal_findings: MasterClinicalFinding[];
+  imaging_findings?: MasterClinicalImagingFinding[];
   treatments: MasterClinicalTreatment[];
   appointments: MasterClinicalAppointment[];
   recommendations: string[];
   requires_followup: boolean;
+  vaccine_artifacts?: {
+    sticker_detected: boolean | null;
+    stamp_detected: boolean | null;
+    signature_detected: boolean | null;
+    product_name: string | null;
+    manufacturer: string | null;
+    lot_number: string | null;
+    serial_number: string | null;
+    expiry_date: string | null;
+    application_date: string | null;
+    revaccination_date: string | null;
+  } | null;
   appointment_event?: {
     event_type: "medical_appointment";
     date: string | null;
@@ -152,6 +172,19 @@ export interface ExtractedData {
   masterClinical?: MasterClinicalPayload | null;
   extractionProtocol?: "pessy_clinical_processing_protocol_v1" | "pessy_master_clinical_protocol_v1" | "legacy_v1" | null;
 
+  // Artefactos visuales en certificados de vacunación/troqueles.
+  vaccineProductName?: string | null;
+  vaccineManufacturer?: string | null;
+  vaccineLotNumber?: string | null;
+  vaccineSerialNumber?: string | null;
+  vaccineExpiryDate?: string | null; // YYYY-MM-DD
+  vaccineApplicationDate?: string | null; // YYYY-MM-DD
+  vaccineRevaccinationDate?: string | null; // YYYY-MM-DD
+  vaccineStickerDetected?: boolean | null;
+  vaccineStampDetected?: boolean | null;
+  vaccineSignatureDetected?: boolean | null;
+  proactiveCarePlan?: ProactiveCarePlan | null;
+
   // Estudios por mail/adjunto (tipificación explícita).
   studyType?: string | null;
   anatomyTags?: string[];
@@ -168,6 +201,14 @@ export interface ExtractedData {
   sourceSubject?: string | null;
   sourceSender?: string | null;
   sourceFileName?: string | null;
+
+  // Estado de validación para tratamientos extraídos por correo.
+  treatmentValidationStatus?: "complete" | "needs_review";
+  treatmentMissingFields?: Array<{
+    medication: string | null;
+    missingDose: boolean;
+    missingFrequency: boolean;
+  }>;
 }
 
 export interface MedicationExtracted {
@@ -196,6 +237,37 @@ export interface DetectedAppointment {
   confidence: ExtractionConfidence;
 }
 
+export interface ProactiveCareAlert {
+  type: "vaccine" | "control" | "medication" | "imaging_followup";
+  title: string;
+  dueDate: string | null; // YYYY-MM-DD
+  reason: string | null;
+  confidence: ExtractionConfidence;
+}
+
+export interface ProactiveMedicationPlan {
+  drug: string;
+  dosage: string | null;
+  frequency: string | null;
+  duration: string | null;
+  confidence: ExtractionConfidence;
+}
+
+export interface ProactiveImagingFinding {
+  region: string | null;
+  view: string | null;
+  finding: string;
+  severity: "leve" | "moderado" | "severo" | "no_especificado" | null;
+  confidence: ExtractionConfidence;
+}
+
+export interface ProactiveCarePlan {
+  alerts: ProactiveCareAlert[];
+  chronicConditions: string[];
+  medicationPlan: ProactiveMedicationPlan[];
+  imagingFindings: ProactiveImagingFinding[];
+}
+
 // ============================================================================
 // Evento médico completo
 // ============================================================================
@@ -216,6 +288,9 @@ export interface MedicalEvent {
   requiresManualConfirmation?: boolean;
   reviewReasons?: string[];
   overallConfidence?: number;
+  validatedByHuman?: boolean;
+  sourceTruthLevel?: "human_confirmed" | "user_curated" | "ai_auto_ingested" | "review_queue";
+  truthStatus?: "human_confirmed" | "pending_human_review" | "auto_ingested_unconfirmed";
   dismissedNextAppointment?: boolean;
   derivedDataPersistedAt?: string | null;
   hidden?: boolean;
@@ -255,7 +330,14 @@ export interface PendingAction {
   userId?: string;
 
   // Tipo de acción
-  type: "vaccine_due" | "checkup_due" | "medication_refill" | "test_pending" | "follow_up" | "sync_review";
+  type:
+    | "vaccine_due"
+    | "checkup_due"
+    | "medication_refill"
+    | "test_pending"
+    | "follow_up"
+    | "sync_review"
+    | "incomplete_data";
 
   // Información visible
   title: string;
@@ -268,6 +350,15 @@ export interface PendingAction {
   // Origen
   generatedFromEventId: string | null; // Link al evento que lo generó
   autoGenerated: boolean; // true si fue creado automaticamente
+  reviewId?: string | null;
+  sessionId?: string | null;
+  sourceMessageId?: string | null;
+  sourceStorageUri?: string | null;
+  sourceStoragePath?: string | null;
+  sourceStorageSignedUrl?: string | null;
+  sourceFileName?: string | null;
+  sourceMimeType?: string | null;
+  imageFragmentUrl?: string | null;
 
   // Estado
   completed: boolean;
@@ -276,6 +367,54 @@ export interface PendingAction {
   // Notificaciones
   reminderEnabled: boolean;
   reminderDaysBefore: number; // Días antes de dueDate para recordar
+}
+
+export interface ClinicalReviewMedicationDraft {
+  name: string | null;
+  dose: string | null;
+  frequency: string | null;
+  duration_days?: number | null;
+  is_active?: boolean | null;
+}
+
+export interface ClinicalReviewMissingField {
+  medication: string | null;
+  missingDose: boolean;
+  missingFrequency: boolean;
+  detectedDose?: string | null;
+  detectedFrequency?: string | null;
+}
+
+export interface ClinicalReviewDraft {
+  id: string;
+  userId?: string;
+  petId: string;
+  sessionId?: string | null;
+  generatedFromEventId: string;
+  status: "pending" | "resolved" | "dismissed" | string;
+  validationStatus?: "needs_review" | "complete" | string;
+  reviewType?: string;
+  reviewReason?: string | null;
+  isDraft?: boolean;
+  sourceMessageId?: string | null;
+  sourceSubject?: string | null;
+  sourceSender?: string | null;
+  sourceDate?: string | null;
+  sourceFileName?: string | null;
+  sourceMimeType?: string | null;
+  sourceStorageUri?: string | null;
+  sourceStoragePath?: string | null;
+  sourceStorageSignedUrl?: string | null;
+  imageFragmentUrl?: string | null;
+  gmailReviewId?: string | null;
+  missingFields?: ClinicalReviewMissingField[];
+  medications?: ClinicalReviewMedicationDraft[];
+  diagnosis?: string | null;
+  eventDate?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  resolvedAt?: string | null;
+  resolvedBy?: string | null;
 }
 
 // ============================================================================
@@ -340,6 +479,11 @@ export interface Appointment {
   clinic: string | null;
   status: "upcoming" | "completed" | "cancelled";
   notes?: string;
+  googleCalendarEventId?: string | null;
+  googleCalendarHtmlLink?: string | null;
+  googleCalendarSyncedAt?: string | null;
+  googleCalendarSyncStatus?: "synced" | "skipped" | "error";
+  googleCalendarSyncReason?: string | null;
   createdAt: string;
 }
 

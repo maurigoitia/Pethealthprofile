@@ -1,0 +1,175 @@
+Borrador Legal Pessy (Términos y Condiciones + Anexo DPA)
+
+Documento borrador interno para revisión legal. No constituye asesoramiento jurídico definitivo.
+
+Fecha: 7 de marzo de 2026
+Versión: v0.1-draft
+
+---
+
+1) Términos y Condiciones de Uso (Borrador)
+
+1.1. Identidad del servicio
+Pessy ("la Plataforma") es un servicio digital de gestión de información de salud veterinaria de mascotas, incluyendo historial clínico, documentos, recordatorios, turnos y sincronización opcional con correo electrónico (Gmail).
+
+1.2. Aceptación
+Al crear una cuenta, usar la Plataforma o autorizar integraciones (incluyendo Gmail), el usuario acepta estos Términos y la Política de Privacidad.
+
+1.3. Elegibilidad
+El usuario declara ser mayor de edad y tener facultades para:
+• Registrar mascotas propias o bajo su cuidado autorizado.
+• Cargar y gestionar documentación clínica legítima.
+• Autorizar integraciones de terceros (ej. Google).
+
+1.4. Alcance del servicio
+La Plataforma permite:
+• Cargar documentos clínicos manualmente o por integración de correo.
+• Extraer información estructurada con asistencia de IA.
+• Mostrar eventos clínicos, tratamientos, medicaciones, turnos y recordatorios.
+
+1.5. Naturaleza del contenido de IA
+El contenido generado por IA en Pessy es asistencia informativa y no reemplaza criterio veterinario profesional.
+• No se considera diagnóstico médico definitivo por sí solo.
+• La decisión clínica final corresponde al profesional veterinario y/o al usuario responsable.
+
+1.6. Confirmación humana y jerarquía de verdad
+Pessy puede marcar registros como “pendientes de revisión” cuando la confianza sea insuficiente o exista ambigüedad.
+• Los datos con confirmación humana tienen prioridad sobre texto generativo.
+• Pessy puede corregir o despriorizar resultados automáticos si detecta inconsistencia.
+
+1.7. Integración Gmail
+Si el usuario conecta Gmail:
+• Autoriza acceso limitado a fines de extracción clínica veterinaria.
+• Pessy no modifica ni envía correos en nombre del usuario.
+• El usuario puede revocar permisos desde Google y/o desde la app.
+
+1.8. Responsabilidades del usuario
+El usuario se compromete a:
+• Mantener credenciales seguras.
+• Revisar información sensible antes de compartirla.
+• No subir contenido ilícito, fraudulento o sin autorización.
+
+1.9. Disponibilidad y cambios
+Pessy podrá modificar funciones, integraciones o criterios de procesamiento para mejorar seguridad, exactitud y cumplimiento normativo.
+
+1.10. Limitación de responsabilidad
+En la máxima medida permitida por ley:
+• Pessy no garantiza ausencia total de errores de extracción automática.
+• No responde por decisiones clínicas tomadas exclusivamente sobre texto generado sin validación profesional.
+
+1.11. Suspensión o cancelación
+Pessy puede suspender cuentas por uso abusivo, fraude, incumplimiento contractual o requerimiento legal.
+
+1.12. Propiedad intelectual
+El software, marca, diseños y componentes de la Plataforma son propiedad de Pessy o sus licenciantes. El usuario conserva titularidad sobre sus datos.
+
+1.13. Ley aplicable y jurisdicción
+Este borrador deberá adaptarse a la jurisdicción objetivo (p. ej. Argentina/LATAM + usuarios internacionales) por asesoría legal local.
+
+---
+
+2) Anexo de Tratamiento de Datos (DPA) — Borrador
+
+2.1. Partes y roles
+• Usuario/cliente: titular o responsable de los datos que ingresa.
+• Pessy: responsable del tratamiento para la operación de la Plataforma y, según caso, encargado en nombre del usuario para ciertos procesos técnicos.
+
+2.2. Datos tratados
+Pessy puede tratar:
+• Datos de cuenta: nombre, email, identificadores.
+• Datos de mascotas: nombre, especie, raza, edad, peso y perfil clínico.
+• Datos clínicos veterinarios: diagnósticos, estudios, resultados, tratamientos, medicaciones, turnos, eventos clínicos.
+• Metadatos de integración: IDs de correo, remitente, asunto, timestamps, trazas técnicas.
+• Tokens técnicos de notificación y sesión.
+
+2.3. Finalidades
+• Prestación del servicio (historial, turnos, recordatorios, timeline clínico).
+• Extracción y estructuración de datos clínicos desde documentos/correos.
+• Detección de duplicados y mejora de calidad del dato.
+• Seguridad operativa, auditoría, prevención de abuso y troubleshooting.
+
+2.4. Base legal (a validar por jurisdicción)
+• Ejecución contractual del servicio.
+• Consentimiento explícito para integraciones (ej. Gmail) y tratamientos sensibles aplicables.
+• Interés legítimo en seguridad, prevención de fraude y continuidad operativa.
+
+2.5. Instrucciones de tratamiento
+Pessy procesa los datos conforme:
+• Configuración del usuario.
+• Flujos técnicos documentados en la Plataforma.
+• Requisitos legales aplicables.
+
+2.6. Subencargados / terceros
+Pessy puede utilizar infraestructura y servicios de terceros para:
+• Hosting, base de datos, almacenamiento, colas y mensajería.
+• Envío de notificaciones push.
+• Procesamiento IA/OCR.
+
+Pessy mantiene controles contractuales y de seguridad razonables con dichos proveedores.
+
+2.7. Seguridad
+Medidas técnicas/organizativas (según arquitectura vigente):
+• Cifrado en tránsito (TLS).
+• Controles de acceso por autenticación/autorización.
+• Segregación de entornos y trazabilidad de eventos.
+• Registros de auditoría y monitoreo.
+• Rotación/gestión de secretos y credenciales.
+
+2.8. Retención y eliminación
+• Los datos se retienen por el tiempo necesario para la finalidad del servicio y obligaciones legales.
+• El usuario puede solicitar eliminación de cuenta y/o datos según el canal de soporte.
+• Pessy podrá mantener datos mínimos bloqueados cuando exista obligación legal o defensa de reclamos.
+
+2.9. Derechos del titular
+Sujeto a ley aplicable, el usuario podrá solicitar:
+• Acceso, rectificación y actualización.
+• Portabilidad (cuando corresponda).
+• Supresión/eliminación.
+• Oposición o limitación del tratamiento.
+• Revocación de consentimientos otorgados.
+
+2.10. Incidentes de seguridad
+Pessy aplicará procedimientos de respuesta ante incidentes y notificará según ley aplicable y criticidad del evento.
+
+2.11. Transferencias internacionales
+Si hubiera transferencia transfronteriza, Pessy aplicará salvaguardas adecuadas según marco legal aplicable (cláusulas contractuales, medidas técnicas, etc.).
+
+2.12. Auditoría y cooperación
+Pessy conservará evidencia razonable de controles técnicos y cooperará ante requerimientos regulatorios o legales válidos.
+
+2.13. Confidencialidad
+Personal autorizado y proveedores sujetos a obligaciones de confidencialidad y necesidad de acceso mínimo.
+
+---
+
+3) Cláusulas operativas específicas para Pessy (recomendadas)
+
+1. No diagnóstico automático vinculante
+• Todo hallazgo IA se presenta como asistivo hasta confirmación humana cuando aplique.
+
+2. Control de incertidumbre
+• Eventos de baja confianza deben ir a revisión (no auto-confirmación).
+
+3. Regla de no inferencia clínica sin evidencia
+• No clasificar “fuera de rango/alterado” sin valor numérico y referencia explícita.
+
+4. Trazabilidad clínica
+• Cada evento debe conservar referencia de origen (sourceDocumentId, source_email_id, timestamps).
+
+5. Integraciones revocables
+• El usuario puede desconectar Gmail y detener nuevas ingestas.
+
+---
+
+4) Texto breve sugerido para pantalla de consentimiento en app
+
+“Pessy procesa información clínica veterinaria para organizar el historial de tu mascota y generar recordatorios. Si conectás Gmail, solo usamos los permisos necesarios para identificar y estructurar documentos clínicos. Podés revocar este acceso en cualquier momento.”
+
+---
+
+5) Próximos pasos legales recomendados
+
+1. Validar jurisdicciones objetivo (Argentina, Brasil, UE, etc.).
+2. Ajustar base legal y derechos de titulares por país.
+3. Revisar matriz de subencargados real (Firebase/Google/IA).
+4. Publicar versión final en /terms, /privacy, /data-deletion con consistencia contractual.

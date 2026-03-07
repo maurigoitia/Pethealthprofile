@@ -1,0 +1,181 @@
+{
+  "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/users/veBVBs9olTeppTYjjTCnhFaEQIc2",
+  "fields": {
+    "name": {
+      "stringValue": "mauri"
+    },
+    "gmailSyncReminder": {
+      "mapValue": {
+        "fields": {
+          "lastError": {
+            "nullValue": null
+          },
+          "lastResolvedAt": {
+            "stringValue": "2026-03-04T11:10:26.145Z"
+          },
+          "status": {
+            "stringValue": "pending_permission"
+          },
+          "updatedAt": {
+            "stringValue": "2026-03-06T16:16:38.553Z"
+          },
+          "consentRequestedAt": {
+            "stringValue": "2026-03-06T16:16:38.553Z"
+          },
+          "dayNumber": {
+            "integerValue": "0"
+          }
+        }
+      }
+    },
+    "photo": {
+      "nullValue": null
+    },
+    "updatedAt": {
+      "stringValue": "2026-02-25T20:33:12.046Z"
+    },
+    "phone": {
+      "stringValue": ""
+    },
+    "fullName": {
+      "stringValue": "mauri"
+    },
+    "notificationSettings": {
+      "mapValue": {
+        "fields": {
+          "vaccines": {
+            "booleanValue": true
+          },
+          "medications": {
+            "booleanValue": true
+          },
+          "results": {
+            "booleanValue": true
+          },
+          "appointments": {
+            "booleanValue": true
+          },
+          "enabled": {
+            "booleanValue": true
+          }
+        }
+      }
+    },
+    "country": {
+      "stringValue": "AR"
+    },
+    "email": {
+      "stringValue": "mauriciogoitia@gmail.com"
+    },
+    "storageUsedBytes": {
+      "integerValue": "3514374"
+    },
+    "gmailSyncInvitation": {
+      "mapValue": {
+        "fields": {
+          "reason": {
+            "nullValue": null
+          },
+          "enabled": {
+            "booleanValue": true
+          },
+          "updatedAt": {
+            "stringValue": "2026-03-06T16:34:44Z"
+          },
+          "status": {
+            "stringValue": "open_access"
+          }
+        }
+      }
+    },
+    "gmailSync": {
+      "mapValue": {
+        "fields": {
+          "lastHistoryId": {
+            "stringValue": "16731780"
+          },
+          "consentRevokedAt": {
+            "stringValue": "2026-03-06T16:16:38.553Z"
+          },
+          "initialExtractTruncated": {
+            "booleanValue": true
+          },
+          "disconnectedAt": {
+            "stringValue": "2026-03-06T16:16:38.553Z"
+          },
+          "updatedAt": {
+            "stringValue": "2026-03-06T16:16:38.553Z"
+          },
+          "maxMailsPerSync": {
+            "integerValue": "500"
+          },
+          "ingestionStatus": {
+            "stringValue": "requires_review"
+          },
+          "accountEmail": {
+            "nullValue": null
+          },
+          "lastSyncAt": {
+            "stringValue": "2026-03-04T12:15:22.462Z"
+          },
+          "grantedScopes": {
+            "arrayValue": {}
+          },
+          "consentGrantedAt": {
+            "stringValue": "2026-03-04T11:10:26.145Z"
+          },
+          "inviteStatus": {
+            "stringValue": "open_access"
+          },
+          "initialExtractNextPageToken": {
+            "stringValue": "02425497975843786527"
+          },
+          "connected": {
+            "booleanValue": false
+          },
+          "petId": {
+            "stringValue": "9iNFm3mZuld2A4maKdAC"
+          },
+          "initialExtractMode": {
+            "stringValue": "unlimited"
+          },
+          "initialExtractLookbackDays": {
+            "nullValue": null
+          },
+          "thresholdTuningRecommended": {
+            "booleanValue": true
+          },
+          "maxLookbackMonths": {
+            "integerValue": "12"
+          },
+          "initialExtractCount": {
+            "integerValue": "98"
+          },
+          "inviteEnabled": {
+            "booleanValue": true
+          },
+          "initialExtractAt": {
+            "stringValue": "2026-03-04T11:10:46.950Z"
+          },
+          "petName": {
+            "stringValue": "loki"
+          },
+          "connectedAt": {
+            "stringValue": "2026-03-04T11:10:26.145Z"
+          },
+          "consentSource": {
+            "stringValue": "oauth"
+          },
+          "syncStatus": {
+            "stringValue": "requires_review"
+          }
+        }
+      }
+    },
+    "lastLoginAt": {
+      "stringValue": "2026-03-06T18:00:29.942Z"
+    }
+  },
+  "createTime": "2026-02-25T20:28:14.962423Z",
+  "updateTime": "2026-03-06T18:00:31.946158Z"
+}

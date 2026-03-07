@@ -1,0 +1,61 @@
+{
+  "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ai_jobs/083d661d-4c2f-4699-b5bc-2c1dfb0b042e",
+  "fields": {
+    "updated_at": {
+      "stringValue": "2026-03-06T01:55:17.609Z"
+    },
+    "status": {
+      "stringValue": "completed"
+    },
+    "created_at": {
+      "stringValue": "2026-03-06T01:38:00.767Z"
+    },
+    "stage": {
+      "stringValue": "ai_extract"
+    },
+    "completed_at": {
+      "stringValue": "2026-03-06T01:55:17.610Z"
+    },
+    "id": {
+      "stringValue": "083d661d-4c2f-4699-b5bc-2c1dfb0b042e"
+    },
+    "attempts": {
+      "integerValue": "2"
+    },
+    "available_at": {
+      "stringValue": "1970-01-01T00:00:00.000Z"
+    },
+    "payload": {
+      "mapValue": {
+        "fields": {
+          "source_sender": {
+            "stringValue": "Mauricio Goitia \u003cmauriciogoitia@gmail.com\u003e"
+          },
+          "raw_doc_id": {
+            "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_19ada796e42306ab"
+          },
+          "message_id": {
+            "stringValue": "19ada796e42306ab"
+          },
+          "source_subject": {
+            "stringValue": "Fwd: Radiografias de Thor"
+          },
+          "mode": {
+            "stringValue": "classify"
+          }
+        }
+      }
+    },
+    "user_id": {
+      "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+    },
+    "error": {
+      "stringValue": "Error: Value for argument \"data\" is not a valid Firestore document. Cannot use \"undefined\" as a Firestore value (found in field \"attachment_metadata.`0`.ocr_reason\"). If you want to ignore undefined values, enable `ignoreUndefinedProperties`."
+    },
+    "session_id": {
+      "stringValue": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b"
+    }
+  },
+  "createTime": "2026-03-06T01:38:00.801445Z",
+  "updateTime": "2026-03-06T01:55:17.647550Z"
+}

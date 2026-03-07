@@ -1,0 +1,103 @@
+{
+  "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_sessions/cb20253c-b720-4280-a8cb-c6e5bea12712",
+  "fields": {
+    "qa_disable_dedup": {
+      "booleanValue": false
+    },
+    "next_page_token": {
+      "nullValue": null
+    },
+    "qa_total_scan_cap": {
+      "integerValue": "80"
+    },
+    "user_id": {
+      "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+    },
+    "effective_scan_cap": {
+      "integerValue": "80"
+    },
+    "max_mails_per_sync": {
+      "integerValue": "80"
+    },
+    "session_id": {
+      "stringValue": "cb20253c-b720-4280-a8cb-c6e5bea12712"
+    },
+    "metrics.scan_count": {
+      "integerValue": "1"
+    },
+    "pet_id": {
+      "stringValue": "iVoXhESOZ8FvuiWT43Ey"
+    },
+    "lookback_before": {
+      "stringValue": "2026-03-06"
+    },
+    "metrics.scan_ms": {
+      "integerValue": "3700"
+    },
+    "summary": {
+      "nullValue": null
+    },
+    "fallback_query_applied": {
+      "booleanValue": false
+    },
+    "counters": {
+      "mapValue": {
+        "fields": {
+          "total_emails_scanned": {
+            "integerValue": "15"
+          },
+          "total_attachments_processed": {
+            "integerValue": "0"
+          },
+          "duplicates_removed": {
+            "integerValue": "0"
+          },
+          "emails_with_attachments": {
+            "integerValue": "9"
+          },
+          "candidate_emails_detected": {
+            "integerValue": "12"
+          },
+          "emails_with_images": {
+            "integerValue": "6"
+          },
+          "events_requiring_review": {
+            "integerValue": "0"
+          },
+          "new_medical_events_created": {
+            "integerValue": "0"
+          },
+          "errors_count": {
+            "integerValue": "0"
+          }
+        }
+      }
+    },
+    "scan_complete": {
+      "booleanValue": true
+    },
+    "status": {
+      "stringValue": "processing"
+    },
+    "started_at": {
+      "stringValue": "2026-03-06T01:30:04.098Z"
+    },
+    "qa_disable_fallback_query": {
+      "booleanValue": true
+    },
+    "fallback_query": {
+      "stringValue": "(\"veterinaria\" OR \"veterinario\" OR \"veterinary\" OR \"clinic\" OR \"clinica\" OR \"hospital veterinario\" OR \"turno veterinario\" OR \"diagnosis\" OR \"diagnostico\" OR \"diagnóstico\" OR \"vacuna\" OR \"vaccine\" OR \"tratamiento\" OR \"medicacion\" OR \"medicación\" OR \"receta\" OR \"prescription\" OR \"laboratorio\" OR \"lab\" OR \"ecografia\" OR \"ultrasound\" OR \"radiografia\" OR \"radiography\" OR \"electrocardiograma\" OR \"ecg\" OR filename:receta OR filename:prescription OR filename:laboratorio OR filename:analisis OR filename:informe OR filename:radiografia OR filename:ecografia OR filename:ultrasound OR filename:ecg OR (from:vet OR from:veterinaria OR from:veterinary OR from:clinic OR from:clinica)) after:2024/09/06 before:2026/03/06"
+    },
+    "updated_at": {
+      "stringValue": "2026-03-06T01:30:08.973Z"
+    },
+    "query": {
+      "stringValue": "(\"thor\" OR \"iVoXhESOZ8FvuiWT43Ey\") AND (\"veterinaria\" OR \"veterinario\" OR \"veterinary\" OR \"clinic\" OR \"clinica\" OR \"hospital veterinario\" OR \"turno veterinario\" OR \"diagnosis\" OR \"diagnostico\" OR \"diagnóstico\" OR \"vacuna\" OR \"vaccine\" OR \"tratamiento\" OR \"medicacion\" OR \"medicación\" OR \"receta\" OR \"prescription\" OR \"laboratorio\" OR \"lab\" OR \"ecografia\" OR \"ultrasound\" OR \"radiografia\" OR \"radiography\" OR \"electrocardiograma\" OR \"ecg\" OR filename:receta OR filename:prescription OR filename:laboratorio OR filename:analisis OR filename:informe OR filename:radiografia OR filename:ecografia OR filename:ultrasound OR filename:ecg OR (from:vet OR from:veterinaria OR from:veterinary OR from:clinic OR from:clinica)) after:2024/09/06 before:2026/03/06"
+    },
+    "lookback_after": {
+      "stringValue": "2024-09-06"
+    }
+  },
+  "createTime": "2026-03-06T01:30:04.146539Z",
+  "updateTime": "2026-03-06T01:30:09.017780Z"
+}

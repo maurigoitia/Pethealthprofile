@@ -1,0 +1,181 @@
+{
+  "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_documents/ad4260a2-7e6a-4ecf-b61a-fead994eeb48_190d0ffab88b2177",
+  "fields": {
+    "user_id": {
+      "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+    },
+    "created_at": {
+      "stringValue": "2026-03-05T05:44:14.473Z"
+    },
+    "session_id": {
+      "stringValue": "ad4260a2-7e6a-4ecf-b61a-fead994eeb48"
+    },
+    "attachment_metadata": {
+      "arrayValue": {
+        "values": [
+          {
+            "mapValue": {
+              "fields": {
+                "ocr_success": {
+                  "booleanValue": false
+                },
+                "size_bytes": {
+                  "integerValue": "19321"
+                },
+                "ocr_reason": {
+                  "stringValue": "gemini_ocr_empty"
+                },
+                "filename": {
+                  "stringValue": "302044.jpg"
+                },
+                "mimetype": {
+                  "stringValue": "image/jpeg"
+                },
+                "ocr_detail": {
+                  "nullValue": null
+                },
+                "normalized_mimetype": {
+                  "stringValue": "image/jpeg"
+                },
+                "original_mimetype": {
+                  "stringValue": "image/jpeg"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "ocr_success": {
+                  "booleanValue": true
+                },
+                "size_bytes": {
+                  "integerValue": "44996"
+                },
+                "ocr_reason": {
+                  "stringValue": "gemini_ocr"
+                },
+                "filename": {
+                  "stringValue": "302043.jpg"
+                },
+                "ocr_detail": {
+                  "nullValue": null
+                },
+                "mimetype": {
+                  "stringValue": "image/jpeg"
+                },
+                "original_mimetype": {
+                  "stringValue": "image/jpeg"
+                },
+                "normalized_mimetype": {
+                  "stringValue": "image/jpeg"
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "ocr_success": {
+                  "booleanValue": true
+                },
+                "filename": {
+                  "stringValue": "302042.pdf"
+                },
+                "ocr_reason": {
+                  "stringValue": "gemini_ocr"
+                },
+                "size_bytes": {
+                  "integerValue": "260796"
+                },
+                "original_mimetype": {
+                  "stringValue": "application/pdf"
+                },
+                "normalized_mimetype": {
+                  "stringValue": "application/pdf"
+                },
+                "mimetype": {
+                  "stringValue": "application/pdf"
+                },
+                "ocr_detail": {
+                  "nullValue": null
+                }
+              }
+            }
+          },
+          {
+            "mapValue": {
+              "fields": {
+                "ocr_success": {
+                  "booleanValue": true
+                },
+                "ocr_reason": {
+                  "stringValue": "gemini_ocr"
+                },
+                "filename": {
+                  "stringValue": "HistoriaClinica.pdf"
+                },
+                "size_bytes": {
+                  "integerValue": "172938"
+                },
+                "original_mimetype": {
+                  "stringValue": "application/pdf"
+                },
+                "normalized_mimetype": {
+                  "stringValue": "application/pdf"
+                },
+                "mimetype": {
+                  "stringValue": "application/pdf"
+                },
+                "ocr_detail": {
+                  "nullValue": null
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "email_date": {
+      "stringValue": "2024-07-20T16:35:39.000Z"
+    },
+    "attachment_count": {
+      "integerValue": "4"
+    },
+    "hash_signature_raw": {
+      "stringValue": "357873e48f50d2875a2932cfd2453125c95b3ab66eca47ac1821b7a7bc1c12c8"
+    },
+    "thread_id": {
+      "stringValue": "190d0ffab88b2177"
+    },
+    "processing_status": {
+      "stringValue": "discarded_low_confidence"
+    },
+    "message_id": {
+      "stringValue": "190d0ffab88b2177"
+    },
+    "subject": {
+      "stringValue": "Radiografias de Thor"
+    },
+    "ai_result": {
+      "mapValue": {
+        "fields": {
+          "reason_if_review_needed": {
+            "stringValue": "invalid_ai_json"
+          },
+          "confidence_overall": {
+            "integerValue": "0"
+          },
+          "is_clinical_content": {
+            "booleanValue": false
+          }
+        }
+      }
+    },
+    "from_email": {
+      "stringValue": "\"noreply@myvete.com\" \u003cnoreply@myvete.com\u003e"
+    }
+  },
+  "createTime": "2026-03-05T05:21:06.836308Z",
+  "updateTime": "2026-03-05T05:44:14.506651Z"
+}

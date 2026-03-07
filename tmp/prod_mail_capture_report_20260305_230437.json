@@ -1,0 +1,244 @@
+{
+  "generated_at": "2026-03-06T02:04:37.438Z",
+  "sessions": [
+    {
+      "session_id": "da1079b4-adc0-4b00-bfa3-902eee7f6470",
+      "status": "completed",
+      "pet_id": "9iNFm3mZuld2A4maKdAC",
+      "query": "(\"loki\" OR \"9iNFm3mZuld2A4maKdAC\") AND (\"veterinaria\" OR \"veterinario\" OR \"veterinary\" OR \"clinic\" OR \"clinica\" OR \"hospital veterinario\" OR \"turno veterinario\" OR \"diagnosis\" OR \"diagnostico\" OR \"diagnóstico\" OR \"vacuna\" OR \"vaccine\" OR \"tratamiento\" OR \"medicacion\" OR \"medicación\" OR \"receta\" OR \"prescription\" OR \"laboratorio\" OR \"lab\" OR \"ecografia\" OR \"ultrasound\" OR \"radiografia\" OR \"radiography\" OR \"electrocardiograma\" OR \"ecg\" OR filename:receta OR filename:prescription OR filename:laboratorio OR filename:analisis OR filename:informe OR filename:radiografia OR filename:ecografia OR filename:ultrasound OR filename:ecg OR (from:vet OR from:veterinaria OR from:veterinary OR from:clinic OR from:clinica)) after:2024/09/06 before:2026/03/06",
+      "lookback_after": "2024-09-06",
+      "lookback_before": "2026-03-06",
+      "counters": {
+        "total_emails_scanned": 0,
+        "candidate_emails_detected": 0,
+        "emails_with_attachments": 0,
+        "emails_with_images": 0,
+        "total_attachments_processed": 0,
+        "duplicates_removed": 0,
+        "new_medical_events_created": 0,
+        "events_requiring_review": 0,
+        "errors_count": 0
+      },
+      "docs_count": 0,
+      "docs_by_status": {},
+      "docs_sample": [],
+      "ai_jobs_count": 0,
+      "ai_jobs_by_status": {},
+      "ai_errors_sample": []
+    },
+    {
+      "session_id": "cb20253c-b720-4280-a8cb-c6e5bea12712",
+      "status": "completed",
+      "pet_id": "iVoXhESOZ8FvuiWT43Ey",
+      "query": "(\"thor\" OR \"iVoXhESOZ8FvuiWT43Ey\") AND (\"veterinaria\" OR \"veterinario\" OR \"veterinary\" OR \"clinic\" OR \"clinica\" OR \"hospital veterinario\" OR \"turno veterinario\" OR \"diagnosis\" OR \"diagnostico\" OR \"diagnóstico\" OR \"vacuna\" OR \"vaccine\" OR \"tratamiento\" OR \"medicacion\" OR \"medicación\" OR \"receta\" OR \"prescription\" OR \"laboratorio\" OR \"lab\" OR \"ecografia\" OR \"ultrasound\" OR \"radiografia\" OR \"radiography\" OR \"electrocardiograma\" OR \"ecg\" OR filename:receta OR filename:prescription OR filename:laboratorio OR filename:analisis OR filename:informe OR filename:radiografia OR filename:ecografia OR filename:ultrasound OR filename:ecg OR (from:vet OR from:veterinaria OR from:veterinary OR from:clinic OR from:clinica)) after:2024/09/06 before:2026/03/06",
+      "lookback_after": "2024-09-06",
+      "lookback_before": "2026-03-06",
+      "counters": {
+        "total_emails_scanned": 30,
+        "candidate_emails_detected": 26,
+        "emails_with_attachments": 18,
+        "emails_with_images": 12,
+        "total_attachments_processed": 0,
+        "duplicates_removed": 0,
+        "new_medical_events_created": 0,
+        "events_requiring_review": 0,
+        "errors_count": 0
+      },
+      "docs_count": 0,
+      "docs_by_status": {},
+      "docs_sample": [],
+      "ai_jobs_count": 0,
+      "ai_jobs_by_status": {},
+      "ai_errors_sample": []
+    },
+    {
+      "session_id": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b",
+      "status": "processing",
+      "pet_id": "iVoXhESOZ8FvuiWT43Ey",
+      "query": "(\"thor\" OR \"iVoXhESOZ8FvuiWT43Ey\") AND (\"veterinaria\" OR \"veterinario\" OR \"veterinary\" OR \"clinic\" OR \"clinica\" OR \"hospital veterinario\" OR \"turno veterinario\" OR \"diagnosis\" OR \"diagnostico\" OR \"diagnóstico\" OR \"vacuna\" OR \"vaccine\" OR \"tratamiento\" OR \"medicacion\" OR \"medicación\" OR \"receta\" OR \"prescription\" OR \"laboratorio\" OR \"lab\" OR \"ecografia\" OR \"ultrasound\" OR \"radiografia\" OR \"radiography\" OR \"electrocardiograma\" OR \"ecg\" OR filename:receta OR filename:prescription OR filename:laboratorio OR filename:analisis OR filename:informe OR filename:radiografia OR filename:ecografia OR filename:ultrasound OR filename:ecg OR (from:vet OR from:veterinaria OR from:veterinary OR from:clinic OR from:clinica)) after:2024/09/06 before:2026/03/06",
+      "lookback_after": "2024-09-06",
+      "lookback_before": "2026-03-06",
+      "counters": {
+        "total_emails_scanned": 30,
+        "candidate_emails_detected": 26,
+        "emails_with_attachments": 18,
+        "emails_with_images": 12,
+        "total_attachments_processed": 0,
+        "duplicates_removed": 0,
+        "new_medical_events_created": 0,
+        "events_requiring_review": 0,
+        "errors_count": 0
+      },
+      "docs_count": 14,
+      "docs_by_status": {
+        "queued_classification": 10,
+        "discarded_non_clinical": 3,
+        "queued_attachment_ocr": 1
+      },
+      "docs_sample": [
+        {
+          "doc_id": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_192edbfe9a945111",
+          "message_id": "192edbfe9a945111",
+          "subject": "Turno para Thor (ACTUALIZADO) - Número de Cliente: 105152 - VH-AP",
+          "from_email": "\"Veterinaria Honorio S.R.L.\" <info@veterinariahonorio.com.ar>",
+          "status": "queued_classification",
+          "attachment_count": 0,
+          "created_at": "2026-03-06T01:38:49.378Z",
+          "updated_at": ""
+        },
+        {
+          "doc_id": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_192edca101866ac8",
+          "message_id": "192edca101866ac8",
+          "subject": "Comprobantes de Cliente - Número de Cliente: 105152 - VH-AP",
+          "from_email": "\"Veterinaria Honorio S.R.L.\" <info@veterinariahonorio.com.ar>",
+          "status": "discarded_non_clinical",
+          "attachment_count": 2,
+          "created_at": "2026-03-06T02:02:30.146Z",
+          "updated_at": ""
+        },
+        {
+          "doc_id": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_192f3e7b206a7e88",
+          "message_id": "192f3e7b206a7e88",
+          "subject": "Veterinaria Honorio - Recordatorio de Turno - Número de Cliente: 105152 - VH-AP",
+          "from_email": "\"Veterinaria Honorio S.R.L.\" <info@veterinariahonorio.com.ar>",
+          "status": "discarded_non_clinical",
+          "attachment_count": 0,
+          "created_at": "2026-03-06T01:43:41.748Z",
+          "updated_at": ""
+        },
+        {
+          "doc_id": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_192f923ccce6ec52",
+          "message_id": "192f923ccce6ec52",
+          "subject": "Turno para Thor (ACTUALIZADO) - Número de Cliente: 105152 - VH-AP",
+          "from_email": "\"Veterinaria Honorio S.R.L.\" <info@veterinariahonorio.com.ar>",
+          "status": "queued_classification",
+          "attachment_count": 0,
+          "created_at": "2026-03-06T01:38:48.448Z",
+          "updated_at": ""
+        },
+        {
+          "doc_id": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_192f9256d2fd89f3",
+          "message_id": "192f9256d2fd89f3",
+          "subject": "Comprobantes de Cliente - Número de Cliente: 105152 - VH-AP",
+          "from_email": "\"Veterinaria Honorio S.R.L.\" <info@veterinariahonorio.com.ar>",
+          "status": "queued_classification",
+          "attachment_count": 1,
+          "created_at": "2026-03-06T01:38:48.105Z",
+          "updated_at": ""
+        },
+        {
+          "doc_id": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_193035ad3668c66c",
+          "message_id": "193035ad3668c66c",
+          "subject": "Veterinaria Honorio - Recordatorio de Turno - Número de Cliente: 105152 - VH-AP",
+          "from_email": "\"Veterinaria Honorio S.R.L.\" <info@veterinariahonorio.com.ar>",
+          "status": "queued_attachment_ocr",
+          "attachment_count": 0,
+          "created_at": "2026-03-06T01:38:47.788Z",
+          "updated_at": "2026-03-06T01:43:35.826Z"
+        },
+        {
+          "doc_id": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_19308948d9ed19d9",
+          "message_id": "19308948d9ed19d9",
+          "subject": "Comprobantes de Cliente - Número de Cliente: 105152 - VH-AP",
+          "from_email": "\"Veterinaria Honorio S.R.L.\" <info@veterinariahonorio.com.ar>",
+          "status": "queued_classification",
+          "attachment_count": 1,
+          "created_at": "2026-03-06T01:38:47.456Z",
+          "updated_at": ""
+        },
+        {
+          "doc_id": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_193aaf81cea039bc",
+          "message_id": "193aaf81cea039bc",
+          "subject": "Recordatorio de Vacuna para Thor",
+          "from_email": "\"noreply@myvete.com\" <noreply@myvete.com>",
+          "status": "queued_classification",
+          "attachment_count": 0,
+          "created_at": "2026-03-06T01:38:47.136Z",
+          "updated_at": ""
+        },
+        {
+          "doc_id": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_19ada796e42306ab",
+          "message_id": "19ada796e42306ab",
+          "subject": "Fwd: Radiografias de Thor",
+          "from_email": "Mauricio Goitia <mauriciogoitia@gmail.com>",
+          "status": "discarded_non_clinical",
+          "attachment_count": 4,
+          "created_at": "2026-03-06T01:55:17.409Z",
+          "updated_at": ""
+        },
+        {
+          "doc_id": "40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b_19ada831cb0b52a4",
+          "message_id": "19ada831cb0b52a4",
+          "subject": "Fwd: Radiografias de Thor",
+          "from_email": "Mauricio Goitia <mauriciogoitia@gmail.com>",
+          "status": "queued_classification",
+          "attachment_count": 4,
+          "created_at": "2026-03-06T01:38:46.186Z",
+          "updated_at": ""
+        }
+      ],
+      "ai_jobs_count": 30,
+      "ai_jobs_by_status": {
+        "completed": 2,
+        "pending": 28
+      },
+      "ai_errors_sample": [
+        {
+          "id": "05b276a3-a1a6-4d79-ba9f-55dfc2a2af97",
+          "status": "completed",
+          "attempts": 2,
+          "available_at": "1970-01-01T00:00:00.000Z",
+          "updated_at": "2026-03-06T02:02:30.430Z",
+          "error": "Error: Value for argument \"data\" is not a valid Firestore document. Cannot use \"undefined\" as a Firestore value (found in field \"attachment_metadata.`0`.ocr_reason\"). If you want to ignore undefined values, enable `ignor"
+        },
+        {
+          "id": "083d661d-4c2f-4699-b5bc-2c1dfb0b042e",
+          "status": "completed",
+          "attempts": 4,
+          "available_at": "1970-01-01T00:00:00.000Z",
+          "updated_at": "2026-03-06T02:02:31.086Z",
+          "error": "Error: Value for argument \"data\" is not a valid Firestore document. Cannot use \"undefined\" as a Firestore value (found in field \"attachment_metadata.`0`.ocr_reason\"). If you want to ignore undefined values, enable `ignor"
+        },
+        {
+          "id": "2493bae2-af14-4898-8ad6-880371cbd1c9",
+          "status": "pending",
+          "attempts": 1,
+          "available_at": "1970-01-01T00:00:00.000Z",
+          "updated_at": "1970-01-01T00:00:00.000Z",
+          "error": "Error: Value for argument \"data\" is not a valid Firestore document. Cannot use \"undefined\" as a Firestore value (found in field \"attachment_metadata.`0`.ocr_reason\"). If you want to ignore undefined values, enable `ignor"
+        },
+        {
+          "id": "59a4cbf8-9865-4bed-aa7f-1d94f88b950d",
+          "status": "pending",
+          "attempts": 1,
+          "available_at": "1970-01-01T00:00:00.000Z",
+          "updated_at": "1970-01-01T00:00:00.000Z",
+          "error": "Error: Value for argument \"data\" is not a valid Firestore document. Cannot use \"undefined\" as a Firestore value (found in field \"attachment_metadata.`0`.ocr_reason\"). If you want to ignore undefined values, enable `ignor"
+        },
+        {
+          "id": "63499612-58ac-4e05-b37a-3479e9fbc7de",
+          "status": "pending",
+          "attempts": 1,
+          "available_at": "1970-01-01T00:00:00.000Z",
+          "updated_at": "1970-01-01T00:00:00.000Z",
+          "error": "Error: Value for argument \"data\" is not a valid Firestore document. Cannot use \"undefined\" as a Firestore value (found in field \"attachment_metadata.`0`.ocr_reason\"). If you want to ignore undefined values, enable `ignor"
+        },
+        {
+          "id": "6bd02c78-33e3-40f9-8d4f-06152a07f6a9",
+          "status": "pending",
+          "attempts": 1,
+          "available_at": "1970-01-01T00:00:00.000Z",
+          "updated_at": "1970-01-01T00:00:00.000Z",
+          "error": "Error: Value for argument \"data\" is not a valid Firestore document. Cannot use \"undefined\" as a Firestore value (found in field \"attachment_metadata.`0`.ocr_reason\"). If you want to ignore undefined values, enable `ignor"
+        }
+      ]
+    }
+  ],
+  "notes": {
+    "artifact_files": [
+      "tmp/capturas_docs_mail_thor.json",
+      "tmp/captura_docs_live_40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b.json",
+      "tmp/capture_ai_jobs_40fbb17d-37c1-4c1f-89bf-e3757d8fcc4b.json"
+    ]
+  }
+}

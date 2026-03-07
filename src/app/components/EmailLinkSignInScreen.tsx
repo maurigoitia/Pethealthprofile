@@ -76,12 +76,12 @@ export function EmailLinkSignInScreen() {
     <div
       className="min-h-screen flex items-center justify-center px-6"
       style={{
-        backgroundImage: "linear-gradient(rgb(43,124,238) 0%, rgb(61,139,255) 50%, rgb(93,163,255) 100%)",
+        backgroundImage: "linear-gradient(180deg, #074738 0%, #0e6a5a 50%, #1a9b7d 100%)",
       }}
     >
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl px-6 pt-10 pb-10">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-black text-[#2b7cee]">Pessy</h1>
+          <h1 className="text-3xl font-black text-[#074738]">Pessy</h1>
           <p className="text-slate-500 text-sm mt-2">Acceso seguro por magic link</p>
         </div>
 
@@ -95,7 +95,7 @@ export function EmailLinkSignInScreen() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="tu correo"
-            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#2b7cee] outline-none"
+            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
           />
 
           {error && <p className="text-red-500 text-sm font-semibold">{error}</p>}
@@ -104,14 +104,14 @@ export function EmailLinkSignInScreen() {
           <button
             onClick={() => completeMagicLinkSignIn(email)}
             disabled={loading}
-            className="w-full py-4 rounded-2xl bg-[#2b7cee] text-white font-bold disabled:opacity-60"
+            className="w-full py-4 rounded-2xl bg-[#074738] text-white font-bold disabled:opacity-60"
           >
             {loading ? "Validando enlace..." : "Confirmar acceso"}
           </button>
 
           <button
             onClick={() => navigate("/login")}
-            className="w-full py-4 rounded-2xl border-2 border-[#2b7cee] text-[#2b7cee] font-bold hover:bg-[#2b7cee]/5 transition-all"
+            className="w-full py-4 rounded-2xl border-2 border-[#074738] text-[#074738] font-bold hover:bg-[#074738]/5 transition-all"
           >
             Ir a iniciar sesión
           </button>

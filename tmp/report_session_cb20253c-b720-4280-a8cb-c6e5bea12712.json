@@ -1,0 +1,172 @@
+{
+  "name": "projects/gen-lang-client-0123805751/databases/(default)/documents/gmail_ingestion_sessions/cb20253c-b720-4280-a8cb-c6e5bea12712",
+  "fields": {
+    "lookback_before": {
+      "stringValue": "2026-03-06"
+    },
+    "completed_at": {
+      "stringValue": "2026-03-06T01:32:48.504Z"
+    },
+    "metrics.scan_count": {
+      "integerValue": "2"
+    },
+    "metrics.scan_ms": {
+      "integerValue": "7702"
+    },
+    "max_mails_per_sync": {
+      "integerValue": "80"
+    },
+    "qa_total_scan_cap": {
+      "integerValue": "80"
+    },
+    "session_id": {
+      "stringValue": "cb20253c-b720-4280-a8cb-c6e5bea12712"
+    },
+    "pet_id": {
+      "stringValue": "iVoXhESOZ8FvuiWT43Ey"
+    },
+    "qa_disable_dedup": {
+      "booleanValue": false
+    },
+    "query": {
+      "stringValue": "(\"thor\" OR \"iVoXhESOZ8FvuiWT43Ey\") AND (\"veterinaria\" OR \"veterinario\" OR \"veterinary\" OR \"clinic\" OR \"clinica\" OR \"hospital veterinario\" OR \"turno veterinario\" OR \"diagnosis\" OR \"diagnostico\" OR \"diagnóstico\" OR \"vacuna\" OR \"vaccine\" OR \"tratamiento\" OR \"medicacion\" OR \"medicación\" OR \"receta\" OR \"prescription\" OR \"laboratorio\" OR \"lab\" OR \"ecografia\" OR \"ultrasound\" OR \"radiografia\" OR \"radiography\" OR \"electrocardiograma\" OR \"ecg\" OR filename:receta OR filename:prescription OR filename:laboratorio OR filename:analisis OR filename:informe OR filename:radiografia OR filename:ecografia OR filename:ultrasound OR filename:ecg OR (from:vet OR from:veterinaria OR from:veterinary OR from:clinic OR from:clinica)) after:2024/09/06 before:2026/03/06"
+    },
+    "fallback_query": {
+      "stringValue": "(\"veterinaria\" OR \"veterinario\" OR \"veterinary\" OR \"clinic\" OR \"clinica\" OR \"hospital veterinario\" OR \"turno veterinario\" OR \"diagnosis\" OR \"diagnostico\" OR \"diagnóstico\" OR \"vacuna\" OR \"vaccine\" OR \"tratamiento\" OR \"medicacion\" OR \"medicación\" OR \"receta\" OR \"prescription\" OR \"laboratorio\" OR \"lab\" OR \"ecografia\" OR \"ultrasound\" OR \"radiografia\" OR \"radiography\" OR \"electrocardiograma\" OR \"ecg\" OR filename:receta OR filename:prescription OR filename:laboratorio OR filename:analisis OR filename:informe OR filename:radiografia OR filename:ecografia OR filename:ultrasound OR filename:ecg OR (from:vet OR from:veterinaria OR from:veterinary OR from:clinic OR from:clinica)) after:2024/09/06 before:2026/03/06"
+    },
+    "lookback_after": {
+      "stringValue": "2024-09-06"
+    },
+    "scan_complete": {
+      "booleanValue": true
+    },
+    "qa_disable_fallback_query": {
+      "booleanValue": true
+    },
+    "summary": {
+      "mapValue": {
+        "fields": {
+          "metrics": {
+            "mapValue": {
+              "fields": {
+                "total_emails_scanned": {
+                  "integerValue": "30"
+                },
+                "scan_ms": {
+                  "integerValue": "0"
+                },
+                "errors_count": {
+                  "integerValue": "0"
+                },
+                "extraction_ms": {
+                  "integerValue": "0"
+                },
+                "documents_with_images": {
+                  "integerValue": "12"
+                },
+                "ai_estimated_cost_usd": {
+                  "integerValue": "0"
+                },
+                "emails_with_medical_content": {
+                  "integerValue": "26"
+                },
+                "duplicates_skipped": {
+                  "integerValue": "0"
+                },
+                "ai_tokens_estimated": {
+                  "integerValue": "0"
+                },
+                "events_requiring_review": {
+                  "integerValue": "0"
+                },
+                "classification_ms": {
+                  "integerValue": "0"
+                },
+                "documents_with_attachments": {
+                  "integerValue": "18"
+                },
+                "attachment_ms": {
+                  "integerValue": "0"
+                },
+                "ai_calls_total": {
+                  "integerValue": "0"
+                },
+                "new_medical_events_created": {
+                  "integerValue": "0"
+                },
+                "review_ratio": {
+                  "integerValue": "0"
+                }
+              }
+            }
+          },
+          "timestamp": {
+            "stringValue": "2026-03-06T01:32:48.504Z"
+          },
+          "import_session_id": {
+            "stringValue": "cb20253c-b720-4280-a8cb-c6e5bea12712"
+          },
+          "status": {
+            "stringValue": "completed"
+          }
+        }
+      }
+    },
+    "effective_scan_cap": {
+      "integerValue": "80"
+    },
+    "started_at": {
+      "stringValue": "2026-03-06T01:30:04.098Z"
+    },
+    "user_id": {
+      "stringValue": "veBVBs9olTeppTYjjTCnhFaEQIc2"
+    },
+    "next_page_token": {
+      "nullValue": null
+    },
+    "updated_at": {
+      "stringValue": "2026-03-06T01:32:48.504Z"
+    },
+    "fallback_query_applied": {
+      "booleanValue": false
+    },
+    "counters": {
+      "mapValue": {
+        "fields": {
+          "new_medical_events_created": {
+            "integerValue": "0"
+          },
+          "emails_with_images": {
+            "integerValue": "12"
+          },
+          "total_attachments_processed": {
+            "integerValue": "0"
+          },
+          "errors_count": {
+            "integerValue": "0"
+          },
+          "candidate_emails_detected": {
+            "integerValue": "26"
+          },
+          "duplicates_removed": {
+            "integerValue": "0"
+          },
+          "events_requiring_review": {
+            "integerValue": "0"
+          },
+          "total_emails_scanned": {
+            "integerValue": "30"
+          },
+          "emails_with_attachments": {
+            "integerValue": "18"
+          }
+        }
+      }
+    },
+    "status": {
+      "stringValue": "completed"
+    }
+  },
+  "createTime": "2026-03-06T01:30:04.146539Z",
+  "updateTime": "2026-03-06T01:32:48.545525Z"
+}

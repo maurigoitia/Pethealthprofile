@@ -43,12 +43,12 @@ export function RegisterPetStep1() {
     <div
       className="min-h-screen flex items-center justify-center px-6"
       style={{
-        backgroundImage: "linear-gradient(rgb(43,124,238) 0%, rgb(61,139,255) 50%, rgb(93,163,255) 100%)",
+        backgroundImage: "linear-gradient(180deg, #074738 0%, #0e6a5a 50%, #1a9b7d 100%)",
       }}
     >
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl px-6 pt-8 pb-8">
         <div className="text-center mb-6">
-          <h1 className="text-3xl font-black text-[#2b7cee]">
+          <h1 className="text-3xl font-black text-[#074738]">
             Pessy
           </h1>
           <p className="text-slate-500 text-sm mt-2">Que su historia no se pierda.</p>
@@ -66,7 +66,7 @@ export function RegisterPetStep1() {
             placeholder="Nombre"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#2b7cee] outline-none"
+            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
           />
 
           <select
@@ -85,7 +85,7 @@ export function RegisterPetStep1() {
                 setShowSuggestions(filtered.length > 0);
               }
             }}
-            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#2b7cee] outline-none bg-white"
+            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none bg-white"
           >
             <option value="dog">Perro</option>
             <option value="cat">Gato</option>
@@ -104,7 +104,7 @@ export function RegisterPetStep1() {
               }}
               onFocus={() => updateSuggestions(breedInput)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
-              className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#2b7cee] outline-none"
+              className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
             />
 
             {showSuggestions && (
@@ -129,7 +129,7 @@ export function RegisterPetStep1() {
           <button
             onClick={handleNext}
             disabled={!name.trim()}
-            className="w-full py-4 rounded-2xl bg-[#2b7cee] text-white font-bold disabled:opacity-60"
+            className="w-full py-4 rounded-2xl bg-[#074738] text-white font-bold disabled:opacity-60"
           >
             Continuar
           </button>

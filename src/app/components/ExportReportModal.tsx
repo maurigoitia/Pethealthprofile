@@ -6,6 +6,7 @@ import { useMedical } from "../contexts/MedicalContext";
 import { useAuth } from "../contexts/AuthContext";
 import jsPDF from "jspdf";
 import { formatDateSafe } from "../utils/dateUtils";
+import { savePdfWithFallback } from "../utils/pdfExport";
 
 interface ExportReportModalProps {
   isOpen: boolean;
@@ -650,7 +651,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       }
 
       const fileName = `PESSY_${TITLE_MAP[selectedReport].replace(/ /g, "_")}_${activePet.name}_${new Date().toISOString().slice(0, 10)}.pdf`;
-      pdf.save(fileName);
+      await savePdfWithFallback(pdf, fileName);
       onClose();
 
     } catch (err) {
