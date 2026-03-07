@@ -572,8 +572,9 @@ async function resolveClinicalAlert(alertId: string, notes: string, nowIso: stri
 // ─────────────────────────────────────────────────────────────────────────────
 // CRON: Revisa cada 15 minutos si hay notificaciones pendientes para enviar
 // ─────────────────────────────────────────────────────────────────────────────
-export const sendScheduledNotifications = functions.pubsub
-  .schedule("every 5 minutes")
+export const sendScheduledNotifications = functions
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .pubsub.schedule("every 5 minutes")
   .onRun(async () => {
     const now = new Date();
     const windowEnd = new Date(now.getTime() + 6 * 60 * 1000); // ventana 6 min para cubrir gap entre ejecuciones
