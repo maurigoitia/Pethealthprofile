@@ -491,10 +491,10 @@ async function resolveClinicalAlert(alertId: string, notes: string, nowIso: stri
 // CRON: Revisa cada 15 minutos si hay notificaciones pendientes para enviar
 // ─────────────────────────────────────────────────────────────────────────────
 export const sendScheduledNotifications = functions.pubsub
-  .schedule("every 15 minutes")
+  .schedule("every 5 minutes")
   .onRun(async () => {
     const now = new Date();
-    const windowEnd = new Date(now.getTime() + 15 * 60 * 1000);
+    const windowEnd = new Date(now.getTime() + 6 * 60 * 1000); // ventana 6 min para cubrir gap entre ejecuciones
     const nowIso = now.toISOString();
 
     console.log(`[CRON] Revisando notificaciones hasta ${windowEnd.toISOString()}`);
@@ -580,25 +580,59 @@ export const sendScheduledNotifications = functions.pubsub
 
             if (shouldScheduleNext) {
               const repeatRootId = (notification.repeatRootId as string | undefined) || docSnap.id;
-              const nextDocId = `${repeatRootId}_${nextDate.getTime()}`;
-              await db.collection("scheduled_notifications").doc(nextDocId).set({
+              // Limpiar sufijo _pre60 / _pre5 del rootId para obtener el id base
+              const baseRootId = repeatRootId.replace(/_pre60$|_pre5$/, "");
+
+              // Dosis principal
+              const nextDocId = `${baseRootId}_${nextDate.getTime()}`;
+              const basePayload = {
                 userId,
                 petId: notification.petId || "",
                 petName: notification.petName || "Tu mascota",
                 type,
-                title: notification.title || "Pessy",
                 body: notification.body || "",
-                scheduledFor: nextDate.toISOString(),
                 sourceEventId: notification.sourceEventId || null,
                 sourceMedicationId: notification.sourceMedicationId || null,
                 repeat: notification.repeat || "none",
                 repeatInterval: Number(notification.repeatInterval) || null,
-                repeatRootId,
                 endAt: endAtRaw || null,
                 active: true,
                 sent: false,
                 createdAt: nowIso,
-              });
+              };
+
+              // Solo reprogramar si este doc es la dosis principal (no los pre-avisos)
+              const isPreAlert = repeatRootId.endsWith("_pre60") || repeatRootId.endsWith("_pre5");
+              if (!isPreAlert) {
+                await db.collection("scheduled_notifications").doc(nextDocId).set({
+                  ...basePayload,
+                  title: notification.title || "Pessy",
+                  scheduledFor: nextDate.toISOString(),
+                  repeatRootId: baseRootId,
+                });
+
+                // Pre-aviso 1 hora
+                const oneHourBefore = new Date(nextDate.getTime() - 60 * 60 * 1000);
+                if (!endAt || oneHourBefore.getTime() <= endAt.getTime()) {
+                  await db.collection("scheduled_notifications").doc(`${baseRootId}_pre60_${nextDate.getTime()}`).set({
+                    ...basePayload,
+                    title: `En 1 hora medicación — ${notification.petName || "tu mascota"}`,
+                    scheduledFor: oneHourBefore.toISOString(),
+                    repeatRootId: `${baseRootId}_pre60`,
+                  });
+                }
+
+                // Pre-aviso 5 min
+                const fiveMinBefore = new Date(nextDate.getTime() - 5 * 60 * 1000);
+                if (!endAt || fiveMinBefore.getTime() <= endAt.getTime()) {
+                  await db.collection("scheduled_notifications").doc(`${baseRootId}_pre5_${nextDate.getTime()}`).set({
+                    ...basePayload,
+                    title: `¡En 5 min! Medicación — ${notification.petName || "tu mascota"}`,
+                    scheduledFor: fiveMinBefore.toISOString(),
+                    repeatRootId: `${baseRootId}_pre5`,
+                  });
+                }
+              }
             }
           }
         }

@@ -240,21 +240,46 @@ class NotificationServiceClass {
     };
 
     const reminders: ScheduledNotification[] = [primaryReminder];
-    const preDoseTime = new Date(current.getTime() - 15 * 60 * 1000);
-    if (preDoseTime.getTime() > Date.now()) {
+
+    // Aviso 1 hora antes
+    const oneHourBefore = new Date(current.getTime() - 60 * 60 * 1000);
+    if (oneHourBefore.getTime() > Date.now()) {
       reminders.push({
         userId: user.uid,
         petId: params.petId,
         petName: params.petName,
         type: "medication",
-        title: `En 15 min medicacion — ${params.petName}`,
+        title: `En 1 hora medicación — ${params.petName}`,
         body: `${params.medicationName} · ${params.dosage}`,
-        scheduledFor: preDoseTime.toISOString(),
+        scheduledFor: oneHourBefore.toISOString(),
         sourceEventId: params.sourceEventId,
         sourceMedicationId: params.sourceMedicationId,
         repeat: intervalHours <= 24 ? "daily" : "weekly",
         repeatInterval: intervalHours,
-        repeatRootId: `${repeatRootId}_pre15`,
+        repeatRootId: `${repeatRootId}_pre60`,
+        endAt: params.endDate || null,
+        active: true,
+        sent: false,
+        createdAt: nowIso,
+      });
+    }
+
+    // Aviso 5 min antes
+    const fiveMinBefore = new Date(current.getTime() - 5 * 60 * 1000);
+    if (fiveMinBefore.getTime() > Date.now()) {
+      reminders.push({
+        userId: user.uid,
+        petId: params.petId,
+        petName: params.petName,
+        type: "medication",
+        title: `¡En 5 min! Medicación — ${params.petName}`,
+        body: `${params.medicationName} · ${params.dosage}`,
+        scheduledFor: fiveMinBefore.toISOString(),
+        sourceEventId: params.sourceEventId,
+        sourceMedicationId: params.sourceMedicationId,
+        repeat: intervalHours <= 24 ? "daily" : "weekly",
+        repeatInterval: intervalHours,
+        repeatRootId: `${repeatRootId}_pre5`,
         endAt: params.endDate || null,
         active: true,
         sent: false,
