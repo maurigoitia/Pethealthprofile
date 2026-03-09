@@ -556,6 +556,29 @@ function parseDomainListEnv(name: string): string[] {
     .map((item) => item.replace(/^\.+/, "").replace(/\.+$/, ""));
 }
 
+function parseEmailListEnv(name: string): string[] {
+  return asString(process.env[name])
+    .toLowerCase()
+    .split(/[,\n;]+/g)
+    .map((item) => item.trim())
+    .filter((item) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(item));
+}
+
+function getQaAllowedUserEmails(): string[] {
+  return parseEmailListEnv("GMAIL_QA_ALLOWED_USER_EMAILS");
+}
+
+function isEmailAllowedForQa(email: string): boolean {
+  const allowlist = getQaAllowedUserEmails();
+  if (allowlist.length === 0) return true;
+  return allowlist.includes(asString(email).toLowerCase());
+}
+
+function isSmartPetMatchingEnabled(): boolean {
+  const raw = asString(process.env.GMAIL_SMART_PET_MATCH_ENABLED).toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+}
+
 function domainMatches(domain: string, candidate: string): boolean {
   return domain === candidate || domain.endsWith(`.${candidate}`);
 }
@@ -2475,6 +2498,146 @@ function hasAnyIdentityToken(corpus: string, tokens: string[]): boolean {
   return tokens.some((token) => corpus.includes(token));
 }
 
+function hasExactPhrase(corpus: string, phrase: string): boolean {
+  const normalizedPhrase = normalizeTextForMatch(phrase);
+  if (!normalizedPhrase) return false;
+  return corpus.includes(normalizedPhrase);
+}
+
+function listStringValues(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((entry) => asString(entry))
+    .filter(Boolean);
+}
+
+function uniqueNonEmpty(values: string[]): string[] {
+  return Array.from(new Set(values.map((entry) => entry.trim()).filter(Boolean)));
+}
+
+function speciesAliases(species: string): string[] {
+  const normalized = normalizeTextForMatch(species);
+  if (!normalized) return [];
+  if (normalized === "dog" || normalized === "perro" || normalized === "canine" || normalized === "canino") {
+    return ["dog", "perro", "canino", "canine"];
+  }
+  if (normalized === "cat" || normalized === "gato" || normalized === "feline" || normalized === "felino") {
+    return ["cat", "gato", "felino", "feline"];
+  }
+  return [normalized];
+}
+
+async function resolvePetConditionHints(petId: string, petData: Record<string, unknown>): Promise<string[]> {
+  const direct = uniqueNonEmpty([
+    ...listStringValues(petData.knownConditions),
+    ...listStringValues(petData.known_conditions),
+    ...listStringValues(petData.chronic_conditions),
+  ]);
+  if (direct.length > 0) return direct.slice(0, 8);
+
+  try {
+    const snap = await admin.firestore().collection("clinical_conditions").where("petId", "==", petId).limit(8).get();
+    const fromConditions = snap.docs
+      .map((doc) => {
+        const row = asRecord(doc.data());
+        return asString(row.normalizedName) || asString(row.name) || asString(row.title);
+      })
+      .filter(Boolean);
+    return uniqueNonEmpty(fromConditions).slice(0, 8);
+  } catch {
+    return [];
+  }
+}
+
+interface PetResolutionHints {
+  subjectText?: string;
+  bodyText?: string;
+}
+
+interface PetCandidateProfile {
+  id: string;
+  data: Record<string, unknown>;
+  name: string;
+  species: string;
+  breed: string;
+  knownConditions: string[];
+}
+
+interface PetCandidateScore {
+  pet: PetCandidateProfile;
+  score: number;
+  anchors: number;
+  reasons: string[];
+}
+
+function scorePetCandidate(args: {
+  subjectCorpus: string;
+  bodyCorpus: string;
+  pet: PetCandidateProfile;
+}): PetCandidateScore {
+  const { subjectCorpus, bodyCorpus, pet } = args;
+  let score = 0;
+  let anchors = 0;
+  const reasons: string[] = [];
+
+  const add = (value: number, reason: string, anchor = false) => {
+    score += value;
+    if (anchor) anchors += 1;
+    reasons.push(reason);
+  };
+
+  const name = normalizeTextForMatch(pet.name);
+  const breed = normalizeTextForMatch(pet.breed);
+  const conditionHints = pet.knownConditions.map((entry) => normalizeTextForMatch(entry)).filter(Boolean);
+  const nameTokens = tokenizeIdentity(pet.name);
+  const breedTokens = tokenizeIdentity(pet.breed);
+  const speciesHints = speciesAliases(pet.species);
+
+  if (name && hasExactPhrase(subjectCorpus, name)) add(140, `name_subject:${name}`, true);
+  else if (name && hasExactPhrase(bodyCorpus, name)) add(110, `name_body:${name}`, true);
+  else if (nameTokens.length > 0 && hasAnyIdentityToken(subjectCorpus, nameTokens)) add(90, `name_token_subject:${nameTokens[0]}`, true);
+  else if (nameTokens.length > 0 && hasAnyIdentityToken(bodyCorpus, nameTokens)) add(65, `name_token_body:${nameTokens[0]}`, true);
+
+  if (breed && hasExactPhrase(subjectCorpus, breed)) add(50, `breed_subject:${breed}`, true);
+  else if (breed && hasExactPhrase(bodyCorpus, breed)) add(35, `breed_body:${breed}`, true);
+  else if (breedTokens.length > 0 && hasAnyIdentityToken(bodyCorpus, breedTokens)) add(18, `breed_token:${breedTokens[0]}`);
+
+  if (speciesHints.some((alias) => hasExactPhrase(subjectCorpus, alias))) add(22, `species_subject:${pet.species}`);
+  else if (speciesHints.some((alias) => hasExactPhrase(bodyCorpus, alias))) add(12, `species_body:${pet.species}`);
+
+  for (const condition of conditionHints.slice(0, 3)) {
+    if (condition.length < 4) continue;
+    if (hasExactPhrase(subjectCorpus, condition)) {
+      add(48, `condition_subject:${condition}`, true);
+      continue;
+    }
+    if (hasExactPhrase(bodyCorpus, condition)) {
+      add(34, `condition_body:${condition}`, true);
+    }
+  }
+
+  return { pet, score, anchors, reasons };
+}
+
+function choosePetByHints(args: {
+  pets: PetCandidateProfile[];
+  hints?: PetResolutionHints | null;
+}): PetCandidateScore | null {
+  const subjectCorpus = normalizeTextForMatch(asString(args.hints?.subjectText));
+  const bodyCorpus = normalizeTextForMatch(asString(args.hints?.bodyText));
+  if (!subjectCorpus && !bodyCorpus) return null;
+
+  const ranked = args.pets
+    .map((pet) => scorePetCandidate({ subjectCorpus, bodyCorpus, pet }))
+    .sort((a, b) => b.score - a.score);
+  const best = ranked[0];
+  const second = ranked[1];
+  if (!best || best.score < 60 || best.anchors === 0) return null;
+  if (second && second.score > 0 && best.score - second.score < 25) return null;
+  if (best.anchors < 2 && best.score < 95) return null;
+  return best;
+}
+
 function attachmentNamesContainClinicalSignal(metadata: AttachmentMetadata[]): boolean {
   const joined = normalizeTextForMatch(metadata.map((row) => row.filename).join(" "));
   if (!joined) return false;
@@ -2642,6 +2805,7 @@ async function fetchUserRefreshToken(uid: string): Promise<{ refreshToken: strin
 async function resolvePlanAndPet(args: {
   uid: string;
   preferredPetId?: string | null;
+  contextHints?: PetResolutionHints | null;
 }): Promise<{
   planType: UserPlanType;
   petId: string | null;
@@ -2649,6 +2813,7 @@ async function resolvePlanAndPet(args: {
   petBirthDateIso: string | null;
   petAgeYears: number;
   petContext: Record<string, unknown>;
+  petResolutionDebug: Record<string, unknown>;
 }> {
   const overrideSnap = await admin.firestore().collection("email_sync_plan_overrides").doc(args.uid).get();
   const overrideData = asRecord(overrideSnap.data());
@@ -2656,6 +2821,7 @@ async function resolvePlanAndPet(args: {
 
   const userSnap = await admin.firestore().collection("users").doc(args.uid).get();
   const userData = asRecord(userSnap.data());
+  const userEmail = asString(userData.email).toLowerCase();
   const candidatePlans = [
     asString(userData.plan),
     asString(userData.planType),
@@ -2669,30 +2835,102 @@ async function resolvePlanAndPet(args: {
     ? "premium"
     : "free";
 
+  const canUseSmartPetHints = isSmartPetMatchingEnabled() && isEmailAllowedForQa(userEmail || "");
   let petId = asString(args.preferredPetId) || null;
   let petData: Record<string, unknown> | null = null;
+  let petResolutionDebug: Record<string, unknown> = {
+    mode: petId ? "preferred_pet_id" : "unresolved",
+    smart_matching_enabled: canUseSmartPetHints,
+  };
   if (petId) {
     const petSnap = await admin.firestore().collection("pets").doc(petId).get();
-    if (petSnap.exists) petData = asRecord(petSnap.data());
+    if (petSnap.exists) {
+      petData = asRecord(petSnap.data());
+      petResolutionDebug = {
+        mode: "preferred_pet_id",
+        smart_matching_enabled: canUseSmartPetHints,
+        chosen_pet_id: petId,
+        chosen_pet_name: asString(petData.name) || null,
+      };
+    } else {
+      petResolutionDebug = {
+        mode: "preferred_pet_missing",
+        smart_matching_enabled: canUseSmartPetHints,
+        requested_pet_id: petId,
+      };
+    }
   }
   if (!petData) {
-    // Fallback seguro: solo auto-asignar si el usuario tiene UNA sola mascota.
-    // Con múltiples mascotas, dejar petId = null para que brainResolver
-    // enrute a pending_reviews (requiere confirmación humana).
     const ownerPets = await admin
       .firestore()
       .collection("pets")
       .where("ownerId", "==", args.uid)
-      .limit(2)    // limit(2) para detectar si hay más de una
+      .limit(12)
       .get();
-    if (ownerPets.size === 1) {
+
+    if (canUseSmartPetHints && ownerPets.size > 1) {
+      const petCandidates = await Promise.all(
+        ownerPets.docs.map(async (doc) => {
+          const row = asRecord(doc.data());
+          return {
+            id: doc.id,
+            data: row,
+            name: asString(row.name),
+            species: asString(row.species),
+            breed: asString(row.breed),
+            knownConditions: await resolvePetConditionHints(doc.id, row),
+          } satisfies PetCandidateProfile;
+        })
+      );
+      const matched = choosePetByHints({
+        pets: petCandidates.filter((row) => Boolean(row.name)),
+        hints: args.contextHints,
+      });
+      if (matched) {
+        petId = matched.pet.id;
+        petData = matched.pet.data;
+        petResolutionDebug = {
+          mode: "smart_match",
+          smart_matching_enabled: true,
+          candidate_count: petCandidates.length,
+          chosen_pet_id: matched.pet.id,
+          chosen_pet_name: matched.pet.name || null,
+          score: matched.score,
+          anchors: matched.anchors,
+          reasons: matched.reasons.slice(0, 8),
+        };
+      } else {
+        petResolutionDebug = {
+          mode: "smart_match_ambiguous",
+          smart_matching_enabled: true,
+          candidate_count: petCandidates.length,
+        };
+      }
+    }
+
+    if (!petData && ownerPets.size === 1) {
       const only = ownerPets.docs[0];
       petId = only.id;
       petData = asRecord(only.data());
-    } else if (ownerPets.size > 1) {
-      // Múltiples mascotas — no asumir, dejar que el usuario confirme
+      petResolutionDebug = {
+        mode: "single_pet_fallback",
+        smart_matching_enabled: canUseSmartPetHints,
+        chosen_pet_id: petId,
+        chosen_pet_name: asString(petData.name) || null,
+      };
+    } else if (!petData && ownerPets.size > 1) {
       petId = null;
       petData = null;
+      petResolutionDebug = {
+        mode: "ambiguous_multi_pet",
+        smart_matching_enabled: canUseSmartPetHints,
+        candidate_count: ownerPets.size,
+      };
+    } else if (!petData && ownerPets.empty) {
+      petResolutionDebug = {
+        mode: "no_pet_available",
+        smart_matching_enabled: canUseSmartPetHints,
+      };
     }
   }
 
@@ -2718,6 +2956,7 @@ async function resolvePlanAndPet(args: {
         ? ((petData || {}).knownAllergies as unknown[]).filter((row): row is string => typeof row === "string")
         : [],
     },
+    petResolutionDebug,
   };
 }
 
@@ -3625,7 +3864,14 @@ async function processAiQueueJob(
   const configSnap = await admin.firestore().collection("user_email_config").doc(uid).get();
   const config = asRecord(configSnap.data()) as unknown as UserEmailConfig;
   const petId = config.pet_id || null;
-  const planAndPet = await resolvePlanAndPet({ uid, preferredPetId: petId });
+  const planAndPet = await resolvePlanAndPet({
+    uid,
+    preferredPetId: petId,
+    contextHints: {
+      subjectText: sourceSubject,
+      bodyText: extractedText,
+    },
+  });
   const effectivePetId = planAndPet.petId || petId;
   const sessionSettingsSnap = await admin.firestore().collection("gmail_ingestion_sessions").doc(sessionId).get();
   const sessionSettings = asRecord(sessionSettingsSnap.data());
@@ -6017,9 +6263,12 @@ export const forceRunEmailClinicalIngestion = functions
         if (!uid) continue;
         const userSnap = await admin.firestore().collection("users").doc(uid).get();
         const userData = asRecord(userSnap.data());
+        const email = asString(userData.email) || null;
+        if (!email && getQaAllowedUserEmails().length > 0) continue;
+        if (email && !isEmailAllowedForQa(email)) continue;
         connected.push({
           uid,
-          email: asString(userData.email) || null,
+          email,
           fullName: asString(userData.fullName) || asString(userData.name) || null,
           gmailAccount: asString(asRecord(userData.gmailSync).accountEmail) || null,
         });
@@ -6059,6 +6308,14 @@ export const forceRunEmailClinicalIngestion = functions
     }
     if (!uid) {
       res.status(404).json({ ok: false, error: "user_not_found" });
+      return;
+    }
+
+    const targetUserSnap = await admin.firestore().collection("users").doc(uid).get();
+    const targetUserData = asRecord(targetUserSnap.data());
+    const targetEmail = asString(targetUserData.email) || byEmail;
+    if (!isEmailAllowedForQa(targetEmail)) {
+      res.status(403).json({ ok: false, error: "qa_user_not_allowed" });
       return;
     }
 
@@ -6372,10 +6629,18 @@ export const ingestClinicalEmailWebhook = functions
 
     let petName = asString(body.petName);
     let petId = preferredPetId || asString(body.petId);
+    let resolvedPlanAndPet: Awaited<ReturnType<typeof resolvePlanAndPet>> | null = null;
     if (uid) {
-      const planAndPet = await resolvePlanAndPet({ uid, preferredPetId });
-      petName = planAndPet.petName || petName;
-      petId = planAndPet.petId || petId;
+      resolvedPlanAndPet = await resolvePlanAndPet({
+        uid,
+        preferredPetId,
+        contextHints: {
+          subjectText: subject,
+          bodyText,
+        },
+      });
+      petName = resolvedPlanAndPet.petName || petName;
+      petId = resolvedPlanAndPet.petId || petId;
     }
 
     const candidate = isCandidateClinicalEmail({
@@ -6401,6 +6666,13 @@ export const ingestClinicalEmailWebhook = functions
         ok: true,
         preview: true,
         prefilter,
+        resolved_identity: {
+          uid: uid || null,
+          pet_id: petId || null,
+          pet_name: petName || null,
+          plan_type: resolvedPlanAndPet?.planType || null,
+          pet_resolution: resolvedPlanAndPet?.petResolutionDebug || null,
+        },
       });
       return;
     }
@@ -6417,6 +6689,14 @@ export const ingestClinicalEmailWebhook = functions
 
     if (!uid) {
       res.status(404).json({ ok: false, error: "user_not_found" });
+      return;
+    }
+
+    const targetUserSnap = await admin.firestore().collection("users").doc(uid).get();
+    const targetUserData = asRecord(targetUserSnap.data());
+    const targetEmail = asString(targetUserData.email) || byEmail;
+    if (!isEmailAllowedForQa(targetEmail)) {
+      res.status(403).json({ ok: false, error: "qa_user_not_allowed" });
       return;
     }
 
