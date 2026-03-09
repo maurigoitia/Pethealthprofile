@@ -329,6 +329,38 @@ export async function projectClinicalEvent(
   projectedDocId: string;
   requiresHumanReview: boolean;
 }> {
+  const nowIso = new Date().toISOString();
+
+  // ── Anti-duplicate: si Gmail ya creó el medical_events (via ingestEventToDomain),
+  //    reusar ese doc en lugar de crear uno nuevo. Evita duplicados en el Timeline.
+  const sourceMeta = (data.source_metadata ?? {}) as Record<string, unknown>;
+  const existingCanonicalId = asString(sourceMeta.canonical_event_id);
+  if (existingCanonicalId) {
+    const existingSnap = await admin
+      .firestore()
+      .collection("medical_events")
+      .doc(existingCanonicalId)
+      .get();
+    if (existingSnap.exists) {
+      await existingSnap.ref.update({ clinicalEventId, lastProjectedAt: nowIso });
+      await admin.firestore().collection("clinical_events").doc(clinicalEventId).update({
+        projected: true,
+        projectedTo: "medical_events",
+        projectedDocId: existingCanonicalId,
+        projectedAt: nowIso,
+      });
+      functions.logger.info("[PROJECTION] ♻️ Reutilizando medical_events existente", {
+        clinicalEventId,
+        existingCanonicalId,
+      });
+      return {
+        projectedTo: "medical_events",
+        projectedDocId: existingCanonicalId,
+        requiresHumanReview: false,
+      };
+    }
+  }
+
   const category = asString(data.category);
   const documentType = asString(data.document_type);
   const confidence: number = typeof data.brain_confidence === "number" ? data.brain_confidence : 0;
@@ -406,7 +438,7 @@ export async function projectClinicalEvent(
   };
 }
 
-// ─── Cloud Function trigger ───────────────────────────────────────────────────
+// ─── Cloud Function trigger ─────────────────────────────── v2.1 ─────────────
 
 export const onClinicalEventProjection = onDocumentCreated(
   {

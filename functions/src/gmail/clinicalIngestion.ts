@@ -2676,16 +2676,23 @@ async function resolvePlanAndPet(args: {
     if (petSnap.exists) petData = asRecord(petSnap.data());
   }
   if (!petData) {
+    // Fallback seguro: solo auto-asignar si el usuario tiene UNA sola mascota.
+    // Con múltiples mascotas, dejar petId = null para que brainResolver
+    // enrute a pending_reviews (requiere confirmación humana).
     const ownerPets = await admin
       .firestore()
       .collection("pets")
       .where("ownerId", "==", args.uid)
-      .limit(1)
+      .limit(2)    // limit(2) para detectar si hay más de una
       .get();
-    if (!ownerPets.empty) {
-      const first = ownerPets.docs[0];
-      petId = first.id;
-      petData = asRecord(first.data());
+    if (ownerPets.size === 1) {
+      const only = ownerPets.docs[0];
+      petId = only.id;
+      petData = asRecord(only.data());
+    } else if (ownerPets.size > 1) {
+      // Múltiples mascotas — no asumir, dejar que el usuario confirme
+      petId = null;
+      petData = null;
     }
   }
 
