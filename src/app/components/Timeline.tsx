@@ -623,11 +623,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                       ? null
                       : validatedByHuman || sourceTruth === "human_confirmed" || sourceTruth === "user_curated"
                         ? { label: "✓ Confirmado", tone: "bg-emerald-50 text-emerald-700 border border-emerald-200" }
-                        : sourceTruth === "ai_auto_ingested"
-                          ? { label: "IA auto-ingestada", tone: "bg-amber-50 text-amber-700 border border-amber-200" }
-                        : sourceTruth === "ai_high_confidence"
-                          ? { label: "⚡ Extraído por IA", tone: "bg-blue-50 text-blue-600 border border-blue-200" }
-                          : null;
+                        : null;
                   // ──────────────────────────────────────────────────────────
 
                   return (

@@ -77,6 +77,31 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "treatments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "petId", "order": "ASCENDING" },
+        { "fieldPath": "subtype", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "treatments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "subtype", "order": "ASCENDING" },
+        { "fieldPath": "generatedFromEventId", "order": "ASCENDING" },
+        { "fieldPath": "petId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "treatments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "subtype", "order": "ASCENDING" },
+        { "fieldPath": "generatedFromEventId", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

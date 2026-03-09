@@ -479,20 +479,92 @@ const asAppointmentTimeOrNull = (value: unknown): string | null => {
   return null;
 };
 
+const MAX_CONDITION_NAME_CHARS = 80;
+
+// Extrae el label corto de un término clínico.
+// Si el modelo devuelve una frase larga ("Infiltrado intersticial bilateral compatible con..."),
+// intentamos aislar la entidad clínica principal antes del primer calificador largo.
+const extractShortClinicalLabel = (source: string): string => {
+  // Cortar en el primer calificador de extensión ("compatible con", "compatible a", "consistente con",
+  // "sugestivo de", "en relación a", "asociado a", "secundario a", "de probable etiología")
+  const qualifierPattern = /\b(compatible\s+(con|a)|consistente\s+con|sugestivo\s+de|en\s+relaci[oó]n\s+(a|con)|asociado\s+a|secundario\s+a|de\s+probable|de\s+etiolog[ií]a|sin\s+evidencia\s+de|a\s+descartar)\b/i;
+  const qualifierMatch = source.search(qualifierPattern);
+  const candidate = qualifierMatch > 8 ? source.slice(0, qualifierMatch).trim() : source;
+
+  // Si aun es largo, cortar en la primera coma o punto que no sea decimal
+  const commaOrPeriod = candidate.search(/[,;]|\.\s/);
+  const shortened = commaOrPeriod > 8 ? candidate.slice(0, commaOrPeriod).trim() : candidate;
+
+  // Truncar hard al límite
+  return shortened.length > MAX_CONDITION_NAME_CHARS
+    ? shortened.slice(0, MAX_CONDITION_NAME_CHARS).trimEnd() + "…"
+    : shortened;
+};
+
 const normalizeClinicalTerm = (value: string): string => {
   const source = value.toLowerCase().trim();
   const dictionary: Array<[RegExp, string]> = [
+    // Cardiovascular
     [/cardiomiopat[ií]a\s+dilatada|cmd\b/g, "cardiomiopatia dilatada"],
+    [/cardiomiopat[ií]a\s+hipertr[oó]fica|cmh\b/g, "cardiomiopatia hipertrofica"],
     [/insuficiencia\s+card[ií]aca/g, "insuficiencia cardiaca"],
-    [/hepatopat[ií]a|enfermedad\s+hep[aá]tica/g, "hepatopatia"],
+    [/endocardiosis\s+mitral|degeneraci[oó]n\s+mitral/g, "degeneracion valvula mitral"],
+    // Hepático / renal
+    [/hepatopat[ií]a|enfermedad\s+hep[aá]tica\s+cr[oó]nica?/g, "hepatopatia cronica"],
+    [/enfermedad\s+hep[aá]tica/g, "hepatopatia"],
+    [/enfermedad\s+renal\s+cr[oó]nica?|erc\b/g, "enfermedad renal cronica"],
+    [/fallo\s+renal\s+agudo?|fra\b/g, "fallo renal agudo"],
+    // Locomotor
     [/displasia\s+de\s+cadera/g, "displasia de cadera"],
+    [/displasia\s+de\s+codo/g, "displasia de codo"],
+    [/artritis\s+reumat[oó]nica?/g, "artritis"],
+    [/enfermedad\s+articular\s+degenerativa?|osteoartritis/g, "osteoartritis"],
+    // Piel
+    [/dermatitis\s+at[oó]pica/g, "dermatitis atopica"],
     [/dermatitis\s+al[eé]rgica|alergia\s+cut[aá]nea/g, "dermatitis alergica"],
+    [/dermatofitosis|ti[ñn]a/g, "dermatofitosis"],
+    // Neurológico
+    [/epilepsia\s+idiop[aá]tica/g, "epilepsia idiopatica"],
+    [/hernias?\s+discales?|enfermedad\s+discal/g, "hernia discal"],
+    // Endocrino / metabólico
+    [/diabetes\s+mellitus/g, "diabetes mellitus"],
+    [/hipotiroidismo/g, "hipotiroidismo"],
+    [/hipertiroidismo/g, "hipertiroidismo"],
+    [/hiperadrenocorticismo|s[ií]ndrome\s+de\s+cushing/g, "hiperadrenocorticismo"],
+    [/hipoadrenocorticismo|s[ií]ndrome\s+de\s+addison/g, "hipoadrenocorticismo"],
+    // Respiratorio
+    [/colapso\s+de\s+tr[aá]quea/g, "colapso de traquea"],
+    [/neumon[ií]a/g, "neumonia"],
+    [/asma\s+(felina|bronquial|veterinaria)/g, "asma bronquial"],
+    // Oncológico
+    [/tumor\s+de\s+c[eé]lulas\s+cebadas?|mastocitoma/g, "mastocitoma"],
+    [/carcinoma\s+de\s+c[eé]lulas\s+escamosas?/g, "carcinoma escamoso"],
+    [/adenocarcinoma/g, "adenocarcinoma"],
+    [/linfoma/g, "linfoma"],
+    // Digestivo
+    [/enfermedad\s+inflamatoria\s+intestinal|eii\b/g, "enfermedad inflamatoria intestinal"],
+    [/gastroenteritis/g, "gastroenteritis"],
+    [/pancreatitis/g, "pancreatitis"],
+    // Parasitario / infeccioso
+    [/leishmaniasis|leishmaniosis/g, "leishmaniasis"],
+    [/dirofilariasis|dirofilariosis/g, "dirofilariasis"],
+    [/erliquiosis/g, "erliquiosis"],
+    [/leptospirosis/g, "leptospirosis"],
+    // Équidos
+    [/s[ií]ndrome\s+metab[oó]lico\s+(equino|del\s+caballo)/g, "sindrome metabolico equino"],
+    [/laminitis|founder/g, "laminitis"],
+    [/c[oó]lico\s+(equino|en\s+caballo)/g, "colico equino"],
+    // Lagomorfos / exóticos
+    [/[eé]stasis\s+gastrointestinal|gi\s+stasis/g, "estasis gastrointestinal"],
+    [/enfermedad\s+dental\s+(en\s+)?(conejo|lagomorfo)|malocluci[oó]n\s+dental/g, "maloclucion dental"],
   ];
 
   for (const [pattern, normalized] of dictionary) {
     if (pattern.test(source)) return normalized;
   }
-  return source.replace(/\s+/g, " ");
+
+  // Para términos no reconocidos: extraer label corto en lugar de copiar texto completo
+  return extractShortClinicalLabel(source);
 };
 
 const titleFromDocumentType = (documentType: DocumentType): string => {

@@ -18,9 +18,9 @@ const withErrorBoundary = <T extends Record<string, unknown>>(route: T): T => ({
 });
 
 export const router = createBrowserRouter([
-  withErrorBoundary({ path: "/", Component: LandingPage }),
-  withErrorBoundary({ path: "/welcome", element: <Navigate to="/" replace /> }),
-  withErrorBoundary({ path: "/onboarding", element: <Navigate to="/" replace /> }),
+  withErrorBoundary({ path: "/", element: <Navigate to="/login" replace /> }),
+  withErrorBoundary({ path: "/welcome", Component: WelcomeScreen }),
+  withErrorBoundary({ path: "/onboarding", element: <Navigate to="/welcome" replace /> }),
   withErrorBoundary({ path: "/register", element: <Navigate to="/register-user" replace /> }),
   withErrorBoundary({ path: "/register-user", Component: RegisterUserScreen }),
   withErrorBoundary({ path: "/register-pet", Component: RegisterPetStep1 }),

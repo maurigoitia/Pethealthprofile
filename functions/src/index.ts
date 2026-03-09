@@ -102,6 +102,7 @@ import {
   recordDoseEventV3,
   syncTreatmentTimezoneV3,
 } from "./clinical/treatmentReminderEngine";
+import { onClinicalEventProjection } from "./clinical/projectionLayer";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -2255,4 +2256,5 @@ export {
   recordDoseEventV3,
   evaluateTreatmentDedupV3,
   syncTreatmentTimezoneV3,
+  onClinicalEventProjection,
 };

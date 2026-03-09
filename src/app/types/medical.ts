@@ -367,6 +367,11 @@ export interface PendingAction {
   // Notificaciones
   reminderEnabled: boolean;
   reminderDaysBefore: number; // Días antes de dueDate para recordar
+
+  // Metadatos de origen (opcional)
+  sourceTag?: string | null;       // e.g. "ai_projection", "proactive_care"
+  clinicalEventId?: string | null; // ID del clinical_event si vino de proyección
+  targetCollection?: string | null; // Colección destino del item proyectado
 }
 
 export interface ClinicalReviewMedicationDraft {
@@ -518,10 +523,23 @@ export interface DiagnosisEntity {
 
 export type TreatmentEntityStatus = "active" | "completed" | "unknown";
 
+export type TreatmentSubtype =
+  | "medication"
+  | "supplement"
+  | "vaccine_schedule"
+  | "physical_therapy"
+  | "surgical_follow"
+  | "diet"
+  | "monitoring"
+  | "topical"
+  | "other";
+
 export interface TreatmentEntity {
   id: string;
   petId: string;
   normalizedName: string;
+  /** Subtipo semántico — unifica medications + treatments históricos */
+  subtype?: TreatmentSubtype;
   startDate: string | null;
   endDate: string | null;
   status: TreatmentEntityStatus;
