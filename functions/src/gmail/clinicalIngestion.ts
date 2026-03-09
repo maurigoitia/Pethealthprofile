@@ -644,11 +644,11 @@ function calculateMaxLookbackMonths(args: {
     const months =
       (now.getUTCFullYear() - args.birthDate.getUTCFullYear()) * 12 +
       (now.getUTCMonth() - args.birthDate.getUTCMonth());
-    return clamp(months, 12, 180);
+    return clamp(Math.max(months, 36), 36, 180);
   }
 
   const computed = args.petAgeYears > 0 ? args.petAgeYears * 12 + 6 : 12;
-  return clamp(computed, 12, 180);
+  return clamp(Math.max(computed, 36), 36, 180);
 }
 
 function getMaxMailsPerSync(planType: UserPlanType): number {
