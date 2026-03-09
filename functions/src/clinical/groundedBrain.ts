@@ -11,16 +11,68 @@ const MAX_CONTEXT_CHARS = 12_000;
 const BRAIN_SCHEMA_VERSION = "brain_payload_v2";
 
 const ALLOWED_CATEGORIES = new Set(["Medication", "Vaccine", "Diagnostic", "ClinicalEvent"]);
+
 const ALLOWED_DOCUMENT_TYPES = new Set([
-  "blood_panel",
-  "biochemistry_panel",
-  "urinalysis",
+  // ── Laboratorio ────────────────────────────────────────────────────────────
+  "blood_panel",             // hemograma, hematología completa
+  "biochemistry_panel",      // bioquímica sérica / perfil hepático-renal
+  "urinalysis",              // análisis de orina
+  "fecal_exam",              // coproparasitológico, parasitología fecal
+  "cytology",                // citología (piel, oído, BAAF, etc.)
+  "culture_sensitivity",     // cultivo y antibiograma
+  "serology",                // serología, títulos de anticuerpos
+  "hormonal_panel",          // tiroides, cortisol, insulina, progesterona
+  "coagulation_panel",       // tiempos de coagulación (PT, APTT)
+  // ── Piel / microscopía ────────────────────────────────────────────────────
+  "dermatology_microscopy",  // tricograma, KOH, Dermatofit Test Medium
+  "skin_biopsy",             // biopsia de piel / histopatología cutánea
+  // ── Imágenes ──────────────────────────────────────────────────────────────
+  "radiology_report",        // radiografía (RX)
+  "ultrasound_report",       // ecografía abdominal, torácica, reproductiva
+  "echocardiogram_report",   // ecocardiograma (Doppler, M-mode)
+  "endoscopy_report",        // endoscopía (GI, respiratoria)
+  "ct_scan_report",          // tomografía computada (TAC)
+  "mri_report",              // resonancia magnética (RMN)
+  "dental_radiograph",       // RX dental / serie dental completa
+  // ── Cardio / neuro ────────────────────────────────────────────────────────
+  "electrocardiogram_report",// ECG / tira de ritmo
+  // ── Histopatología / oncología ────────────────────────────────────────────
+  "pathology_report",        // anatomía patológica, biopsia de órgano
+  // ── Clínico / quirúrgico ──────────────────────────────────────────────────
+  "general_clinical_report", // consulta, control, informe clínico
+  "surgical_report",         // protocolo quirúrgico / informe post-op
+  "anesthesia_report",       // protocolo anestésico
+  "discharge_summary",       // informe de alta hospitalaria
+  // ── Citas / turnos ────────────────────────────────────────────────────────
+  "appointment_confirmation", // confirmación de turno / recordatorio
+  "referral_letter",          // derivación a especialista
+  // ── Prescripción ──────────────────────────────────────────────────────────
+  "prescription",             // receta médica / orden farmacológica
+  // ── Vacunas ───────────────────────────────────────────────────────────────
+  "vaccination_record",       // carnet / certificado de vacunación
+  // ── Équidos ───────────────────────────────────────────────────────────────
+  "equine_lameness_exam",     // evaluación de claudicación / flexión
+  "equine_dental_exam",       // odontología equina / egresado dental
+  "equine_reproductive_exam", // ginecología equina / preñez / semen
+  // ── Exóticos / lagomorfos ─────────────────────────────────────────────────
+  "exotic_wellness_exam",     // control de bienestar (conejos, aves, reptiles, roedores, pequeños mamíferos, zoo)
+]);
+
+// Estudios cualitativos: no marcar status fuera de rango sin evidencia numérica
+const QUALITATIVE_DOCUMENT_TYPES = new Set([
   "dermatology_microscopy",
   "cytology",
+  "skin_biopsy",
   "radiology_report",
-  "general_clinical_report",
+  "ultrasound_report",
+  "ct_scan_report",
+  "mri_report",
+  "endoscopy_report",
+  "pathology_report",
+  "dental_radiograph",
+  "equine_lameness_exam",
+  "equine_dental_exam",
 ]);
-const QUALITATIVE_DOCUMENT_TYPES = new Set(["dermatology_microscopy", "cytology", "radiology_report"]);
 const OUT_OF_RANGE_HINT_REGEX = /\b(fuera de rango|out of range|alterad[oa]s?|anormal(?:es)?|high|low)\b/i;
 const NUMERIC_SIGNAL_REGEX = /\d+(?:[.,]\d+)?\s*(?:mg\/dl|g\/dl|mmol\/l|iu\/l|u\/l|%|x10|\/µl|\/ul|kg|g|ml)\b/i;
 
@@ -414,9 +466,51 @@ ${secondaryPetBlock}
 ${recentEvents}
 </HISTORIAL_RECIENTE_MASCOTA>
 
+<INSTRUCCIONES_ESPECIE>
+PESSY es multi-especie. Los rangos de referencia de laboratorio varían SIGNIFICATIVAMENTE según la especie.
+Detectá la especie del paciente desde el contexto y aplicá los rangos correctos.
+Especies soportadas: perro (canino), gato (felino), caballo/equino, conejo/lagomorfo, cobayo, chinchilla,
+ave (psitácido, rapaz, gallinácea), reptil (quelonio, saurio, ofidio), roedor, primate, bovino, ovino, caprino,
+cerdo/porcino, camélido, animales de zoológico y fauna silvestre.
+Si la especie no está en el contexto → inferirla del documento. Si no se puede inferir → pet_reference=null, review_required=true.
+NUNCA aplicar rangos caninos a felinos ni equinos. Si los rangos difieren por especie → marcá qué especie aplica en evidence_excerpt.
+</INSTRUCCIONES_ESPECIE>
+
 <INSTRUCCIONES_POR_TIPO_DE_DOCUMENTO>
-Primero clasificá el document_type. Valores válidos:
-  blood_panel | biochemistry_panel | urinalysis | dermatology_microscopy | cytology | radiology_report | general_clinical_report
+Primero clasificá el document_type con el valor más específico posible. Valores válidos:
+
+LABORATORIO:
+  blood_panel | biochemistry_panel | urinalysis | fecal_exam | cytology | culture_sensitivity | serology | hormonal_panel | coagulation_panel
+
+PIEL / MICROSCOPÍA:
+  dermatology_microscopy | skin_biopsy
+
+IMÁGENES:
+  radiology_report | ultrasound_report | echocardiogram_report | endoscopy_report | ct_scan_report | mri_report | dental_radiograph
+
+CARDIO / NEURO:
+  electrocardiogram_report
+
+HISTOPATOLOGÍA / ONCOLOGÍA:
+  pathology_report
+
+CLÍNICO / QUIRÚRGICO:
+  general_clinical_report | surgical_report | anesthesia_report | discharge_summary
+
+CITAS / TURNOS:
+  appointment_confirmation | referral_letter
+
+PRESCRIPCIÓN:
+  prescription
+
+VACUNAS:
+  vaccination_record
+
+ÉQUIDOS (caballos):
+  equine_lameness_exam | equine_dental_exam | equine_reproductive_exam
+
+EXÓTICOS / ZOO:
+  exotic_wellness_exam
 
 Guías por tipo:
 - blood_panel: ${DOCUMENT_TYPE_FIELD_HINTS.blood_panel}
@@ -426,26 +520,42 @@ Guías por tipo:
 - cytology: ${DOCUMENT_TYPE_FIELD_HINTS.cytology}
 - radiology_report: ${DOCUMENT_TYPE_FIELD_HINTS.radiology_report}
 - general_clinical_report: ${DOCUMENT_TYPE_FIELD_HINTS.general_clinical_report}
+- appointment_confirmation: category=ClinicalEvent. entities con type="appointment". label=especialidad, value=fecha, evidence_excerpt=texto del turno.
+- prescription: category=Medication. entities con type="medication" por cada fármaco. label=nombre, value=dosis, unit=unidad, reference_range=frecuencia.
+- vaccination_record: category=Vaccine. entities con type="vaccine". label=nombre vacuna, value=fecha aplicación, unit=próxima dosis.
+- equine_lameness_exam: category=Diagnostic. entities con type="observation". Incluir miembro afectado, grado (escala AAEP 0-5), respuesta a flexión.
+- exotic_wellness_exam: category=ClinicalEvent. Registrar especie, peso, temperatura, hallazgos por sistema. review_required=true si especie es poco común.
+- surgical_report: category=ClinicalEvent. entities con diagnoses del preoperatorio, hallazgos intraoperatorios, cierre.
+- discharge_summary: si incluye medicación → category=Medication. Si solo describe alta → category=ClinicalEvent.
 </INSTRUCCIONES_POR_TIPO_DE_DOCUMENTO>
+
+<REGLAS_DIAGNOSTICO>
+REGLA CRÍTICA — condition_name (entidades tipo "diagnosis"):
+1. Máximo 60 caracteres. NO copiar frases largas del documento.
+2. Usar nomenclatura clínica estándar (preferir término corto/canónico).
+3. Si el término es largo ("Infiltrado intersticial bilateral compatible con...") → extraer la entidad principal: "infiltrado intersticial bilateral".
+4. Calificadores ("compatible con", "sugestivo de", "en relación a") van en evidence_excerpt, NO en label.
+5. Siempre en minúsculas.
+</REGLAS_DIAGNOSTICO>
 
 <ESQUEMA_DE_RESPUESTA>
 {
   "schema_version": "brain_payload_v2",
   "pet_reference": "string|null — nombre exacto del contexto",
   "category": "Medication|Vaccine|Diagnostic|ClinicalEvent",
-  "document_type": "blood_panel|biochemistry_panel|urinalysis|dermatology_microscopy|cytology|radiology_report|general_clinical_report",
-  "study_type": "string|null — subtipo libre si aplica",
-  "primary_finding": "string|null — hallazgo principal en 1 oración",
+  "document_type": "ver lista completa de tipos válidos arriba",
+  "study_type": "string|null — subtipo libre si aplica (ej: 'perfil tiroideo', 'RX tórax lateral')",
+  "primary_finding": "string|null — hallazgo principal en 1 oración (máx 120 chars)",
   "entities": [
     {
-      "type": "string — lab_value|medication|vaccine|diagnosis|imaging_finding|recommendation|observation",
-      "label": "string|null — nombre del analito, medicamento, etc.",
-      "value": "string|null — valor o descripción",
-      "unit": "string|null",
-      "numeric_value": "number|null — solo si es numérico",
-      "reference_range": "string|null — rango del laboratorio, null en cualitativos",
-      "status": "string|null — normal|alto|bajo|observational — SOLO con evidencia explícita",
-      "observation": "string|null — descripción cualitativa si no hay valor numérico",
+      "type": "string — lab_value|medication|vaccine|diagnosis|appointment|imaging_finding|recommendation|observation",
+      "label": "string|null — término clínico corto (máx 60 chars para diagnosis, máx 80 para otros)",
+      "value": "string|null — valor medido o fecha (para appointments)",
+      "unit": "string|null — unidad de medida o frecuencia (para medications)",
+      "numeric_value": "number|null — solo si es numérico real",
+      "reference_range": "string|null — rango del laboratorio para esa ESPECIE; null en cualitativos",
+      "status": "string|null — normal|alto|bajo|observational — SOLO con evidencia explícita + valor numérico",
+      "observation": "string|null — descripción cualitativa cuando no hay valor numérico",
       "evidence_excerpt": "string|null — cita textual del documento que sustenta (<30 palabras)"
     }
   ],
@@ -458,7 +568,7 @@ Guías por tipo:
     "blocked_out_of_range_inference": "boolean"
   },
   "ui_hint": {
-    "evidence_excerpt": "string|null — fragmento más representativo del documento"
+    "evidence_excerpt": "string|null — fragmento más representativo del documento (<50 palabras)"
   }
 }
 </ESQUEMA_DE_RESPUESTA>

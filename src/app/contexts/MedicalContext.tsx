@@ -525,6 +525,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       await setDoc(treatmentRef, {
         petId: event.petId,
         normalizedName: treatment.normalized_name,
+        subtype: prev?.subtype || "other",
         startDate: treatment.start_date || prev?.startDate || eventEntity.event_date,
         endDate: treatment.end_date || prev?.endDate || null,
         status: treatment.status,
@@ -757,7 +758,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       setActiveMedications([]);
       return;
     }
-    const q = query(collection(db, "medications"), where("petId", "==", activePet.id));
+    const q = query(collection(db, "treatments"), where("petId", "==", activePet.id), where("subtype", "==", "medication"));
     return onSnapshot(q, (snapshot) => {
       setActiveMedications(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ActiveMedication)));
     });
@@ -952,8 +953,8 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     }
 
     const medicationQuery = petId
-      ? query(collection(db, "medications"), where("generatedFromEventId", "==", id), where("petId", "==", petId))
-      : query(collection(db, "medications"), where("generatedFromEventId", "==", id));
+      ? query(collection(db, "treatments"), where("subtype", "==", "medication"), where("generatedFromEventId", "==", id), where("petId", "==", petId))
+      : query(collection(db, "treatments"), where("subtype", "==", "medication"), where("generatedFromEventId", "==", id));
     const medicationDocs = await getDocsSafe("medications", async () => (await getDocs(medicationQuery)).docs);
     const medicationIds = medicationDocs.map((entry) => entry.id);
     await Promise.all(medicationDocs.map((entry) => deleteDocSafe("medication", entry.ref)));
@@ -1281,20 +1282,21 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     if (activeDuplicate) return;
 
     const { id, ...data } = medication;
-    const docRef = id ? doc(db, "medications", id) : doc(collection(db, "medications"));
+    const docRef = id ? doc(db, "treatments", id) : doc(collection(db, "treatments"));
     await setDoc(docRef, {
       ...data,
+      subtype: "medication",
       userId: data.userId || user?.uid,
     });
   };
 
   const updateMedication = async (id: string, updates: Partial<ActiveMedication>) => {
-    const ref = doc(db, "medications", id);
+    const ref = doc(db, "treatments", id);
     await updateDoc(ref, updates);
   };
 
   const deactivateMedication = async (id: string) => {
-    const ref = doc(db, "medications", id);
+    const ref = doc(db, "treatments", id);
     await updateDoc(ref, { active: false });
   };
 
