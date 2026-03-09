@@ -10,6 +10,7 @@
 
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
+import { onDocumentCreated } from "firebase-functions/v2/firestore";
 
 // ─── Routing table (mirror del frontend clinicalRouting.ts) ──────────────────
 // Mantenemos una copia en backend para que la proyección no dependa del cliente.
@@ -407,22 +408,24 @@ export async function projectClinicalEvent(
 
 // ─── Cloud Function trigger ───────────────────────────────────────────────────
 
-export const onClinicalEventProjection = functions
-  .runWith({ timeoutSeconds: 60, memory: "256MB" })
-  .firestore.document("clinical_events/{docId}")
-  .onCreate(async (snap, context) => {
+export const onClinicalEventProjection = onDocumentCreated(
+  {
+    document: "clinical_events/{docId}",
+    timeoutSeconds: 60,
+    memory: "256MiB",
+    region: "us-central1",
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
     const data = snap.data();
-    const clinicalEventId = context.params.docId;
+    const clinicalEventId = event.params.docId;
 
-    // Solo proyectar eventos verificados (no los que ya fueron a pending_reviews)
-    if (asString(data.status) !== "verified") {
-      return null;
-    }
+    // Solo proyectar eventos verificados
+    if (asString(data.status) !== "verified") return;
 
     // Evitar reproyectar si ya se procesó
-    if (data.projected === true) {
-      return null;
-    }
+    if (data.projected === true) return;
 
     try {
       const result = await projectClinicalEvent(clinicalEventId, data);
@@ -435,6 +438,5 @@ export const onClinicalEventProjection = functions
     } catch (err) {
       functions.logger.error("[PROJECTION] ❌ Error proyectando", { clinicalEventId, err });
     }
-
-    return null;
-  });
+  }
+);
