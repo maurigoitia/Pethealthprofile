@@ -10,18 +10,22 @@
   <meta name="theme-color" content="#074738" />
   <link rel="manifest" href="/manifest.webmanifest">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PESSY</title>
-  <meta name="description" content="Pessy organiza historial clínico, estudios, recetas y recordatorios de mascotas en un solo lugar." />
+  <title>Pessy - Ecosistema de Identidad Digital para Mascotas</title>
+  <meta name="description" content="La información de tu mascota, siempre organizada y siempre disponible. Historial, vacunas, tratamientos y documentos en un solo lugar." />
+  <meta name="keywords" content="mascota, identidad digital, historial medico, vacunas, medicacion, pet care, veterinario, salud animal" />
   <meta name="robots" content="index,follow" />
   <link rel="canonical" href="https://pessy.app/" />
-  <meta property="og:title" content="Pessy | Tus mascotas, sus cosas, todo en orden" />
-  <meta property="og:description" content="Identidad digital de mascotas con historial clínico, estudios y recordatorios." />
+  <meta name="googlebot" content="index,follow" />
+  <meta property="og:title" content="Pessy - Ecosistema de Identidad Digital para Mascotas" />
+  <meta property="og:description" content="La información de tu mascota, siempre organizada y siempre disponible. Historial, vacunas, tratamientos y documentos en un solo lugar." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://pessy.app/" />
   <meta property="og:image" content="https://pessy.app/pessy-logo.svg" />
+  <meta property="og:site_name" content="Pessy" />
+  <meta property="og:locale" content="es_419" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Pessy | Tus mascotas, sus cosas, todo en orden" />
-  <meta name="twitter:description" content="Identidad digital de mascotas con historial clínico, estudios y recordatorios." />
+  <meta name="twitter:title" content="Pessy - Ecosistema de Identidad Digital para Mascotas" />
+  <meta name="twitter:description" content="La información de tu mascota, siempre organizada y siempre disponible. Historial, vacunas, tratamientos y documentos en un solo lugar." />
   <meta name="twitter:image" content="https://pessy.app/pessy-logo.svg" />
   <script type="application/ld+json">
     {
@@ -36,6 +40,96 @@
         "email": "mauri@pessy.app"
       }
     }
+  </script>
+  <script>
+    (function () {
+      var path = window.location.pathname;
+      var isAppRoute =
+        path === "/login" ||
+        path === "/home" ||
+        path === "/register" ||
+        path === "/register-user" ||
+        path === "/register-pet" ||
+        path.indexOf("/register-pet/") === 0 ||
+        path.indexOf("/review/") === 0 ||
+        path === "/email-link" ||
+        path.indexOf("/verify/") === 0;
+
+      var defaults = {
+        title: "Pessy - Ecosistema de Identidad Digital para Mascotas",
+        description: "La información de tu mascota, siempre organizada y siempre disponible. Historial, vacunas, tratamientos y documentos en un solo lugar.",
+        canonical: "https://pessy.app/",
+        robots: "index,follow",
+        lang: "es"
+      };
+
+      var byPath = {
+        "/": defaults,
+        "/privacidad": {
+          title: "Politica de Privacidad - Pessy",
+          description: "Conocé cómo protegemos los datos de tu mascota en Pessy.",
+          canonical: "https://pessy.app/privacidad",
+          robots: "index,follow",
+          lang: "es"
+        },
+        "/terminos": {
+          title: "Terminos y Condiciones - Pessy",
+          description: "Consultá los términos de uso del ecosistema de identidad digital Pessy.",
+          canonical: "https://pessy.app/terminos",
+          robots: "index,follow",
+          lang: "es"
+        },
+        "/login": {
+          title: "Login | Pessy",
+          description: "Accede a tu cuenta de Pessy.",
+          canonical: "https://pessy.app/login",
+          robots: "noindex,nofollow",
+          lang: "es"
+        }
+      };
+
+      var current = isAppRoute
+        ? {
+            title: byPath[path] ? byPath[path].title : "Pessy",
+            description: byPath[path] ? byPath[path].description : "Accede a tu cuenta de Pessy.",
+            canonical: "https://pessy.app" + path,
+            robots: "noindex,nofollow",
+            lang: "es"
+          }
+        : (byPath[path] || defaults);
+
+      function upsertMeta(attr, key, value) {
+        var el = document.head.querySelector('meta[' + attr + '="' + key + '"]');
+        if (!el) {
+          el = document.createElement("meta");
+          el.setAttribute(attr, key);
+          document.head.appendChild(el);
+        }
+        el.setAttribute("content", value);
+      }
+
+      function upsertLink(rel, href) {
+        var el = document.head.querySelector('link[rel="' + rel + '"]');
+        if (!el) {
+          el = document.createElement("link");
+          el.setAttribute("rel", rel);
+          document.head.appendChild(el);
+        }
+        el.setAttribute("href", href);
+      }
+
+      document.title = current.title;
+      document.documentElement.lang = current.lang;
+      upsertMeta("name", "description", current.description);
+      upsertMeta("name", "robots", current.robots);
+      upsertMeta("name", "googlebot", current.robots);
+      upsertMeta("property", "og:title", current.title);
+      upsertMeta("property", "og:description", current.description);
+      upsertMeta("property", "og:url", current.canonical);
+      upsertMeta("name", "twitter:title", current.title);
+      upsertMeta("name", "twitter:description", current.description);
+      upsertLink("canonical", current.canonical);
+    })();
   </script>
 </head>
 

@@ -12,6 +12,7 @@ import {
 import { auth } from "../../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { createPasswordResetActionCodeSettings } from "../utils/authActionLinks";
+import { SEO } from "./SEO";
 
 export function LoginScreen() {
   const navigate = useNavigate();
@@ -207,6 +208,12 @@ export function LoginScreen() {
         backgroundImage: "linear-gradient(180deg, #074738 0%, #0e6a5a 50%, #1a9b7d 100%)",
       }}
     >
+      <SEO
+        title="Login | Pessy"
+        description="Accede a tu cuenta de Pessy."
+        canonical="https://pessy.app/login"
+        robots="noindex,nofollow"
+      />
       {/* Fondo decorativo */}
       <div className="absolute left-0 top-0 h-[853px] w-full flex items-center justify-center overflow-hidden pointer-events-none">
         <div className="relative rotate-6 opacity-25" style={{ width: "670px", height: "1228px", filter: "brightness(0) invert(1)" }}>

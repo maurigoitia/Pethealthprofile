@@ -55,9 +55,21 @@ class NotificationServiceClass {
     }
   }
 
+  // iOS Safari PWA: usa Web Push nativo (no FCM)
+  private isIOSSafari(): boolean {
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua);
+    const isStandalone = (window.navigator as any).standalone === true;
+    return isIOS && isStandalone;
+  }
+
+  // Verifica si el navegador soporta Web Push nativo (sin FCM)
+  private supportsNativePush(): boolean {
+    return "PushManager" in window && "serviceWorker" in navigator;
+  }
+
   async requestPermissionAndGetToken(): Promise<string | null> {
-    const ready = await this.init();
-    if (!ready) return null;
+    if (!("Notification" in window)) return null;
 
     try {
       const permission = await Notification.requestPermission();
@@ -66,12 +78,24 @@ class NotificationServiceClass {
         return null;
       }
 
-      if (!VAPID_KEY) {
-        console.warn("VAPID_KEY no configurada — notificaciones push en background deshabilitadas");
+      // iOS Safari PWA: Web Push nativo (sin FCM)
+      if (this.isIOSSafari() && this.supportsNativePush()) {
+        return await this.registerNativeWebPush();
+      }
+
+      // Android / Desktop Chrome / Edge: FCM
+      const ready = await this.init();
+      if (!ready) {
+        // Fallback: Web Push nativo si FCM no está disponible
+        if (this.supportsNativePush()) {
+          return await this.registerNativeWebPush();
+        }
         return null;
       }
-      if (RAW_VAPID_KEY !== VAPID_KEY) {
-        console.warn("VAPID_KEY contenia espacios o saltos de linea y fue normalizada automaticamente");
+
+      if (!VAPID_KEY) {
+        console.warn("VAPID_KEY no configurada");
+        return null;
       }
 
       // Evita conflicto con el SW de PWA registrando FCM en un scope dedicado.
@@ -80,9 +104,29 @@ class NotificationServiceClass {
         { scope: "/firebase-cloud-messaging-push-scope" }
       );
 
-      const token = await getToken(this.messaging, {
+      // Espera a que el SW esté activo antes de intentar suscribirse.
+      // Sin esto, PushManager.subscribe() falla con "no active Service Worker".
+      await navigator.serviceWorker.ready;
+      const activeSW = await swRegistration.update().then(() => {
+        return new Promise<ServiceWorkerRegistration>((resolve) => {
+          if (swRegistration.active) {
+            resolve(swRegistration);
+            return;
+          }
+          const sw = swRegistration.installing || swRegistration.waiting;
+          if (!sw) { resolve(swRegistration); return; }
+          sw.addEventListener("statechange", function handler() {
+            if (sw.state === "activated") {
+              sw.removeEventListener("statechange", handler);
+              resolve(swRegistration);
+            }
+          });
+        });
+      });
+
+      const token = await getToken(this.messaging!, {
         vapidKey: VAPID_KEY,
-        serviceWorkerRegistration: swRegistration,
+        serviceWorkerRegistration: activeSW,
       });
       if (token) {
         await this.saveTokenToFirestore(token);
@@ -90,9 +134,42 @@ class NotificationServiceClass {
       }
       return null;
     } catch (err) {
-      console.error("Error obteniendo FCM token:", err);
+      console.error("Error obteniendo token:", err);
+      // Último fallback: Web Push nativo
+      try {
+        if (this.supportsNativePush()) {
+          return await this.registerNativeWebPush();
+        }
+      } catch (fallbackErr) {
+        console.error("Fallback Web Push también falló:", fallbackErr);
+      }
       return null;
     }
+  }
+
+  // Registra Web Push nativo (para iOS y fallback)
+  private async registerNativeWebPush(): Promise<string | null> {
+    try {
+      const reg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: this.urlBase64ToUint8Array(VAPID_KEY),
+      });
+      // Guardamos la subscription como "token" en Firestore para que el backend la use
+      const subJson = JSON.stringify(sub.toJSON());
+      await this.saveTokenToFirestore(subJson, "web_push_subscription");
+      return subJson;
+    } catch (err) {
+      console.error("Error registrando Web Push nativo:", err);
+      return null;
+    }
+  }
+
+  private urlBase64ToUint8Array(base64String: string): Uint8Array {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
   }
 
   private async saveTokenToFirestore(token: string) {

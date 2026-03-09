@@ -6,20 +6,27 @@ interface SEOProps {
   keywords?: string;
   ogImage?: string;
   canonical?: string;
+  robots?: string;
+  lang?: string;
 }
 
 export function SEO({
-  title = "Pessy | Tus mascotas, sus cosas, todo en orden",
-  description = "Pessy organiza historial clinico, estudios, recetas y recordatorios de mascotas en un solo lugar.",
-  keywords = "mascota, veterinario, historial medico, vacunas, medicacion, perro, gato, ia, salud animal",
+  title = "Pessy - Ecosistema de Identidad Digital para Mascotas",
+  description = "La informacion de tu mascota, siempre organizada y siempre disponible. Historial, vacunas, tratamientos y documentos en un solo lugar.",
+  keywords = "mascota, identidad digital, historial medico, vacunas, medicacion, pet care, veterinario, salud animal",
   ogImage = "https://pessy.app/pessy-logo.svg",
   canonical,
+  robots = "index,follow",
+  lang = "es",
 }: SEOProps) {
   useEffect(() => {
     document.title = title;
+    document.documentElement.lang = lang;
 
     updateMeta("name", "description", description);
     updateMeta("name", "keywords", keywords);
+    updateMeta("name", "robots", robots);
+    updateMeta("name", "googlebot", robots);
 
     updateMeta("property", "og:title", title);
     updateMeta("property", "og:description", description);
@@ -34,7 +41,7 @@ export function SEO({
     updateMeta("name", "twitter:title", title);
     updateMeta("name", "twitter:description", description);
     updateMeta("name", "twitter:image", ogImage);
-  }, [title, description, keywords, ogImage, canonical]);
+  }, [title, description, keywords, ogImage, canonical, robots, lang]);
 
   return null;
 }

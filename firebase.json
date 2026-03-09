@@ -25,6 +25,166 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "headers": [
+      {
+        "source": "/login",
+        "headers": [
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex, nofollow"
+          }
+        ]
+      },
+      {
+        "source": "/home",
+        "headers": [
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex, nofollow"
+          }
+        ]
+      },
+      {
+        "source": "/register",
+        "headers": [
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex, nofollow"
+          }
+        ]
+      },
+      {
+        "source": "/register-user",
+        "headers": [
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex, nofollow"
+          }
+        ]
+      },
+      {
+        "source": "/register-pet",
+        "headers": [
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex, nofollow"
+          }
+        ]
+      },
+      {
+        "source": "/register-pet/**",
+        "headers": [
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex, nofollow"
+          }
+        ]
+      },
+      {
+        "source": "/review/**",
+        "headers": [
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex, nofollow"
+          }
+        ]
+      },
+      {
+        "source": "/email-link",
+        "headers": [
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex, nofollow"
+          }
+        ]
+      },
+      {
+        "source": "/verify/**",
+        "headers": [
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex, nofollow"
+          }
+        ]
+      }
+    ],
+    "redirects": [
+      {
+        "source": "/inicio",
+        "destination": "/",
+        "type": 301
+      },
+      {
+        "source": "/welcome",
+        "destination": "/",
+        "type": 301
+      },
+      {
+        "source": "/onboarding",
+        "destination": "/",
+        "type": 301
+      },
+      {
+        "source": "/inicio/vacunas",
+        "destination": "/",
+        "type": 301
+      },
+      {
+        "source": "/inicio/medicacion",
+        "destination": "/",
+        "type": 301
+      },
+      {
+        "source": "/inicio/historial-medico",
+        "destination": "/",
+        "type": 301
+      },
+      {
+        "source": "/soluciones/vacunas",
+        "destination": "/",
+        "type": 301
+      },
+      {
+        "source": "/soluciones/medicacion",
+        "destination": "/",
+        "type": 301
+      },
+      {
+        "source": "/soluciones/historial",
+        "destination": "/",
+        "type": 301
+      },
+      {
+        "source": "/app",
+        "destination": "/login",
+        "type": 301
+      },
+      {
+        "source": "/privacy",
+        "destination": "/privacidad",
+        "type": 301
+      },
+      {
+        "source": "/terms",
+        "destination": "/terminos",
+        "type": 301
+      },
+      {
+        "source": "/privacy.html",
+        "destination": "/privacidad",
+        "type": 301
+      },
+      {
+        "source": "/terms.html",
+        "destination": "/terminos",
+        "type": 301
+      },
+      {
+        "source": "/legacy-landing.html",
+        "destination": "/",
+        "type": 301
+      }
+    ],
     "rewrites": [
       {
         "source": "**",

@@ -1810,6 +1810,10 @@ Reglas críticas:
 - Si detectás fecha futura + hora + especialidad o términos de turno (turno, confirmado, centro de atención, consulta), tratar como medical_appointment.
 - Si es medical_appointment, NO generar diagnósticos ni hallazgos clínicos.
 - No inventar datos faltantes.
+- NUNCA inferir tratamientos o medicamentos a partir de volúmenes, diámetros o medidas anatómicas.
+- Si no hay nombre de fármaco explícito, "treatments_detected" debe quedar vacío.
+- NUNCA convertir texto histórico, calendarios o referencias informativas antiguas en tratamiento activo.
+- NUNCA esconder hallazgos o diagnósticos en texto libre: deben ir en "diagnoses_detected", "abnormal_findings" o "imaging_findings". Si no encajan con seguridad, devolver null.
 
 FASE 0.5 — LECTURA CLÍNICA OBLIGATORIA (informes cualitativos: KOH, tricograma, citología, raspado)
 1) Identificá estudio solicitado y técnica.

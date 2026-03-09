@@ -326,6 +326,140 @@ function sanitizeReferenceRange(referenceRange: unknown, resultValue: unknown): 
   return range;
 }
 
+const MEDICATION_UNIT_ONLY_REGEX = /^(?:\d+(?:[.,]\d+)?\s*)?(?:ml|mm|cm|kg|g|mg|mcg|ug|%|cc|x|comp(?:rimidos?)?)$/i;
+const MEDICATION_DOSING_HINT_REGEX = /\b(cada|hora|horas|hs|comprim|capsul|tableta|pastilla|jarabe|gotas|inyec|ampolla|sobres?)\b/i;
+const HISTORICAL_ONLY_SIGNAL_REGEX =
+  /\b(desde\s+\d{4}|historic[oa]|revacun|calendario\s+de\s+vacun|esquema\s+de\s+vacun|vigencia|desde\s+hace|informaci[oó]n\s+general|referencia\s+hist[oó]rica)\b/i;
+const STRUCTURED_DIAGNOSIS_HINT_REGEX =
+  /\b(cardiomegalia|cardiomiopat|dcm|hepatomegalia|esplenitis|esplenomegalia|fractura|luxaci[oó]n|insuficien|neoplas|masa|dermatitis|otitis|gastritis|nefritis|dilataci[oó]n)\b/i;
+const ANATOMICAL_MEASUREMENT_HINT_REGEX =
+  /\b(prostata|prost[aá]tica|vol(?:umen)?|diametr|medida|eje|vejiga|renal|ri[nñ]on|ri[nñ]ones|hep[aá]tic|h[ií]gado|espl[eé]nic|bazo|coraz[oó]n|tor[aá]x|abdomen|pelvis|femoral|aur[ií]cula|ventr[ií]cul)\b/i;
+const MEDICATION_NAME_BLOCKLIST = new Set([
+  "ml",
+  "mm",
+  "cm",
+  "kg",
+  "g",
+  "mg",
+  "mcg",
+  "ug",
+  "cc",
+  "vol",
+  "volumen",
+  "diametro",
+  "diam",
+  "eje",
+  "medida",
+  "medidas",
+  "prostata",
+  "prostatica",
+  "vejiga",
+  "renal",
+  "rinon",
+  "rinones",
+  "hepatico",
+  "higado",
+  "esplenico",
+  "bazo",
+  "corazon",
+  "torax",
+  "abdomen",
+  "pelvis",
+  "izquierdo",
+  "derecho",
+  "hallazgo",
+  "normal",
+  "alterado",
+  "cada",
+  "frecuencia",
+  "dosis",
+]);
+
+function normalizeClinicalToken(value: string): string {
+  return asString(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s/.-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function medicationNameHasExplicitDrugSignal(name: string): boolean {
+  const normalized = normalizeClinicalToken(name);
+  if (!normalized || MEDICATION_UNIT_ONLY_REGEX.test(normalized)) return false;
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  const candidateTokens = tokens.filter((token) => {
+    if (token.length < 3) return false;
+    if (MEDICATION_NAME_BLOCKLIST.has(token)) return false;
+    if (/^\d/.test(token)) return false;
+    if (MEDICATION_UNIT_ONLY_REGEX.test(token)) return false;
+    return /[a-z]/.test(token);
+  });
+  return candidateTokens.length > 0;
+}
+
+function isMedicationMeasurementFalsePositive(medication: ClinicalMedication): boolean {
+  if (!medicationNameHasExplicitDrugSignal(medication.name)) return true;
+  const combined = normalizeClinicalToken(
+    [medication.name, medication.dose, medication.frequency].filter(Boolean).join(" ")
+  );
+  if (ANATOMICAL_MEASUREMENT_HINT_REGEX.test(combined) && !MEDICATION_DOSING_HINT_REGEX.test(combined)) {
+    return true;
+  }
+  return false;
+}
+
+function looksHistoricalOnlyTreatmentEvent(event: ClinicalEventExtraction): boolean {
+  if (event.event_type !== "treatment") return false;
+  const normalized = normalizeClinicalToken(
+    [
+      event.description_summary,
+      event.diagnosis,
+      ...event.medications.map((medication) => medication.name),
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+  if (!HISTORICAL_ONLY_SIGNAL_REGEX.test(normalized)) return false;
+  return !/\b(cada|administrar|dar|tomar|iniciar|continuar|indicado|receta|prescrip)\b/.test(normalized);
+}
+
+function hasUnstructuredClinicalFinding(event: ClinicalEventExtraction): boolean {
+  if (event.diagnosis) return false;
+  if (!["diagnostic", "imaging", "episode"].includes(event.event_type)) return false;
+  return STRUCTURED_DIAGNOSIS_HINT_REGEX.test(normalizeClinicalToken(event.description_summary));
+}
+
+function applyConstitutionalGuardrails(event: ClinicalEventExtraction): {
+  event: ClinicalEventExtraction;
+  reviewReasons: string[];
+} {
+  const reviewReasons = new Set<string>();
+  const medications = event.medications.filter((medication) => {
+    const blocked = isMedicationMeasurementFalsePositive(medication);
+    if (blocked) reviewReasons.add("medication_without_explicit_drug_name");
+    return !blocked;
+  });
+
+  const sanitizedEvent: ClinicalEventExtraction = {
+    ...event,
+    medications,
+  };
+
+  if (looksHistoricalOnlyTreatmentEvent(sanitizedEvent)) {
+    reviewReasons.add("historical_info_only");
+  }
+  if (hasUnstructuredClinicalFinding(sanitizedEvent)) {
+    reviewReasons.add("unstructured_clinical_finding");
+  }
+
+  return {
+    event: sanitizedEvent,
+    reviewReasons: [...reviewReasons],
+  };
+}
+
 function asNonNegativeNumber(value: unknown, fallback = 0): number {
   if (typeof value !== "number" || Number.isNaN(value) || value < 0) return fallback;
   return value;
@@ -1532,6 +1666,11 @@ Strict rules:
 6) Date normalization: YYYY-MM-DD when confidence is enough, otherwise null.
 7) If clinical signal exists but certainty is low, set requires_human_review=true.
 8) Narrative summary must be in Spanish, simple and non-alarming.
+9) Nunca interpretes medidas anatómicas, volúmenes u órganos (ej. "vol 14.53 ml") como medicamento o dosis. Si no hay fármaco explícito, medications debe quedar [].
+10) Nunca crees tratamiento activo desde texto histórico, calendarios de vacunación o referencias informativas antiguas. En esos casos set requires_human_review=true y reason_if_review_needed="historical_info_only".
+11) Nunca entierres un hallazgo clínico en description_summary. Si hay hallazgo explícito, copiarlo en diagnosis o dejar requires_human_review=true con reason_if_review_needed="unstructured_clinical_finding".
+12) Si el nuevo contenido contradice known_conditions del contexto, no lo des por confirmado: set requires_human_review=true y reason_if_review_needed="possible_clinical_conflict".
+13) Si detectás una posible medicación sin nombre de droga explícito, set requires_human_review=true y reason_if_review_needed="medication_without_explicit_drug_name".
 
 Return valid JSON only with this schema:
 {
@@ -1648,6 +1787,7 @@ function toClinicalOutput(json: Record<string, unknown> | null): ClinicalExtract
   }
 
   const eventsRaw = Array.isArray(json.detected_events) ? json.detected_events : [];
+  const constitutionalReviewReasons = new Set<string>();
   const detectedEvents: ClinicalEventExtraction[] = eventsRaw
     .map((item) => {
       const row = asRecord(item);
@@ -1701,15 +1841,20 @@ function toClinicalOutput(json: Record<string, unknown> | null): ClinicalExtract
         confidence_score: clamp(asNonNegativeNumber(row.confidence_score, 0), 0, 100),
       } as ClinicalEventExtraction;
     })
-    .filter((value): value is ClinicalEventExtraction => Boolean(value));
+    .filter((value): value is ClinicalEventExtraction => Boolean(value))
+    .map((event) => {
+      const guarded = applyConstitutionalGuardrails(event);
+      guarded.reviewReasons.forEach((reason) => constitutionalReviewReasons.add(reason));
+      return guarded.event;
+    });
 
   return {
     is_clinical_content: json.is_clinical_content === true,
     confidence_overall: clamp(asNonNegativeNumber(json.confidence_overall, 0), 0, 100),
     detected_events: detectedEvents,
     narrative_summary: asString(json.narrative_summary),
-    requires_human_review: json.requires_human_review === true,
-    reason_if_review_needed: asString(json.reason_if_review_needed) || null,
+    requires_human_review: json.requires_human_review === true || constitutionalReviewReasons.size > 0,
+    reason_if_review_needed: asString(json.reason_if_review_needed) || [...constitutionalReviewReasons][0] || null,
   };
 }
 
@@ -1935,7 +2080,7 @@ async function extractClinicalEventsWithAi(args: {
       const payload = {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.3,
+          temperature: 0.1,
           topK: 1,
           topP: 1,
           responseMimeType: "application/json",
@@ -4153,6 +4298,20 @@ function buildDefaultExtractedData(args: {
   sourceSender: string;
 }): Record<string, unknown> {
   const eventDate = args.event.event_date || toIsoDateOnly(new Date(args.sourceDate));
+  const observations =
+    args.event.event_type === "visit" || args.event.event_type === "episode"
+      ? (() => {
+          const summary = asString(args.event.description_summary);
+          if (!summary) return null;
+          const normalizedSummary = normalizeClinicalToken(summary);
+          const normalizedDiagnosis = normalizeClinicalToken(asString(args.event.diagnosis));
+          if (normalizedDiagnosis && normalizedSummary.includes(normalizedDiagnosis)) return null;
+          if (STRUCTURED_DIAGNOSIS_HINT_REGEX.test(normalizedSummary) || HISTORICAL_ONLY_SIGNAL_REGEX.test(normalizedSummary)) {
+            return null;
+          }
+          return summary;
+        })()
+      : null;
   const meds = args.event.medications.map((med) => ({
     name: med.name,
     dosage: med.dose,
@@ -4181,8 +4340,14 @@ function buildDefaultExtractedData(args: {
     providerConfidence: "not_detected",
     diagnosis: args.event.diagnosis,
     diagnosisConfidence: args.event.diagnosis ? "medium" : "not_detected",
-    observations: args.event.description_summary,
-    observationsConfidence: args.event.confidence_score >= 85 ? "high" : args.event.confidence_score >= 60 ? "medium" : "low",
+    observations,
+    observationsConfidence: observations
+      ? args.event.confidence_score >= 85
+        ? "high"
+        : args.event.confidence_score >= 60
+          ? "medium"
+          : "low"
+      : "not_detected",
     medications: meds,
     nextAppointmentDate: null,
     nextAppointmentReason: null,
@@ -4381,18 +4546,42 @@ function buildSyncReviewTitle(event: ClinicalEventExtraction): string {
   return `Revisar ${typeLabel} detectado por email`;
 }
 
+function buildReviewReasonCopy(reason: string): string {
+  const normalized = normalizeClinicalToken(reason);
+  if (normalized.includes("missing_treatment_dose_or_frequency")) {
+    return "Falta confirmar dosis o frecuencia del tratamiento.";
+  }
+  if (normalized.includes("possible_clinical_conflict")) {
+    return "Podría contradecir el historial clínico actual.";
+  }
+  if (normalized.includes("historical_info_only")) {
+    return "Parece información histórica o informativa, no una indicación activa.";
+  }
+  if (normalized.includes("medication_without_explicit_drug_name")) {
+    return "Se detectó una supuesta medicación sin fármaco explícito.";
+  }
+  if (normalized.includes("unstructured_clinical_finding")) {
+    return "Hay un hallazgo clínico que no quedó estructurado con seguridad.";
+  }
+  if (normalized.includes("external_link_login_required")) {
+    return "Hace falta abrir la fuente original para validar el documento.";
+  }
+  if (normalized.includes("semantic_duplicate_candidate")) {
+    return "Podría duplicar un registro ya existente.";
+  }
+  if (normalized.includes("confidence_below_auto_ingest_threshold") || normalized.includes("low_confidence")) {
+    return "La confianza fue insuficiente para guardarlo automáticamente.";
+  }
+  return "Revisión manual requerida antes de consolidar el historial.";
+}
+
 function buildSyncReviewSubtitle(args: {
   sourceEmailId: string;
   event: ClinicalEventExtraction;
   narrativeSummary: string;
   reason: string;
 }): string {
-  const summary =
-    asString(args.event.description_summary).slice(0, 140) ||
-    asString(args.narrativeSummary).slice(0, 140) ||
-    asString(args.reason).slice(0, 120) ||
-    "Revisión manual requerida antes de consolidar el historial.";
-  return `Email ${args.sourceEmailId.slice(0, 8)} · ${summary}`;
+  return `Email ${args.sourceEmailId.slice(0, 8)} · ${buildReviewReasonCopy(args.reason)}`;
 }
 
 async function upsertSyncReviewPendingAction(args: {

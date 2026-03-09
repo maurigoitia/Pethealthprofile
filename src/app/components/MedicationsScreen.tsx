@@ -185,25 +185,6 @@ const HARD_MEDICATION_SIGNAL_REGEX = /(comprimid|capsul|tableta|pastilla|jarabe|
 const SCHEDULE_MEDICATION_SIGNAL_REGEX = /(cada\s+\d+\s*(h|hs|hora|horas)|\b\d+\s*veces?\s*al\s*d[ií]a\b|(tomar|administrar|dar)[^\n]{0,32}\b\d+(?:[.,]\d+)?\s*ml\b)/i;
 const NON_MEDICATION_SIGNAL_REGEX = /(pr[oó]stata|diametr|volumen|vol:|ecograf|radiograf|ultrason|hallazgo|medida|eje|cm\b|mm\b|sin\s+fractura|sin\s+luxaci[oó]n)/i;
 
-function hasMedicationLikeSignal(event: MedicalEvent): boolean {
-  const text = [
-    event.title,
-    event.extractedData.diagnosis,
-    event.extractedData.observations,
-    event.extractedData.aiGeneratedSummary,
-    event.extractedData.suggestedTitle,
-  ]
-    .map((value) => cleanText(value))
-    .filter(Boolean)
-    .join(" ");
-
-  const hasHardMedicationSignal = HARD_MEDICATION_SIGNAL_REGEX.test(text);
-  const hasScheduleSignal = SCHEDULE_MEDICATION_SIGNAL_REGEX.test(text);
-  const hasStudySignal = NON_MEDICATION_SIGNAL_REGEX.test(text);
-  if (hasStudySignal && !hasHardMedicationSignal) return false;
-  return hasHardMedicationSignal || hasScheduleSignal;
-}
-
 function isPlausibleMedicationEntry(
   event: MedicalEvent,
   medication: { name?: string | null; dosage?: string | null; frequency?: string | null; duration?: string | null }
@@ -317,24 +298,12 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
     return getEventsByPetId(activePetId)
       .flatMap((event) => {
         const hasMeds = Boolean(event.extractedData.medications?.length);
-        const isMedDoc = event.extractedData.documentType === "medication";
-        const hasSignal = hasMedicationLikeSignal(event);
-        if (!hasMeds && (!isMedDoc || !hasSignal)) return [];
+        if (!hasMeds) return [];
 
         const startDate = event.extractedData.eventDate || event.createdAt;
         const sourceLabel: "document" | "scan" = event.extractedData.eventDate ? "document" : "scan";
 
-        const meds = hasMeds
-          ? event.extractedData.medications.filter((med) => isPlausibleMedicationEntry(event, med))
-          : hasSignal
-            ? [{
-                name: cleanText(event.extractedData.diagnosis || event.title || event.fileName),
-                dosage: null,
-                frequency: null,
-                duration: null,
-                confidence: "not_detected" as const,
-              }]
-            : [];
+        const meds = event.extractedData.medications.filter((med) => isPlausibleMedicationEntry(event, med));
 
         if (meds.length === 0) return [];
 

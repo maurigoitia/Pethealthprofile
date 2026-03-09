@@ -45,6 +45,16 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       .replace(/\s+/g, " ")
       .trim();
 
+  const getCanonicalSummary = (event: any) => {
+    const extracted = event.extractedData || {};
+    const summary = clean(extracted.diagnosis || extracted.observations || "");
+    if (summary) return summary;
+    if (event.requiresManualConfirmation || event.workflowStatus === "review_required") {
+      return "Pendiente de revisión humana";
+    }
+    return "Sin interpretación clínica confirmada";
+  };
+
   const toTs = (value?: string | null) => (value ? Date.parse(value) || 0 : 0);
 
   const fmtLong = (iso?: string | null) => {
@@ -414,7 +424,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             const extracted = event.extractedData;
             const studyTitle = clean(extracted.studyType || event.title || extracted.suggestedTitle || toTypeLabel(extracted.documentType));
             const detailSource = clean(extracted.provider || extracted.clinic || "Sin firma clínica");
-            const summary = clean(extracted.observations || extracted.diagnosis || extracted.aiGeneratedSummary || "").substring(0, 110);
+            const summary = getCanonicalSummary(event).substring(0, 110);
             pdf.setFillColor(248, 250, 252);
             pdf.roundedRect(M, y, CW, 10, 1.8, 1.8, "F");
             pdf.setFontSize(8);
@@ -459,7 +469,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             fmt(extracted.eventDate || event.createdAt),
             toTypeLabel(extracted.documentType),
             clean(extracted.provider || extracted.clinic || "—"),
-            clean(extracted.diagnosis || extracted.observations || event.title || extracted.suggestedTitle || "Sin resumen"),
+            getCanonicalSummary(event),
           ];
 
           let cx = M;

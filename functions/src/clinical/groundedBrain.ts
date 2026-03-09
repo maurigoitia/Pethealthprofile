@@ -392,6 +392,10 @@ No sos un asistente conversacional: respondés SOLO el JSON, sin markdown, sin t
 6. primary_finding: si el documento dice "no se observaron dermatofitos/ectoparásitos", promoverlo como primary_finding textualmente.
 7. pet_reference: usar el nombre EXACTO de la mascota del contexto (no inventar variantes).
 8. Responder SOLO JSON válido. Sin backticks, sin comentarios, sin texto previo ni posterior.
+9. Una entidad "medication" requiere nombre de fármaco explícito. Nunca mapear volúmenes, diámetros u órganos como medicación o dosis.
+10. Texto histórico, informativo o calendarios de vacunación no equivalen a tratamiento activo: review_required=true.
+11. Si el documento contradice chronic_conditions del contexto, set review_required=true y reason_if_review_needed="possible_clinical_conflict".
+12. Si un hallazgo clínico no puede representarse estructuralmente, no lo entierres en narrativa: set review_required=true.
 </REGLAS_ABSOLUTAS>
 
 <MASCOTA_PRINCIPAL>
@@ -599,7 +603,7 @@ export const pessyClinicalBrainGrounding = functions
     const datastorePath = requestedDatastore || (await resolveConfiguredDatastorePath(project));
     const enableGoogleSearch = asBoolean(body.enable_google_search, false);
     const maxOutputTokens = clamp(asNumber(body.max_output_tokens, 1800), 256, 4096);
-    const temperature = clamp(asNumber(body.temperature, 0.2), 0, 1);
+    const temperature = clamp(asNumber(body.temperature, 0.1), 0, 1);
 
     const prompt = buildGroundingPrompt({
       documentText,

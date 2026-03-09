@@ -205,7 +205,7 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
       .filter((e) => e.extractedData.documentType === "vaccine" && e.status === "completed")
       .map((e, idx) => ({
         id: idx,
-        name: e.extractedData.diagnosis || e.extractedData.aiGeneratedSummary || "Vacuna",
+        name: e.extractedData.diagnosis || e.extractedData.suggestedTitle || "Vacuna",
         date: e.extractedData.eventDate
           ? formatDateSafe(e.extractedData.eventDate, "es-ES", { day: "2-digit", month: "short", year: "numeric" }, "Sin fecha")
           : formatDateSafe(e.createdAt, "es-ES", { day: "2-digit", month: "short", year: "numeric" }, "Sin fecha"),

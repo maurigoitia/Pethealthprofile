@@ -36,6 +36,22 @@ export function ActionTray() {
     navigate(`/review/${action.reviewId}`);
   };
 
+  const resolveEvidenceUrl = (action: PendingAction): string | null => {
+    const candidates = [
+      action.imageFragmentUrl,
+      action.sourceStorageSignedUrl,
+      action.sourceStorageUri,
+    ];
+    const match = candidates.find((value) => typeof value === "string" && /^https?:\/\//i.test(value.trim()));
+    return match ? match.trim() : null;
+  };
+
+  const openEvidence = (action: PendingAction) => {
+    const url = resolveEvidenceUrl(action);
+    if (!url) return;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
   // Map action type to icon
   const getActionIcon = (type: PendingAction["type"]) => {
     switch (type) {
@@ -240,6 +256,17 @@ export function ActionTray() {
                               className="flex-1 px-4 py-2.5 rounded-lg text-xs font-bold bg-red-600 text-white hover:bg-red-700 transition-colors"
                             >
                               Ver y editar
+                            </button>
+                          )}
+                          {action.type === "sync_review" && resolveEvidenceUrl(action) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEvidence(action);
+                              }}
+                              className="flex-1 px-4 py-2.5 rounded-lg text-xs font-bold bg-amber-100 text-amber-800 hover:bg-amber-200 transition-colors"
+                            >
+                              Abrir evidencia
                             </button>
                           )}
                           <button
