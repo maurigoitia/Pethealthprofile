@@ -11,8 +11,6 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 
-const db = admin.firestore;
-
 // ─── Routing table (mirror del frontend clinicalRouting.ts) ──────────────────
 // Mantenemos una copia en backend para que la proyección no dependa del cliente.
 
