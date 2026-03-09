@@ -103,6 +103,7 @@ import {
   syncTreatmentTimezoneV3,
 } from "./clinical/treatmentReminderEngine";
 import { onClinicalEventProjection } from "./clinical/projectionLayer";
+import { backfillClinicalProjection } from "./clinical/backfillProjection";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -2257,4 +2258,5 @@ export {
   evaluateTreatmentDedupV3,
   syncTreatmentTimezoneV3,
   onClinicalEventProjection,
+  backfillClinicalProjection,
 };
