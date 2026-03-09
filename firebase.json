@@ -19,7 +19,9 @@
   "storage": {
     "rules": "storage.rules"
   },
-  "hosting": {
+  "hosting": [
+    {
+    "target": "app",
     "public": "dist",
     "ignore": [
       "firebase.json",
@@ -192,5 +194,21 @@
         "destination": "/index.html"
       }
     ]
+  },
+  {
+    "target": "appqa",
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
+]
 }
