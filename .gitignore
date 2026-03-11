@@ -95,3 +95,4 @@ functions/lib/
 *.png
 !public/icons/**/*.png
 !src/**/*.png
+.claude/
