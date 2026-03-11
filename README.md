@@ -1,18 +1,103 @@
+# Pessy App — Mobile (iOS & Android)
 
-  # Pet Health Profile
+## Stack tecnológico
 
-  This is a code bundle for Pet Health Profile. The original project is available at https://www.figma.com/design/eZNmtbYWOY2sT5b9e6Gjeg/Pet-Health-Profile.
+**Pessy es una app móvil nativa** construida con:
 
-  ## Running the code
+| Capa | Tecnología | Para qué sirve |
+|------|-----------|----------------|
+| UI/Lógica | **React + TypeScript + Vite** | Todo el código de la app |
+| Estilos | **Tailwind CSS v4** | Diseño responsive |
+| Mobile wrapper | **Capacitor v7** | Empaqueta el app como iOS/Android nativo |
+| Backend | **Firebase Functions (Node.js)** | API, ingesta de mails, AI clínica |
+| Base de datos | **Firestore** | Datos en tiempo real |
+| Auth | **Firebase Auth** | Login, email magic link |
+| IA clínica | **Google Vertex AI / Gemini** | Procesar documentos médicos |
 
-  Run `npm i` to install the dependencies.
+---
 
-  Run `npm run dev` to start the development server.
-  
-## Firebase Push Notifications (VAPID)
+## ❓ ¿Es Flutter?
 
-Create `.env.local` (or copy from `.env.example`) and set:
+**No.** Pessy no usa Flutter ni Dart.
 
-`VITE_FIREBASE_VAPID_KEY=<PUBLIC_VAPID_KEY>`
+El enfoque es **React + Capacitor** — el código de la app se escribe una sola vez en React/TypeScript y Capacitor lo empaqueta como:
+- 📱 **App iOS** (`.ipa`) para App Store
+- 🤖 **App Android** (`.apk`/`.aab`) para Play Store
 
-Important: use only the public VAPID key on frontend. Never store the private VAPID key in this repository.
+Este es el mismo enfoque que usan apps como Ionic. El resultado es una app **descargable desde los stores**, con acceso a APIs nativas del dispositivo (cámara, notificaciones, almacenamiento).
+
+---
+
+## Estructura del proyecto
+
+```
+src/
+├── app/
+│   ├── components/     # Todos los componentes del app (50+)
+│   ├── contexts/       # Estado global (Medical, Pet, Auth...)
+│   ├── pages/          # Páginas de routing (Landing, Legal)
+│   ├── services/       # Servicios (calendar, account deletion...)
+│   ├── utils/          # Utilidades (fechas, flags, clinical brain...)
+│   ├── types/          # TypeScript types
+│   └── routes.tsx      # Routing del app
+
+functions/src/
+├── clinical/           # Lógica AI clínica (episodios, proyección, brain)
+├── gmail/              # Ingesta de emails médicos
+├── compliance/         # Eliminación de datos / GDPR
+└── index.ts            # Entry point de Cloud Functions
+
+android/                # Proyecto Android nativo (Capacitor-generado)
+ios/                    # Proyecto iOS nativo (Capacitor-generado)
+public/                 # Assets estáticos (íconos PWA, data-deletion)
+```
+
+---
+
+## Comandos principales
+
+```bash
+# Desarrollo web
+npm run dev
+
+# Build + sync a mobile
+npm run build:mobile
+
+# Abrir en Xcode (iOS)
+npm run cap:open:ios
+
+# Abrir en Android Studio
+npm run cap:open:android
+
+# Diagnóstico de Capacitor
+npm run mobile:doctor
+
+# Deploy a QA
+firebase deploy --only hosting:appqa
+
+# Deploy a producción
+firebase deploy --only hosting:app
+```
+
+---
+
+## Environments
+
+| URL | Firebase site | Para qué |
+|-----|---------------|---------- |
+| `pessy.app` | `app` | Producción |
+| `pessy-focus-qa.web.app` | `appqa` | QA / experimentos (ej: modelo episódico) |
+| `pessy-focus-it.web.app` | `appit` | Integración |
+
+---
+
+## Feature flags activos
+
+- `VITE_ENABLE_EMAIL_SYNC` — activa visualización de datos de email sync
+- `VITE_ENABLE_FOCUS_HISTORY_EXPERIMENT` — activa modelo episódico (solo QA)
+- `BACKFILL_ADMIN_SECRET` — secret para correr backfill clínico
+- `GMAIL_SMART_PET_MATCH_ENABLED` — matching inteligente de mascotas por email
+
+---
+
+> **Nota de stack**: Este proyecto fue bootstrapped originalmente desde una plantilla de Figma Make, de ahí el residuo del nombre `@figma/my-make-file` en versiones anteriores del package.json. Ese artifacto fue corregido (2026-03-11).

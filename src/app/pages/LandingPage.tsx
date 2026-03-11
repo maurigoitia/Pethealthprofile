@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from "motion/react";
-import { 
-  Camera, 
-  ArrowRight, 
+import {
+  Camera,
+  ArrowRight,
   Smartphone,
   Shield,
   History,
@@ -21,7 +21,7 @@ import {
   LayoutGrid
 } from "lucide-react";
 import { Link } from "react-router";
-import { ImageWithFallback } from "../components/figma/ImageWithFallback";
+import { ImageWithFallback } from "../components/ImageWithFallback";
 import { Logo } from "../components/Logo";
 import { SEO } from "../components/SEO";
 import { HistoryMockup, MedicationMockup, VaccinesMockup } from "../components/AppMockups";
@@ -403,7 +403,7 @@ export default function LandingPage() {
     // Deteccion automatica de idioma
     const browserLang = navigator.language.split('-')[0];
     const savedLang = localStorage.getItem('pessy-lang') as any;
-    
+
     if (savedLang && traducciones[savedLang as keyof typeof traducciones]) {
       setLang(savedLang);
     } else if (traducciones[browserLang as keyof typeof traducciones]) {
@@ -434,18 +434,18 @@ export default function LandingPage() {
   const t = traducciones[lang];
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('es-AR', { 
-      hour: '2-digit', 
+    return date.toLocaleTimeString('es-AR', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: false 
+      hour12: false
     });
   };
 
   const formatDate = (date: Date) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'long', 
-      day: 'numeric', 
-      month: 'long' 
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long'
     };
     const formatted = date.toLocaleDateString(lang === 'en' ? 'en-US' : lang === 'pt' ? 'pt-BR' : 'es-AR', options);
     return (formatted.charAt(0).toUpperCase() + formatted.slice(1)).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -453,26 +453,26 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-['Manrope'] selection:bg-emerald-100 selection:text-[#074738] overflow-x-hidden text-slate-900">
-      <SEO 
+      <SEO
         title="Pessy - Ecosistema de Identidad Digital para Mascotas"
         description="Construyendo el perfil digital de tu mascota. Tecnologia avanzada para estructurar informacion medica, historial clinico y servicios bajo demanda. Plataforma 360 para pet care."
         keywords="mascota, identidad digital, historial medico, veterinario, tecnologia, salud animal, pet care"
         canonical="https://pessy.app/inicio"
       />
-      
-      <header 
+
+      <header
         className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-100"
         role="banner"
       >
         <nav className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between" aria-label="Navegacion principal">
-          <Link 
-            to="/inicio" 
+          <Link
+            to="/inicio"
             className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#074738] focus:ring-offset-2 rounded-lg"
           >
             <Logo className="size-8" color="#074738" />
             <span className="text-lg font-black tracking-tight text-[#074738]">Pessy</span>
           </Link>
-          
+
           <div className="hidden md:flex items-center gap-6">
             <a href="#historial" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-[#074738] transition-colors">{t.footer.nav[0]}</a>
             <a href="#vacunas" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-[#074738] transition-colors">{t.footer.nav[1]}</a>
@@ -490,8 +490,8 @@ export default function LandingPage() {
             >
               {lang.toUpperCase()}
             </button>
-            
-            <Link 
+
+            <Link
               to="/app"
               className="px-5 py-1.5 text-[10px] font-black text-[#074738] bg-[#e0f2f1] rounded-full hover:bg-emerald-100 transition-all uppercase tracking-widest"
             >
@@ -500,7 +500,7 @@ export default function LandingPage() {
           </div>
         </nav>
       </header>
-      
+
       <main id="main-content" className="pt-14">
         {/* Hero Section */}
         <section className="relative py-10 md:py-16 px-6 overflow-hidden">
@@ -508,14 +508,14 @@ export default function LandingPage() {
             <div className="grid lg:grid-cols-2 gap-10 items-center">
               <div className="space-y-6 text-center lg:text-left">
                 <div className="space-y-3">
-                  <motion.p 
+                  <motion.p
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="text-[10px] font-black uppercase tracking-[0.4em] text-[#1a9b7d]"
                   >
                     {t.hero.tagline}
                   </motion.p>
-                  <motion.h1 
+                  <motion.h1
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
@@ -523,7 +523,7 @@ export default function LandingPage() {
                   >
                     {t.hero.title}
                   </motion.h1>
-                  <motion.p 
+                  <motion.p
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
@@ -539,7 +539,7 @@ export default function LandingPage() {
                   transition={{ delay: 0.3 }}
                   className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start"
                 >
-                  <Link 
+                  <Link
                     to="/app"
                     className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#1a9b7d] text-white rounded-full font-black text-base shadow-lg shadow-[#1a9b7d]/10 hover:scale-105 active:scale-95 transition-all"
                   >
@@ -551,17 +551,17 @@ export default function LandingPage() {
 
               <div className="relative order-first lg:order-last">
                 <div className="absolute inset-0 bg-[#074738]/5 rounded-full blur-[100px] scale-150" />
-                
+
                 {/* iPhone Mockup */}
                 <div className="relative mx-auto w-full max-w-[260px] md:max-w-[300px] aspect-[9/19.5] bg-[#0c0c0c] rounded-[3.5rem] p-1 shadow-2xl ring-1 ring-white/10">
                   <div className="w-full h-full rounded-[3.3rem] bg-black p-1.5 overflow-hidden">
                     <div className="w-full h-full rounded-[3rem] overflow-hidden bg-black relative">
-                      <ImageWithFallback 
-                        src="https://images.unsplash.com/photo-1686419682443-5050ca21098d?auto=format&fit=crop&q=80&w=800" 
-                        alt="Vista previa de Pessy" 
+                      <ImageWithFallback
+                        src="https://images.unsplash.com/photo-1686419682443-5050ca21098d?auto=format&fit=crop&q=80&w=800"
+                        alt="Vista previa de Pessy"
                         className="absolute inset-0 w-full h-full object-cover brightness-[0.85]"
                       />
-                      
+
                       <div className="absolute top-2 left-1/2 -translate-x-1/2 w-24 h-6 bg-black rounded-full z-[100]" />
 
                       <div className="absolute inset-0 flex flex-col items-center pt-16 px-6 z-30 font-sans">
@@ -572,7 +572,7 @@ export default function LandingPage() {
 
                         <div className="mt-auto w-full h-20 mb-10 relative">
                           <AnimatePresence mode="wait">
-                            <motion.div 
+                            <motion.div
                               key={activeNotification}
                               initial={{ y: 30, opacity: 0, scale: 0.95 }}
                               animate={{ y: 0, opacity: 1, scale: 1 }}
@@ -642,7 +642,7 @@ export default function LandingPage() {
                   {t.section2.body}
                 </motion.p>
               </div>
-              
+
               <div className="relative group">
                 <div className="absolute inset-0 bg-emerald-100/50 rounded-[2rem] blur-2xl group-hover:blur-3xl transition-all duration-500" />
                 <div className="relative aspect-[4/3] max-w-[400px] mx-auto rounded-[2rem] overflow-hidden border border-slate-100 shadow-xl bg-white">
@@ -699,7 +699,7 @@ export default function LandingPage() {
                     {t.section3.subtitle}
                   </h2>
                 </motion.div>
-                
+
                 <div className="space-y-3 pt-2">
                   {t.section3.features.map((feature, i) => (
                     <motion.div
@@ -753,7 +753,7 @@ export default function LandingPage() {
                   {t.section4.body}
                 </motion.p>
               </div>
-              
+
               <div className="relative group">
                 <div className="absolute inset-0 bg-emerald-100/50 rounded-[2rem] blur-2xl group-hover:blur-3xl transition-all duration-500" />
                 <div className="relative aspect-[4/3] max-w-[400px] mx-auto rounded-[2rem] overflow-hidden border border-slate-100 shadow-xl bg-white">
@@ -854,7 +854,7 @@ export default function LandingPage() {
         <section className="py-10 md:py-16 px-6 bg-[#F8FAFC] border-y border-slate-100">
           <div className="max-w-7xl mx-auto space-y-10">
             <div className="text-center space-y-3 max-w-2xl mx-auto">
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -862,7 +862,7 @@ export default function LandingPage() {
               >
                 {t.pricing.eyebrow}
               </motion.p>
-              <motion.h2 
+              <motion.h2
                 initial={{ opacity: 0, y: 15 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -870,7 +870,7 @@ export default function LandingPage() {
               >
                 {t.pricing.title}
               </motion.h2>
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0, y: 15 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -888,18 +888,17 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className={`relative p-6 rounded-[2rem] border flex flex-col transition-all hover:translate-y-[-4px] ${
-                    plan.popular 
-                      ? 'bg-white text-slate-900 border-[#074738] shadow-xl z-10 border-2' 
+                  className={`relative p-6 rounded-[2rem] border flex flex-col transition-all hover:translate-y-[-4px] ${plan.popular
+                      ? 'bg-white text-slate-900 border-[#074738] shadow-xl z-10 border-2'
                       : 'bg-white text-slate-900 border-slate-100'
-                  }`}
+                    }`}
                 >
                   {plan.badge && (
                     <div className="absolute top-[-12px] left-1/2 -translate-x-1/2 bg-[#074738] text-white px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest whitespace-nowrap shadow-md">
                       ⭐ {plan.badge}
                     </div>
                   )}
-                  
+
                   <div className="space-y-4 flex-1">
                     <div className="space-y-1">
                       <p className={`text-[9px] font-black uppercase tracking-widest ${plan.popular ? 'text-[#074738]' : 'text-slate-300'}`}>
@@ -927,13 +926,12 @@ export default function LandingPage() {
                   </div>
 
                   <div className="pt-6">
-                    <Link 
+                    <Link
                       to={plan.price === "$0" ? "/app" : "mailto:it@pessy.app"}
-                      className={`w-full py-2.5 rounded-full font-black text-center text-[10px] uppercase tracking-widest transition-all block ${
-                        plan.popular 
-                          ? 'bg-[#074738] text-white hover:bg-slate-800' 
+                      className={`w-full py-2.5 rounded-full font-black text-center text-[10px] uppercase tracking-widest transition-all block ${plan.popular
+                          ? 'bg-[#074738] text-white hover:bg-slate-800'
                           : 'bg-slate-50 text-slate-600 border border-slate-100 hover:bg-slate-100'
-                      }`}
+                        }`}
                     >
                       {plan.cta}
                     </Link>
@@ -949,7 +947,7 @@ export default function LandingPage() {
         <section className="py-24 md:py-32 px-6 bg-white overflow-hidden">
           <div className="max-w-7xl mx-auto">
             <div className="space-y-4 mb-20 text-center lg:text-left">
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -957,7 +955,7 @@ export default function LandingPage() {
               >
                 {t.team.eyebrow}
               </motion.p>
-              <motion.h2 
+              <motion.h2
                 initial={{ opacity: 0, y: 15 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -965,7 +963,7 @@ export default function LandingPage() {
               >
                 {t.team.title}
               </motion.h2>
-              <motion.p 
+              <motion.p
                 initial={{ opacity: 0, y: 15 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -987,15 +985,15 @@ export default function LandingPage() {
                   className="group relative"
                 >
                   <div className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden bg-slate-100 border border-slate-100 group-hover:border-[#1a9b7d]/20 transition-all duration-700">
-                    <ImageWithFallback 
-                      src={member.image} 
-                      alt={member.name} 
+                    <ImageWithFallback
+                      src={member.image}
+                      alt={member.name}
                       className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 scale-[1.05] group-hover:scale-100"
                     />
-                    
+
                     {/* Overlay Gradient */}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
-                    
+
                     {/* Social/Role Overlay */}
                     <div className="absolute inset-0 p-6 flex flex-col justify-between opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0">
                       <div className="flex justify-between items-start">
@@ -1005,9 +1003,9 @@ export default function LandingPage() {
                           </span>
                         </div>
                         {(member as any).linkedin && (
-                          <a 
-                            href={(member as any).linkedin} 
-                            target="_blank" 
+                          <a
+                            href={(member as any).linkedin}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="size-8 bg-white text-[#074738] rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-lg"
                           >
@@ -1026,7 +1024,7 @@ export default function LandingPage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="mt-6 space-y-1">
                     <h4 className="text-xl font-black tracking-tight text-slate-900 leading-none">{member.name}</h4>
                     <div className="flex items-center gap-2">
