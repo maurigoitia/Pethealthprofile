@@ -55,6 +55,50 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
     return "Sin interpretación clínica confirmada";
   };
 
+  const buildNarrativeClinicalProfile = (args: {
+    petName: string;
+    activeConditions: Array<{ normalizedName?: string | null }>;
+    resolvedConditions: Array<{ normalizedName?: string | null }>;
+    treatmentRows: Array<{ name?: string | null; condition?: string | null; status?: string | null }>;
+    studies: any[];
+  }) => {
+    const activeNames = args.activeConditions
+      .map((condition) => clean(condition.normalizedName))
+      .filter(Boolean)
+      .slice(0, 3);
+    const resolvedNames = args.resolvedConditions
+      .map((condition) => clean(condition.normalizedName))
+      .filter(Boolean)
+      .slice(0, 2);
+    const medicationNames = args.treatmentRows
+      .map((row) => clean(row.name))
+      .filter(Boolean)
+      .slice(0, 3);
+    const studyLabels = args.studies
+      .map((event) => clean(event.extractedData?.studyType || event.title || event.extractedData?.suggestedTitle || toTypeLabel(event.extractedData?.documentType)))
+      .filter(Boolean)
+      .slice(0, 3);
+
+    const sentences: string[] = [];
+    if (activeNames.length > 0) {
+      sentences.push(`${args.petName} presenta actualmente seguimiento por ${activeNames.join(", ")}.`);
+    } else if (resolvedNames.length > 0) {
+      sentences.push(`${args.petName} tiene antecedentes clínicos relevantes por ${resolvedNames.join(", ")}.`);
+    } else {
+      sentences.push(`${args.petName} tiene historial clínico estructurado con eventos y estudios confirmados.`);
+    }
+
+    if (medicationNames.length > 0) {
+      sentences.push(`La medicación o continuidad terapéutica más relevante incluye ${medicationNames.join(", ")}.`);
+    }
+
+    if (studyLabels.length > 0) {
+      sentences.push(`Entre los estudios complementarios registrados se destacan ${studyLabels.join(", ")}.`);
+    }
+
+    return sentences.slice(0, 3).join(" ");
+  };
+
   const toTs = (value?: string | null) => (value ? Date.parse(value) || 0 : 0);
 
   const fmtLong = (iso?: string | null) => {
@@ -202,6 +246,13 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         const type = event.extractedData.documentType;
         return ["xray", "lab_test", "echocardiogram", "electrocardiogram"].includes(type);
       });
+      const narrativeClinicalProfile = buildNarrativeClinicalProfile({
+        petName: activePet.name,
+        activeConditions,
+        resolvedConditions,
+        treatmentRows,
+        studies,
+      });
 
       const reportSummaryForVerification = [
         `Problemas activos: ${activeConditions.length}`,
@@ -227,7 +278,31 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           y += 4;
         };
 
-        sectionTitle("1. Estado clínico actual");
+        sectionTitle("1. Perfil clínico resumido");
+
+        pdf.setFontSize(8.6);
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(55, 65, 81);
+        const profileLines = pdf.splitTextToSize(narrativeClinicalProfile || "Sin síntesis clínica disponible.", CW - 2);
+        pdf.text(profileLines, M, y + 1);
+        y += profileLines.length * 4 + 2;
+
+        const profileHighlights = [
+          activeConditions[0] ? `Condición principal: ${clean(activeConditions[0].normalizedName)}` : "",
+          treatmentRows[0] ? `Tratamiento relevante: ${clean(treatmentRows[0].name)}` : "",
+          studies[0] ? `Estudio destacado: ${clean(studies[0].extractedData.studyType || studies[0].title || studies[0].extractedData.suggestedTitle)}` : "",
+        ].filter(Boolean);
+
+        if (profileHighlights.length > 0) {
+          for (const highlight of profileHighlights.slice(0, 3)) {
+            checkY(6);
+            pdf.text(`• ${highlight}`, M, y + 1);
+            y += 5;
+          }
+        }
+
+        y += 2;
+        sectionTitle("2. Estado clínico actual");
 
         pdf.setFontSize(8.5);
         pdf.setFont("helvetica", "bold");
@@ -265,19 +340,16 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           }
         }
 
-        pdf.setFont("helvetica", "bold");
-        pdf.setTextColor(31, 41, 55);
-        pdf.text("Turnos próximos", M, y + 1);
-        y += 4;
-        pdf.setFont("helvetica", "normal");
-        pdf.setTextColor(55, 65, 81);
         const nextAppointments = [...upcoming].sort((a, b) => {
           return toTs(`${a.date || ""}T${a.time || "00:00"}`) - toTs(`${b.date || ""}T${b.time || "00:00"}`);
         });
-        if (nextAppointments.length === 0) {
-          pdf.text("Sin turnos próximos registrados.", M, y + 1);
-          y += 6;
-        } else {
+        if (nextAppointments.length > 0) {
+          pdf.setFont("helvetica", "bold");
+          pdf.setTextColor(31, 41, 55);
+          pdf.text("Agenda próxima", M, y + 1);
+          y += 4;
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(55, 65, 81);
           for (const appointment of nextAppointments.slice(0, 5)) {
             checkY(8);
             const detail = `${fmtDateTime(appointment.date, appointment.time)} · ${clean(
@@ -287,6 +359,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             pdf.text(lines, M, y + 1);
             y += lines.length * 4 + 1;
           }
+          y += 1;
         }
 
         pdf.setFont("helvetica", "bold");
@@ -307,7 +380,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           y += 5;
         }
 
-        sectionTitle("2. Tratamientos activos vinculados");
+        sectionTitle("3. Tratamientos activos vinculados");
         const colWidths = [34, 20, 20, 34, 18, 34, 18];
         const headers = ["Medicamento", "Dosis", "Frecuencia", "Condición", "Inicio", "Profesional", "Estado"];
         const drawRow = (cells: string[], rowY: number, bg = [248, 250, 252] as [number, number, number]) => {
@@ -357,7 +430,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           }
         }
 
-        sectionTitle("3. Condiciones médicas");
+        sectionTitle("4. Condiciones médicas");
         pdf.setFontSize(8.5);
         pdf.setFont("helvetica", "bold");
         pdf.setTextColor(31, 41, 55);
@@ -411,7 +484,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         pdf.text(`• Estudios complementarios acumulados: ${studies.length}`, M, y + 1);
         y += 6;
 
-        sectionTitle("4. Estudios complementarios");
+        sectionTitle("5. Estudios complementarios");
         if (studies.length === 0) {
           pdf.setFontSize(8.5);
           pdf.setFont("helvetica", "normal");
@@ -440,7 +513,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           }
         }
 
-        sectionTitle("5. Línea de tiempo clínica (resumen)");
+        sectionTitle("6. Línea de tiempo clínica (resumen)");
         const timelineHeaders = ["Fecha", "Tipo", "Profesional/Centro", "Diagnóstico resumido"];
         const timelineWidths = [24, 20, 48, 86];
         checkY(9);

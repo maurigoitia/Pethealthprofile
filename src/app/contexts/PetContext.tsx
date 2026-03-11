@@ -5,7 +5,9 @@ import {
 } from "firebase/firestore";
 import { sendSignInLinkToEmail } from "firebase/auth";
 import { useAuth } from "./AuthContext";
-import { buildAuthActionUrl, createCoTutorActionCodeSettings } from "../utils/authActionLinks";
+import { createCoTutorActionCodeSettings } from "../utils/authActionLinks";
+import { buildCoTutorReferralUrl } from "../utils/coTutorInvite";
+import { isFocusHistoryExperimentHost } from "../utils/runtimeFlags";
 
 export interface WeightEntry {
   date: string;
@@ -84,7 +86,17 @@ export function PetProvider({ children }: { children: ReactNode }) {
     const merge = () => {
       // Solo terminar loading cuando ambos queries hayan respondido
       const bothReady = resolved.owner && resolved.cotutor;
-      const merged = Array.from(allPetsMap.values());
+      const mergedRaw = Array.from(allPetsMap.values());
+      const useMauriSandbox =
+        isFocusHistoryExperimentHost() &&
+        (user?.email || "").trim().toLowerCase() === "mauriciogoitia@gmail.com";
+      const merged =
+        useMauriSandbox
+          ? (() => {
+              const thorOnly = mergedRaw.filter((pet) => (pet.name || "").trim().toLowerCase() === "thor");
+              return thorOnly.length > 0 ? thorOnly : mergedRaw;
+            })()
+          : mergedRaw;
       setPets(merged);
       if (bothReady) {
         setLoading(false);
@@ -230,7 +242,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
     }
 
     const code = await generateInviteCode(petId, normalizedEmail);
-    const inviteLink = buildAuthActionUrl("/email-link", { invite: code });
+    const inviteLink = buildCoTutorReferralUrl(code);
 
     try {
       await sendSignInLinkToEmail(auth, normalizedEmail, createCoTutorActionCodeSettings(code));
@@ -261,11 +273,16 @@ export function PetProvider({ children }: { children: ReactNode }) {
     if (!invSnap.exists()) throw new Error("Código inválido o expirado");
 
     const inv = invSnap.data();
-    if (inv.used) throw new Error("Este código ya fue utilizado");
     const currentUserEmail = (currentUser.email || "").trim().toLowerCase();
     const inviteEmail = (inv.inviteEmail || "").trim().toLowerCase();
     if (inviteEmail && inviteEmail !== currentUserEmail) {
       throw new Error("Este código fue emitido para otro correo.");
+    }
+    if (inv.used) {
+      if (inv.usedBy === currentUser.uid) {
+        return { petName: inv.petName || "la mascota" };
+      }
+      throw new Error("Este código ya fue utilizado");
     }
     const expiresAt =
       typeof inv.expiresAt?.toDate === "function"
@@ -277,6 +294,25 @@ export function PetProvider({ children }: { children: ReactNode }) {
     if (inv.createdBy === currentUser.uid) throw new Error("No podés unirte a tu propia mascota con un código");
 
     const petRef = doc(db, "pets", inv.petId);
+    const petSnap = await getDoc(petRef);
+    if (!petSnap.exists()) throw new Error("La mascota ya no está disponible");
+    const petData = petSnap.data();
+    const currentCoTutorUids: string[] = Array.isArray(petData.coTutorUids) ? petData.coTutorUids : [];
+    const currentCoTutors: CoTutor[] = Array.isArray(petData.coTutors) ? petData.coTutors : [];
+
+    if (petData.ownerId === currentUser.uid) {
+      throw new Error("Ya sos tutor principal de esta mascota.");
+    }
+
+    const alreadyJoined = currentCoTutorUids.includes(currentUser.uid);
+    if (alreadyJoined) {
+      await updateDoc(invRef, {
+        used: true,
+        usedBy: currentUser.uid,
+        usedAt: new Date(),
+      });
+      return { petName: inv.petName || petData.name || "la mascota" };
+    }
 
     const newCoTutor: CoTutor = {
       uid: currentUser.uid,
@@ -285,9 +321,15 @@ export function PetProvider({ children }: { children: ReactNode }) {
       addedAt: new Date().toISOString(),
     };
 
+    const nextCoTutorUids = [...currentCoTutorUids, currentUser.uid];
+    const nextCoTutors = [
+      ...currentCoTutors.filter((ct) => ct.uid !== currentUser.uid),
+      newCoTutor,
+    ];
+
     await updateDoc(petRef, {
-      coTutors: arrayUnion(newCoTutor),
-      coTutorUids: arrayUnion(currentUser.uid),
+      coTutors: nextCoTutors,
+      coTutorUids: nextCoTutorUids,
       lastJoinInviteCode: normalizedCode,
     });
 

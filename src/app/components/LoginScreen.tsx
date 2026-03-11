@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import {
   signInWithEmailAndPassword,
@@ -12,10 +12,13 @@ import {
 import { auth } from "../../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { createPasswordResetActionCodeSettings } from "../utils/authActionLinks";
+import { normalizeCoTutorInviteCode, rememberPendingCoTutorInvite } from "../utils/coTutorInvite";
+import { isFocusExperienceHost } from "../utils/runtimeFlags";
 import { SEO } from "./SEO";
 
 export function LoginScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,6 +33,16 @@ export function LoginScreen() {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState("");
   const [resetError, setResetError] = useState("");
+  const inviteCode = useMemo(
+    () => normalizeCoTutorInviteCode(new URLSearchParams(location.search).get("invite")),
+    [location.search]
+  );
+  const focusExperienceEnabled = isFocusExperienceHost();
+
+  useEffect(() => {
+    if (!inviteCode) return;
+    rememberPendingCoTutorInvite(inviteCode);
+  }, [inviteCode]);
 
   const isStandalonePwa = () => {
     if (typeof window === "undefined") return false;
@@ -203,10 +216,14 @@ export function LoginScreen() {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-between px-8 py-12 relative overflow-hidden"
-      style={{
-        backgroundImage: "linear-gradient(180deg, #074738 0%, #0e6a5a 50%, #1a9b7d 100%)",
-      }}
+      className={`min-h-screen flex flex-col items-center justify-between px-6 py-8 relative overflow-hidden ${
+        focusExperienceEnabled ? "bg-[#f3f7f5]" : ""
+      }`}
+      style={focusExperienceEnabled
+        ? undefined
+        : {
+            backgroundImage: "linear-gradient(180deg, #074738 0%, #0e6a5a 50%, #1a9b7d 100%)",
+          }}
     >
       <SEO
         title="Login | Pessy"
@@ -214,14 +231,25 @@ export function LoginScreen() {
         canonical="https://pessy.app/login"
         robots="noindex,nofollow"
       />
-      {/* Fondo decorativo */}
-      <div className="absolute left-0 top-0 h-[853px] w-full flex items-center justify-center overflow-hidden pointer-events-none">
-        <div className="relative rotate-6 opacity-25" style={{ width: "670px", height: "1228px", filter: "brightness(0) invert(1)" }}>
-          <img src="/pessy-logo.svg" alt="" className="w-full h-full object-contain" />
-        </div>
-      </div>
-      <div className="absolute left-[120px] top-[-128px] size-[400px] bg-white/10 rounded-full blur-[64px] pointer-events-none" />
-      <div className="absolute left-[-80px] top-[473px] size-[300px] bg-white/5 rounded-full blur-[64px] pointer-events-none" />
+      {!focusExperienceEnabled && (
+        <>
+          <div className="absolute left-0 top-0 h-[853px] w-full flex items-center justify-center overflow-hidden pointer-events-none">
+            <div className="relative rotate-6 opacity-25" style={{ width: "670px", height: "1228px", filter: "brightness(0) invert(1)" }}>
+              <img src="/pessy-logo.svg" alt="" className="w-full h-full object-contain" />
+            </div>
+          </div>
+          <div className="absolute left-[120px] top-[-128px] size-[400px] bg-white/10 rounded-full blur-[64px] pointer-events-none" />
+          <div className="absolute left-[-80px] top-[473px] size-[300px] bg-white/5 rounded-full blur-[64px] pointer-events-none" />
+        </>
+      )}
+
+      {focusExperienceEnabled && (
+        <>
+          <div className="absolute inset-x-0 top-0 h-[320px] bg-[linear-gradient(180deg,rgba(7,71,56,0.18)_0%,rgba(7,71,56,0.08)_58%,rgba(243,247,245,0)_100%)] pointer-events-none" />
+          <div className="absolute top-10 right-[-50px] size-[220px] rounded-full bg-[#1a9b7d]/10 blur-[80px] pointer-events-none" />
+          <div className="absolute top-28 left-[-60px] size-[200px] rounded-full bg-[#074738]/8 blur-[70px] pointer-events-none" />
+        </>
+      )}
 
       <div className="flex flex-col items-center relative z-10 w-full max-w-md flex-1 justify-center">
         {/* Logo */}
@@ -229,19 +257,44 @@ export function LoginScreen() {
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col items-center mb-10"
+          className={`flex flex-col items-center mb-8 w-full ${focusExperienceEnabled ? "text-left items-start" : ""}`}
         >
-          <img
-            src="/pessy-logo.svg"
-            alt="Logo Pessy"
-            className="w-24 h-24 mb-3 object-contain drop-shadow-[0_14px_32px_rgba(0,0,0,0.25)]"
-          />
-          <h1 className="text-[72px] font-black text-white tracking-[-3.6px] leading-[72px] mb-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-            Pessy
-          </h1>
-          <p className="text-white/85 text-[16px] font-medium text-center tracking-[0.4px] leading-[24px]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-            tu mascota sus cosas todo en orden
-          </p>
+          {focusExperienceEnabled ? (
+            <div className="w-full rounded-[32px] border border-[#074738]/10 bg-[#dbe7e2] p-6 shadow-[0_18px_40px_rgba(7,71,56,0.14)]">
+              <div className="flex items-center gap-4">
+                <div className="size-16 rounded-[22px] bg-white/85 flex items-center justify-center shadow-sm">
+                  <img
+                    src="/pessy-logo.svg"
+                    alt="Logo Pessy"
+                    className="w-10 h-10 object-contain"
+                  />
+                </div>
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#074738]">Acceso</p>
+                  <h1 className="text-[42px] font-black text-slate-900 tracking-[-0.04em] leading-none mt-1" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    Pessy
+                  </h1>
+                </div>
+              </div>
+              <p className="text-slate-600 text-[15px] font-medium tracking-[0.2px] leading-[24px] mt-5" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                Entrá para ver el perfil vivo de tu mascota, sus turnos y sus próximos pasos.
+              </p>
+            </div>
+          ) : (
+            <>
+              <img
+                src="/pessy-logo.svg"
+                alt="Logo Pessy"
+                className="w-24 h-24 mb-3 object-contain drop-shadow-[0_14px_32px_rgba(0,0,0,0.25)]"
+              />
+              <h1 className="text-[72px] font-black text-white tracking-[-3.6px] leading-[72px] mb-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                Pessy
+              </h1>
+              <p className="text-white/85 text-[16px] font-medium text-center tracking-[0.4px] leading-[24px]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                tu mascota sus cosas todo en orden
+              </p>
+            </>
+          )}
         </motion.div>
 
         {/* Formulario login */}
@@ -250,14 +303,26 @@ export function LoginScreen() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.15 }}
-          className="w-full space-y-4"
+          className={`w-full space-y-4 ${focusExperienceEnabled ? "rounded-[32px] border border-slate-200 bg-white p-5 shadow-sm" : ""}`}
         >
+          {inviteCode && (
+            <div className={`rounded-[24px] px-5 py-4 ${focusExperienceEnabled ? "border border-[#074738]/10 bg-[#074738]/6 text-slate-900" : "border border-white/25 bg-white/12 text-white"}`}>
+              <p className={`text-[11px] font-bold uppercase tracking-[0.16em] ${focusExperienceEnabled ? "text-[#074738]" : "text-white/75"}`}>Invitación de co-tutor</p>
+              <p className="text-sm font-medium leading-5 mt-1">
+                Al completar el acceso, vamos a vincular esta cuenta con la mascota compartida.
+              </p>
+            </div>
+          )}
           <input
             type="email"
             placeholder="Correo electrónico"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-5 py-4 rounded-[24px] bg-white/92 text-slate-900 placeholder:text-slate-500 focus:ring-2 focus:ring-white/70 outline-none"
+            className={`w-full px-5 py-4 rounded-[24px] text-slate-900 placeholder:text-slate-500 outline-none ${
+              focusExperienceEnabled
+                ? "bg-[#edf2f1] border border-slate-200 focus:ring-2 focus:ring-[#074738]/20"
+                : "bg-white/92 focus:ring-2 focus:ring-white/70"
+            }`}
             required
           />
 
@@ -267,13 +332,19 @@ export function LoginScreen() {
               placeholder="Contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-5 py-4 pr-28 rounded-[24px] bg-white/92 text-slate-900 placeholder:text-slate-500 focus:ring-2 focus:ring-white/70 outline-none"
+              className={`w-full px-5 py-4 pr-28 rounded-[24px] text-slate-900 placeholder:text-slate-500 outline-none ${
+                focusExperienceEnabled
+                  ? "bg-[#edf2f1] border border-slate-200 focus:ring-2 focus:ring-[#074738]/20"
+                  : "bg-white/92 focus:ring-2 focus:ring-white/70"
+              }`}
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#074738] bg-white/80 border border-white rounded-full px-3 py-1"
+              className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#074738] rounded-full px-3 py-1 ${
+                focusExperienceEnabled ? "bg-white border border-slate-200" : "bg-white/80 border border-white"
+              }`}
             >
               {showPassword ? "Ocultar" : "Mostrar"}
             </button>
@@ -284,34 +355,42 @@ export function LoginScreen() {
             <button
               type="button"
               onClick={() => { setShowReset(true); setResetEmail(email); setResetError(""); setResetSuccess(""); }}
-              className="text-white/80 text-sm font-semibold hover:text-white transition-colors"
+              className={`text-sm font-semibold transition-colors ${focusExperienceEnabled ? "text-slate-500 hover:text-[#074738]" : "text-white/80 hover:text-white"}`}
             >
               ¿Olvidaste tu contraseña?
             </button>
           </div>
 
-          {error && <p className="text-red-100 text-sm font-semibold text-center bg-red-500/20 rounded-xl px-4 py-2">{error}</p>}
+          {error && <p className={`text-sm font-semibold text-center rounded-xl px-4 py-2 ${focusExperienceEnabled ? "text-red-700 bg-red-50 border border-red-100" : "text-red-100 bg-red-500/20"}`}>{error}</p>}
 
           <button
             type="submit"
             disabled={loading || authLoading}
-            className="w-full py-5 rounded-[40px] bg-white text-[#074738] font-bold text-[16px] shadow-[0px_25px_50px_0px_rgba(0,0,0,0.25)] disabled:opacity-60 tracking-[1.2px] uppercase"
+            className={`w-full py-5 rounded-[40px] font-bold text-[16px] disabled:opacity-60 tracking-[1.2px] uppercase ${
+              focusExperienceEnabled
+                ? "bg-[#074738] text-white shadow-[0_18px_30px_rgba(7,71,56,0.22)]"
+                : "bg-white text-[#074738] shadow-[0px_25px_50px_0px_rgba(0,0,0,0.25)]"
+            }`}
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
             {authLoading ? "Validando sesión..." : loading ? "Ingresando..." : "Ingresar"}
           </button>
 
           <div className="flex items-center gap-3 pt-1">
-            <div className="flex-1 h-px bg-white/30" />
-            <span className="text-[11px] font-semibold text-white/75 uppercase tracking-[0.12em]">o continuar con</span>
-            <div className="flex-1 h-px bg-white/30" />
+            <div className={`flex-1 h-px ${focusExperienceEnabled ? "bg-slate-200" : "bg-white/30"}`} />
+            <span className={`text-[11px] font-semibold uppercase tracking-[0.12em] ${focusExperienceEnabled ? "text-slate-400" : "text-white/75"}`}>o continuar con</span>
+            <div className={`flex-1 h-px ${focusExperienceEnabled ? "bg-slate-200" : "bg-white/30"}`} />
           </div>
 
           <button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loadingGoogle}
-            className="w-full py-4 rounded-[40px] bg-white/12 border border-white/35 text-white font-bold text-[15px] flex items-center justify-center gap-3 hover:bg-white/20 active:scale-[0.99] transition-all disabled:opacity-60"
+            className={`w-full py-4 rounded-[40px] font-bold text-[15px] flex items-center justify-center gap-3 active:scale-[0.99] transition-all disabled:opacity-60 ${
+              focusExperienceEnabled
+                ? "bg-[#edf2f1] border border-slate-200 text-slate-900 hover:bg-slate-100"
+                : "bg-white/12 border border-white/35 text-white hover:bg-white/20"
+            }`}
           >
             <span className="size-7 rounded-full bg-white flex items-center justify-center shadow-sm">
               <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
@@ -326,8 +405,12 @@ export function LoginScreen() {
 
           <button
             type="button"
-            onClick={() => navigate("/register-user")}
-            className="w-full py-5 rounded-[40px] bg-white/20 backdrop-blur-sm text-white font-bold text-[16px] border-[1.5px] border-white/30 hover:bg-white/30 transition-all tracking-[1.2px] uppercase"
+            onClick={() => navigate(inviteCode ? `/register-user?invite=${inviteCode}` : "/register-user")}
+            className={`w-full py-5 rounded-[40px] font-bold text-[16px] transition-all tracking-[1.2px] uppercase ${
+              focusExperienceEnabled
+                ? "bg-white text-[#074738] border-[1.5px] border-slate-200 hover:bg-slate-50"
+                : "bg-white/20 backdrop-blur-sm text-white border-[1.5px] border-white/30 hover:bg-white/30"
+            }`}
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
             Registrarse gratis

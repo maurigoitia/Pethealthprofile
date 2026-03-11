@@ -1,13 +1,15 @@
-import { useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { auth, db } from "../../lib/firebase";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { COUNTRIES } from "../data/countries";
 import { startGmailConnectFlow } from "../services/gmailSyncService";
+import { normalizeCoTutorInviteCode, rememberPendingCoTutorInvite } from "../utils/coTutorInvite";
 
 export function RegisterUserScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,6 +18,15 @@ export function RegisterUserScreen() {
   const [loading, setLoading] = useState(false);
   const [showGmailStep, setShowGmailStep] = useState(false);
   const [gmailStepLoading, setGmailStepLoading] = useState(false);
+  const inviteCode = useMemo(
+    () => normalizeCoTutorInviteCode(new URLSearchParams(location.search).get("invite")),
+    [location.search]
+  );
+
+  useEffect(() => {
+    if (!inviteCode) return;
+    rememberPendingCoTutorInvite(inviteCode);
+  }, [inviteCode]);
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +75,9 @@ export function RegisterUserScreen() {
         },
       });
 
-      if (inviteEnabled) {
+      if (inviteCode) {
+        navigate("/home", { replace: true });
+      } else if (inviteEnabled) {
         setShowGmailStep(true);
       } else {
         navigate("/register-pet");
@@ -116,6 +129,14 @@ export function RegisterUserScreen() {
         </div>
 
         <form onSubmit={handleCreateAccount} className="space-y-4">
+          {inviteCode && (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-left">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-700">Invitación de co-tutor</p>
+              <p className="text-sm text-emerald-900 leading-5 mt-1">
+                Esta cuenta se va a vincular con una mascota compartida apenas termines el registro.
+              </p>
+            </div>
+          )}
           <input
             type="text"
             placeholder="Nombre completo"
@@ -174,7 +195,7 @@ export function RegisterUserScreen() {
 
           <button
             type="button"
-            onClick={() => navigate("/login")}
+            onClick={() => navigate(inviteCode ? `/login?invite=${inviteCode}` : "/login")}
             className="w-full py-4 rounded-2xl border-2 border-[#074738] text-[#074738] font-bold hover:bg-[#074738]/5 transition-all"
           >
             Ya tengo cuenta

@@ -38,7 +38,7 @@ const traducciones = {
     section2: {
       title: "Historial Medico Digital",
       subtitle: "El orden que salva vidas.",
-      body: "Se acabaron los cajones llenos de papeles. Sacale una foto a cualquier documento y PESSY hace el resto.",
+      body: "Se acabaron los cajones llenos de papeles. Sacale una foto a cualquier documento y Pessy hace el resto.",
       features: [
         { title: "Todo organizado", desc: "Todo lo que importa, siempre organizado y siempre disponible." },
         { title: "Siempre preparado", desc: "Porque tener el historial a mano puede marcar la diferencia en una emergencia." }
@@ -46,7 +46,7 @@ const traducciones = {
     },
     section3: {
       title: "Control de Medicacion",
-      subtitle: "Configuras el tratamiento una vez. PESSY se encarga del resto.",
+      subtitle: "Configuras el tratamiento una vez. Pessy se encarga del resto.",
       features: [
         { title: "A tiempo, siempre", desc: "Recibis la notificacion en tu celular. Confirma la dosis con un toque." },
         { title: "Siempre abastecido", desc: "Te avisamos antes de que se terminen los medicamentos." },
@@ -108,24 +108,33 @@ const traducciones = {
       ]
     },
     team: {
-      eyebrow: "El equipo",
-      title: "Las personas detras de PESSY.",
-      subtitle: "El equipo que construye PESSY.",
+      eyebrow: "EL EQUIPO",
+      title: "Las personas detras de Pessy.",
+      subtitle: "Construyendo el futuro de la identidad digital animal.",
       members: [
         {
           name: "Mauri",
-          role: "Cofundador",
-          initials: "M"
+          role: "COFUNDADOR",
+          image: "/team/mauri-real.jpeg",
+          linkedin: "https://www.linkedin.com/in/mauriciogoitia/"
         },
         {
           name: "Ronald",
-          role: "Cofundador",
-          initials: "R"
+          role: "COFUNDADOR",
+          image: "https://media.licdn.com/dms/image/v2/D4D03AQGEb7DhO681gw/profile-displayphoto-crop_800_800/B4DZwPn2W8GUAI-/0/1769788632610?e=1774483200&v=beta&t=vBPHfR92eEAl8Rww4-eGayc61kCqdt8Cn-4C_zYvF7Q",
+          linkedin: "https://www.linkedin.com/in/ronaldacarvajal/"
+        },
+        {
+          name: "Ary",
+          role: "MARKETING",
+          image: "https://media.licdn.com/dms/image/v2/D4D03AQFpZ54-bZ_rkg/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1722288671526?e=1774483200&v=beta&t=tvpQdEQxjWcWlY_BsPPnq9wpNyhMuusLy0hNVSD53oE",
+          linkedin: "https://www.linkedin.com/in/ariannysbermudez/"
         },
         {
           name: "Thor",
           role: "CEO",
-          initials: "T"
+          image: "/team/founder-3.jpg",
+          linkedin: "https://www.linkedin.com/company/pessy-app"
         }
       ]
     },
@@ -150,7 +159,7 @@ const traducciones = {
     section2: {
       title: "Historico Medico Digital",
       subtitle: "A ordem que salva vidas.",
-      body: "Chega de gavetas cheias de papeis. Tire uma foto de qualquer documento e PESSY faz o resto.",
+      body: "Chega de gavetas cheias de papeis. Tire uma foto de qualquer documento e Pessy faz o resto.",
       features: [
         { title: "Tudo organizado", desc: "Tudo disponivel, de qualquer dispositivo." },
         { title: "Sempre preparado", desc: "Porque ter o historico em maos pode fazer a diferenca em uma emergencia." }
@@ -158,7 +167,7 @@ const traducciones = {
     },
     section3: {
       title: "Controle de Medicacao",
-      subtitle: "Voce configura o tratamento uma vez. PESSY cuida do resto.",
+      subtitle: "Voce configura o tratamento uma vez. Pessy cuida do resto.",
       features: [
         { title: "No prazo, sempre", desc: "Voce recebe a notificacao no seu celular. Confirme a dose com um toque." },
         { title: "Sempre abastecido", desc: "Te avisamos antes que os medicamentos acabem." },
@@ -220,24 +229,33 @@ const traducciones = {
       ]
     },
     team: {
-      eyebrow: "A equipe",
-      title: "As personas detras de PESSY.",
-      subtitle: "A equipe que constroi PESSY.",
+      eyebrow: "A EQUIPE",
+      title: "As personas detras de Pessy.",
+      subtitle: "Construindo o futuro da identidade digital animal.",
       members: [
         {
           name: "Mauri",
-          role: "Cofundador",
-          initials: "M"
+          role: "COFUNDADOR",
+          image: "/team/mauri-real.jpeg",
+          linkedin: "https://www.linkedin.com/in/mauriciogoitia/"
         },
         {
           name: "Ronald",
-          role: "Cofundador",
-          initials: "R"
+          role: "COFUNDADOR",
+          image: "https://media.licdn.com/dms/image/v2/D4D03AQGEb7DhO681gw/profile-displayphoto-crop_800_800/B4DZwPn2W8GUAI-/0/1769788632610?e=1774483200&v=beta&t=vBPHfR92eEAl8Rww4-eGayc61kCqdt8Cn-4C_zYvF7Q",
+          linkedin: "https://www.linkedin.com/in/ronaldacarvajal/"
+        },
+        {
+          name: "Ary",
+          role: "MARKETING",
+          image: "https://media.licdn.com/dms/image/v2/D4D03AQFpZ54-bZ_rkg/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1722288671526?e=1774483200&v=beta&t=tvpQdEQxjWcWlY_BsPPnq9wpNyhMuusLy0hNVSD53oE",
+          linkedin: "https://www.linkedin.com/in/ariannysbermudez/"
         },
         {
           name: "Thor",
           role: "CEO",
-          initials: "T"
+          image: "/team/founder-3.jpg",
+          linkedin: "https://www.linkedin.com/company/pessy-app"
         }
       ]
     },
@@ -262,7 +280,7 @@ const traducciones = {
     section2: {
       title: "Digital Medical History",
       subtitle: "Order that saves lives.",
-      body: "No more drawers full of papers. Take a photo of any document and PESSY does the rest.",
+      body: "No more drawers full of papers. Take a photo of any document and Pessy does the rest.",
       features: [
         { title: "Everything organized", desc: "Everything available, from any device." },
         { title: "Always ready", desc: "Because having the history at hand can make the difference in an emergency." }
@@ -270,7 +288,7 @@ const traducciones = {
     },
     section3: {
       title: "Medication Control",
-      subtitle: "Set up the treatment once. PESSY takes care of the rest.",
+      subtitle: "Set up the treatment once. Pessy takes care of the rest.",
       features: [
         { title: "On time, always", desc: "Receive the notification on your phone. Confirm the dose with a tap." },
         { title: "Always stocked", desc: "We notify you before medications run out." },
@@ -332,24 +350,33 @@ const traducciones = {
       ]
     },
     team: {
-      eyebrow: "The team",
-      title: "The people behind PESSY.",
-      subtitle: "The team that builds PESSY.",
+      eyebrow: "THE TEAM",
+      title: "The people behind Pessy.",
+      subtitle: "Building the future of pet digital identity.",
       members: [
         {
           name: "Mauri",
-          role: "Cofounder",
-          initials: "M"
+          role: "COFOUNDER",
+          image: "/team/mauri-real.jpeg",
+          linkedin: "https://www.linkedin.com/in/mauriciogoitia/"
         },
         {
           name: "Ronald",
-          role: "Cofounder",
-          initials: "R"
+          role: "COFOUNDER",
+          image: "https://media.licdn.com/dms/image/v2/D4D03AQGEb7DhO681gw/profile-displayphoto-crop_800_800/B4DZwPn2W8GUAI-/0/1769788632610?e=1774483200&v=beta&t=vBPHfR92eEAl8Rww4-eGayc61kCqdt8Cn-4C_zYvF7Q",
+          linkedin: "https://www.linkedin.com/in/ronaldacarvajal/"
+        },
+        {
+          name: "Ary",
+          role: "MARKETING",
+          image: "https://media.licdn.com/dms/image/v2/D4D03AQFpZ54-bZ_rkg/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1722288671526?e=1774483200&v=beta&t=tvpQdEQxjWcWlY_BsPPnq9wpNyhMuusLy0hNVSD53oE",
+          linkedin: "https://www.linkedin.com/in/ariannysbermudez/"
         },
         {
           name: "Thor",
           role: "CEO",
-          initials: "T"
+          image: "/team/founder-3.jpg",
+          linkedin: "https://www.linkedin.com/company/pessy-app"
         }
       ]
     },
@@ -430,7 +457,7 @@ export default function LandingPage() {
         title="Pessy - Ecosistema de Identidad Digital para Mascotas"
         description="Construyendo el perfil digital de tu mascota. Tecnologia avanzada para estructurar informacion medica, historial clinico y servicios bajo demanda. Plataforma 360 para pet care."
         keywords="mascota, identidad digital, historial medico, veterinario, tecnologia, salud animal, pet care"
-        canonical="https://pessy.app/"
+        canonical="https://pessy.app/inicio"
       />
       
       <header 
@@ -439,7 +466,7 @@ export default function LandingPage() {
       >
         <nav className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between" aria-label="Navegacion principal">
           <Link 
-            to="/" 
+            to="/inicio" 
             className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#074738] focus:ring-offset-2 rounded-lg"
           >
             <Logo className="size-8" color="#074738" />
@@ -465,7 +492,7 @@ export default function LandingPage() {
             </button>
             
             <Link 
-              to="/login"
+              to="/app"
               className="px-5 py-1.5 text-[10px] font-black text-[#074738] bg-[#e0f2f1] rounded-full hover:bg-emerald-100 transition-all uppercase tracking-widest"
             >
               ENTRAR
@@ -513,7 +540,7 @@ export default function LandingPage() {
                   className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start"
                 >
                   <Link 
-                    to="/login"
+                    to="/app"
                     className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#1a9b7d] text-white rounded-full font-black text-base shadow-lg shadow-[#1a9b7d]/10 hover:scale-105 active:scale-95 transition-all"
                   >
                     {t.hero.cta}
@@ -918,9 +945,10 @@ export default function LandingPage() {
         </section>
 
         {/* Team Section */}
-        <section className="py-10 md:py-16 px-6 bg-white">
-          <div className="max-w-7xl mx-auto space-y-8">
-            <div className="space-y-3">
+        {/* Team Section - Refined & Coherent with Pessy Identity */}
+        <section className="py-24 md:py-32 px-6 bg-white overflow-hidden">
+          <div className="max-w-7xl mx-auto">
+            <div className="space-y-4 mb-20 text-center lg:text-left">
               <motion.p 
                 initial={{ opacity: 0, y: 10 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -933,7 +961,7 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 15 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="text-3xl md:text-4xl font-black tracking-tight"
+                className="text-4xl md:text-6xl font-black tracking-tighter text-slate-900 leading-none"
               >
                 {t.team.title}
               </motion.h2>
@@ -941,28 +969,70 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 15 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="text-lg text-slate-400 font-medium"
+                transition={{ delay: 0.1 }}
+                className="text-lg text-slate-400 font-medium max-w-xl mx-auto lg:mx-0"
               >
                 {t.team.subtitle}
               </motion.p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               {t.team.members.map((member, i) => (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: i * 0.05 }}
-                  className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4 flex flex-col items-center text-center group hover:border-[#1a9b7d]/20 transition-all"
+                  transition={{ delay: i * 0.1 }}
+                  className="group relative"
                 >
-                  <div className="size-10 rounded-xl bg-[#074738] text-white flex items-center justify-center font-black text-lg shadow-md group-hover:scale-110 transition-transform">
-                    {member.initials}
+                  <div className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden bg-slate-100 border border-slate-100 group-hover:border-[#1a9b7d]/20 transition-all duration-700">
+                    <ImageWithFallback 
+                      src={member.image} 
+                      alt={member.name} 
+                      className="absolute inset-0 w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 scale-[1.05] group-hover:scale-100"
+                    />
+                    
+                    {/* Overlay Gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+                    
+                    {/* Social/Role Overlay */}
+                    <div className="absolute inset-0 p-6 flex flex-col justify-between opacity-0 group-hover:opacity-100 transition-all duration-500 translate-y-2 group-hover:translate-y-0">
+                      <div className="flex justify-between items-start">
+                        <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                          <span className="text-[8px] font-black uppercase tracking-widest text-white">
+                            {member.role}
+                          </span>
+                        </div>
+                        {(member as any).linkedin && (
+                          <a 
+                            href={(member as any).linkedin} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="size-8 bg-white text-[#074738] rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-lg"
+                          >
+                            <Linkedin size={14} />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Default Role Label - Top Left (Visible when not hovered) */}
+                    <div className="absolute top-6 left-6 group-hover:opacity-0 transition-opacity duration-300">
+                      <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-white">
+                          {member.role}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-0.5">
-                    <h4 className="text-base font-black tracking-tight">{member.name}</h4>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-[#1a9b7d]">{member.role}</p>
+                  
+                  <div className="mt-6 space-y-1">
+                    <h4 className="text-xl font-black tracking-tight text-slate-900 leading-none">{member.name}</h4>
+                    <div className="flex items-center gap-2">
+                      <div className="size-1.5 rounded-full bg-[#1a9b7d]"></div>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-[#1a9b7d]">Active Team</span>
+                    </div>
                   </div>
                 </motion.div>
               ))}
@@ -975,7 +1045,7 @@ export default function LandingPage() {
           <div className="max-w-7xl mx-auto">
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-10 mb-10">
               <div className="space-y-5 lg:col-span-2">
-                <Link to="/" className="flex items-center gap-2">
+                <Link to="/inicio" className="flex items-center gap-2">
                   <Logo className="size-8" color="#074738" />
                   <span className="text-xl font-black tracking-tight text-[#074738]">Pessy</span>
                 </Link>
@@ -997,7 +1067,7 @@ export default function LandingPage() {
                   <a href="#historial" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-[#074738] transition-colors">{t.footer.nav[0]}</a>
                   <a href="#vacunas" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-[#074738] transition-colors">{t.footer.nav[1]}</a>
                   <a href="#medicacion" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-[#074738] transition-colors">{t.footer.nav[2]}</a>
-                  <Link to="/login" className="text-[10px] font-black uppercase tracking-widest text-[#1a9b7d] hover:opacity-70 transition-opacity">{t.footer.nav[3]}</Link>
+                  <Link to="/app" className="text-[10px] font-black uppercase tracking-widest text-[#1a9b7d] hover:opacity-70 transition-opacity">{t.footer.nav[3]}</Link>
                 </div>
               </div>
 

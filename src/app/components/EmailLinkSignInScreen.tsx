@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router";
 import { isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { usePet } from "../contexts/PetContext";
+import { clearPendingCoTutorInvite, rememberPendingCoTutorInvite } from "../utils/coTutorInvite";
 
 const EMAIL_STORAGE_KEY = "pessy_magic_link_email";
 
@@ -41,6 +42,7 @@ export function EmailLinkSignInScreen() {
       if (inviteCode) {
         try {
           const { petName } = await joinWithCode(inviteCode);
+          clearPendingCoTutorInvite();
           setSuccess(`Acceso confirmado. Ya sos co-tutor de ${petName}.`);
         } catch (joinError: any) {
           setSuccess("Sesión iniciada correctamente.");
@@ -65,6 +67,9 @@ export function EmailLinkSignInScreen() {
   };
 
   useEffect(() => {
+    if (inviteCode) {
+      rememberPendingCoTutorInvite(inviteCode);
+    }
     const savedEmail = localStorage.getItem(EMAIL_STORAGE_KEY) || "";
     if (savedEmail && isSignInWithEmailLink(auth, window.location.href)) {
       void completeMagicLinkSignIn(savedEmail);
@@ -120,4 +125,3 @@ export function EmailLinkSignInScreen() {
     </div>
   );
 }
-

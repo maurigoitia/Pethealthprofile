@@ -83,6 +83,7 @@ tmp/
 
 # Outputs de diseño y assets de landing
 design/
+guidelines/
 public/concet-assets/
 public/legacy-landing-assets/
 public/team/

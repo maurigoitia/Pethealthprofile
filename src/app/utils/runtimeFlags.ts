@@ -5,9 +5,29 @@ const PROD_HOSTS = new Set([
   "itpessy.web.app",
 ]);
 
+const FOCUS_HISTORY_EXPERIMENT_HOSTS = new Set([
+  "pessy-focus-qa.web.app",
+]);
+
 export function isProductionAppHost(): boolean {
   if (typeof window === "undefined") return false;
   return PROD_HOSTS.has(window.location.hostname.toLowerCase());
+}
+
+export function isFocusExperienceHost(): boolean {
+  if (typeof window === "undefined") return false;
+  const envFlag = import.meta.env.VITE_ENABLE_FOCUS_EXPERIENCE;
+  if (envFlag === "true") return true;
+  if (envFlag === "false") return false;
+  return false;
+}
+
+export function isFocusHistoryExperimentHost(): boolean {
+  if (typeof window === "undefined") return false;
+  const envFlag = import.meta.env.VITE_ENABLE_FOCUS_HISTORY_EXPERIMENT;
+  if (envFlag === "true") return true;
+  if (envFlag === "false") return false;
+  return FOCUS_HISTORY_EXPERIMENT_HOSTS.has(window.location.hostname.toLowerCase());
 }
 
 export function isPendingActionsEnabled(): boolean {

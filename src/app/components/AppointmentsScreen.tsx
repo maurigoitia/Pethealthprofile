@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
 import { AddAppointmentModal } from "./AddAppointmentModal";
+import { PetPhoto } from "./PetPhoto";
 import { useAuth } from "../contexts/AuthContext";
 import { useMedical } from "../contexts/MedicalContext";
 import { useNotifications } from "../contexts/NotificationContext";
@@ -11,6 +12,7 @@ import { dedupeAppointments } from "../utils/deduplication";
 import { cleanText } from "../utils/cleanText";
 import { buildGoogleCalendarUrl, downloadIcsEvent } from "../utils/calendarExport";
 import { parseDateSafe, toTimestampSafe } from "../utils/dateUtils";
+import { isFocusExperienceHost } from "../utils/runtimeFlags";
 
 interface AppointmentsScreenProps {
   onBack: () => void;
@@ -39,6 +41,64 @@ function buildSuggestionKey(sourceEventId: string, date: string, time: string, t
   ].join("|");
 }
 
+function extractTimeHint(value?: string | null): string {
+  const text = (value || "").trim();
+  const match = text.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  if (!match) return "";
+  return `${match[1].padStart(2, "0")}:${match[2]}`;
+}
+
+function hasAppointmentLanguage(value?: string | null): boolean {
+  const text = cleanText(value || "").toLowerCase();
+  return /(turno|consulta|control|recordatorio|confirmaci[oó]n|confirmado|agendad|programad|reprogramad|cancelad|cita)/i.test(
+    text
+  );
+}
+
+function extractAppointmentRowsFromEvent(event: any) {
+  const extracted = event.extractedData || {};
+  const detectedRows = Array.isArray(extracted.detectedAppointments) ? extracted.detectedAppointments : [];
+  if (detectedRows.length > 0) {
+    return detectedRows.map((row: any) => ({
+      date: row.date,
+      time: row.time || "",
+      title: cleanText(row.title || row.specialty) || cleanText(event.title || extracted.suggestedTitle) || "Turno veterinario detectado",
+      clinic: cleanText(row.clinic || extracted.clinic || extracted.provider) || null,
+      provider: cleanText(row.provider || extracted.provider) || null,
+      notes: `Turno detectado desde documento: ${cleanText(event.title)}${row.specialty ? ` · ${cleanText(row.specialty)}` : ""}`,
+    }));
+  }
+
+  const sourceText = [
+    extracted.sourceSubject,
+    extracted.suggestedTitle,
+    extracted.observations,
+    extracted.aiGeneratedSummary,
+    event.title,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const rawDate = extracted.nextAppointmentDate || extracted.eventDate || "";
+  const parsedDate = parseDateSafely(rawDate);
+  if (!parsedDate) return [];
+  if (parsedDate.getTime() < Date.now()) return [];
+
+  const explicitAppointment = extracted.documentType === "appointment" || Boolean(extracted.appointmentTime);
+  if (!explicitAppointment && !hasAppointmentLanguage(sourceText)) return [];
+
+  const specialtyMatch = sourceText.match(/\b(?:consulta|control|turno)\s+([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+){0,3})/i);
+  const providerMatch = sourceText.match(/(?:dr\.?|dra\.?|doctor|doctora)\s+([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ' -]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ' -]+){0,3})/i);
+
+  return [{
+    date: rawDate,
+    time: extracted.appointmentTime || extractTimeHint(sourceText),
+    title: cleanText(extracted.suggestedTitle || event.title || specialtyMatch?.[1]) || "Turno veterinario detectado",
+    clinic: cleanText(extracted.clinic) || null,
+    provider: cleanText(extracted.provider || providerMatch?.[1]) || null,
+    notes: cleanText(sourceText).slice(0, 200),
+  }];
+}
+
 function formatAppointmentDate(date: string, time?: string) {
   const normalizedTime = time && time.trim() ? time : "00:00";
   const parsed = new Date(`${date}T${normalizedTime}:00`);
@@ -59,16 +119,28 @@ function getDaysFromNow(date: string, time?: string): number {
   return Math.ceil((parsed.getTime() - Date.now()) / 86400000);
 }
 
+function formatDateChip(date: string) {
+  const parsed = parseDateSafe(date);
+  if (!parsed) return { day: "—", weekday: "—", month: "—" };
+  return {
+    day: String(parsed.getDate()).padStart(2, "0"),
+    weekday: parsed.toLocaleDateString("es-AR", { weekday: "short" }).replace(".", "").toUpperCase(),
+    month: parsed.toLocaleDateString("es-AR", { month: "short" }).replace(".", "").toUpperCase(),
+  };
+}
+
 export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
   const [showAddModal, setShowAddModal] = useState(false);
   const [modalInitialValues, setModalInitialValues] = useState<Partial<Appointment> | undefined>(undefined);
   const [modalSourceEventId, setModalSourceEventId] = useState<string | undefined>(undefined);
+  const [selectedDate, setSelectedDate] = useState("");
 
   const { user } = useAuth();
   const { activePetId, activePet } = usePet();
   const { permission, requestPermission } = useNotifications();
   const { getAppointmentsByPetId, getEventsByPetId, addAppointment, updateAppointment, deleteAppointment, updateEvent } = useMedical();
+  const focusExperienceEnabled = isFocusExperienceHost();
 
   const getAppointmentTimestamp = (appointment: AppointmentView): number => {
     const normalizedTime = appointment.time && appointment.time.trim() ? appointment.time : "00:00";
@@ -86,18 +158,21 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
   const appointments = useMemo(() => {
     if (!activePetId) return [] as AppointmentView[];
 
-    const persisted = getAppointmentsByPetId(activePetId).filter((item) => !item.autoGenerated);
+    const persisted = getAppointmentsByPetId(activePetId);
     const persistedSuggestionKeys = new Set(
       persisted
         .map((item) => item.sourceSuggestionKey)
+        .filter((item): item is string => Boolean(item))
+    );
+    const persistedSourceEventIds = new Set(
+      persisted
+        .map((item) => item.sourceEventId)
         .filter((item): item is string => Boolean(item))
     );
 
     const virtual: AppointmentView[] = getEventsByPetId(activePetId)
       .filter((event) => !event.dismissedNextAppointment)
       .flatMap((event) => {
-        const isAppointmentDocument = event.extractedData.documentType === "appointment";
-        if (!isAppointmentDocument) return [];
         const suggestedType: Appointment["type"] = event.extractedData.documentType === "vaccine"
           ? "vaccine"
           : event.extractedData.documentType === "surgery"
@@ -105,27 +180,9 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
             : event.extractedData.documentType === "checkup" || event.extractedData.documentType === "appointment"
               ? "checkup"
               : "other";
-
-        const detectedRows = Array.isArray(event.extractedData.detectedAppointments)
-          ? event.extractedData.detectedAppointments
-          : [];
-        const rows = detectedRows.length > 0
-          ? detectedRows.map((row) => ({
-              date: row.date,
-              time: row.time || "",
-              title: cleanText(row.title || row.specialty) || cleanText(event.title || event.extractedData.suggestedTitle) || "Turno veterinario detectado",
-              clinic: cleanText(row.clinic || event.extractedData.clinic || event.extractedData.provider) || null,
-              provider: cleanText(row.provider || event.extractedData.provider) || null,
-              notes: `Turno detectado desde documento: ${cleanText(event.title)}${row.specialty ? ` · ${cleanText(row.specialty)}` : ""}`,
-            }))
-          : [{
-              date: event.extractedData.eventDate,
-              time: event.extractedData.appointmentTime || "",
-              title: cleanText(event.title || event.extractedData.suggestedTitle) || "Turno veterinario detectado",
-              clinic: cleanText(event.extractedData.clinic || event.extractedData.provider) || null,
-              provider: cleanText(event.extractedData.provider) || null,
-              notes: `Posible turno detectado en: ${cleanText(event.title)}`,
-            }];
+        const detectedRows = extractAppointmentRowsFromEvent(event);
+        if (persistedSourceEventIds.has(event.id) && detectedRows.length === 0) return [];
+        const rows = detectedRows;
 
         return rows.flatMap((row, index) => {
           if (!row.date) return [];
@@ -142,6 +199,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
           const title = cleanText(row.title) || "Turno veterinario detectado";
           const sourceSuggestionKey = buildSuggestionKey(event.id, date, time, title);
           if (persistedSuggestionKeys.has(sourceSuggestionKey)) return [];
+          if (persistedSourceEventIds.has(event.id)) return [];
 
           return [{
             id: `virtual_${event.id}_${index}_${date}_${time || "sinhora"}`,
@@ -174,6 +232,28 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
   const upcoming = appointments.filter((appointment) => !isPast(appointment));
   const past = appointments.filter((appointment) => isPast(appointment));
   const shown = activeTab === "upcoming" ? upcoming : past;
+  const dateOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          shown
+            .map((appointment) => appointment.date)
+            .filter((date): date is string => Boolean(date))
+        )
+      ).slice(0, 7),
+    [shown]
+  );
+  const filteredShown = focusExperienceEnabled && selectedDate
+    ? shown.filter((appointment) => appointment.date === selectedDate)
+    : shown;
+
+  useEffect(() => {
+    if (!focusExperienceEnabled) return;
+    setSelectedDate((current) => {
+      if (current && dateOptions.includes(current)) return current;
+      return dateOptions[0] || "";
+    });
+  }, [focusExperienceEnabled, dateOptions]);
 
   const ensureNotificationsPermission = async () => {
     if (!("Notification" in window)) return;
@@ -308,6 +388,308 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
     await onAppointmentCreated(persisted);
   };
 
+  const renderedAppointments = focusExperienceEnabled ? filteredShown : shown;
+
+  if (focusExperienceEnabled) {
+    return (
+      <div className="min-h-screen bg-[#f3f7f5] dark:bg-[#101622] flex flex-col">
+        <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
+          <div className="px-4 pt-6 pb-6 bg-[linear-gradient(180deg,rgba(7,71,56,0.18)_0%,rgba(7,71,56,0.08)_40%,rgba(243,247,245,0)_100%)]">
+            <div className="flex items-center gap-3 mb-4">
+              <button
+                onClick={onBack}
+                className="size-10 rounded-full bg-white/80 dark:bg-slate-900/70 flex items-center justify-center shadow-sm"
+              >
+                <MaterialIcon name="arrow_back" className="text-xl text-[#074738]" />
+              </button>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#074738]">Agenda</p>
+                <h1 className="text-[28px] leading-[32px] font-black text-slate-900 dark:text-white mt-1">
+                  Turnos de {activePet?.name || "tu mascota"}
+                </h1>
+              </div>
+              <button
+                onClick={() => openCreateAppointmentModal()}
+                className="size-10 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-lg shadow-[#074738]/25"
+              >
+                <MaterialIcon name="add" className="text-2xl" />
+              </button>
+            </div>
+
+            <div className="rounded-[32px] border border-[#074738]/10 dark:border-[#1a9b7d]/20 bg-[#dbe7e2] dark:bg-[#17382f] p-4 shadow-[0_20px_50px_rgba(7,71,56,0.16)]">
+              <div className="flex items-start gap-4">
+                <div className="size-24 rounded-full overflow-hidden bg-white/75 dark:bg-slate-900/50 ring-4 ring-white/60 dark:ring-white/10 shrink-0">
+                  <PetPhoto
+                    src={activePet?.photo}
+                    alt={activePet?.name || "Mascota"}
+                    className="size-full object-cover"
+                    fallbackClassName="rounded-full"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <span className="rounded-full bg-[#1a9b7d] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white">
+                      {activeTab === "upcoming" ? "Próximos" : "Historial"}
+                    </span>
+                    <span className="rounded-full bg-white/75 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#074738]">
+                      {upcoming.length} activos
+                    </span>
+                    <span className="rounded-full bg-white/75 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#074738]">
+                      {past.length} cerrados
+                    </span>
+                  </div>
+                  <h2 className="text-xl font-black text-slate-900 dark:text-white">
+                    {activePet?.name || "Mascota"} necesita una agenda clara
+                  </h2>
+                  <p className="text-sm text-slate-600 dark:text-slate-200 mt-2 leading-5">
+                    Confirmá, editá o cerrá turnos sin mezclar logística con historial clínico.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-[28px] bg-[#dfe5f5] dark:bg-[#172434] p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-black uppercase tracking-[0.14em] text-[#074738]">
+                  {activeTab === "upcoming" ? "Próximas fechas" : "Fechas pasadas"}
+                </h3>
+                <div className="flex items-center gap-2 rounded-full bg-white/80 dark:bg-slate-900/70 p-1">
+                  {(["upcoming", "past"] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] transition-all ${
+                        activeTab === tab
+                          ? "bg-[#074738] text-white"
+                          : "text-slate-500 dark:text-slate-300"
+                      }`}
+                    >
+                      {tab === "upcoming" ? "Próximas" : "Pasadas"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 flex gap-3 overflow-x-auto pb-1">
+                {dateOptions.length > 0 ? (
+                  dateOptions.map((date) => {
+                    const chip = formatDateChip(date);
+                    const active = selectedDate === date;
+                    return (
+                      <button
+                        key={date}
+                        onClick={() => setSelectedDate(date)}
+                        className={`min-w-[72px] rounded-[22px] px-3 py-3 text-center transition-all ${
+                          active
+                            ? "bg-[#074738] text-white shadow-lg shadow-[#074738]/25"
+                            : "bg-white/80 dark:bg-slate-900/70 text-slate-600 dark:text-slate-200"
+                        }`}
+                      >
+                        <div className={`text-[10px] font-black uppercase tracking-[0.14em] ${active ? "text-white/70" : "text-slate-400"}`}>
+                          {chip.weekday}
+                        </div>
+                        <div className="text-[28px] leading-none font-black mt-1">{chip.day}</div>
+                        <div className={`text-[10px] font-bold uppercase mt-1 ${active ? "text-white/70" : "text-slate-400"}`}>
+                          {chip.month}
+                        </div>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-[22px] bg-white/80 dark:bg-slate-900/70 px-4 py-3 text-sm text-slate-500 dark:text-slate-300">
+                    No hay fechas {activeTab === "upcoming" ? "próximas" : "pasadas"} para mostrar.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 px-4 pb-28 space-y-4">
+            {renderedAppointments.length === 0 ? (
+              <div className="rounded-[28px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center shadow-sm">
+                <div className="size-16 bg-[#074738]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MaterialIcon name="event" className="text-3xl text-[#074738]" />
+                </div>
+                <h3 className="font-black text-slate-900 dark:text-white">
+                  {activeTab === "upcoming" ? "No hay turnos para esta fecha" : "No hay turnos registrados"}
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                  {activeTab === "upcoming"
+                    ? "Probá otra fecha o cargá un nuevo turno."
+                    : "Cuando cierres o completes turnos, van a aparecer acá."}
+                </p>
+              </div>
+            ) : (
+              renderedAppointments.map((appointment) => {
+                const typeConfig = TYPE_CONFIG[appointment.type] || TYPE_CONFIG.other;
+                const formatted = formatAppointmentDate(appointment.date, appointment.time);
+                const daysFromNow = getDaysFromNow(appointment.date, appointment.time);
+                const pastAppointment = isPast(appointment);
+                const isToday = daysFromNow === 0;
+                const isTomorrow = daysFromNow === 1;
+                const isSoon = daysFromNow > 0 && daysFromNow <= 3;
+
+                return (
+                  <motion.div
+                    key={appointment.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-[28px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em]"
+                            style={{
+                              color: typeConfig.accent,
+                              backgroundColor: `${typeConfig.accent}1A`,
+                            }}
+                          >
+                            <MaterialIcon name={typeConfig.icon} className="text-sm" />
+                            {typeConfig.label}
+                          </span>
+                          {pastAppointment ? (
+                            <span className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] ${
+                              appointment.status === "completed" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                            }`}>
+                              {appointment.status === "completed" ? "Completada" : "Cancelada"}
+                            </span>
+                          ) : (
+                            <span className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] ${
+                              isToday
+                                ? "bg-red-100 text-red-700"
+                                : isSoon
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-[#074738]/10 text-[#074738]"
+                            }`}>
+                              {isToday ? "Hoy" : isTomorrow ? "Mañana" : `${daysFromNow}d`}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-lg font-black text-slate-900 dark:text-white mt-3">
+                          {cleanText(appointment.title)}
+                        </h3>
+                      </div>
+                      <div className="rounded-[22px] bg-[#e7edf0] dark:bg-slate-800 px-4 py-3 text-center min-w-[86px]">
+                        <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{formatted.month}</div>
+                        <div className="text-[28px] leading-none font-black text-slate-900 dark:text-white mt-1">{formatted.day}</div>
+                        {formatted.time ? (
+                          <div className="text-xs font-bold text-[#074738] mt-2">{formatted.time}</div>
+                        ) : (
+                          <div className="text-[11px] font-semibold text-slate-400 mt-2">sin hora</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      {(appointment.veterinarian || appointment.clinic) && (
+                        <div className="rounded-[20px] bg-[#eef2f4] dark:bg-slate-800 px-4 py-3">
+                          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">Profesional y centro</p>
+                          <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-1">
+                            {[appointment.veterinarian, appointment.clinic].filter(Boolean).map(cleanText).join(" · ")}
+                          </p>
+                        </div>
+                      )}
+                      {appointment.notes && (
+                        <div className="rounded-[20px] bg-[#074738]/8 px-4 py-3">
+                          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#074738]">Contexto</p>
+                          <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 leading-5">
+                            {cleanText(appointment.notes)}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {(!appointment.isVirtual) || (!pastAppointment && appointment.isVirtual) ? (
+                      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        {appointment.isVirtual ? (
+                          <div className="grid grid-cols-3 gap-2">
+                            <button
+                              onClick={() => handleDismissSuggestedAppointment(appointment)}
+                              className="rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-slate-700 dark:text-slate-200"
+                            >
+                              Descartar
+                            </button>
+                            <button
+                              onClick={() => handleEditSuggestedAppointment(appointment)}
+                              className="rounded-full bg-amber-100 px-3 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-amber-700"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => handleAddSuggestedAppointment(appointment)}
+                              className="rounded-full bg-[#074738] px-3 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-white"
+                            >
+                              Agregar
+                            </button>
+                          </div>
+                        ) : (
+                          <div className={`grid gap-2 ${pastAppointment ? "grid-cols-1" : "grid-cols-4"}`}>
+                            {!pastAppointment && (
+                              <>
+                                <button
+                                  onClick={() => addToCalendar(appointment)}
+                                  className="rounded-full bg-[#074738]/10 px-3 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-[#074738]"
+                                >
+                                  Calendario
+                                </button>
+                                <button
+                                  onClick={() => handleCancel(appointment)}
+                                  className="rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-slate-700 dark:text-slate-200"
+                                >
+                                  Cancelar
+                                </button>
+                                <button
+                                  onClick={() => handleComplete(appointment)}
+                                  className="rounded-full bg-[#074738] px-3 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-white"
+                                >
+                                  Completada
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => handleDelete(appointment)}
+                              className="rounded-full bg-red-100 px-3 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-red-700"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </motion.div>
+                );
+              })
+            )}
+          </div>
+
+          <div className="fixed bottom-24 inset-x-4 z-30 mx-auto max-w-md">
+            <button
+              onClick={() => openCreateAppointmentModal()}
+              className="w-full rounded-full bg-[#074738] px-5 py-4 text-sm font-black uppercase tracking-[0.16em] text-white shadow-[0_18px_30px_rgba(7,71,56,0.22)] flex items-center justify-center gap-2"
+            >
+              <MaterialIcon name="add_circle" className="text-xl" />
+              Agendar turno
+            </button>
+          </div>
+        </div>
+
+        <AddAppointmentModal
+          isOpen={showAddModal}
+          onClose={() => {
+            setShowAddModal(false);
+            setModalInitialValues(undefined);
+            setModalSourceEventId(undefined);
+          }}
+          initialValues={modalInitialValues}
+          sourceEventId={modalSourceEventId}
+          onCreated={onAppointmentCreated}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f6f6f8] dark:bg-[#101622] flex flex-col">
       <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
@@ -349,7 +731,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {shown.length === 0 ? (
+          {renderedAppointments.length === 0 ? (
             <div className="text-center py-16">
               <div className="size-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
                 <MaterialIcon name="event" className="text-4xl text-slate-400" />
@@ -372,7 +754,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
               )}
             </div>
           ) : (
-            shown.map((appointment) => {
+            renderedAppointments.map((appointment) => {
               const typeConfig = TYPE_CONFIG[appointment.type] || TYPE_CONFIG.other;
               const formatted = formatAppointmentDate(appointment.date, appointment.time);
               const daysFromNow = getDaysFromNow(appointment.date, appointment.time);

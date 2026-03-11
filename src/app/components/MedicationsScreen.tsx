@@ -10,6 +10,7 @@ import { cleanText } from "../utils/cleanText";
 import { formatDateSafe, parseDateSafe, toDateKeySafe, toTimestampSafe } from "../utils/dateUtils";
 import { downloadIcsEvent } from "../utils/calendarExport";
 import { NotificationService } from "../services/notificationService";
+import { isFocusExperienceHost } from "../utils/runtimeFlags";
 
 interface MedicationsScreenProps {
   onBack: () => void;
@@ -247,6 +248,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   const { activePetId, activePet } = usePet();
   const { getEventsByPetId, updateEvent, confirmEvent, deleteEvent, activeMedications, updateMedication } = useMedical();
   const { addReminder } = useReminders();
+  const focusExperienceEnabled = isFocusExperienceHost();
 
   const extractTimeHHmm = (isoDate: string): string => {
     const parsed = parseDateSafe(isoDate);
@@ -623,36 +625,51 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
 
   return (
     <>
-      <div className="min-h-screen bg-[#f6f6f8] dark:bg-[#101622] flex flex-col">
+      <div className={`min-h-screen flex flex-col ${focusExperienceEnabled ? "bg-[#f3f7f5] dark:bg-[#101622]" : "bg-[#f6f6f8] dark:bg-[#101622]"}`}>
       <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
 
         {/* Header */}
-        <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 pt-6 pb-4">
+        <div className={focusExperienceEnabled
+          ? "px-4 pt-6 pb-6 bg-[linear-gradient(180deg,rgba(7,71,56,0.18)_0%,rgba(7,71,56,0.08)_40%,rgba(243,247,245,0)_100%)]"
+          : "bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 pt-6 pb-4"}>
           <div className="flex items-center gap-3 mb-4">
             <button onClick={onBack}
-              className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-              <MaterialIcon name="arrow_back" className="text-xl" />
+              className={`size-10 rounded-full flex items-center justify-center ${focusExperienceEnabled ? "bg-white/80 dark:bg-slate-900/70 shadow-sm" : "bg-slate-100 dark:bg-slate-800"}`}>
+              <MaterialIcon name="arrow_back" className={`text-xl ${focusExperienceEnabled ? "text-[#074738]" : ""}`} />
             </button>
             <div>
-              <h1 className="text-2xl font-black text-slate-900 dark:text-white">Tratamientos y medicación</h1>
-              <p className="text-sm text-slate-500">
+              {focusExperienceEnabled && (
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#074738] mb-1">Tratamientos</p>
+              )}
+              <h1 className="text-2xl font-black text-slate-900 dark:text-white">
+                Tratamientos y medicación
+              </h1>
+              <p className={`text-sm ${focusExperienceEnabled ? "text-slate-600 dark:text-slate-300" : "text-slate-500"}`}>
                 {activeBaseItems.length} activos · {expiredItems.length} vencidos · {completedItems.length} finalizados
               </p>
             </div>
           </div>
 
-          <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          {focusExperienceEnabled && (
+            <div className="mb-4 rounded-[28px] border border-[#074738]/10 dark:border-[#1a9b7d]/20 bg-[#dbe7e2] dark:bg-[#17382f] p-4 shadow-sm">
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-5">
+                PESSY separa tratamientos activos, crónicos e históricos para que el tutor vea continuidad y próxima dosis sin leer toda la historia.
+              </p>
+            </div>
+          )}
+
+          <div className={`flex gap-2 p-1 ${focusExperienceEnabled ? "rounded-full bg-white/80 dark:bg-slate-900/70" : "bg-slate-100 dark:bg-slate-800 rounded-xl"}`}>
             {(["active", "history"] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === tab
-                  ? "bg-white dark:bg-slate-900 text-[#074738] shadow-sm"
-                  : "text-slate-600 dark:text-slate-400"}`}>
+                className={`flex-1 py-2.5 font-bold text-sm transition-all ${activeTab === tab
+                  ? `${focusExperienceEnabled ? "bg-[#074738] text-white rounded-full shadow-sm" : "bg-white dark:bg-slate-900 text-[#074738] rounded-lg shadow-sm"}`
+                  : `${focusExperienceEnabled ? "text-slate-600 dark:text-slate-300 rounded-full" : "text-slate-600 dark:text-slate-400 rounded-lg"}`}`}>
                 {tab === "active" ? `Activos (${activeBaseItems.length})` : `Historial (${completedItems.length})`}
               </button>
             ))}
           </div>
           {activeTab === "active" && (
-            <div className="mt-3 flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/70 px-3 py-2">
+            <div className={`mt-3 flex items-center justify-between border px-3 py-2 ${focusExperienceEnabled ? "rounded-[22px] border-[#074738]/10 bg-white/90 dark:border-slate-800 dark:bg-slate-900/70" : "rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/70"}`}>
               <div>
                 <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Mostrar vencidos</p>
                 <p className="text-[11px] text-slate-500">{expiredItems.length} tratamiento(s) vencido(s)</p>
@@ -678,7 +695,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
         {/* List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {activeTab === "active" && reminderPills.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3">
+            <div className={`${focusExperienceEnabled ? "rounded-[24px]" : "rounded-2xl"} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3`}>
               <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 mb-2">Recordatorios de hoy</p>
               <div className="flex flex-wrap gap-1.5">
                 {reminderPills.map((pill) => (

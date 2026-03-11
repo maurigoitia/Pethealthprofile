@@ -54,6 +54,20 @@ const DEFAULT_EXTERNAL_LINK_MAX_BYTES = 6 * 1024 * 1024;
 const DEFAULT_EXTERNAL_LINK_MAX_REDIRECTS = 4;
 const MAX_EXTERNAL_LINK_REDIRECTS_HARD_CAP = 8;
 const MAX_EXTERNAL_LINK_TEXT_CHARS = 120_000;
+const RECENT_HISTORY_WINDOW_DAYS = 90;
+const MONTHLY_BUCKET_UNTIL_MONTHS = 18;
+const DEFAULT_HUMAN_BLOCKED_SENDER_DOMAINS = [
+  "huesped.org",
+  "huesped.org.ar",
+  "osde.com.ar",
+  "osdebinario.com.ar",
+  "swissmedical.com.ar",
+  "medicus.com.ar",
+  "galeno.com.ar",
+  "omint.com.ar",
+  "hospitalitaliano.org.ar",
+  "hospitalaleman.com",
+];
 
 type UserPlanType = "free" | "premium";
 type IngestionStatus =
@@ -66,10 +80,19 @@ type IngestionStatus =
   | "completed"
   | "requires_review";
 type QueueStatus = "queued" | "processing" | "completed" | "requires_review" | "failed";
-type EventType = "visit" | "treatment" | "vaccination" | "diagnostic" | "imaging" | "episode";
-type DomainIngestionType = "visit" | "treatment" | "vaccination" | "medical_event";
+type EventType =
+  | "appointment_confirmation"
+  | "appointment_reminder"
+  | "appointment_cancellation"
+  | "clinical_report"
+  | "study_report"
+  | "prescription_record"
+  | "vaccination_record";
+type DomainIngestionType = "appointment" | "treatment" | "vaccination" | "medical_event";
 type QueueJobStatus = "pending" | "processing" | "completed" | "failed";
 type QueueJobStage = "scan" | "attachment" | "ai_extract";
+type AppointmentEventStatus = "confirmed" | "reminder" | "cancelled" | "scheduled" | null;
+type StudySubtype = "imaging" | "lab" | null;
 
 interface GoogleTokenResponse {
   access_token?: string;
@@ -118,6 +141,9 @@ interface UserEmailConfig {
   plan_type: UserPlanType;
   pet_id: string | null;
   pet_name: string | null;
+  fallback_pet_id?: string | null;
+  fallback_pet_name?: string | null;
+  active_pet_count?: number;
   pet_birthdate: string | null;
   pet_age_years: number;
   max_lookback_months: number;
@@ -199,6 +225,12 @@ interface ClinicalEventExtraction {
   medications: ClinicalMedication[];
   lab_results: ClinicalLabResult[];
   imaging_type: string | null;
+  study_subtype: StudySubtype;
+  appointment_time: string | null;
+  appointment_specialty: string | null;
+  professional_name: string | null;
+  clinic_name: string | null;
+  appointment_status: AppointmentEventStatus;
   severity: "mild" | "moderate" | "severe" | null;
   confidence_score: number;
 }
@@ -385,6 +417,1484 @@ function normalizeClinicalToken(value: string): string {
     .trim();
 }
 
+function cleanSentence(value: string): string {
+  return asString(value)
+    .replace(/\s+/g, " ")
+    .replace(/\s+[·|]\s+/g, " · ")
+    .trim();
+}
+
+function isAppointmentEventType(eventType: EventType): boolean {
+  return (
+    eventType === "appointment_confirmation" ||
+    eventType === "appointment_reminder" ||
+    eventType === "appointment_cancellation"
+  );
+}
+
+function isPrescriptionEventType(eventType: EventType): boolean {
+  return eventType === "prescription_record";
+}
+
+function isVaccinationEventType(eventType: EventType): boolean {
+  return eventType === "vaccination_record";
+}
+
+function isStudyEventType(eventType: EventType): boolean {
+  return eventType === "study_report";
+}
+
+function inferAppointmentStatusFromText(text: string): AppointmentEventStatus {
+  const normalized = normalizeClinicalToken(text);
+  if (!normalized) return null;
+  if (/\b(cancelad|reprogramad|suspendid)\b/.test(normalized)) return "cancelled";
+  if (/\b(recordatorio|recorda|recuerda)\b/.test(normalized)) return "reminder";
+  if (/\b(confirmad|confirmacion)\b/.test(normalized)) return "confirmed";
+  if (/\b(turno|consulta|control)\b/.test(normalized)) return "scheduled";
+  return null;
+}
+
+function normalizeAppointmentStatusValue(value: unknown, fallbackText = ""): AppointmentEventStatus {
+  const normalized = normalizeClinicalToken(asString(value));
+  if (normalized === "confirmed" || normalized === "confirmado") return "confirmed";
+  if (normalized === "reminder" || normalized === "recordatorio") return "reminder";
+  if (normalized === "cancelled" || normalized === "canceled" || normalized === "cancelado" || normalized === "reprogramado") {
+    return "cancelled";
+  }
+  if (normalized === "scheduled" || normalized === "programado" || normalized === "agendado") return "scheduled";
+  return inferAppointmentStatusFromText(fallbackText);
+}
+
+function sanitizeAppointmentTime(value: unknown): string | null {
+  const raw = asString(value);
+  if (!raw) return null;
+  const match = raw.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  if (!match) return null;
+  return `${match[1].padStart(2, "0")}:${match[2]}`;
+}
+
+function extractAppointmentTimeFromText(text: string): string | null {
+  return sanitizeAppointmentTime(text);
+}
+
+function sanitizeExtractedEntity(value: string | null): string | null {
+  const raw = asString(value);
+  if (!raw) return null;
+  const trimmed = raw
+    .replace(/\s+(?:en|a\s+las|con|para)\b.*$/i, "")
+    .replace(/\s+(?:programad[oa]|confirmad[oa]|agendad[oa]|recordad[oa]|cancelad[oa])\b.*$/i, "")
+    .replace(/^[\s:·,-]+|[\s:·,-]+$/g, "")
+    .trim();
+  return trimmed || null;
+}
+
+function extractProfessionalNameFromText(text: string): string | null {
+  const match = text.match(/(?:dr\.?|dra\.?|doctor|doctora)\s+([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ' -]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ' -]+){0,3})/i);
+  return sanitizeExtractedEntity(asString(match?.[1]) || null);
+}
+
+function extractClinicNameFromText(text: string, sourceSender = ""): string | null {
+  const centerMatch = text.match(/centro\/profesional:\s*([^.,]+(?:\s*·\s*[^.,]+)?)/i);
+  if (centerMatch?.[1]) {
+    const parts = centerMatch[1]
+      .split("·")
+      .map((part) => sanitizeExtractedEntity(asString(part)))
+      .filter(Boolean) as string[];
+    if (parts.length > 1) return parts[1];
+    if (parts.length === 1) return parts[0];
+  }
+  const clinicMatch = text.match(
+    /\b(?:clinica|clínica|centro|hospital|sucursal)\s+([A-ZÁÉÍÓÚÑ][^.,]+?)(?=\s+a\s+las|\s+con\b|\s+para\b|\.|,|$)/i
+  );
+  if (clinicMatch?.[1]) return sanitizeExtractedEntity(asString(clinicMatch[1]) || null);
+  const senderDomain = extractSenderDomain(sourceSender);
+  if (senderDomain?.includes("panda")) return "PANDA CLINICA VETERINARIA";
+  return null;
+}
+
+function hasClinicSignalInText(text: string, sourceSender = ""): boolean {
+  const haystack = normalizeClinicalToken([text, sourceSender].filter(Boolean).join(" "));
+  return /\b(clinica|clinica veterinaria|centro|hospital|sucursal|panda|veterinaria|pet shop)\b/.test(haystack);
+}
+
+function extractAppointmentSpecialtyFromText(text: string): string | null {
+  const match = text.match(
+    /\b(?:consulta|control|turno)\s+([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+){0,3})(?=\s+(?:programad[oa]|confirmad[oa]|agendad[oa]|recordad[oa]|cancelad[oa]|con|en|a\s+las|para)\b|[.,]|$)/i
+  );
+  return sanitizeExtractedEntity(asString(match?.[1]) || null);
+}
+
+function hasMedicationOrTreatmentSignal(text: string): boolean {
+  const haystack = normalizeClinicalToken(text);
+  if (!haystack) return false;
+  return /\b(receta|prescrip|tratamiento|medicaci[oó]n|dosis|cada\s+\d+\s*(?:h|hs|hora|horas)|comprimid|capsul|tableta|jarabe|gotas|pimobendan|ursomax|ursomas|furosemida|omeprazol|predni|amoxic|metronidazol|gabapentin|carprofeno|dieta\s+[a-záéíóúñ]+)\b/i.test(
+    haystack
+  );
+}
+
+function deriveAppointmentLabel(event: ClinicalEventExtraction): string | null {
+  const specialty = sanitizeExtractedEntity(event.appointment_specialty || null);
+  if (specialty) return specialty;
+
+  const description = cleanSentence(event.description_summary || "");
+  const patterns = [
+    /\bconsulta\s+([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+){0,3})/i,
+    /\bturno\s+([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+){0,3})/i,
+    /\bcontrol\s+([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+){0,3})/i,
+  ];
+  for (const pattern of patterns) {
+    const match = description.match(pattern);
+    if (match?.[1]) return sanitizeExtractedEntity(match[1]);
+  }
+
+  const diagnosis = sanitizeExtractedEntity(event.diagnosis || null);
+  if (diagnosis && diagnosis.length <= 80) return diagnosis;
+  return null;
+}
+
+function inferImagingTypeFromSignals(text: string): string | null {
+  const haystack = normalizeClinicalToken(text);
+  if (!haystack) return null;
+  if (/\b(ecocard[a-z]*|eco cardio|ecocardi[a-z]*|doppler|mitral|ventricul[a-z]*)\b/.test(haystack)) return "ecocardiograma";
+  if (/\b(ecg|electrocard[a-z]*|ritmo sinusal|qrs|pr)\b/.test(haystack)) return "electrocardiograma";
+  if (/\b(eco|ecograf[a-z]*|ultrason[a-z]*|ultrasound|sonogra[a-z]*)\b/.test(haystack)) return "ecografía";
+  if (/\b(rx|radiograf[a-z]*|radiolog[a-z]*|placa[s]?|proyeccion[a-z]*|ll|vd|dv|torax dv|torax ld|d v|l l)\b/.test(haystack)) {
+    return "radiografía";
+  }
+  return null;
+}
+
+function inferStudySubtypeFromSignals(args: {
+  rawStudySubtype?: unknown;
+  imagingType?: unknown;
+  labResults: ClinicalLabResult[];
+  descriptionSummary: string;
+  diagnosis: string | null;
+}): StudySubtype {
+  const raw = asString(args.rawStudySubtype).toLowerCase();
+  const haystack = normalizeClinicalToken(
+    [
+      asString(args.imagingType),
+      args.descriptionSummary,
+      args.diagnosis,
+      ...args.labResults.flatMap((row) => [row.test_name, row.result, row.reference_range || ""]),
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+  const hasImagingSignal = /\b(rx|radiograf[a-z]*|radiolog[a-z]*|ecograf[a-z]*|ultrason[a-z]*|ultrasound|eco|ecocard[a-z]*|ecg|electrocard[a-z]*|imagen(?:es)?|placa[s]?|proyeccion[a-z]*)\b/.test(
+    haystack
+  );
+  const hasLabSignal = /\b(laboratorio|hemograma|bioquim|analisis|an[aá]lisis|glucosa|creatinina|urea|alt|ast)\b/.test(
+    haystack
+  );
+  if (hasImagingSignal) {
+    return "imaging";
+  }
+  if (hasLabSignal) {
+    return "lab";
+  }
+  if (raw === "imaging" || raw === "lab") return raw;
+  if (args.labResults.length > 0) return "lab";
+  return null;
+}
+
+function inferImagingDocumentType(event: ClinicalEventExtraction):
+  "lab_test" | "xray" | "echocardiogram" | "electrocardiogram" {
+  const haystack = normalizeClinicalToken(
+    [event.imaging_type, event.description_summary, event.diagnosis].filter(Boolean).join(" ")
+  );
+  if (/\b(ecocard[a-z]*|eco cardi|doppler)\b/.test(haystack)) return "echocardiogram";
+  if (/\b(ecg|electrocard[a-z]*)\b/.test(haystack)) return "electrocardiogram";
+  if (/\b(rx|radiograf[a-z]*|radiolog[a-z]*|placa[s]?|ecograf[a-z]*|ultrason[a-z]*|ultrasound|proyeccion[a-z]*)\b/.test(haystack)) {
+    return "xray";
+  }
+  return "lab_test";
+}
+
+function normalizeExtractedEventType(rawType: string, row: Record<string, unknown>): EventType | null {
+  const normalized = normalizeClinicalToken(rawType);
+  const hintText = normalizeClinicalToken(
+    [
+      asString(row.description_summary),
+      asString(row.diagnosis),
+      asString(row.appointment_status),
+      asString(row.study_subtype),
+      asString(row.imaging_type),
+    ].join(" ")
+  );
+
+  if (
+    normalized === "appointment_confirmation" ||
+    normalized === "appointment_reminder" ||
+    normalized === "appointment_cancellation" ||
+    normalized === "clinical_report" ||
+    normalized === "study_report" ||
+    normalized === "prescription_record" ||
+    normalized === "vaccination_record"
+  ) {
+    return normalized as EventType;
+  }
+
+  if (normalized === "visit") {
+    const status = inferAppointmentStatusFromText(hintText);
+    if (status === "cancelled") return "appointment_cancellation";
+    if (status === "reminder") return "appointment_reminder";
+    return "appointment_confirmation";
+  }
+  if (normalized === "treatment") return "prescription_record";
+  if (normalized === "vaccination") return "vaccination_record";
+  if (normalized === "diagnostic" || normalized === "imaging") return "study_report";
+  if (normalized === "episode") return "clinical_report";
+  return null;
+}
+
+function buildCanonicalEventTitle(event: ClinicalEventExtraction): string {
+  if (event.event_type === "appointment_confirmation") {
+    const label = deriveAppointmentLabel(event);
+    return label ? `Turno · ${label}` : "Turno confirmado";
+  }
+  if (event.event_type === "appointment_reminder") {
+    const label = deriveAppointmentLabel(event);
+    return label ? `Recordatorio · ${label}` : "Recordatorio de turno";
+  }
+  if (event.event_type === "appointment_cancellation") {
+    const label = deriveAppointmentLabel(event);
+    return label ? `Cancelación · ${label}` : "Turno cancelado";
+  }
+  if (event.event_type === "vaccination_record") return "Registro de vacunación";
+  if (event.event_type === "prescription_record") {
+    const firstMedication = asString(event.medications[0]?.name);
+    return firstMedication ? `Receta médica · ${firstMedication}` : "Receta médica";
+  }
+  if (event.event_type === "study_report") {
+    if (event.study_subtype === "imaging") {
+      if (event.imaging_type && /ecocard|doppler/i.test(event.imaging_type)) return "Ecocardiograma";
+      if (event.imaging_type && /electrocard|ecg/i.test(event.imaging_type)) return "Electrocardiograma";
+      if (event.imaging_type && /radiograf|rx|placa/i.test(event.imaging_type)) return "Radiografía";
+      if (event.diagnosis) return cleanSentence(event.diagnosis).slice(0, 120) || "Informe por imágenes";
+      return "Informe por imágenes";
+    }
+    return "Resultado de laboratorio";
+  }
+  if (event.event_type === "clinical_report" && event.diagnosis) return event.diagnosis.slice(0, 120);
+  return "Informe clínico";
+}
+
+function confidenceBucketToScore(value: unknown, fallback = 70): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return clamp(Math.round(value), 0, 100);
+  }
+  const normalized = normalizeClinicalToken(asString(value));
+  if (normalized === "high") return 90;
+  if (normalized === "medium") return 75;
+  if (normalized === "low") return 55;
+  if (normalized === "not detected" || normalized === "not_detected") return 0;
+  return clamp(fallback, 0, 100);
+}
+
+function toStoredClinicalMedications(value: unknown): ClinicalMedication[] {
+  const rows = Array.isArray(value) ? value : [];
+  return rows
+    .map((row) => {
+      const data = asRecord(row);
+      const name = asString(data.name);
+      if (!name) return null;
+      return {
+        name,
+        dose: asString(data.dosage) || asString(data.dose) || null,
+        frequency: asString(data.frequency) || null,
+        duration_days: null,
+        is_active: true,
+      } as ClinicalMedication;
+    })
+    .filter((row): row is ClinicalMedication => Boolean(row));
+}
+
+function toStoredClinicalLabResults(value: unknown): ClinicalLabResult[] {
+  const rows = Array.isArray(value) ? value : [];
+  return rows
+    .map((row) => {
+      const data = asRecord(row);
+      const testName = asString(data.name);
+      const result = asString(data.value);
+      if (!testName || !result) return null;
+      return {
+        test_name: testName,
+        result,
+        unit: asString(data.unit) || null,
+        reference_range: asString(data.referenceRange) || null,
+      } as ClinicalLabResult;
+    })
+    .filter((row): row is ClinicalLabResult => Boolean(row));
+}
+
+function inferStoredEventTypeFromRecord(args: {
+  row: Record<string, unknown>;
+  extractedData: Record<string, unknown>;
+  sourceText: string;
+  medications: ClinicalMedication[];
+  labResults: ClinicalLabResult[];
+}): EventType | null {
+  const normalizedExistingType = normalizeExtractedEventType(
+    asString(args.extractedData.taxonomyEventType),
+    args.extractedData
+  );
+  if (normalizedExistingType) return normalizedExistingType;
+
+  const documentType = asString(args.extractedData.documentType);
+  const normalizedSourceText = normalizeClinicalToken(args.sourceText);
+  const appointmentStructured =
+    Boolean(asString(args.extractedData.appointmentTime)) ||
+    Boolean(asString(args.extractedData.provider)) ||
+    Boolean(asString(args.extractedData.clinic)) ||
+    (Array.isArray(args.extractedData.detectedAppointments) ? args.extractedData.detectedAppointments.length : 0) > 0;
+  const studySignal = /\b(laboratorio|hemograma|bioquim|radiograf|ecograf|electrocard|resultado|informe|microscop|koh|citolog|rx|placa)\b/.test(
+    normalizedSourceText
+  );
+  const medicationSignal = args.medications.length > 0 || hasMedicationOrTreatmentSignal(args.sourceText);
+  if (documentType === "appointment") {
+    if (!appointmentStructured && studySignal) return "study_report";
+    if (!appointmentStructured && medicationSignal) return "prescription_record";
+    const status = normalizeAppointmentStatusValue(args.extractedData.appointmentStatus, args.sourceText);
+    if (status === "cancelled") return "appointment_cancellation";
+    if (status === "reminder") return "appointment_reminder";
+    return "appointment_confirmation";
+  }
+  if (documentType === "medication" && args.medications.length > 0) return "prescription_record";
+  if (documentType === "vaccine") return "vaccination_record";
+  if (
+    documentType === "lab_test" ||
+    documentType === "xray" ||
+    documentType === "echocardiogram" ||
+    documentType === "electrocardiogram"
+  ) {
+    return "study_report";
+  }
+  if (documentType === "checkup") return "clinical_report";
+
+  if (args.medications.length > 0) return "prescription_record";
+  if (args.labResults.length > 0) return "study_report";
+
+  const normalized = normalizedSourceText;
+  if (!normalized) return null;
+  if (/\b(vacuna|vacunacion|revacuna)\b/.test(normalized)) return "vaccination_record";
+  if (/\b(turno|consulta|recordatorio|confirmacion|confirmación|cancelacion|cancelación|reprogramaci)\b/.test(normalized)) {
+    const status = inferAppointmentStatusFromText(normalized);
+    if (status === "cancelled") return "appointment_cancellation";
+    if (status === "reminder") return "appointment_reminder";
+    return "appointment_confirmation";
+  }
+  if (/\b(laboratorio|hemograma|bioquim|radiograf|ecograf|ecocard|electrocard|resultado|informe)\b/.test(normalized)) {
+    return "study_report";
+  }
+  return "clinical_report";
+}
+
+function reconstructStoredEventForTaxonomy(row: Record<string, unknown>): ClinicalEventExtraction | null {
+  const extractedData = asRecord(row.extractedData);
+  const sourceText = [
+    asString(extractedData.aiGeneratedSummary),
+    asString(extractedData.suggestedTitle),
+    asString(extractedData.diagnosis),
+    asString(extractedData.sourceSubject),
+    asString(extractedData.sourceSender),
+    asString(row.title),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const medications = toStoredClinicalMedications(extractedData.medications);
+  const labResults = toStoredClinicalLabResults(extractedData.measurements);
+  const eventType = inferStoredEventTypeFromRecord({
+    row,
+    extractedData,
+    sourceText,
+    medications,
+    labResults,
+  });
+  if (!eventType) return null;
+
+  const detectedAppointment = asRecord(Array.isArray(extractedData.detectedAppointments) ? extractedData.detectedAppointments[0] : null);
+  const diagnosis = asString(extractedData.diagnosis) || null;
+  const imagingType =
+    asString(extractedData.imagingType) ||
+    inferImagingTypeFromSignals(sourceText) ||
+    (asString(extractedData.documentType) === "xray"
+      ? "radiografía"
+      : asString(extractedData.documentType) === "echocardiogram"
+        ? "ecocardiograma"
+        : asString(extractedData.documentType) === "electrocardiogram"
+          ? "electrocardiograma"
+          : null);
+  const appointmentTime =
+    asString(extractedData.appointmentTime) ||
+    asString(detectedAppointment.time) ||
+    extractAppointmentTimeFromText(sourceText) ||
+    null;
+  const parsedAppointmentSpecialty = extractAppointmentSpecialtyFromText(sourceText);
+  const parsedProfessionalName = extractProfessionalNameFromText(sourceText);
+  const parsedClinicName = extractClinicNameFromText(sourceText, asString(extractedData.sourceSender));
+  const appointmentSpecialty =
+    parsedAppointmentSpecialty ||
+    asString(detectedAppointment.specialty) ||
+    null;
+  const professionalName =
+    parsedProfessionalName ||
+    asString(extractedData.provider) ||
+    asString(detectedAppointment.provider) ||
+    null;
+  const clinicName =
+    parsedClinicName ||
+    (hasClinicSignalInText(sourceText, asString(extractedData.sourceSender))
+      ? asString(extractedData.clinic) || asString(detectedAppointment.clinic) || null
+      : null);
+
+  let appointmentStatus: AppointmentEventStatus = null;
+  if (isAppointmentEventType(eventType)) {
+    appointmentStatus = normalizeAppointmentStatusValue(
+      asString(extractedData.appointmentStatus) || asString(detectedAppointment.status),
+      sourceText
+    );
+    if (!appointmentStatus) {
+      if (eventType === "appointment_cancellation") appointmentStatus = "cancelled";
+      if (eventType === "appointment_reminder") appointmentStatus = "reminder";
+      if (eventType === "appointment_confirmation") appointmentStatus = "confirmed";
+    }
+  }
+
+  const studySubtype = isStudyEventType(eventType)
+    ? inferStudySubtypeFromSignals({
+        rawStudySubtype: extractedData.studySubtype,
+        imagingType,
+        labResults,
+        descriptionSummary: sourceText,
+        diagnosis,
+      })
+    : null;
+
+  const eventDate =
+    asString(extractedData.eventDate) ||
+    asString(row.eventDate) ||
+    toIsoDateOnly(new Date(asString(extractedData.sourceReceivedAt) || asString(row.createdAt) || getNowIso()));
+
+  return {
+    event_type: eventType,
+    event_date: eventDate,
+    date_confidence: confidenceBucketToScore(extractedData.eventDateConfidence, 70),
+    description_summary: asString(extractedData.aiGeneratedSummary) || asString(row.title) || sourceText.slice(0, 240),
+    diagnosis,
+    medications,
+    lab_results: labResults,
+    imaging_type: imagingType,
+    study_subtype: studySubtype,
+    appointment_time: isAppointmentEventType(eventType) ? appointmentTime : null,
+    appointment_specialty: isAppointmentEventType(eventType) ? appointmentSpecialty : null,
+    professional_name: professionalName,
+    clinic_name: clinicName,
+    appointment_status: appointmentStatus,
+    severity: null,
+    confidence_score: clamp(asNonNegativeNumber(row.overallConfidence, 72), 0, 100),
+  };
+}
+
+function extractOperationalAppointmentCandidate(args: {
+  eventDate: string | null;
+  sourceText: string;
+  sourceSender?: string | null;
+  existingStatus?: unknown;
+  existingTime?: unknown;
+  existingSpecialty?: unknown;
+  professionalName?: string | null;
+  clinicName?: string | null;
+  diagnosis?: string | null;
+  confidenceScore?: number;
+}): ClinicalEventExtraction | null {
+  const eventDate = asString(args.eventDate) || null;
+  const parsedEventDate = parseDateOnly(eventDate || "");
+  if (!parsedEventDate) return null;
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  if (parsedEventDate.getTime() < startOfToday.getTime()) return null;
+
+  const sourceText = cleanSentence(args.sourceText);
+  const normalized = normalizeClinicalToken(sourceText);
+  if (!normalized) return null;
+
+  const hasAppointmentLanguage = /\b(turno|consulta|control|recordatorio|confirmacion|confirmado|agendad|programad|reprogramad|cancelad|cita)\b/.test(
+    normalized
+  );
+  if (!hasAppointmentLanguage) return null;
+
+  const appointmentTime = sanitizeAppointmentTime(args.existingTime) || extractAppointmentTimeFromText(sourceText) || null;
+  const appointmentSpecialty =
+    sanitizeExtractedEntity(asString(args.existingSpecialty) || extractAppointmentSpecialtyFromText(sourceText)) || null;
+  const professionalName =
+    sanitizeExtractedEntity(args.professionalName || extractProfessionalNameFromText(sourceText)) || null;
+  const clinicName =
+    sanitizeExtractedEntity(args.clinicName || extractClinicNameFromText(sourceText, asString(args.sourceSender))) || null;
+  const appointmentStatus = normalizeAppointmentStatusValue(args.existingStatus, sourceText) || "scheduled";
+
+  const strongStudySignal = /\b(radiograf|ecograf|electrocard|laboratorio|hemograma|microscop|koh|prueba|informe|resultado|prostata|torax|pelvis|proyeccion)\b/.test(
+    normalized
+  );
+  const strongMedicationSignal = hasMedicationOrTreatmentSignal(sourceText);
+
+  if (!appointmentTime && !appointmentSpecialty && !professionalName && !clinicName) return null;
+  if (!appointmentTime && !professionalName && !clinicName && (strongStudySignal || strongMedicationSignal)) return null;
+
+  const eventType: EventType =
+    appointmentStatus === "cancelled"
+      ? "appointment_cancellation"
+      : appointmentStatus === "reminder"
+        ? "appointment_reminder"
+        : "appointment_confirmation";
+
+  return {
+    event_type: eventType,
+    event_date: eventDate,
+    date_confidence: 85,
+    description_summary: sourceText.slice(0, 240),
+    diagnosis: sanitizeExtractedEntity(args.diagnosis || null),
+    medications: [],
+    lab_results: [],
+    imaging_type: null,
+    study_subtype: null,
+    appointment_time: appointmentTime,
+    appointment_specialty: appointmentSpecialty,
+    professional_name: professionalName,
+    clinic_name: clinicName,
+    appointment_status: appointmentStatus,
+    severity: null,
+    confidence_score: clamp(asNonNegativeNumber(args.confidenceScore, 82), 0, 100),
+  };
+}
+
+function shouldReplaceLegacyStoredTitle(currentTitle: string): boolean {
+  const normalized = normalizeClinicalToken(currentTitle);
+  if (!normalized) return true;
+  return [
+    "diagnostico detectado por correo",
+    "documento",
+    "informe clinico",
+    "turno programado",
+    "resultado de laboratorio",
+    "informe de estudio",
+  ].includes(normalized);
+}
+
+function shouldPreserveExistingObservations(args: {
+  row: Record<string, unknown>;
+  extractedData: Record<string, unknown>;
+}): boolean {
+  const existingObservation = asString(args.extractedData.observations);
+  if (!existingObservation) return false;
+  if (asString(args.row.sourceTruthLevel) === "human_confirmed") return true;
+  const narrative = asString(args.extractedData.aiGeneratedSummary);
+  return normalizeClinicalToken(existingObservation) !== normalizeClinicalToken(narrative);
+}
+
+interface GmailTaxonomyBackfillResult {
+  total_scanned: number;
+  eligible_email_events: number;
+  updated: number;
+  unchanged: number;
+  skipped_non_email: number;
+  skipped_unclassified: number;
+  appointment_projections_updated: number;
+  errors: number;
+  samples: Array<Record<string, unknown>>;
+  error_details: Array<{ docId: string; error: string }>;
+}
+
+type LegacyCleanupAction = "delete" | "salvage" | "keep";
+
+interface LegacyCleanupSample {
+  docId: string;
+  action: LegacyCleanupAction;
+  title: string | null;
+  sender: string | null;
+  provider: string | null;
+  documentType: string | null;
+  reasons: string[];
+}
+
+interface LegacyMailsyncCleanupResult {
+  total_scanned: number;
+  eligible_legacy_events: number;
+  delete_candidates: number;
+  salvage_candidates: number;
+  deleted: number;
+  skipped: number;
+  artifacts_deleted: number;
+  errors: number;
+  narrative_refreshed: boolean;
+  samples: LegacyCleanupSample[];
+  error_details: Array<{ docId: string; error: string }>;
+}
+
+const LEGACY_GENERIC_TITLES = new Set([
+  "diagnostico detectado por correo",
+  "estudio detectado por correo",
+  "documento",
+  "documento detectado por correo",
+  "turno programado",
+  "resultado de laboratorio",
+  "informe de estudio",
+  "diagnostico",
+]);
+
+const LEGACY_DELETE_DOMAIN_HINTS = [
+  "huesped.org",
+  "ikeargentina.com",
+  "osde",
+  "swissmedical",
+  "medicus",
+  "galeno",
+  "omint",
+  "afip",
+];
+
+const LEGACY_OPERATIONAL_NOISE_REGEX =
+  /\b(tipo detectado:\s*cancelacion|tipo detectado:\s*recordatorio_turno|tipo detectado:\s*confirmacion_turno|recordatorio del turno|informacion de turno solicitado|información de turno solicitado|turno confirmado|turno cancelado|reprogramacion|reprogramación|recordatorio de turno|cancelacion de turno|cancelación de turno)\b/i;
+
+const LEGACY_SALVAGE_STUDY_REGEX =
+  /\b(radiograf(?:ia|ias)?|rx\b|placa(?:s)?\s+de\s+t[oó]rax|ecograf(?:ia|ias)?|ultrason(?:ido)?|ultrasound|ecg|electrocardiograma|electrocardiograf|informe radiol[oó]gico|bronquitis|cardiomegalia|hepatomegalia|esplenitis|enfermedad discal|koh\b|microscop[ií]a|hemograma|bioqu[ií]mica|laboratorio)\b/i;
+
+function isLegacyMailsyncEvent(docId: string, row: Record<string, unknown>, extractedData: Record<string, unknown>): boolean {
+  return (
+    docId.startsWith("mailsync_") ||
+    asString(extractedData.extractionProtocol) === "legacy_v1" ||
+    asString(row.extractionProtocol) === "legacy_v1"
+  );
+}
+
+function selectLegacySender(row: Record<string, unknown>, extractedData: Record<string, unknown>): string {
+  return (
+    asString(extractedData.sourceSender) ||
+    asString(row.sourceSender) ||
+    (asString(extractedData.provider).includes("@") ? asString(extractedData.provider) : "") ||
+    (asString(row.provider).includes("@") ? asString(row.provider) : "")
+  );
+}
+
+function hasLegacyMedicationPayload(extractedData: Record<string, unknown>): boolean {
+  const medicationsRaw = Array.isArray(extractedData.medications) ? extractedData.medications : [];
+  return medicationsRaw.some((item) => {
+    const medication = asRecord(item);
+    const name = normalizeClinicalToken(asString(medication.name));
+    if (!name || MEDICATION_NAME_BLOCKLIST.has(name)) return false;
+    return Boolean(asString(medication.dose) || asString(medication.frequency) || name.length >= 4);
+  });
+}
+
+function classifyLegacyMailsyncEvent(docId: string, row: Record<string, unknown>): LegacyCleanupSample {
+  const extractedData = asRecord(row.extractedData);
+  const title = asString(row.title);
+  const sender = selectLegacySender(row, extractedData);
+  const provider = asString(extractedData.provider) || asString(row.provider) || null;
+  const documentType = asString(extractedData.documentType) || asString(row.documentType) || null;
+  const diagnosis = asString(extractedData.diagnosis);
+  const observations = asString(extractedData.observations);
+  const corpus = [
+    title,
+    asString(extractedData.aiGeneratedSummary),
+    observations,
+    diagnosis,
+    asString(extractedData.sourceSubject),
+    sender,
+    provider,
+    asString(row.findings),
+  ].join(" \n ");
+  const normalizedTitle = normalizeClinicalToken(title);
+  const genericLegacyTitle = LEGACY_GENERIC_TITLES.has(normalizedTitle);
+  const humanNoise =
+    hasStrongHumanHealthcareSignal(corpus) ||
+    LEGACY_DELETE_DOMAIN_HINTS.some((hint) => normalizeTextForMatch(sender).includes(normalizeTextForMatch(hint))) ||
+    LEGACY_DELETE_DOMAIN_HINTS.some((hint) => normalizeTextForMatch(corpus).includes(normalizeTextForMatch(hint)));
+  const operationalNoise = LEGACY_OPERATIONAL_NOISE_REGEX.test(corpus);
+  const documentImpliesStudy = ["xray", "lab_test", "laboratory_result", "clinical_report", "electrocardiogram", "ultrasound"].includes(
+    documentType || ""
+  );
+  const structuredClinicalFinding =
+    STRUCTURED_DIAGNOSIS_HINT_REGEX.test(normalizeClinicalToken(diagnosis)) ||
+    STRUCTURED_DIAGNOSIS_HINT_REGEX.test(normalizeClinicalToken(observations)) ||
+    Boolean(asString(row.findings));
+  const medicationPayload = hasLegacyMedicationPayload(extractedData);
+  const veterinaryStudyEvidence =
+    LEGACY_SALVAGE_STUDY_REGEX.test(corpus) ||
+    structuredClinicalFinding ||
+    medicationPayload ||
+    (documentImpliesStudy && !operationalNoise);
+  const reasons: string[] = [];
+
+  if (humanNoise) reasons.push("human_noise");
+  if (operationalNoise) reasons.push("operational_noise");
+  if (genericLegacyTitle) reasons.push("generic_legacy_title");
+  if (veterinaryStudyEvidence) reasons.push("veterinary_study_evidence");
+  if (structuredClinicalFinding) reasons.push("structured_clinical_finding");
+  if (medicationPayload) reasons.push("medication_payload");
+
+  let action: LegacyCleanupAction = "keep";
+  if (humanNoise) {
+    action = "delete";
+  } else if (operationalNoise && ["checkup", "appointment"].includes(documentType || "") && !structuredClinicalFinding && !medicationPayload) {
+    action = "delete";
+  } else if (veterinaryStudyEvidence) {
+    action = "salvage";
+  } else if (operationalNoise && (genericLegacyTitle || !veterinaryStudyEvidence)) {
+    action = "delete";
+  } else if (genericLegacyTitle && !veterinaryStudyEvidence) {
+    action = "delete";
+  }
+
+  return {
+    docId,
+    action,
+    title: title || null,
+    sender: sender || null,
+    provider,
+    documentType,
+    reasons,
+  };
+}
+
+async function deleteLegacyEventArtifacts(eventId: string): Promise<number> {
+  let deleted = 0;
+  const collections = [
+    { name: "appointments", field: "sourceEventId" },
+    { name: "pending_actions", field: "sourceEventId" },
+    { name: "gmail_event_reviews", field: "eventId" },
+  ];
+
+  for (const target of collections) {
+    const snap = await admin.firestore().collection(target.name).where(target.field, "==", eventId).limit(25).get();
+    for (const doc of snap.docs) {
+      await doc.ref.delete();
+      deleted += 1;
+    }
+  }
+
+  return deleted;
+}
+
+async function runLegacyMailsyncCleanup(args: {
+  uid: string;
+  email?: string | null;
+  petId?: string | null;
+  dryRun?: boolean;
+  limit?: number;
+  refreshNarrative?: boolean;
+}): Promise<LegacyMailsyncCleanupResult> {
+  const dryRun = args.dryRun !== false;
+  const limit = clamp(asNonNegativeNumber(args.limit, 200), 1, 500);
+  const result: LegacyMailsyncCleanupResult = {
+    total_scanned: 0,
+    eligible_legacy_events: 0,
+    delete_candidates: 0,
+    salvage_candidates: 0,
+    deleted: 0,
+    skipped: 0,
+    artifacts_deleted: 0,
+    errors: 0,
+    narrative_refreshed: false,
+    samples: [],
+    error_details: [],
+  };
+
+  let query: FirebaseFirestore.Query = admin.firestore().collection("medical_events").where("userId", "==", args.uid);
+  if (args.petId) query = query.where("petId", "==", args.petId);
+  const snap = await query.limit(limit).get();
+  result.total_scanned = snap.size;
+
+  for (const doc of snap.docs) {
+    const row = asRecord(doc.data());
+    const extractedData = asRecord(row.extractedData);
+    if (!isLegacyMailsyncEvent(doc.id, row, extractedData)) {
+      result.skipped += 1;
+      continue;
+    }
+
+    result.eligible_legacy_events += 1;
+    const sample = classifyLegacyMailsyncEvent(doc.id, row);
+    if (sample.action === "delete") result.delete_candidates += 1;
+    if (sample.action === "salvage") result.salvage_candidates += 1;
+    if (result.samples.length < 40) result.samples.push(sample);
+
+    if (sample.action !== "delete") continue;
+    if (dryRun) {
+      result.deleted += 1;
+      continue;
+    }
+
+    try {
+      result.artifacts_deleted += await deleteLegacyEventArtifacts(doc.id);
+      await doc.ref.delete();
+      result.deleted += 1;
+    } catch (error) {
+      result.errors += 1;
+      const message = error instanceof Error ? error.message : String(error);
+      result.error_details.push({ docId: doc.id, error: message });
+    }
+  }
+
+  if (!dryRun && args.refreshNarrative !== false && result.deleted > 0) {
+    await runNarrativeHistoryBackfill({
+      uid: args.uid,
+      email: args.email || null,
+      petId: args.petId || null,
+      dryRun: false,
+      limit: 250,
+    });
+    result.narrative_refreshed = true;
+  }
+
+  functions.logger.info("[gmail-legacy-cleanup] completed", {
+    uid: args.uid,
+    email: args.email || null,
+    petId: args.petId || null,
+    dryRun,
+    limit,
+    result,
+  });
+
+  return result;
+}
+
+async function runGmailTaxonomyBackfill(args: {
+  uid: string;
+  email?: string | null;
+  dryRun?: boolean;
+  limit?: number;
+  includeAppointments?: boolean;
+}): Promise<GmailTaxonomyBackfillResult> {
+  const dryRun = args.dryRun !== false;
+  const limit = clamp(asNonNegativeNumber(args.limit, 150), 1, 500);
+  const includeAppointments = args.includeAppointments !== false;
+  const result: GmailTaxonomyBackfillResult = {
+    total_scanned: 0,
+    eligible_email_events: 0,
+    updated: 0,
+    unchanged: 0,
+    skipped_non_email: 0,
+    skipped_unclassified: 0,
+    appointment_projections_updated: 0,
+    errors: 0,
+    samples: [],
+    error_details: [],
+  };
+
+  const snap = await admin.firestore().collection("medical_events").where("userId", "==", args.uid).limit(limit).get();
+  result.total_scanned = snap.size;
+
+  for (const doc of snap.docs) {
+    const row = asRecord(doc.data());
+    const extractedData = asRecord(row.extractedData);
+    const source = asString(row.source);
+    const sourceEmailId = asString(row.source_email_id);
+    if (source !== "email_import" && !sourceEmailId) {
+      result.skipped_non_email += 1;
+      continue;
+    }
+
+    result.eligible_email_events += 1;
+    const reconstructedEvent = reconstructStoredEventForTaxonomy(row);
+    if (!reconstructedEvent) {
+      result.skipped_unclassified += 1;
+      continue;
+    }
+
+    const sourceDate = asString(extractedData.sourceReceivedAt) || asString(row.createdAt) || getNowIso();
+    const nextExtractedData = {
+      ...extractedData,
+      ...buildDefaultExtractedData({
+        event: reconstructedEvent,
+        sourceDate,
+        sourceSubject: asString(extractedData.sourceSubject),
+        sourceSender: asString(extractedData.sourceSender),
+      }),
+    } as Record<string, unknown>;
+    const rescuedAppointment = !isAppointmentEventType(reconstructedEvent.event_type)
+      ? extractOperationalAppointmentCandidate({
+          eventDate: asString(nextExtractedData.eventDate) || reconstructedEvent.event_date,
+          sourceText: [
+            asString(nextExtractedData.sourceSubject),
+            asString(nextExtractedData.suggestedTitle),
+            asString(nextExtractedData.aiGeneratedSummary),
+            asString(nextExtractedData.observations),
+            asString(row.title),
+          ]
+            .filter(Boolean)
+            .join(" · "),
+          sourceSender: asString(nextExtractedData.sourceSender),
+          existingStatus: nextExtractedData.appointmentStatus,
+          existingTime: nextExtractedData.appointmentTime,
+          existingSpecialty: asString(asRecord(Array.isArray(nextExtractedData.detectedAppointments) ? nextExtractedData.detectedAppointments[0] : null).specialty),
+          professionalName: asString(nextExtractedData.provider),
+          clinicName: asString(nextExtractedData.clinic),
+          diagnosis: asString(nextExtractedData.diagnosis),
+          confidenceScore: reconstructedEvent.confidence_score,
+        })
+      : null;
+
+    if (shouldPreserveExistingObservations({ row, extractedData })) {
+      nextExtractedData.observations = extractedData.observations;
+      nextExtractedData.observationsConfidence = extractedData.observationsConfidence || "medium";
+    }
+
+    const nextDomainType: DomainIngestionType =
+      isAppointmentEventType(reconstructedEvent.event_type)
+        ? "appointment"
+        : isPrescriptionEventType(reconstructedEvent.event_type)
+          ? "treatment"
+          : isVaccinationEventType(reconstructedEvent.event_type)
+            ? "vaccination"
+            : "medical_event";
+
+    const nextTitle = buildCanonicalEventTitle(reconstructedEvent).slice(0, 160);
+    const nextFindings =
+      reconstructedEvent.lab_results.length > 0
+        ? reconstructedEvent.lab_results.map((item) => `${item.test_name}: ${item.result}`).join(" | ").slice(0, 1400)
+        : null;
+
+    const changes: string[] = [];
+    if (asString(extractedData.taxonomyEventType) !== asString(nextExtractedData.taxonomyEventType)) changes.push("taxonomyEventType");
+    if (asString(extractedData.documentType) !== asString(nextExtractedData.documentType)) changes.push("documentType");
+    if (asString(extractedData.taxonomyRoute) !== asString(nextExtractedData.taxonomyRoute)) changes.push("taxonomyRoute");
+    if (asString(extractedData.appointmentStatus) !== asString(nextExtractedData.appointmentStatus)) changes.push("appointmentStatus");
+    if (asString(extractedData.studySubtype) !== asString(nextExtractedData.studySubtype)) changes.push("studySubtype");
+    if (asString(extractedData.appointmentTime) !== asString(nextExtractedData.appointmentTime)) changes.push("appointmentTime");
+    if (asString(extractedData.provider) !== asString(nextExtractedData.provider)) changes.push("provider");
+    if (asString(extractedData.clinic) !== asString(nextExtractedData.clinic)) changes.push("clinic");
+    if (asString(row.domain_ingestion_type) !== nextDomainType) changes.push("domain_ingestion_type");
+    if (shouldReplaceLegacyStoredTitle(asString(row.title)) && asString(row.title) !== nextTitle) changes.push("title");
+    if (asString(row.findings) !== asString(nextFindings)) changes.push("findings");
+
+    if (changes.length === 0) {
+      result.unchanged += 1;
+      continue;
+    }
+
+    const sample = {
+      docId: doc.id,
+      title_before: asString(row.title) || null,
+      title_after: shouldReplaceLegacyStoredTitle(asString(row.title)) ? nextTitle : asString(row.title) || null,
+      taxonomy_before: asString(extractedData.taxonomyEventType) || null,
+      taxonomy_after: asString(nextExtractedData.taxonomyEventType) || null,
+      documentType_before: asString(extractedData.documentType) || null,
+      documentType_after: asString(nextExtractedData.documentType) || null,
+      changes,
+    };
+    if (result.samples.length < 20) result.samples.push(sample);
+
+    if (dryRun) {
+      result.updated += 1;
+      continue;
+    }
+
+    try {
+      const patch: Record<string, unknown> = {
+        extractedData: nextExtractedData,
+        domain_ingestion_type: nextDomainType,
+        updatedAt: getNowIso(),
+        findings: nextFindings,
+      };
+      if (shouldReplaceLegacyStoredTitle(asString(row.title))) patch.title = nextTitle;
+
+      await doc.ref.set(patch, { merge: true });
+
+      const projectionEvent = isAppointmentEventType(reconstructedEvent.event_type)
+        ? reconstructedEvent
+        : rescuedAppointment;
+      if (includeAppointments && projectionEvent && asString(row.petId)) {
+        await upsertOperationalAppointmentProjection({
+          appointmentEventId: doc.id,
+          petId: asString(row.petId),
+          uid: args.uid,
+          title: buildCanonicalEventTitle(projectionEvent),
+          eventDate: projectionEvent.event_date || toIsoDateOnly(new Date(sourceDate)),
+          event: projectionEvent,
+          narrativeSummary: cleanSentence(
+            [
+              asString(nextExtractedData.aiGeneratedSummary),
+              asString(nextExtractedData.sourceSubject),
+              asString(row.title),
+            ]
+              .filter(Boolean)
+              .join(" · ")
+          ),
+          sourceEmailId: sourceEmailId || `legacy_${doc.id}`,
+          sourceTruthLevel: asString(row.sourceTruthLevel) || "ai_auto_ingested",
+          effectiveRequiresConfirmation: row.requiresManualConfirmation === true || asString(row.workflowStatus) === "review_required",
+          nowIso: asString(patch.updatedAt),
+        });
+        result.appointment_projections_updated += 1;
+      }
+
+      result.updated += 1;
+    } catch (error) {
+      result.errors += 1;
+      const message = error instanceof Error ? error.message : String(error);
+      result.error_details.push({ docId: doc.id, error: message });
+    }
+  }
+
+  functions.logger.info("[gmail-taxonomy-backfill] completed", {
+    uid: args.uid,
+    email: args.email || null,
+    dryRun,
+    limit,
+    result,
+  });
+  return result;
+}
+
+type NarrativePeriodType = "month" | "year";
+
+interface NarrativeHistoryBackfillResult {
+  total_scanned: number;
+  eligible_events: number;
+  buckets_written: number;
+  episodes_written: number;
+  buckets_deleted: number;
+  episodes_deleted: number;
+  yearly_summaries_written: number;
+  errors: number;
+  sample_bucket_ids: string[];
+  sample_episode_ids: string[];
+}
+
+function sanitizeNarrativeLabel(value: string, fallback: string): string {
+  const cleaned = asString(value)
+    .replace(/\s+/g, " ")
+    .replace(/[·|]+/g, " · ")
+    .trim();
+  return cleaned.slice(0, 120) || fallback;
+}
+
+function buildNarrativeThreadLabel(event: ClinicalEventExtraction): string {
+  if (isVaccinationEventType(event.event_type)) return "Vacunación";
+  if (isPrescriptionEventType(event.event_type)) {
+    const med = sanitizeNarrativeLabel(asString(event.medications[0]?.name), "");
+    return med || "Tratamiento";
+  }
+  if (isAppointmentEventType(event.event_type)) {
+    const specialty = sanitizeNarrativeLabel(event.appointment_specialty || "", "");
+    return specialty || "Agenda veterinaria";
+  }
+  if (isStudyEventType(event.event_type)) {
+    if (event.study_subtype === "imaging") {
+      return sanitizeNarrativeLabel(event.imaging_type || "", "Estudios por imágenes");
+    }
+    return "Laboratorio";
+  }
+  return sanitizeNarrativeLabel(event.diagnosis || "", "Seguimiento clínico");
+}
+
+function buildNarrativePeriodMeta(timestamp: number, nowTimestamp: number): {
+  periodType: NarrativePeriodType;
+  periodKey: string;
+  periodLabel: string;
+  yearKey: string;
+  fromDate: string;
+  toDate: string;
+} {
+  const parsed = new Date(timestamp);
+  const monthsAgo = monthsBetween(nowTimestamp, timestamp);
+  const yearKey = String(parsed.getFullYear());
+  if (monthsAgo > MONTHLY_BUCKET_UNTIL_MONTHS) {
+    return {
+      periodType: "year",
+      periodKey: yearKey,
+      periodLabel: yearKey,
+      yearKey,
+      fromDate: `${yearKey}-01-01`,
+      toDate: `${yearKey}-12-31`,
+    };
+  }
+
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const periodKey = `${yearKey}-${month}`;
+  const monthLabel = parsed.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+  const lastDay = new Date(parsed.getFullYear(), parsed.getMonth() + 1, 0).getDate();
+  return {
+    periodType: "month",
+    periodKey,
+    periodLabel: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
+    yearKey,
+    fromDate: `${yearKey}-${month}-01`,
+    toDate: `${yearKey}-${month}-${String(lastDay).padStart(2, "0")}`,
+  };
+}
+
+function monthsBetween(nowTimestamp: number, targetTimestamp: number): number {
+  const current = new Date(nowTimestamp);
+  const target = new Date(targetTimestamp);
+  return Math.max(
+    0,
+    (current.getFullYear() - target.getFullYear()) * 12 + (current.getMonth() - target.getMonth())
+  );
+}
+
+function summarizeNarrativeDiagnosis(value: string | null): string | null {
+  const cleaned = sanitizeNarrativeLabel(asString(value), "");
+  if (!cleaned) return null;
+  const [firstSentence] = cleaned.split(/(?<=[.!?])\s+/);
+  return (firstSentence || cleaned).slice(0, 180);
+}
+
+function buildNarrativeEpisodeRecord(args: {
+  uid: string;
+  petId: string;
+  petName: string;
+  periodMeta: ReturnType<typeof buildNarrativePeriodMeta>;
+  threadLabel: string;
+  events: Array<{ id: string; event: ClinicalEventExtraction; row: Record<string, unknown>; timestamp: number }>;
+}): Record<string, unknown> {
+  const diagnoses = uniqueNonEmpty(
+    args.events.map((item) => summarizeNarrativeDiagnosis(item.event.diagnosis)).filter(Boolean) as string[]
+  ).slice(0, 3);
+
+  const medications = uniqueNonEmpty(
+    args.events.flatMap((item) => item.event.medications.map((medication) => sanitizeNarrativeLabel(medication.name, "")))
+  ).slice(0, 3);
+
+  const providers = uniqueNonEmpty(
+    args.events.flatMap((item) => [sanitizeNarrativeLabel(item.event.professional_name || "", ""), sanitizeNarrativeLabel(item.event.clinic_name || "", "")])
+  ).filter(Boolean).slice(0, 2);
+
+  const imagingCount = args.events.filter((item) => isStudyEventType(item.event.event_type) && item.event.study_subtype === "imaging").length;
+  const appointmentCount = args.events.filter((item) => isAppointmentEventType(item.event.event_type)).length;
+  const treatmentCount = args.events.filter((item) => isPrescriptionEventType(item.event.event_type)).length;
+  const highlights = [
+    diagnoses[0] ? `Patología principal: ${diagnoses[0]}` : "",
+    medications[0] ? `Medicación: ${medications[0]}` : "",
+    imagingCount > 0 ? `${imagingCount} estudio${imagingCount === 1 ? "" : "s"} de imagen` : "",
+    treatmentCount > 0 && !medications[0] ? `${treatmentCount} indicación${treatmentCount === 1 ? "" : "es"} terapéutica${treatmentCount === 1 ? "" : "s"}` : "",
+  ].filter(Boolean).slice(0, 3);
+
+  const narrative = [
+    diagnoses.length > 0
+      ? `En ${args.periodMeta.periodLabel} ${args.petName} tuvo seguimiento por ${diagnoses.join(", ")}.`
+      : imagingCount > 0
+        ? `En ${args.periodMeta.periodLabel} ${args.petName} tuvo ${imagingCount} estudio${imagingCount === 1 ? "" : "s"} por imágenes y controles asociados.`
+        : appointmentCount > 0
+          ? `En ${args.periodMeta.periodLabel} ${args.petName} tuvo seguimiento veterinario con ${appointmentCount} turno${appointmentCount === 1 ? "" : "s"} o recordatorio${appointmentCount === 1 ? "" : "s"}.`
+          : `En ${args.periodMeta.periodLabel} ${args.petName} tuvo seguimiento clínico registrado.`,
+    medications.length > 0 ? `También estuvo medicado con ${medications.join(", ")}.` : "",
+    providers.length > 0 ? `Intervinieron ${providers.join(" · ")}.` : "",
+  ].filter(Boolean).slice(0, 3).join(" ");
+
+  return {
+    episodio_id: `hep_${sha256(`${args.uid}_${args.petId}_${args.periodMeta.periodKey}_${args.threadLabel}`).slice(0, 24)}`,
+    userId: args.uid,
+    petId: args.petId,
+    petName: args.petName,
+    periodType: args.periodMeta.periodType,
+    periodKey: args.periodMeta.periodKey,
+    periodLabel: args.periodMeta.periodLabel,
+    yearKey: args.periodMeta.yearKey,
+    titulo_narrativo: sanitizeNarrativeLabel(args.threadLabel, "Resumen clínico"),
+    headline: sanitizeNarrativeLabel(args.threadLabel, "Resumen clínico"),
+    resumen: narrative,
+    narrative,
+    diagnosticos_clave: diagnoses,
+    medicacion_relevante: medications,
+    hitos: highlights,
+    eventos_referenciados: args.events.map((item) => item.id),
+    links: args.events.map((item) => item.id),
+    providers,
+    confianza_ia: 0.95,
+    requires_review: false,
+    source_mode: "derived_history_v1",
+    generated_at: getNowIso(),
+    event_count: args.events.length,
+  };
+}
+
+function buildAnnualSummaryRecord(args: {
+  uid: string;
+  petId: string;
+  petName: string;
+  yearKey: string;
+  events: Array<{ id: string; event: ClinicalEventExtraction; row: Record<string, unknown>; timestamp: number }>;
+}): Record<string, unknown> {
+  const diagnoses = uniqueNonEmpty(
+    args.events.map((item) => summarizeNarrativeDiagnosis(item.event.diagnosis)).filter(Boolean) as string[]
+  ).slice(0, 3);
+  const medications = uniqueNonEmpty(
+    args.events.flatMap((item) => item.event.medications.map((medication) => sanitizeNarrativeLabel(medication.name, "")))
+  ).slice(0, 3);
+  const providers = uniqueNonEmpty(
+    args.events.flatMap((item) => [sanitizeNarrativeLabel(item.event.professional_name || "", ""), sanitizeNarrativeLabel(item.event.clinic_name || "", "")])
+  ).filter(Boolean).slice(0, 2);
+  const dominantDiagnosis = diagnoses[0] || medications[0] || "seguimiento clínico";
+  const highlights = [
+    dominantDiagnosis ? `Patología principal: ${dominantDiagnosis}` : "",
+    medications[0] ? `Medicación crónica: ${medications[0]}` : "",
+    providers[0] ? `Prestador frecuente: ${providers[0]}` : "",
+  ].filter(Boolean);
+
+  return {
+    headline: `Anuario ${args.yearKey}`,
+    narrative: [
+      `Durante ${args.yearKey}, ${args.petName} asistió principalmente a ${providers[0] || "sus prestadores habituales"}.`,
+      `Presentó principalmente ${dominantDiagnosis}.`,
+      medications[0] ? `La medicación más repetida fue ${medications[0]}.` : "",
+    ].filter(Boolean).slice(0, 3).join(" "),
+    highlights,
+    diagnositcos_clave: diagnoses,
+    medicacion_relevante: medications,
+    providers,
+    confidence_ia: 0.94,
+  };
+}
+
+async function deleteExistingNarrativeHistory(args: {
+  uid: string;
+  petId?: string | null;
+}): Promise<{ buckets: number; episodes: number }> {
+  const collections: Array<{ name: "history_buckets" | "history_episodes"; key: "buckets" | "episodes" }> = [
+    { name: "history_buckets", key: "buckets" },
+    { name: "history_episodes", key: "episodes" },
+  ];
+  const deleted = { buckets: 0, episodes: 0 };
+
+  for (const collection of collections) {
+    const snap = await admin.firestore().collection(collection.name).where("userId", "==", args.uid).limit(500).get();
+    if (snap.empty) continue;
+    const batch = admin.firestore().batch();
+    let count = 0;
+    for (const doc of snap.docs) {
+      const row = asRecord(doc.data());
+      if (asString(row.source_mode || row.sourceMode) !== "derived_history_v1") continue;
+      if (args.petId && asString(row.petId) !== args.petId) continue;
+      batch.delete(doc.ref);
+      count += 1;
+    }
+    if (count > 0) {
+      await batch.commit();
+      deleted[collection.key] += count;
+    }
+  }
+
+  return deleted;
+}
+
+async function runNarrativeHistoryBackfill(args: {
+  uid: string;
+  email?: string | null;
+  petId?: string | null;
+  dryRun?: boolean;
+  limit?: number;
+}): Promise<NarrativeHistoryBackfillResult> {
+  const dryRun = args.dryRun !== false;
+  const limit = clamp(asNonNegativeNumber(args.limit, 250), 25, 1000);
+  const nowTimestamp = Date.now();
+  const recentCutoff = nowTimestamp - RECENT_HISTORY_WINDOW_DAYS * ONE_DAY_MS;
+  const result: NarrativeHistoryBackfillResult = {
+    total_scanned: 0,
+    eligible_events: 0,
+    buckets_written: 0,
+    episodes_written: 0,
+    buckets_deleted: 0,
+    episodes_deleted: 0,
+    yearly_summaries_written: 0,
+    errors: 0,
+    sample_bucket_ids: [],
+    sample_episode_ids: [],
+  };
+
+  const petNameCache = new Map<string, string>();
+  const fetchPetName = async (petId: string): Promise<string> => {
+    if (petNameCache.has(petId)) return petNameCache.get(petId)!;
+    const petSnap = await admin.firestore().collection("pets").doc(petId).get();
+    const petName = sanitizeNarrativeLabel(asString(asRecord(petSnap.data()).name), "Mascota");
+    petNameCache.set(petId, petName);
+    return petName;
+  };
+
+  const snap = await admin.firestore().collection("medical_events").where("userId", "==", args.uid).limit(limit).get();
+  result.total_scanned = snap.size;
+
+  const eligibleEvents: Array<{
+    id: string;
+    row: Record<string, unknown>;
+    event: ClinicalEventExtraction;
+    timestamp: number;
+    petId: string;
+    petName: string;
+  }> = [];
+
+  for (const doc of snap.docs) {
+    const row = asRecord(doc.data());
+    const petId = asString(row.petId);
+    if (!petId) continue;
+    if (args.petId && petId !== args.petId) continue;
+    if (asString(row.status) === "processing" || asString(row.status) === "draft") continue;
+    if (asString(row.workflowStatus) === "review_required" || asString(row.workflowStatus) === "invalid_future_date") continue;
+    if (row.requiresManualConfirmation === true) continue;
+    const reconstructed = reconstructStoredEventForTaxonomy(row);
+    if (!reconstructed) continue;
+    const timestamp = Date.parse(reconstructed.event_date || asString(row.createdAt) || "");
+    if (!Number.isFinite(timestamp) || timestamp >= recentCutoff) continue;
+    eligibleEvents.push({
+      id: doc.id,
+      row,
+      event: reconstructed,
+      timestamp,
+      petId,
+      petName: await fetchPetName(petId),
+    });
+  }
+
+  result.eligible_events = eligibleEvents.length;
+
+  const bucketDocs = new Map<string, Record<string, unknown>>();
+  const episodeDocs = new Map<string, Record<string, unknown>>();
+  const annualGroups = new Map<string, Array<typeof eligibleEvents[number]>>();
+  const bucketEventCounts = new Map<string, number>();
+
+  for (const item of eligibleEvents) {
+    const periodMeta = buildNarrativePeriodMeta(item.timestamp, nowTimestamp);
+    const threadLabel = buildNarrativeThreadLabel(item.event);
+    const bucketId = `hb_${sha256(`${args.uid}_${item.petId}_${periodMeta.periodType}_${periodMeta.periodKey}`).slice(0, 24)}`;
+    const bucketKey = `${bucketId}::${threadLabel}`;
+    const yearGroupKey = `${item.petId}::${periodMeta.yearKey}`;
+
+    if (!annualGroups.has(yearGroupKey)) annualGroups.set(yearGroupKey, []);
+    annualGroups.get(yearGroupKey)!.push(item);
+
+    bucketEventCounts.set(bucketId, (bucketEventCounts.get(bucketId) || 0) + 1);
+
+    const episodeKey = `${bucketKey}`;
+    const existing = episodeDocs.get(episodeKey) as { __events?: typeof eligibleEvents } | undefined;
+    const nextEvents = existing?.__events ? [...existing.__events, item] : [item];
+
+    const episodeRecord = buildNarrativeEpisodeRecord({
+      uid: args.uid,
+      petId: item.petId,
+      petName: item.petName,
+      periodMeta,
+      threadLabel,
+      events: nextEvents.map((entry) => ({
+        id: entry.id,
+        event: entry.event,
+        row: entry.row,
+        timestamp: entry.timestamp,
+      })),
+    }) as Record<string, unknown> & { __events?: typeof eligibleEvents };
+
+    episodeRecord.bucketId = bucketId;
+    episodeRecord.thread_label = threadLabel;
+    episodeRecord.__events = nextEvents;
+    episodeDocs.set(episodeKey, episodeRecord);
+
+    bucketDocs.set(bucketId, {
+      bucketId,
+      userId: args.uid,
+      petId: item.petId,
+      petName: item.petName,
+      periodType: periodMeta.periodType,
+      periodKey: periodMeta.periodKey,
+      periodLabel: periodMeta.periodLabel,
+      yearKey: periodMeta.yearKey,
+      from: periodMeta.fromDate,
+      to: periodMeta.toDate,
+      sourceMode: "derived_history_v1",
+      generatedAt: getNowIso(),
+      updatedAt: getNowIso(),
+    });
+  }
+
+  for (const [bucketId, bucket] of bucketDocs.entries()) {
+    const episodesForBucket = Array.from(episodeDocs.values()).filter((episode) => asString(episode.bucketId) === bucketId);
+    const eventCount = bucketEventCounts.get(bucketId) || 0;
+    bucket.eventCount = eventCount;
+    bucket.episodeCount = episodesForBucket.length;
+    if (bucket.periodType === "month" && eventCount > 10) {
+      bucket.densityMode = "compacted";
+      bucket.bucket_summary = {
+        headline: `Mes de alta intensidad clínica`,
+        narrative: `Durante ${asString(bucket.periodLabel)}, ${asString(bucket.petName)} tuvo ${eventCount} eventos confirmados. PESSY los comprimió en episodios narrativos para lectura rápida.`,
+      };
+    }
+  }
+
+  for (const [annualKey, events] of annualGroups.entries()) {
+    const [petId, yearKey] = annualKey.split("::");
+    const first = events[0];
+    const annualBucketId = `hb_${sha256(`${args.uid}_${petId}_year_${yearKey}`).slice(0, 24)}`;
+    const annualBucket = bucketDocs.get(annualBucketId) || {
+      bucketId: annualBucketId,
+      userId: args.uid,
+      petId,
+      petName: first.petName,
+      periodType: "year",
+      periodKey: yearKey,
+      periodLabel: yearKey,
+      yearKey,
+      from: `${yearKey}-01-01`,
+      to: `${yearKey}-12-31`,
+      sourceMode: "derived_history_v1",
+      generatedAt: getNowIso(),
+      updatedAt: getNowIso(),
+    };
+    annualBucket.eventCount = events.length;
+    annualBucket.annual_summary = buildAnnualSummaryRecord({
+      uid: args.uid,
+      petId,
+      petName: first.petName,
+      yearKey,
+      events: events.map((entry) => ({
+        id: entry.id,
+        event: entry.event,
+        row: entry.row,
+        timestamp: entry.timestamp,
+      })),
+    });
+    bucketDocs.set(annualBucketId, annualBucket);
+  }
+
+  if (!dryRun) {
+    const deleted = await deleteExistingNarrativeHistory({
+      uid: args.uid,
+      petId: args.petId || null,
+    });
+    result.buckets_deleted = deleted.buckets;
+    result.episodes_deleted = deleted.episodes;
+
+    const allBucketDocs = Array.from(bucketDocs.values());
+    const allEpisodeDocs = Array.from(episodeDocs.values()).map((episode) => {
+      const clone = { ...episode };
+      delete clone.__events;
+      return clone;
+    });
+
+    for (const bucket of allBucketDocs) {
+      await admin.firestore().collection("history_buckets").doc(asString(bucket.bucketId)).set(bucket, { merge: true });
+      result.buckets_written += 1;
+      if (result.sample_bucket_ids.length < 10) result.sample_bucket_ids.push(asString(bucket.bucketId));
+      if (bucket.annual_summary) result.yearly_summaries_written += 1;
+    }
+
+    for (const episode of allEpisodeDocs) {
+      await admin.firestore().collection("history_episodes").doc(asString(episode.episodio_id)).set(episode, { merge: true });
+      result.episodes_written += 1;
+      if (result.sample_episode_ids.length < 10) result.sample_episode_ids.push(asString(episode.episodio_id));
+    }
+  } else {
+    result.buckets_written = bucketDocs.size;
+    result.episodes_written = episodeDocs.size;
+    result.yearly_summaries_written = Array.from(bucketDocs.values()).filter((bucket) => Boolean(bucket.annual_summary)).length;
+    result.sample_bucket_ids = Array.from(bucketDocs.keys()).slice(0, 10);
+    result.sample_episode_ids = Array.from(episodeDocs.values()).map((episode) => asString(episode.episodio_id)).slice(0, 10);
+  }
+
+  return result;
+}
+
 function medicationNameHasExplicitDrugSignal(name: string): boolean {
   const normalized = normalizeClinicalToken(name);
   if (!normalized || MEDICATION_UNIT_ONLY_REGEX.test(normalized)) return false;
@@ -411,7 +1921,7 @@ function isMedicationMeasurementFalsePositive(medication: ClinicalMedication): b
 }
 
 function looksHistoricalOnlyTreatmentEvent(event: ClinicalEventExtraction): boolean {
-  if (event.event_type !== "treatment") return false;
+  if (!isPrescriptionEventType(event.event_type)) return false;
   const normalized = normalizeClinicalToken(
     [
       event.description_summary,
@@ -427,8 +1937,23 @@ function looksHistoricalOnlyTreatmentEvent(event: ClinicalEventExtraction): bool
 
 function hasUnstructuredClinicalFinding(event: ClinicalEventExtraction): boolean {
   if (event.diagnosis) return false;
-  if (!["diagnostic", "imaging", "episode"].includes(event.event_type)) return false;
+  if (!(event.event_type === "clinical_report" || isStudyEventType(event.event_type))) return false;
   return STRUCTURED_DIAGNOSIS_HINT_REGEX.test(normalizeClinicalToken(event.description_summary));
+}
+
+function hasIncompleteAppointmentMetadata(event: ClinicalEventExtraction): boolean {
+  if (!isAppointmentEventType(event.event_type)) return false;
+  return !event.appointment_status || !event.appointment_time || !event.professional_name || !event.clinic_name;
+}
+
+function hasIncompletePrescriptionMetadata(event: ClinicalEventExtraction): boolean {
+  if (!isPrescriptionEventType(event.event_type)) return false;
+  if (event.medications.length === 0) return true;
+  return event.medications.some((medication) => !medicationHasDoseAndFrequency(medication));
+}
+
+function hasUndifferentiatedStudySubtype(event: ClinicalEventExtraction): boolean {
+  return isStudyEventType(event.event_type) && !event.study_subtype;
 }
 
 function applyConstitutionalGuardrails(event: ClinicalEventExtraction): {
@@ -452,6 +1977,15 @@ function applyConstitutionalGuardrails(event: ClinicalEventExtraction): {
   }
   if (hasUnstructuredClinicalFinding(sanitizedEvent)) {
     reviewReasons.add("unstructured_clinical_finding");
+  }
+  if (hasIncompleteAppointmentMetadata(sanitizedEvent)) {
+    reviewReasons.add("incomplete_appointment_details");
+  }
+  if (hasIncompletePrescriptionMetadata(sanitizedEvent)) {
+    reviewReasons.add("missing_treatment_dose_or_frequency");
+  }
+  if (hasUndifferentiatedStudySubtype(sanitizedEvent)) {
+    reviewReasons.add("study_subtype_undetermined");
   }
 
   return {
@@ -1672,6 +3206,8 @@ async function ocrAttachmentViaGemini(args: {
 function buildClinicalPrompt(args: {
   extractedText: string;
   emailDate: string;
+  sourceSubject: string;
+  sourceSender: string;
   petContext: Record<string, unknown>;
   attachmentMetadata: AttachmentMetadata[];
   knowledgeContext: string;
@@ -1694,6 +3230,15 @@ Strict rules:
 11) Nunca entierres un hallazgo clínico en description_summary. Si hay hallazgo explícito, copiarlo en diagnosis o dejar requires_human_review=true con reason_if_review_needed="unstructured_clinical_finding".
 12) Si el nuevo contenido contradice known_conditions del contexto, no lo des por confirmado: set requires_human_review=true y reason_if_review_needed="possible_clinical_conflict".
 13) Si detectás una posible medicación sin nombre de droga explícito, set requires_human_review=true y reason_if_review_needed="medication_without_explicit_drug_name".
+14) No uses description_summary del mail para poblar observations clínicas. Solo resume el hecho detectado; no copies logística como dato clínico.
+15) Para appointment_* extrae obligatoriamente appointment_time, professional_name, clinic_name y appointment_status. Si falta alguno, set requires_human_review=true y reason_if_review_needed="incomplete_appointment_details".
+16) Para study_report define study_subtype="imaging" o "lab". Si no podés distinguirlo con seguridad, set requires_human_review=true y reason_if_review_needed="study_subtype_undetermined".
+17) Para prescription_record solo confirmar si hay droga + dosis + frecuencia. Si falta alguno, set requires_human_review=true y reason_if_review_needed="missing_treatment_dose_or_frequency".
+18) appointment_confirmation, appointment_reminder y appointment_cancellation son operativos; no los conviertas en diagnóstico clínico.
+19) Si el contexto de identidad de la mascota entra en conflicto con el correo o adjunto (por nombre, especie o raza), set requires_human_review=true y reason_if_review_needed="IDENTITY_CONFLICT".
+20) Si el adjunto, OCR o informe menciona radiografía, Rx, ecografía, ultrasound, ECG, electrocardiograma, laboratorio, hemograma o bioquímica, la salida debe ser study_report aunque el cuerpo del mail hable de turno, agenda, recordatorio o confirmación.
+21) Si hay conflicto entre el texto logístico del mail y el contenido clínico del adjunto, el adjunto pesa más.
+22) Si el correo parece de medicina humana, obra social u ONG de salud y no hay evidencia explícita de veterinaria o mascota, set is_clinical_content=false.
 
 Return valid JSON only with this schema:
 {
@@ -1701,11 +3246,17 @@ Return valid JSON only with this schema:
   "confidence_overall": number,
   "detected_events": [
     {
-      "event_type": "visit" | "treatment" | "vaccination" | "diagnostic" | "imaging" | "episode",
+      "event_type": "appointment_confirmation" | "appointment_reminder" | "appointment_cancellation" | "clinical_report" | "study_report" | "prescription_record" | "vaccination_record",
       "event_date": "YYYY-MM-DD" | null,
       "date_confidence": number,
       "description_summary": string,
       "diagnosis": string | null,
+      "appointment_time": "HH:mm" | null,
+      "appointment_specialty": string | null,
+      "professional_name": string | null,
+      "clinic_name": string | null,
+      "appointment_status": "confirmed" | "reminder" | "cancelled" | "scheduled" | null,
+      "study_subtype": "imaging" | "lab" | null,
       "medications": [
         {
           "name": string,
@@ -1744,6 +3295,12 @@ Return valid JSON only with this schema:
     "",
     "Email date:",
     args.emailDate,
+    "",
+    "Email subject:",
+    args.sourceSubject.slice(0, 400),
+    "",
+    "Email sender:",
+    args.sourceSender.slice(0, 320),
     "",
     "Attachment metadata JSON:",
     JSON.stringify(args.attachmentMetadata),
@@ -1797,7 +3354,89 @@ function splitTextForAi(text: string, maxChars: number, maxChunks: number): stri
   return chunks;
 }
 
-function toClinicalOutput(json: Record<string, unknown> | null): ClinicalExtractionOutput {
+function deriveVeterinaryEvidenceHints(args: {
+  extractedText: string;
+  sourceSubject: string;
+  sourceSender: string;
+  attachmentMetadata: AttachmentMetadata[];
+}): {
+  preferStudyReport: boolean;
+  preferredStudySubtype: StudySubtype;
+  inferredImagingType: string | null;
+  humanHealthcareNoise: boolean;
+} {
+  const evidenceText = [
+    args.sourceSubject,
+    args.sourceSender,
+    args.extractedText,
+    args.attachmentMetadata.map((row) => row.filename).join(" "),
+  ].join(" ");
+  const inferredImagingType = inferImagingTypeFromSignals(evidenceText);
+  const preferredStudySubtype = inferStudySubtypeFromSignals({
+    rawStudySubtype: null,
+    imagingType: inferredImagingType,
+    labResults: [],
+    descriptionSummary: evidenceText,
+    diagnosis: null,
+  });
+  const preferStudyReport =
+    preferredStudySubtype !== null ||
+    /\b(informe|resultado|estudio|radiograf|ecograf|ultrasound|ecg|electrocard|hemograma|bioquim|laboratorio|koh|citolog|microscop)\b/i.test(
+      evidenceText
+    ) ||
+    attachmentNamesContainClinicalSignal(args.attachmentMetadata);
+  return {
+    preferStudyReport,
+    preferredStudySubtype,
+    inferredImagingType,
+    humanHealthcareNoise: hasStrongHumanHealthcareSignal(evidenceText),
+  };
+}
+
+function applyVeterinaryEvidencePriority(args: {
+  event: ClinicalEventExtraction;
+  hints: ReturnType<typeof deriveVeterinaryEvidenceHints>;
+}): ClinicalEventExtraction {
+  const { event, hints } = args;
+  if (!hints.preferStudyReport) return event;
+
+  if (
+    event.event_type === "appointment_confirmation" ||
+    event.event_type === "appointment_reminder" ||
+    event.event_type === "appointment_cancellation" ||
+    event.event_type === "clinical_report"
+  ) {
+    return {
+      ...event,
+      event_type: "study_report",
+      study_subtype: event.study_subtype || hints.preferredStudySubtype,
+      imaging_type: event.imaging_type || hints.inferredImagingType,
+      appointment_time: null,
+      appointment_specialty: null,
+      appointment_status: null,
+    };
+  }
+
+  if (event.event_type === "study_report") {
+    return {
+      ...event,
+      study_subtype: event.study_subtype || hints.preferredStudySubtype,
+      imaging_type: event.imaging_type || hints.inferredImagingType,
+    };
+  }
+
+  return event;
+}
+
+function toClinicalOutput(
+  json: Record<string, unknown> | null,
+  context?: {
+    extractedText: string;
+    sourceSubject: string;
+    sourceSender: string;
+    attachmentMetadata: AttachmentMetadata[];
+  }
+): ClinicalExtractionOutput {
   if (!json) {
     return {
       is_clinical_content: false,
@@ -1811,51 +3450,107 @@ function toClinicalOutput(json: Record<string, unknown> | null): ClinicalExtract
 
   const eventsRaw = Array.isArray(json.detected_events) ? json.detected_events : [];
   const constitutionalReviewReasons = new Set<string>();
+  const evidenceHints = context
+    ? deriveVeterinaryEvidenceHints({
+        extractedText: context.extractedText,
+        sourceSubject: context.sourceSubject,
+        sourceSender: context.sourceSender,
+        attachmentMetadata: context.attachmentMetadata,
+      })
+    : {
+        preferStudyReport: false,
+        preferredStudySubtype: null as StudySubtype,
+        inferredImagingType: null,
+        humanHealthcareNoise: false,
+      };
   const detectedEvents: ClinicalEventExtraction[] = eventsRaw
     .map((item) => {
       const row = asRecord(item);
       const meds = Array.isArray(row.medications) ? row.medications : [];
       const labs = Array.isArray(row.lab_results) ? row.lab_results : [];
-      const eventType = asString(row.event_type) as EventType;
-      if (!["visit", "treatment", "vaccination", "diagnostic", "imaging", "episode"].includes(eventType)) {
+      const normalizedMeds = meds
+        .map((med) => {
+          const m = asRecord(med);
+          const name = asString(m.name);
+          if (!name) return null;
+          return {
+            name,
+            dose: asString(m.dose) || null,
+            frequency: asString(m.frequency) || null,
+            duration_days: asNonNegativeNumber(m.duration_days, 0) || null,
+            is_active: typeof m.is_active === "boolean" ? m.is_active : null,
+          } as ClinicalMedication;
+        })
+        .filter((value): value is ClinicalMedication => Boolean(value));
+      const normalizedLabs = labs
+        .map((lab) => {
+          const l = asRecord(lab);
+          const testName = asString(l.test_name);
+          const result = asString(l.result);
+          if (!testName || !result) return null;
+          return {
+            test_name: testName,
+            result,
+            unit: asString(l.unit) || null,
+            reference_range: asString(l.reference_range) || null,
+          } as ClinicalLabResult;
+        })
+        .filter((value): value is ClinicalLabResult => Boolean(value));
+      const eventType = normalizeExtractedEventType(asString(row.event_type), row);
+      if (!eventType) {
         return null;
       }
+
+      const descriptionSummary = asString(row.description_summary) || "Registro clínico detectado";
+      const diagnosis = asString(row.diagnosis) || null;
+      const eventTextContext = [
+        descriptionSummary,
+        diagnosis,
+        asString(row.professional_name),
+        asString(row.clinic_name),
+      ]
+        .filter(Boolean)
+        .join(" ");
+      const appointmentStatus = isAppointmentEventType(eventType)
+        ? normalizeAppointmentStatusValue(row.appointment_status, eventTextContext)
+        : null;
+      const appointmentTime = isAppointmentEventType(eventType)
+        ? sanitizeAppointmentTime(row.appointment_time ?? row.time) || extractAppointmentTimeFromText(eventTextContext)
+        : null;
+      const professionalName = isAppointmentEventType(eventType)
+        ? asString(row.professional_name) || extractProfessionalNameFromText(eventTextContext)
+        : null;
+      const clinicName = isAppointmentEventType(eventType)
+        ? asString(row.clinic_name) || extractClinicNameFromText(eventTextContext)
+        : null;
+      const appointmentSpecialty = isAppointmentEventType(eventType)
+        ? asString(row.appointment_specialty) || extractAppointmentSpecialtyFromText(eventTextContext)
+        : null;
+      const studySubtype = isStudyEventType(eventType)
+        ? inferStudySubtypeFromSignals({
+            rawStudySubtype: row.study_subtype,
+            imagingType: row.imaging_type,
+            labResults: normalizedLabs,
+            descriptionSummary,
+            diagnosis,
+          })
+        : null;
 
       return {
         event_type: eventType,
         event_date: asString(row.event_date) || null,
         date_confidence: clamp(asNonNegativeNumber(row.date_confidence, 0), 0, 100),
-        description_summary: asString(row.description_summary) || "Registro clínico detectado",
-        diagnosis: asString(row.diagnosis) || null,
-        medications: meds
-          .map((med) => {
-            const m = asRecord(med);
-            const name = asString(m.name);
-            if (!name) return null;
-            return {
-              name,
-              dose: asString(m.dose) || null,
-              frequency: asString(m.frequency) || null,
-              duration_days: asNonNegativeNumber(m.duration_days, 0) || null,
-              is_active: typeof m.is_active === "boolean" ? m.is_active : null,
-            } as ClinicalMedication;
-          })
-          .filter((value): value is ClinicalMedication => Boolean(value)),
-        lab_results: labs
-          .map((lab) => {
-            const l = asRecord(lab);
-            const testName = asString(l.test_name);
-            const result = asString(l.result);
-            if (!testName || !result) return null;
-            return {
-              test_name: testName,
-              result,
-              unit: asString(l.unit) || null,
-              reference_range: asString(l.reference_range) || null,
-            } as ClinicalLabResult;
-          })
-          .filter((value): value is ClinicalLabResult => Boolean(value)),
+        description_summary: descriptionSummary,
+        diagnosis,
+        medications: normalizedMeds,
+        lab_results: normalizedLabs,
         imaging_type: asString(row.imaging_type) || null,
+        study_subtype: studySubtype,
+        appointment_time: appointmentTime,
+        appointment_specialty: appointmentSpecialty,
+        professional_name: professionalName,
+        clinic_name: clinicName,
+        appointment_status: appointmentStatus,
         severity: ((): "mild" | "moderate" | "severe" | null => {
           const sev = asString(row.severity).toLowerCase();
           if (sev === "mild" || sev === "moderate" || sev === "severe") return sev;
@@ -1866,13 +3561,18 @@ function toClinicalOutput(json: Record<string, unknown> | null): ClinicalExtract
     })
     .filter((value): value is ClinicalEventExtraction => Boolean(value))
     .map((event) => {
-      const guarded = applyConstitutionalGuardrails(event);
+      const grounded = applyVeterinaryEvidencePriority({
+        event,
+        hints: evidenceHints,
+      });
+      const guarded = applyConstitutionalGuardrails(grounded);
       guarded.reviewReasons.forEach((reason) => constitutionalReviewReasons.add(reason));
       return guarded.event;
     });
 
   return {
-    is_clinical_content: json.is_clinical_content === true,
+    is_clinical_content:
+      json.is_clinical_content === true && !(evidenceHints.humanHealthcareNoise && !evidenceHints.preferStudyReport),
     confidence_overall: clamp(asNonNegativeNumber(json.confidence_overall, 0), 0, 100),
     detected_events: detectedEvents,
     narrative_summary: asString(json.narrative_summary),
@@ -1898,12 +3598,19 @@ function heuristicClinicalExtraction(extractedText: string, emailDate: string): 
   }
 
   const inferredType: EventType = normalized.includes("vacuna")
-    ? "vaccination"
+    ? "vaccination_record"
     : normalized.includes("dosis") || normalized.includes("tratamiento") || normalized.includes("prescrip")
-      ? "treatment"
-      : normalized.includes("turno")
-        ? "visit"
-        : "diagnostic";
+      ? "prescription_record"
+      : /\b(laboratorio|hemograma|bioquim|radiograf|ecograf|electrocard|resultado|koh|citolog|microscop)\b/i.test(normalized)
+        ? "study_report"
+      : /\b(turno|consulta|recordatorio|confirmaci[oó]n|cancelaci[oó]n|reprogramaci[oó]n)\b/i.test(normalized)
+        ? ((): EventType => {
+            const status = inferAppointmentStatusFromText(normalized);
+            if (status === "cancelled") return "appointment_cancellation";
+            if (status === "reminder") return "appointment_reminder";
+            return "appointment_confirmation";
+          })()
+        : "clinical_report";
 
   return {
     is_clinical_content: true,
@@ -1918,6 +3625,17 @@ function heuristicClinicalExtraction(extractedText: string, emailDate: string): 
         medications: [],
         lab_results: [],
         imaging_type: null,
+        study_subtype: inferredType === "study_report" ? inferStudySubtypeFromSignals({
+          descriptionSummary: extractedText,
+          diagnosis: null,
+          imagingType: null,
+          labResults: [],
+        }) : null,
+        appointment_time: isAppointmentEventType(inferredType) ? extractAppointmentTimeFromText(extractedText) : null,
+        appointment_specialty: isAppointmentEventType(inferredType) ? extractAppointmentSpecialtyFromText(extractedText) : null,
+        professional_name: isAppointmentEventType(inferredType) ? extractProfessionalNameFromText(extractedText) : null,
+        clinic_name: isAppointmentEventType(inferredType) ? extractClinicNameFromText(extractedText) : null,
+        appointment_status: isAppointmentEventType(inferredType) ? inferAppointmentStatusFromText(extractedText) : null,
         severity: null,
         confidence_score: 62,
       },
@@ -1949,7 +3667,11 @@ function heuristicClinicalClassification(input: ClinicalClassificationInput): Cl
     /\b(veterinari|vet|receta|prescrip|dosis|vacuna|turno|diagn[oó]stic|laboratorio|ecograf|radiograf|electrocard|tratamiento|medicaci[oó]n)\b/i;
   const hasClinicalAttachment = attachmentNamesContainClinicalSignal(input.attachmentMetadata || []);
   const hasNoise = hasStrongNonClinicalSignal(normalized);
-  const isClinical = (keywordRegex.test(normalized) || hasClinicalAttachment) && !(!hasClinicalAttachment && hasNoise);
+  const hasHumanHealthcareNoise = hasStrongHumanHealthcareSignal(normalized);
+  const hasVeterinaryEvidence = hasStrongVeterinaryEvidence(input);
+  const isClinical =
+    (keywordRegex.test(normalized) || hasClinicalAttachment || hasVeterinaryEvidence) &&
+    !(!hasClinicalAttachment && (hasNoise || hasHumanHealthcareNoise) && !hasVeterinaryEvidence);
   return {
     is_clinical: isClinical,
     confidence: isClinical ? 65 : 20,
@@ -1964,6 +3686,8 @@ async function classifyClinicalContentWithAi(
   const subject = asString(input.subject).slice(0, 500);
   const fromEmail = asString(input.fromEmail).slice(0, 320);
   const hasClinicalAttachment = attachmentNamesContainClinicalSignal(input.attachmentMetadata || []);
+  const hasHumanHealthcareNoise = hasStrongHumanHealthcareSignal(`${subject}\n${fromEmail}\n${bodyText}`);
+  const hasVeterinaryEvidence = hasStrongVeterinaryEvidence(input);
   const subjectLooksClinical =
     /\b(receta|prescrip|vacuna|diagn[oó]stic|laboratorio|ecograf|radiograf|electrocard|tratamiento|medicaci[oó]n|resultado|resultados)\b/i
       .test(subject);
@@ -1972,6 +3696,9 @@ async function classifyClinicalContentWithAi(
 
   if (!hasBody && !subject && !hasClinicalAttachment) {
     return { is_clinical: false, confidence: 0 };
+  }
+  if (hasHumanHealthcareNoise && !hasVeterinaryEvidence && !hasClinicalAttachment) {
+    return { is_clinical: false, confidence: 12 };
   }
 
   // Attachment-only and short-subject clinical mails are common in vet workflows.
@@ -2002,11 +3729,13 @@ async function classifyClinicalContentWithAi(
     "Rules:",
     "1) Set is_clinical=true ONLY if there is explicit veterinary medical evidence.",
     "2) Ignore non-clinical emails: promotions, pet food marketing, newsletters, ecommerce, banking, invoices/receipts without clinical findings.",
+    "2b) Ignore human-healthcare, obra social or NGO medical emails unless there is explicit evidence of veterinaria or mascota.",
     "3) Process as clinical when there is at least one of:",
     "- veterinary report / lab result / imaging finding",
     "- prescription with dose and frequency",
     "- vaccination record with date/lot/product/next due",
     "- clinical visit/control with medical context",
+    "3b) If an attachment/report indicates imaging or lab evidence, that outweighs generic logistics in the body.",
     "4) If uncertain, set is_clinical=false and confidence <= 40.",
     "5) If sender looks trusted but there is no clinical evidence, keep is_clinical=false.",
     "Known trusted sender hints (if present): Veterinaria Panda, EcoForm, Instituto de Gastroenterologia Veterinaria (IGV).",
@@ -2064,6 +3793,8 @@ async function classifyClinicalContentWithAi(
 async function extractClinicalEventsWithAi(args: {
   extractedText: string;
   emailDate: string;
+  sourceSubject: string;
+  sourceSender: string;
   petContext: Record<string, unknown>;
   attachmentMetadata: AttachmentMetadata[];
   sessionId?: string;
@@ -2081,7 +3812,7 @@ async function extractClinicalEventsWithAi(args: {
 
   const hasGemini = Boolean(asString(process.env.GEMINI_API_KEY));
   if (!hasGemini) {
-    return heuristicClinicalExtraction(args.extractedText, args.emailDate);
+    return heuristicClinicalExtraction(`${args.sourceSubject}\n${args.extractedText}`, args.emailDate);
   }
 
   try {
@@ -2096,6 +3827,8 @@ async function extractClinicalEventsWithAi(args: {
       const prompt = buildClinicalPrompt({
         extractedText: chunk,
         emailDate: args.emailDate,
+        sourceSubject: args.sourceSubject,
+        sourceSender: args.sourceSender,
         petContext: args.petContext,
         attachmentMetadata: args.attachmentMetadata,
         knowledgeContext: context.contextText,
@@ -2135,7 +3868,14 @@ async function extractClinicalEventsWithAi(args: {
         });
       }
       if (parsed) {
-        chunkOutputs.push(toClinicalOutput(parsed));
+        chunkOutputs.push(
+          toClinicalOutput(parsed, {
+            extractedText: chunk,
+            sourceSubject: args.sourceSubject,
+            sourceSender: args.sourceSender,
+            attachmentMetadata: args.attachmentMetadata,
+          })
+        );
       } else {
         // If JSON parsing still fails after retry, degrade gracefully to deterministic heuristic.
         chunkOutputs.push(heuristicClinicalExtraction(chunk, args.emailDate));
@@ -2469,7 +4209,10 @@ function isTrustedClinicalSender(emailHeader: string): boolean {
 function isBlockedClinicalDomain(email: string): boolean {
   const domain = extractSenderDomain(email);
   if (!domain) return false;
-  const blocklist = parseDomainListEnv("GMAIL_BLOCKED_SENDER_DOMAINS");
+  const blocklist = uniqueNonEmpty([
+    ...DEFAULT_HUMAN_BLOCKED_SENDER_DOMAINS,
+    ...parseDomainListEnv("GMAIL_BLOCKED_SENDER_DOMAINS"),
+  ]);
   if (blocklist.length === 0) return false;
   return blocklist.some((item) => domainMatches(domain, item));
 }
@@ -2527,6 +4270,124 @@ function speciesAliases(species: string): string[] {
   return [normalized];
 }
 
+function canonicalSpeciesKey(species: string): string | null {
+  const aliases = speciesAliases(species);
+  if (aliases.includes("dog")) return "dog";
+  if (aliases.includes("cat")) return "cat";
+  const normalized = normalizeTextForMatch(species);
+  return normalized || null;
+}
+
+function inferSpeciesSignalsFromCorpus(corpus: string): string[] {
+  const normalized = normalizeTextForMatch(corpus);
+  if (!normalized) return [];
+
+  const signals = new Set<string>();
+  const signalMap: Array<{ key: string; patterns: string[] }> = [
+    {
+      key: "dog",
+      patterns: ["dog", "perro", "canino", "canine", "vacuna canina", "sextuple canina", "parvovirus", "moquillo"],
+    },
+    {
+      key: "cat",
+      patterns: ["cat", "gato", "felino", "feline", "triple felina", "leucemia felina", "felv", "vif"],
+    },
+  ];
+
+  for (const entry of signalMap) {
+    if (entry.patterns.some((pattern) => normalized.includes(normalizeTextForMatch(pattern)))) {
+      signals.add(entry.key);
+    }
+  }
+
+  return [...signals];
+}
+
+function petMatchesByName(corpus: string, pet: Pick<PetCandidateProfile, "name">): boolean {
+  const normalizedCorpus = normalizeTextForMatch(corpus);
+  if (!normalizedCorpus) return false;
+
+  const normalizedName = normalizeTextForMatch(pet.name);
+  if (normalizedName && hasExactPhrase(normalizedCorpus, normalizedName)) return true;
+
+  const nameTokens = tokenizeIdentity(pet.name);
+  return nameTokens.length > 0 && hasAnyIdentityToken(normalizedCorpus, nameTokens);
+}
+
+function petMatchesByBreed(corpus: string, pet: Pick<PetCandidateProfile, "breed">): boolean {
+  const normalizedCorpus = normalizeTextForMatch(corpus);
+  if (!normalizedCorpus) return false;
+
+  const normalizedBreed = normalizeTextForMatch(pet.breed);
+  if (normalizedBreed && hasExactPhrase(normalizedCorpus, normalizedBreed)) return true;
+
+  const breedTokens = tokenizeIdentity(pet.breed);
+  return breedTokens.length > 0 && hasAnyIdentityToken(normalizedCorpus, breedTokens);
+}
+
+function petMatchesBySpeciesSignal(speciesSignals: string[], pet: Pick<PetCandidateProfile, "species">): boolean {
+  const canonicalSpecies = canonicalSpeciesKey(pet.species);
+  if (!canonicalSpecies) return false;
+  return speciesSignals.includes(canonicalSpecies);
+}
+
+function detectPetIdentityConflict(args: {
+  pets: PetCandidateProfile[];
+  chosenPet: PetCandidateProfile;
+  subjectText?: string;
+  bodyText?: string;
+}): {
+  hasConflict: boolean;
+  label: "IDENTITY_CONFLICT" | null;
+  reasons: string[];
+  speciesSignals: string[];
+  mentionedPetNames: string[];
+} {
+  const subjectCorpus = normalizeTextForMatch(asString(args.subjectText));
+  const bodyCorpus = normalizeTextForMatch(asString(args.bodyText));
+  const fullCorpus = `${subjectCorpus}\n${bodyCorpus}`.trim();
+  if (!fullCorpus) {
+    return {
+      hasConflict: false,
+      label: null,
+      reasons: [],
+      speciesSignals: [],
+      mentionedPetNames: [],
+    };
+  }
+
+  const reasons: string[] = [];
+  const speciesSignals = inferSpeciesSignalsFromCorpus(fullCorpus);
+  const mentionedPets = args.pets.filter((pet) => petMatchesByName(fullCorpus, pet));
+  const mentionedPetNames = uniqueNonEmpty(mentionedPets.map((pet) => pet.name));
+  const chosenSpecies = canonicalSpeciesKey(args.chosenPet.species);
+
+  if (mentionedPets.some((pet) => pet.id !== args.chosenPet.id)) {
+    const otherNames = uniqueNonEmpty(mentionedPets.filter((pet) => pet.id !== args.chosenPet.id).map((pet) => pet.name));
+    reasons.push(`other_pet_name_mentioned:${otherNames.join("|")}`);
+  }
+
+  if (speciesSignals.length > 0 && chosenSpecies && !speciesSignals.includes(chosenSpecies)) {
+    reasons.push(`species_conflict:${chosenSpecies}->${speciesSignals.join("|")}`);
+  }
+
+  const uniqueSpeciesMatch =
+    speciesSignals.length > 0
+      ? args.pets.filter((pet) => petMatchesBySpeciesSignal(speciesSignals, pet))
+      : [];
+  if (uniqueSpeciesMatch.length === 1 && uniqueSpeciesMatch[0].id !== args.chosenPet.id) {
+    reasons.push(`species_points_to_other_pet:${uniqueSpeciesMatch[0].name}`);
+  }
+
+  return {
+    hasConflict: reasons.length > 0,
+    label: reasons.length > 0 ? "IDENTITY_CONFLICT" : null,
+    reasons,
+    speciesSignals,
+    mentionedPetNames,
+  };
+}
+
 async function resolvePetConditionHints(petId: string, petData: Record<string, unknown>): Promise<string[]> {
   const direct = uniqueNonEmpty([
     ...listStringValues(petData.knownConditions),
@@ -2576,6 +4437,7 @@ function scorePetCandidate(args: {
   pet: PetCandidateProfile;
 }): PetCandidateScore {
   const { subjectCorpus, bodyCorpus, pet } = args;
+  const fullCorpus = `${subjectCorpus}\n${bodyCorpus}`.trim();
   let score = 0;
   let anchors = 0;
   const reasons: string[] = [];
@@ -2592,6 +4454,8 @@ function scorePetCandidate(args: {
   const nameTokens = tokenizeIdentity(pet.name);
   const breedTokens = tokenizeIdentity(pet.breed);
   const speciesHints = speciesAliases(pet.species);
+  const corpusSpeciesSignals = inferSpeciesSignalsFromCorpus(fullCorpus);
+  const canonicalPetSpecies = canonicalSpeciesKey(pet.species);
 
   if (name && hasExactPhrase(subjectCorpus, name)) add(140, `name_subject:${name}`, true);
   else if (name && hasExactPhrase(bodyCorpus, name)) add(110, `name_body:${name}`, true);
@@ -2604,6 +4468,9 @@ function scorePetCandidate(args: {
 
   if (speciesHints.some((alias) => hasExactPhrase(subjectCorpus, alias))) add(22, `species_subject:${pet.species}`);
   else if (speciesHints.some((alias) => hasExactPhrase(bodyCorpus, alias))) add(12, `species_body:${pet.species}`);
+  if (corpusSpeciesSignals.length > 0 && canonicalPetSpecies && !corpusSpeciesSignals.includes(canonicalPetSpecies)) {
+    add(-55, `species_exclusion:${canonicalPetSpecies}->${corpusSpeciesSignals.join("|")}`);
+  }
 
   for (const condition of conditionHints.slice(0, 3)) {
     if (condition.length < 4) continue;
@@ -2625,7 +4492,44 @@ function choosePetByHints(args: {
 }): PetCandidateScore | null {
   const subjectCorpus = normalizeTextForMatch(asString(args.hints?.subjectText));
   const bodyCorpus = normalizeTextForMatch(asString(args.hints?.bodyText));
+  const fullCorpus = `${subjectCorpus}\n${bodyCorpus}`.trim();
   if (!subjectCorpus && !bodyCorpus) return null;
+
+  const namedMatches = args.pets.filter((pet) => petMatchesByName(fullCorpus, pet));
+  if (namedMatches.length === 1) {
+    const forced = scorePetCandidate({ subjectCorpus, bodyCorpus, pet: namedMatches[0] });
+    return {
+      ...forced,
+      score: Math.max(forced.score, 120),
+      anchors: Math.max(forced.anchors, 1),
+      reasons: uniqueNonEmpty([...forced.reasons, `unique_name_match:${namedMatches[0].name}`]).slice(0, 8),
+    };
+  }
+
+  const breedMatches = args.pets.filter((pet) => petMatchesByBreed(fullCorpus, pet));
+  if (namedMatches.length === 0 && breedMatches.length === 1) {
+    const forced = scorePetCandidate({ subjectCorpus, bodyCorpus, pet: breedMatches[0] });
+    return {
+      ...forced,
+      score: Math.max(forced.score, 88),
+      anchors: Math.max(forced.anchors, 1),
+      reasons: uniqueNonEmpty([...forced.reasons, `unique_breed_match:${breedMatches[0].breed}`]).slice(0, 8),
+    };
+  }
+
+  const speciesSignals = inferSpeciesSignalsFromCorpus(fullCorpus);
+  const speciesMatches = speciesSignals.length > 0
+    ? args.pets.filter((pet) => petMatchesBySpeciesSignal(speciesSignals, pet))
+    : [];
+  if (namedMatches.length === 0 && breedMatches.length === 0 && speciesMatches.length === 1) {
+    const forced = scorePetCandidate({ subjectCorpus, bodyCorpus, pet: speciesMatches[0] });
+    return {
+      ...forced,
+      score: Math.max(forced.score, 72),
+      anchors: Math.max(forced.anchors, 1),
+      reasons: uniqueNonEmpty([...forced.reasons, `unique_species_match:${speciesMatches[0].species}`]).slice(0, 8),
+    };
+  }
 
   const ranked = args.pets
     .map((pet) => scorePetCandidate({ subjectCorpus, bodyCorpus, pet }))
@@ -2652,6 +4556,36 @@ function attachmentNamesContainClinicalSignal(metadata: AttachmentMetadata[]): b
     joined.includes("ecografia") ||
     joined.includes("ultrasound") ||
     joined.includes("ecg")
+  );
+}
+
+function hasStrongHumanHealthcareSignal(text: string): boolean {
+  const normalized = normalizeTextForMatch(text);
+  if (!normalized) return false;
+  const pattern =
+    /\b(huesped|vih|hiv|infectologia|infectolog|obra social|prep|hepati(?:tis)?|paciente humano|paciente adulto|adulto mayor|turno medico|turno médico|medicina humana|clinica humana|clínica humana|oncologia humana|ginecolog|urolog|mastograf|mamograf|papanicolau|pap smear|colonoscop|endoscop|resonancia de cerebro|tomografia de torax humano|tomografía de tórax humano|hospital italiano|hospital aleman|hospital alemán|sanatorio|osde|swiss medical|medicus|galeno|omint)\b/;
+  return pattern.test(normalized);
+}
+
+function hasStrongVeterinaryEvidence(args: {
+  subject?: string;
+  fromEmail?: string;
+  bodyText?: string;
+  attachmentMetadata?: AttachmentMetadata[];
+}): boolean {
+  const haystack = normalizeTextForMatch(
+    [
+      asString(args.subject),
+      asString(args.fromEmail),
+      asString(args.bodyText),
+      ...(args.attachmentMetadata || []).flatMap((row) => [row.filename, row.mimetype, row.normalized_mimetype || ""]),
+    ].join(" ")
+  );
+  if (!haystack) return false;
+  if (attachmentNamesContainClinicalSignal(args.attachmentMetadata || [])) return true;
+  if (isTrustedClinicalSender(asString(args.fromEmail)) || isVetDomain(asString(args.fromEmail))) return true;
+  return /\b(veterinari|vet\b|canino|canina|felino|felina|mascota|thor|loki|perro|gato|ecografia veterinaria|radiografia veterinaria|vacuna canina|vacuna felina|placa de torax|placa de tórax|ecocard|electrocard|rx)\b/.test(
+    haystack
   );
 }
 
@@ -2689,8 +4623,15 @@ function isCandidateClinicalEmail(args: {
   const hasLongBody = normalizeTextForMatch(args.bodyText).length >= MIN_LIGHTWEIGHT_BODY_LENGTH;
   const notMassMarketingSender = !isMassMarketingDomain(args.fromEmail);
   const hasNonClinicalNoise = hasStrongNonClinicalSignal(`${args.subject}\n${args.fromEmail}\n${args.bodyText}`);
+  const hasHumanHealthcareNoise = hasStrongHumanHealthcareSignal(`${args.subject}\n${args.fromEmail}\n${args.bodyText}`);
   const hasPromoSignal = /\b(promocion|promoción|promo|oferta|descuento|alimento|balanceado|accesorios)\b/.test(fullSearchCorpus);
   const hasAdministrativeOnlySignal = /\b(comprobante|factura|invoice|payment|pago|recibo)\b/.test(fullSearchCorpus);
+  const hasVeterinaryEvidence = hasStrongVeterinaryEvidence({
+    subject: args.subject,
+    fromEmail: args.fromEmail,
+    bodyText: args.bodyText,
+    attachmentMetadata: args.attachmentMetadata,
+  });
 
   const petTokens = [
     ...tokenizeIdentity(args.petName),
@@ -2711,11 +4652,15 @@ function isCandidateClinicalEmail(args: {
   if (hasBlockedSender) score -= 6;
   if (!notMassMarketingSender) score -= 4;
   if (hasNonClinicalNoise) score -= 3;
+  if (hasHumanHealthcareNoise) score -= 5;
 
   const hasClinicalAnchor = hasClinicalKeywords || hasClinicalAttachment || hasVetSender || hasTrustedSender;
 
   // Hard negative: sender bloqueado + sin evidencia fuerte clínica.
   if (hasBlockedSender && !hasClinicalAttachment && !hasPetMention) return false;
+
+  // Hard negative: correo humano / financiador sin evidencia veterinaria fuerte.
+  if (hasHumanHealthcareNoise && !hasVeterinaryEvidence && !hasPetMention) return false;
 
   // Hard negative: ruido no clínico fuerte sin anclas clínicas verificables.
   if (hasNonClinicalNoise && !hasClinicalAttachment && !hasVetSender && !hasTrustedSender) return false;
@@ -2810,6 +4755,9 @@ async function resolvePlanAndPet(args: {
   planType: UserPlanType;
   petId: string | null;
   petName: string | null;
+  fallbackPetId: string | null;
+  fallbackPetName: string | null;
+  activePetCount: number;
   petBirthDateIso: string | null;
   petAgeYears: number;
   petContext: Record<string, unknown>;
@@ -2836,11 +4784,35 @@ async function resolvePlanAndPet(args: {
     : "free";
 
   const canUseSmartPetHints = isSmartPetMatchingEnabled() && isEmailAllowedForQa(userEmail || "");
+  const ownerPets = await admin
+    .firestore()
+    .collection("pets")
+    .where("ownerId", "==", args.uid)
+    .limit(12)
+    .get();
+  const ownerPetRows = ownerPets.docs.map((doc) => ({ id: doc.id, data: asRecord(doc.data()) }));
+  const activePetCount = ownerPetRows.length;
+  const fallbackPet = activePetCount === 1 ? ownerPetRows[0] : null;
+  const petCandidates = canUseSmartPetHints
+    ? await Promise.all(
+      ownerPetRows.map(async (row) => ({
+        id: row.id,
+        data: row.data,
+        name: asString(row.data.name),
+        species: asString(row.data.species),
+        breed: asString(row.data.breed),
+        knownConditions: await resolvePetConditionHints(row.id, row.data),
+      } satisfies PetCandidateProfile))
+    )
+    : [];
   let petId = asString(args.preferredPetId) || null;
   let petData: Record<string, unknown> | null = null;
   let petResolutionDebug: Record<string, unknown> = {
     mode: petId ? "preferred_pet_id" : "unresolved",
     smart_matching_enabled: canUseSmartPetHints,
+    active_pet_count: activePetCount,
+    fallback_pet_id: fallbackPet?.id || null,
+    fallback_pet_name: asString(fallbackPet?.data?.name) || null,
   };
   if (petId) {
     const petSnap = await admin.firestore().collection("pets").doc(petId).get();
@@ -2851,37 +4823,23 @@ async function resolvePlanAndPet(args: {
         smart_matching_enabled: canUseSmartPetHints,
         chosen_pet_id: petId,
         chosen_pet_name: asString(petData.name) || null,
+        active_pet_count: activePetCount,
+        fallback_pet_id: fallbackPet?.id || null,
+        fallback_pet_name: asString(fallbackPet?.data?.name) || null,
       };
     } else {
       petResolutionDebug = {
         mode: "preferred_pet_missing",
         smart_matching_enabled: canUseSmartPetHints,
         requested_pet_id: petId,
+        active_pet_count: activePetCount,
+        fallback_pet_id: fallbackPet?.id || null,
+        fallback_pet_name: asString(fallbackPet?.data?.name) || null,
       };
     }
   }
   if (!petData) {
-    const ownerPets = await admin
-      .firestore()
-      .collection("pets")
-      .where("ownerId", "==", args.uid)
-      .limit(12)
-      .get();
-
-    if (canUseSmartPetHints && ownerPets.size > 1) {
-      const petCandidates = await Promise.all(
-        ownerPets.docs.map(async (doc) => {
-          const row = asRecord(doc.data());
-          return {
-            id: doc.id,
-            data: row,
-            name: asString(row.name),
-            species: asString(row.species),
-            breed: asString(row.breed),
-            knownConditions: await resolvePetConditionHints(doc.id, row),
-          } satisfies PetCandidateProfile;
-        })
-      );
+    if (canUseSmartPetHints && petCandidates.length > 1) {
       const matched = choosePetByHints({
         pets: petCandidates.filter((row) => Boolean(row.name)),
         hints: args.contextHints,
@@ -2898,38 +4856,81 @@ async function resolvePlanAndPet(args: {
           score: matched.score,
           anchors: matched.anchors,
           reasons: matched.reasons.slice(0, 8),
+          active_pet_count: activePetCount,
+          fallback_pet_id: fallbackPet?.id || null,
+          fallback_pet_name: asString(fallbackPet?.data?.name) || null,
         };
       } else {
         petResolutionDebug = {
           mode: "smart_match_ambiguous",
           smart_matching_enabled: true,
           candidate_count: petCandidates.length,
+          active_pet_count: activePetCount,
+          fallback_pet_id: fallbackPet?.id || null,
+          fallback_pet_name: asString(fallbackPet?.data?.name) || null,
         };
       }
     }
 
-    if (!petData && ownerPets.size === 1) {
-      const only = ownerPets.docs[0];
-      petId = only.id;
-      petData = asRecord(only.data());
+    if (!petData && fallbackPet) {
+      petId = fallbackPet.id;
+      petData = fallbackPet.data;
       petResolutionDebug = {
         mode: "single_pet_fallback",
         smart_matching_enabled: canUseSmartPetHints,
         chosen_pet_id: petId,
         chosen_pet_name: asString(petData.name) || null,
+        active_pet_count: activePetCount,
+        fallback_pet_id: fallbackPet.id,
+        fallback_pet_name: asString(fallbackPet.data.name) || null,
       };
-    } else if (!petData && ownerPets.size > 1) {
+    } else if (!petData && activePetCount > 1) {
       petId = null;
       petData = null;
       petResolutionDebug = {
         mode: "ambiguous_multi_pet",
         smart_matching_enabled: canUseSmartPetHints,
-        candidate_count: ownerPets.size,
+        candidate_count: activePetCount,
+        active_pet_count: activePetCount,
+        fallback_pet_id: fallbackPet?.id || null,
+        fallback_pet_name: asString(fallbackPet?.data?.name) || null,
       };
-    } else if (!petData && ownerPets.empty) {
+    } else if (!petData && activePetCount === 0) {
       petResolutionDebug = {
         mode: "no_pet_available",
         smart_matching_enabled: canUseSmartPetHints,
+        active_pet_count: activePetCount,
+        fallback_pet_id: null,
+        fallback_pet_name: null,
+      };
+    }
+  }
+
+  if (petData && canUseSmartPetHints && petCandidates.length > 1) {
+    const chosenCandidate =
+      petCandidates.find((candidate) => candidate.id === petId) || {
+        id: petId || "unknown_pet",
+        data: petData,
+        name: asString(petData.name),
+        species: asString(petData.species),
+        breed: asString(petData.breed),
+        knownConditions: await resolvePetConditionHints(petId || "", petData),
+      };
+    const identityConflict = detectPetIdentityConflict({
+      pets: petCandidates.filter((row) => Boolean(row.name)),
+      chosenPet: chosenCandidate,
+      subjectText: args.contextHints?.subjectText,
+      bodyText: args.contextHints?.bodyText,
+    });
+    if (identityConflict.hasConflict) {
+      petResolutionDebug = {
+        ...petResolutionDebug,
+        identity_conflict: true,
+        identity_conflict_label: identityConflict.label,
+        identity_conflict_reasons: identityConflict.reasons,
+        species_signals: identityConflict.speciesSignals,
+        mentioned_pet_names: identityConflict.mentionedPetNames,
+        requires_human_review: true,
       };
     }
   }
@@ -2942,6 +4943,9 @@ async function resolvePlanAndPet(args: {
     planType,
     petId,
     petName: asString((petData || {}).name) || null,
+    fallbackPetId: fallbackPet?.id || null,
+    fallbackPetName: asString(fallbackPet?.data?.name) || null,
+    activePetCount,
     petBirthDateIso,
     petAgeYears,
     petContext: {
@@ -2949,6 +4953,11 @@ async function resolvePlanAndPet(args: {
       species: asString((petData || {}).species) || null,
       breed: asString((petData || {}).breed) || null,
       age_years: petAgeYears,
+      active_pet_count: activePetCount,
+      fallback_pet_id: fallbackPet?.id || null,
+      fallback_pet_name: asString(fallbackPet?.data?.name) || null,
+      identity_conflict: petResolutionDebug.identity_conflict === true,
+      identity_conflict_label: asString(petResolutionDebug.identity_conflict_label) || null,
       known_conditions: Array.isArray((petData || {}).knownConditions)
         ? ((petData || {}).knownConditions as unknown[]).filter((row): row is string => typeof row === "string")
         : [],
@@ -3005,6 +5014,9 @@ async function createOrUpdateUserEmailConfig(args: {
     plan_type: planAndPet.planType,
     pet_id: planAndPet.petId,
     pet_name: planAndPet.petName,
+    fallback_pet_id: planAndPet.fallbackPetId,
+    fallback_pet_name: planAndPet.fallbackPetName,
+    active_pet_count: planAndPet.activePetCount,
     pet_birthdate: planAndPet.petBirthDateIso,
     pet_age_years: planAndPet.petAgeYears,
     max_lookback_months: maxLookbackMonths,
@@ -3030,6 +5042,9 @@ async function createOrUpdateUserEmailConfig(args: {
         lastHistoryId: config.last_history_id,
         petId: config.pet_id,
         petName: config.pet_name,
+        fallbackPetId: config.fallback_pet_id || null,
+        fallbackPetName: config.fallback_pet_name || null,
+        activePetCount: config.active_pet_count || 0,
         maxLookbackMonths: config.max_lookback_months,
         maxMailsPerSync: config.max_mails_per_sync,
         ingestionStatus: config.ingestion_status,
@@ -3120,11 +5135,12 @@ async function createIngestionSession(args: {
   preferredPetId?: string | null;
 }): Promise<string> {
   const { afterDate, beforeDate } = buildSessionDateWindow(args.config.max_lookback_months);
-  const preferredPetId = asString(args.preferredPetId) || args.config.pet_id;
+  const preferredPetId = asString(args.preferredPetId) || args.config.pet_id || args.config.fallback_pet_id || null;
+  const preferredPetName = args.config.pet_name || args.config.fallback_pet_name || null;
   const query = buildGmailSearchQuery({
     afterDate,
     beforeDate,
-    petName: args.config.pet_name,
+    petName: preferredPetName,
     petId: preferredPetId,
   });
   const fallbackQuery = buildGmailSearchQuery({
@@ -3140,6 +5156,10 @@ async function createIngestionSession(args: {
       session_id: sessionId,
       user_id: args.uid,
       pet_id: preferredPetId || null,
+      pet_name: preferredPetName,
+      fallback_pet_id: args.config.fallback_pet_id || null,
+      fallback_pet_name: args.config.fallback_pet_name || null,
+      active_pet_count: args.config.active_pet_count || 0,
       status: "queued" as QueueStatus,
       query,
       fallback_query: fallbackQuery,
@@ -3873,6 +5893,8 @@ async function processAiQueueJob(
     },
   });
   const effectivePetId = planAndPet.petId || petId;
+  const identityConflict = planAndPet.petResolutionDebug.identity_conflict === true;
+  const identityConflictReason = identityConflict ? "IDENTITY_CONFLICT" : null;
   const sessionSettingsSnap = await admin.firestore().collection("gmail_ingestion_sessions").doc(sessionId).get();
   const sessionSettings = asRecord(sessionSettingsSnap.data());
   const dedupDisabled = sessionSettings.qa_disable_dedup === true;
@@ -3882,6 +5904,8 @@ async function processAiQueueJob(
   const clinical = await extractClinicalEventsWithAi({
     extractedText,
     emailDate: rawDoc.emailDate,
+    sourceSubject,
+    sourceSender,
     petContext: planAndPet.petContext,
     attachmentMetadata,
     sessionId,
@@ -3898,12 +5922,19 @@ async function processAiQueueJob(
       /\b(link|enlace|adjunto|attachment|pdf|drive|resultados|receta|estudio)\b/i.test(
         `${sourceSubject}\n${rawDoc.bodyText}\n${lowConfidenceReason}`
       );
-    const shouldRouteToReview = clinical.is_clinical_content || looksLikeExternalClinicalLink || externalLinkRequiresLogin;
+    const shouldRouteToReview =
+      clinical.is_clinical_content || looksLikeExternalClinicalLink || externalLinkRequiresLogin || identityConflict;
     const preferredAttachment = selectBestAttachmentForReview(attachmentMetadata);
+    const lowConfidenceReviewReason =
+      identityConflictReason ||
+      lowConfidenceReason ||
+      (externalLinkRequiresLogin ? "external_link_login_required" : "low_confidence_external_reference");
 
     if (shouldRouteToReview) {
+      const fallbackOperationalEvent =
+        heuristicClinicalExtraction(`${sourceSubject}\n${rawDoc.bodyText}`, rawDoc.emailDate).detected_events[0] || null;
       const syntheticEvent: ClinicalEventExtraction = {
-        event_type: "visit",
+        event_type: fallbackOperationalEvent?.event_type || "clinical_report",
         event_date: toIsoDateOnly(parseIsoDate(rawDoc.emailDate) || new Date()),
         date_confidence: 40,
         description_summary:
@@ -3913,6 +5944,12 @@ async function processAiQueueJob(
         medications: [],
         lab_results: [],
         imaging_type: null,
+        study_subtype: fallbackOperationalEvent?.study_subtype || null,
+        appointment_time: fallbackOperationalEvent?.appointment_time || null,
+        appointment_specialty: fallbackOperationalEvent?.appointment_specialty || null,
+        professional_name: fallbackOperationalEvent?.professional_name || null,
+        clinic_name: fallbackOperationalEvent?.clinic_name || null,
+        appointment_status: fallbackOperationalEvent?.appointment_status || null,
         severity: null,
         confidence_score: clamp(clinical.confidence_overall, 0, 100),
       };
@@ -3927,7 +5964,7 @@ async function processAiQueueJob(
         event: syntheticEvent,
         overallConfidence: clinical.confidence_overall,
         narrativeSummary: clinical.narrative_summary || lowConfidenceReason,
-        reason: lowConfidenceReason || (externalLinkRequiresLogin ? "external_link_login_required" : "low_confidence_external_reference"),
+        reason: lowConfidenceReviewReason,
       });
       await upsertSyncReviewPendingAction({
         uid,
@@ -3936,7 +5973,7 @@ async function processAiQueueJob(
         sourceEmailId: messageId,
         event: syntheticEvent,
         narrativeSummary: clinical.narrative_summary,
-        reason: lowConfidenceReason || (externalLinkRequiresLogin ? "external_link_login_required" : "low_confidence_external_reference"),
+        reason: lowConfidenceReviewReason,
         gmailReviewId,
         generatedFromEventId: null,
         sourceAttachment: preferredAttachment,
@@ -3956,7 +5993,7 @@ async function processAiQueueJob(
       }],
       confidence01: clamp(clinical.confidence_overall / 100, 0, 1),
       reviewRequired: shouldRouteToReview,
-      reasonIfReviewNeeded: lowConfidenceReason || (externalLinkRequiresLogin ? "external_link_login_required" : null),
+      reasonIfReviewNeeded: lowConfidenceReviewReason,
       sourceMetadata: {
         source: "gmail",
         import_session_id: sessionId,
@@ -3990,7 +6027,15 @@ async function processAiQueueJob(
         ai_result: {
           is_clinical_content: clinical.is_clinical_content,
           confidence_overall: clinical.confidence_overall,
-          reason_if_review_needed: clinical.reason_if_review_needed,
+          reason_if_review_needed: identityConflictReason || clinical.reason_if_review_needed,
+        },
+        identity_resolution: {
+          pet_id: effectivePetId,
+          pet_name: planAndPet.petName,
+          fallback_pet_id: planAndPet.fallbackPetId,
+          fallback_pet_name: planAndPet.fallbackPetName,
+          active_pet_count: planAndPet.activePetCount,
+          pet_resolution: planAndPet.petResolutionDebug,
         },
         link_extraction: {
           links_detected: externalLinkExtraction.detectedCount,
@@ -4013,6 +6058,7 @@ async function processAiQueueJob(
   let createdForMessage = 0;
   let reviewsForMessage = 0;
   let duplicatesForMessage = 0;
+  const preferredAttachment = selectBestAttachmentForReview(attachmentMetadata);
 
   for (const event of clinical.detected_events) {
     if (!dedupDisabled) {
@@ -4047,7 +6093,7 @@ async function processAiQueueJob(
           reason: `semantic_duplicate_candidate_${semanticDuplicate.score}`,
           gmailReviewId,
           generatedFromEventId: null,
-          sourceAttachment: selectBestAttachmentForReview(attachmentMetadata),
+          sourceAttachment: preferredAttachment,
         });
         await storeKnowledgeSignal({
           uid,
@@ -4071,10 +6117,11 @@ async function processAiQueueJob(
     }
 
     const missingDoseInTreatment =
-      event.event_type === "treatment" &&
+      isPrescriptionEventType(event.event_type) &&
       event.medications.some((row) => !asString(row.dose) || !asString(row.frequency));
     const autoIngestThreshold = getAutoIngestConfidenceThreshold();
     const requiresReview =
+      identityConflict ||
       clinical.confidence_overall < autoIngestThreshold ||
       event.confidence_score < autoIngestThreshold ||
       clinical.requires_human_review ||
@@ -4083,6 +6130,7 @@ async function processAiQueueJob(
 
     if (requiresReview) {
       const reviewReason =
+        identityConflictReason ||
         clinical.reason_if_review_needed ||
         (externalLinkRequiresLogin ? "external_link_login_required" : "") ||
         (missingDoseInTreatment ? "missing_treatment_dose_or_frequency" : "confidence_below_auto_ingest_threshold");
@@ -4113,6 +6161,7 @@ async function processAiQueueJob(
           narrativeSummary: clinical.narrative_summary,
           requiresConfirmation: true,
           reviewReason,
+          sourceAttachment: preferredAttachment,
         });
         canonicalEventIdForResolver = ingestionResult.canonicalEventId;
         if (effectivePetId && ingestionResult.blockedMedicationCount > 0) {
@@ -4137,7 +6186,7 @@ async function processAiQueueJob(
             sourceEmailId: messageId,
             event,
             reviewId,
-            sourceAttachment: selectBestAttachmentForReview(attachmentMetadata),
+            sourceAttachment: preferredAttachment,
           });
         }
         createdForMessage += 1;
@@ -4152,7 +6201,7 @@ async function processAiQueueJob(
           reason: reviewReason,
           gmailReviewId,
           generatedFromEventId: canonicalEventIdForResolver,
-          sourceAttachment: selectBestAttachmentForReview(attachmentMetadata),
+          sourceAttachment: preferredAttachment,
         });
       }
       await mirrorBrainResolution({
@@ -4175,8 +6224,8 @@ async function processAiQueueJob(
           review_id: gmailReviewId,
           canonical_event_id: canonicalEventIdForResolver,
           ui_hint: {
-            image_fragment_url: selectBestAttachmentForReview(attachmentMetadata)?.storage_signed_url || null,
-            source_file_name: selectBestAttachmentForReview(attachmentMetadata)?.filename || null,
+            image_fragment_url: preferredAttachment?.storage_signed_url || null,
+            source_file_name: preferredAttachment?.filename || null,
           },
         },
       });
@@ -4205,6 +6254,7 @@ async function processAiQueueJob(
       event,
       narrativeSummary: clinical.narrative_summary,
       requiresConfirmation: false,
+      sourceAttachment: preferredAttachment,
     });
     await mirrorBrainResolution({
       uid,
@@ -4225,8 +6275,8 @@ async function processAiQueueJob(
         attachment_count: attachmentMetadata.length,
         canonical_event_id: ingestionResult.canonicalEventId,
         ui_hint: {
-          source_file_name: selectBestAttachmentForReview(attachmentMetadata)?.filename || null,
-          image_fragment_url: selectBestAttachmentForReview(attachmentMetadata)?.storage_signed_url || null,
+          source_file_name: preferredAttachment?.filename || null,
+          image_fragment_url: preferredAttachment?.storage_signed_url || null,
         },
       },
     });
@@ -4269,7 +6319,15 @@ async function processAiQueueJob(
         detected_events_count: clinical.detected_events.length,
         narrative_summary: clinical.narrative_summary.slice(0, 1200),
         requires_human_review: clinical.requires_human_review,
-        reason_if_review_needed: clinical.reason_if_review_needed,
+        reason_if_review_needed: identityConflictReason || clinical.reason_if_review_needed,
+      },
+      identity_resolution: {
+        pet_id: effectivePetId,
+        pet_name: planAndPet.petName,
+        fallback_pet_id: planAndPet.fallbackPetId,
+        fallback_pet_name: planAndPet.fallbackPetName,
+        active_pet_count: planAndPet.activePetCount,
+        pet_resolution: planAndPet.petResolutionDebug,
       },
       link_extraction: {
         links_detected: externalLinkExtraction.detectedCount,
@@ -4535,12 +6593,15 @@ async function persistReviewEvent(args: {
   return docId;
 }
 
-function toMedicalEventDocumentType(eventType: EventType):
-  "appointment" | "medication" | "vaccine" | "lab_test" | "other" {
-  if (eventType === "visit") return "appointment";
-  if (eventType === "treatment") return "medication";
-  if (eventType === "vaccination") return "vaccine";
-  if (eventType === "diagnostic" || eventType === "imaging") return "lab_test";
+function toMedicalEventDocumentType(event: ClinicalEventExtraction):
+  "appointment" | "medication" | "vaccine" | "lab_test" | "xray" | "echocardiogram" | "electrocardiogram" | "checkup" | "other" {
+  if (isAppointmentEventType(event.event_type)) return "appointment";
+  if (isPrescriptionEventType(event.event_type)) return "medication";
+  if (isVaccinationEventType(event.event_type)) return "vaccine";
+  if (isStudyEventType(event.event_type)) {
+    return event.study_subtype === "imaging" ? inferImagingDocumentType(event) : "lab_test";
+  }
+  if (event.event_type === "clinical_report") return "checkup";
   return "other";
 }
 
@@ -4549,28 +6610,20 @@ function buildDefaultExtractedData(args: {
   sourceDate: string;
   sourceSubject: string;
   sourceSender: string;
+  sourceAttachment?: AttachmentMetadata | null;
 }): Record<string, unknown> {
   const eventDate = args.event.event_date || toIsoDateOnly(new Date(args.sourceDate));
-  const observations =
-    args.event.event_type === "visit" || args.event.event_type === "episode"
-      ? (() => {
-          const summary = asString(args.event.description_summary);
-          if (!summary) return null;
-          const normalizedSummary = normalizeClinicalToken(summary);
-          const normalizedDiagnosis = normalizeClinicalToken(asString(args.event.diagnosis));
-          if (normalizedDiagnosis && normalizedSummary.includes(normalizedDiagnosis)) return null;
-          if (STRUCTURED_DIAGNOSIS_HINT_REGEX.test(normalizedSummary) || HISTORICAL_ONLY_SIGNAL_REGEX.test(normalizedSummary)) {
-            return null;
-          }
-          return summary;
-        })()
-      : null;
+  const documentType = toMedicalEventDocumentType(args.event);
+  const confidence =
+    args.event.confidence_score >= 85 ? "high" : args.event.confidence_score >= 60 ? "medium" : "low";
+  const appointmentConfidence =
+    args.event.date_confidence >= 85 ? "high" : args.event.date_confidence >= 60 ? "medium" : "low";
   const meds = args.event.medications.map((med) => ({
     name: med.name,
     dosage: med.dose,
     frequency: med.frequency,
     duration: med.duration_days ? `${med.duration_days} días` : null,
-    confidence: args.event.confidence_score >= 85 ? "high" : args.event.confidence_score >= 60 ? "medium" : "low",
+    confidence,
   }));
 
   const findings = args.event.lab_results.map((row) => ({
@@ -4578,40 +6631,72 @@ function buildDefaultExtractedData(args: {
     value: row.result,
     unit: row.unit,
     referenceRange: sanitizeReferenceRange(row.reference_range, row.result),
-    confidence: args.event.confidence_score >= 85 ? "high" : args.event.confidence_score >= 60 ? "medium" : "low",
+    confidence,
   }));
+  const suggestedTitle = buildCanonicalEventTitle(args.event).slice(0, 120);
+  const appointmentLabel = deriveAppointmentLabel(args.event) || suggestedTitle;
+  const sourceStorageUri = asString(args.sourceAttachment?.storage_uri) || null;
+  const sourceStoragePath = asString(args.sourceAttachment?.storage_path) || null;
+  const sourceStorageSignedUrl = asString(args.sourceAttachment?.storage_signed_url) || null;
+  const sourceFileName = asString(args.sourceAttachment?.filename) || null;
+  const sourceMimeType = asString(args.sourceAttachment?.mimetype) || null;
+  const detectedAppointments = isAppointmentEventType(args.event.event_type)
+    ? [
+        {
+          date: eventDate,
+          time: args.event.appointment_time,
+          title: appointmentLabel,
+          specialty: args.event.appointment_specialty,
+          clinic: args.event.clinic_name,
+          provider: args.event.professional_name,
+          status: args.event.appointment_status,
+          confidence: appointmentConfidence,
+        },
+      ]
+    : [];
 
   return {
-    documentType: toMedicalEventDocumentType(args.event.event_type),
-    documentTypeConfidence: args.event.confidence_score >= 85 ? "high" : args.event.confidence_score >= 60 ? "medium" : "low",
+    documentType,
+    documentTypeConfidence: confidence,
     eventDate,
-    eventDateConfidence: args.event.date_confidence >= 85 ? "high" : args.event.date_confidence >= 60 ? "medium" : "low",
-    appointmentTime: null,
-    detectedAppointments: [],
-    clinic: null,
-    provider: null,
-    providerConfidence: "not_detected",
+    eventDateConfidence: appointmentConfidence,
+    appointmentTime: args.event.appointment_time,
+    detectedAppointments,
+    clinic: args.event.clinic_name,
+    provider: args.event.professional_name,
+    providerConfidence: args.event.professional_name ? confidence : "not_detected",
     diagnosis: args.event.diagnosis,
     diagnosisConfidence: args.event.diagnosis ? "medium" : "not_detected",
-    observations,
-    observationsConfidence: observations
-      ? args.event.confidence_score >= 85
-        ? "high"
-        : args.event.confidence_score >= 60
-          ? "medium"
-          : "low"
-      : "not_detected",
+    observations: null,
+    observationsConfidence: "not_detected",
     medications: meds,
     nextAppointmentDate: null,
     nextAppointmentReason: null,
     nextAppointmentConfidence: "not_detected",
-    suggestedTitle: args.event.description_summary.slice(0, 120),
+    suggestedTitle,
     aiGeneratedSummary: args.event.description_summary,
     measurements: findings,
+    taxonomyEventType: args.event.event_type,
+    taxonomyRoute:
+      isAppointmentEventType(args.event.event_type)
+        ? "operational_appointment"
+        : isStudyEventType(args.event.event_type)
+          ? "study_report"
+          : isPrescriptionEventType(args.event.event_type)
+            ? "prescription_record"
+            : isVaccinationEventType(args.event.event_type)
+              ? "vaccination_record"
+              : "clinical_report",
+    appointmentStatus: args.event.appointment_status,
+    studySubtype: args.event.study_subtype,
     sourceReceivedAt: args.sourceDate,
     sourceSubject: args.sourceSubject,
     sourceSender: args.sourceSender,
-    sourceFileName: null,
+    sourceFileName,
+    sourceStorageUri,
+    sourceStoragePath,
+    sourceStorageSignedUrl,
+    sourceMimeType,
   };
 }
 
@@ -4788,12 +6873,13 @@ async function upsertIncompleteTreatmentPendingAction(args: {
 
 function buildSyncReviewTitle(event: ClinicalEventExtraction): string {
   const eventLabel: Record<EventType, string> = {
-    visit: "consulta",
-    treatment: "tratamiento",
-    vaccination: "vacuna",
-    diagnostic: "estudio",
-    imaging: "imagen",
-    episode: "episodio",
+    appointment_confirmation: "turno confirmado",
+    appointment_reminder: "recordatorio de turno",
+    appointment_cancellation: "cancelación de turno",
+    clinical_report: "informe clínico",
+    study_report: "estudio",
+    prescription_record: "receta",
+    vaccination_record: "vacuna",
   };
   const typeLabel = eventLabel[event.event_type] || "registro";
   return `Revisar ${typeLabel} detectado por email`;
@@ -4801,8 +6887,17 @@ function buildSyncReviewTitle(event: ClinicalEventExtraction): string {
 
 function buildReviewReasonCopy(reason: string): string {
   const normalized = normalizeClinicalToken(reason);
+  if (normalized.includes("identity_conflict")) {
+    return "La identidad de la mascota entra en conflicto con el contenido del correo.";
+  }
   if (normalized.includes("missing_treatment_dose_or_frequency")) {
     return "Falta confirmar dosis o frecuencia del tratamiento.";
+  }
+  if (normalized.includes("incomplete_appointment_details")) {
+    return "Faltan hora, profesional, clínica o estado del turno para consolidarlo.";
+  }
+  if (normalized.includes("study_subtype_undetermined")) {
+    return "No se pudo distinguir con seguridad si el estudio es laboratorio o imágenes.";
   }
   if (normalized.includes("possible_clinical_conflict")) {
     return "Podría contradecir el historial clínico actual.";
@@ -5080,9 +7175,9 @@ async function storeKnowledgeSignal(args: {
 }
 
 function mapEventTypeToBrainCategory(eventType: EventType): string {
-  if (eventType === "treatment") return "Medication";
-  if (eventType === "vaccination") return "Vaccine";
-  if (eventType === "diagnostic" || eventType === "imaging") return "Diagnostic";
+  if (eventType === "prescription_record") return "Medication";
+  if (eventType === "vaccination_record") return "Vaccine";
+  if (eventType === "study_report") return "Diagnostic";
   return "ClinicalEvent";
 }
 
@@ -5173,6 +7268,110 @@ async function mirrorBrainResolution(args: {
   }
 }
 
+function appointmentStatusToCollectionStatus(status: AppointmentEventStatus): "upcoming" | "completed" | "cancelled" {
+  if (status === "cancelled") return "cancelled";
+  return "upcoming";
+}
+
+async function findExistingOperationalAppointmentEvent(args: {
+  petId: string;
+  eventDate: string;
+  appointmentTime: string | null;
+  professionalName: string | null;
+  clinicName: string | null;
+  appointmentReason: string;
+}): Promise<string | null> {
+  const snap = await admin.firestore().collection("medical_events").where("petId", "==", args.petId).limit(60).get();
+  let bestMatch: { id: string; score: number } | null = null;
+
+  for (const doc of snap.docs) {
+    const row = asRecord(doc.data());
+    const extracted = asRecord(row.extractedData);
+    if (asString(extracted.documentType) !== "appointment") continue;
+
+    const existingDate = asString(extracted.eventDate) || asString(row.eventDate) || null;
+    const existingTime = asString(extracted.appointmentTime) || null;
+    const existingProvider = asString(extracted.provider) || "";
+    const existingClinic = asString(extracted.clinic) || "";
+    const existingReason =
+      asString(extracted.suggestedTitle) ||
+      asString(row.title) ||
+      asString(asRecord((Array.isArray(extracted.detectedAppointments) ? extracted.detectedAppointments[0] : null)).title) ||
+      "";
+
+    const dateScore = existingDate === args.eventDate ? 1 : dateProximityScore(args.eventDate, existingDate);
+    const timeScore =
+      args.appointmentTime && existingTime
+        ? (args.appointmentTime === existingTime ? 1 : 0)
+        : 0.35;
+    const providerScore = args.professionalName ? jaccardSimilarity(args.professionalName, existingProvider) : 0.35;
+    const clinicScore = args.clinicName ? jaccardSimilarity(args.clinicName, existingClinic) : 0.35;
+    const reasonScore = args.appointmentReason ? jaccardSimilarity(args.appointmentReason, existingReason) : 0.35;
+    const total = (dateScore * 0.4) + (timeScore * 0.2) + (providerScore * 0.15) + (clinicScore * 0.1) + (reasonScore * 0.15);
+
+    if (!bestMatch || total > bestMatch.score) {
+      bestMatch = { id: doc.id, score: total };
+    }
+  }
+
+  return bestMatch && bestMatch.score >= 0.7 ? bestMatch.id : null;
+}
+
+async function upsertOperationalAppointmentProjection(args: {
+  appointmentEventId: string;
+  petId: string;
+  uid: string;
+  title: string;
+  eventDate: string;
+  event: ClinicalEventExtraction;
+  narrativeSummary: string;
+  sourceEmailId: string;
+  sourceTruthLevel: string;
+  effectiveRequiresConfirmation: boolean;
+  nowIso: string;
+}): Promise<void> {
+  const existingAppointmentSnap = await admin
+    .firestore()
+    .collection("appointments")
+    .where("sourceEventId", "==", args.appointmentEventId)
+    .limit(1)
+    .get();
+
+  const appointmentId = existingAppointmentSnap.empty
+    ? `gmail_appt_${sha256(args.appointmentEventId).slice(0, 16)}`
+    : existingAppointmentSnap.docs[0].id;
+
+  await admin.firestore().collection("appointments").doc(appointmentId).set(
+    {
+      id: appointmentId,
+      petId: args.petId,
+      userId: args.uid,
+      ownerId: args.uid,
+      sourceEventId: args.appointmentEventId,
+      autoGenerated: true,
+      type: "checkup",
+      title: args.title.slice(0, 120),
+      date: args.eventDate,
+      time: args.event.appointment_time || null,
+      veterinarian: args.event.professional_name || null,
+      clinic: args.event.clinic_name || null,
+      status: appointmentStatusToCollectionStatus(args.event.appointment_status),
+      notes: args.narrativeSummary.slice(0, 1200),
+      createdAt: existingAppointmentSnap.empty ? args.nowIso : asString(existingAppointmentSnap.docs[0].get("createdAt")) || args.nowIso,
+      updatedAt: args.nowIso,
+      source: "email_import",
+      source_email_id: args.sourceEmailId,
+      requires_confirmation: args.effectiveRequiresConfirmation,
+      source_truth_level: args.sourceTruthLevel,
+      validated_by_human: false,
+      protocolSnapshotFrozenAt: existingAppointmentSnap.empty
+        ? args.nowIso
+        : asString(existingAppointmentSnap.docs[0].get("protocolSnapshotFrozenAt")) || args.nowIso,
+    },
+    { merge: true }
+  );
+}
+
 async function ingestEventToDomain(args: {
   uid: string;
   petId: string | null;
@@ -5184,6 +7383,7 @@ async function ingestEventToDomain(args: {
   narrativeSummary: string;
   requiresConfirmation: boolean;
   reviewReason?: string | null;
+  sourceAttachment?: AttachmentMetadata | null;
 }): Promise<{
   domainType: DomainIngestionType;
   canonicalEventId: string;
@@ -5192,9 +7392,9 @@ async function ingestEventToDomain(args: {
   const nowIso = getNowIso();
   const petId = args.petId || "";
   const eventDate = args.event.event_date || toIsoDateOnly(new Date(args.sourceDate));
-  const title = args.event.description_summary || "Registro clínico importado desde email";
+  const title = buildCanonicalEventTitle(args.event);
   const incompleteTreatmentMeds =
-    args.event.event_type === "treatment"
+    isPrescriptionEventType(args.event.event_type)
       ? args.event.medications.filter((medication) => !medicationHasDoseAndFrequency(medication))
       : [];
   const hasIncompleteTreatmentMeds = incompleteTreatmentMeds.length > 0;
@@ -5213,24 +7413,67 @@ async function ingestEventToDomain(args: {
     sourceDate: args.sourceDate,
     sourceSubject: args.sourceSubject,
     sourceSender: args.sourceSender,
+    sourceAttachment: args.sourceAttachment,
   });
+  const sourceSignedUrl = asString(args.sourceAttachment?.storage_signed_url) || "";
+  const sourceMimeType = asString(args.sourceAttachment?.mimetype).toLowerCase();
+  const inferredFileType = sourceMimeType.includes("pdf") ? "pdf" : sourceMimeType.startsWith("image/") ? "image" : "pdf";
   const treatmentMissingFields = incompleteTreatmentMeds.map((medication) => ({
     medication: asString(medication.name) || null,
     missingDose: !asString(medication.dose),
     missingFrequency: !asString(medication.frequency),
   }));
+  const appointmentReason =
+    asString((Array.isArray(extractedData.detectedAppointments) ? asRecord(extractedData.detectedAppointments[0]) : {}).title) ||
+    title;
+  const existingAppointmentEventId =
+    petId && isAppointmentEventType(args.event.event_type)
+      ? await findExistingOperationalAppointmentEvent({
+          petId,
+          eventDate,
+          appointmentTime: args.event.appointment_time,
+          professionalName: args.event.professional_name,
+          clinicName: args.event.clinic_name,
+          appointmentReason,
+        })
+      : null;
+  const effectiveCanonicalEventId = existingAppointmentEventId || canonicalEventId;
+  const secondaryAppointmentCandidate = !isAppointmentEventType(args.event.event_type)
+    ? extractOperationalAppointmentCandidate({
+        eventDate,
+        sourceText: [
+          args.sourceSubject,
+          title,
+          args.event.description_summary,
+          args.event.diagnosis,
+          args.narrativeSummary,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+        sourceSender: args.sourceSender,
+        existingStatus: args.event.appointment_status,
+        existingTime: args.event.appointment_time,
+        existingSpecialty: args.event.appointment_specialty,
+        professionalName: args.event.professional_name,
+        clinicName: args.event.clinic_name,
+        diagnosis: args.event.diagnosis,
+        confidenceScore: args.event.confidence_score,
+      })
+    : null;
+  const medicalEventRef = admin.firestore().collection("medical_events").doc(effectiveCanonicalEventId);
+  const existingMedicalEventSnap = existingAppointmentEventId ? await medicalEventRef.get() : null;
 
   // Always persist the canonical event so Timeline and downstream UIs have a single source.
-  await admin.firestore().collection("medical_events").doc(canonicalEventId).set(
+  await medicalEventRef.set(
     {
-      id: canonicalEventId,
+      id: effectiveCanonicalEventId,
       petId,
       userId: args.uid,
       title: title.slice(0, 160),
-      documentUrl: "",
-      documentPreviewUrl: null,
-      fileName: "email_import",
-      fileType: "pdf",
+      documentUrl: sourceSignedUrl,
+      documentPreviewUrl: sourceSignedUrl || null,
+      fileName: asString(args.sourceAttachment?.filename) || "email_import",
+      fileType: inferredFileType,
       status: effectiveRequiresConfirmation ? "draft" : "completed",
       workflowStatus: effectiveRequiresConfirmation ? "review_required" : "confirmed",
       requiresManualConfirmation: effectiveRequiresConfirmation,
@@ -5246,19 +7489,29 @@ async function ingestEventToDomain(args: {
       },
       ocrProcessed: true,
       aiProcessed: true,
-      createdAt: nowIso,
+      createdAt: existingMedicalEventSnap?.exists ? asString(existingMedicalEventSnap.get("createdAt")) || nowIso : nowIso,
       updatedAt: nowIso,
-      protocolSnapshotFrozenAt: nowIso,
-      relatedEventIds: [],
+      protocolSnapshotFrozenAt: existingMedicalEventSnap?.exists
+        ? asString(existingMedicalEventSnap.get("protocolSnapshotFrozenAt")) || nowIso
+        : nowIso,
+      relatedEventIds: existingMedicalEventSnap?.exists
+        ? existingMedicalEventSnap.get("relatedEventIds") || []
+        : [],
       aiSuggestedRelation: null,
       source: "email_import",
       source_email_id: args.sourceEmailId,
+      latest_source_email_id: args.sourceEmailId,
+      source_email_ids: admin.firestore.FieldValue.arrayUnion(args.sourceEmailId),
       domain_ingestion_type:
-        args.event.event_type === "vaccination"
+        isVaccinationEventType(args.event.event_type)
           ? "vaccination"
-          : hasIncompleteTreatmentMeds
+          : isAppointmentEventType(args.event.event_type)
+            ? "appointment"
+            : hasIncompleteTreatmentMeds
             ? "medical_event"
-            : "medical_event",
+            : isPrescriptionEventType(args.event.event_type)
+              ? "treatment"
+              : "medical_event",
       severity,
       findings:
         args.event.lab_results.length > 0
@@ -5268,47 +7521,52 @@ async function ingestEventToDomain(args: {
     { merge: true }
   );
 
-  if (args.event.event_type === "visit") {
-    const appointmentId = `gmail_appt_${sha256(`${args.uid}_${args.sourceEmailId}_${title}`).slice(0, 16)}`;
-    await admin.firestore().collection("appointments").doc(appointmentId).set(
-      {
-        id: appointmentId,
+  if (isAppointmentEventType(args.event.event_type)) {
+    if (petId) {
+      await upsertOperationalAppointmentProjection({
+        appointmentEventId: effectiveCanonicalEventId,
         petId,
-        userId: args.uid,
-        ownerId: args.uid,
-        sourceEventId: canonicalEventId,
-        autoGenerated: true,
-        type: "checkup",
-        title: title.slice(0, 120),
-        date: eventDate,
-        time: "09:00",
-        veterinarian: null,
-        clinic: null,
-        status: "upcoming",
-        notes: args.narrativeSummary.slice(0, 1200),
-        createdAt: nowIso,
-        updatedAt: nowIso,
-        source: "email_import",
-        source_email_id: args.sourceEmailId,
-        requires_confirmation: effectiveRequiresConfirmation,
-        source_truth_level: sourceTruthLevel,
-        validated_by_human: false,
-        protocolSnapshotFrozenAt: nowIso,
-      },
-      { merge: true }
-    );
+        uid: args.uid,
+        title,
+        eventDate,
+        event: args.event,
+        narrativeSummary: args.narrativeSummary,
+        sourceEmailId: args.sourceEmailId,
+        sourceTruthLevel,
+        effectiveRequiresConfirmation,
+        nowIso,
+      });
+    }
     return {
-      domainType: "visit",
-      canonicalEventId,
+      domainType: "appointment",
+      canonicalEventId: effectiveCanonicalEventId,
       blockedMedicationCount: 0,
     };
   }
 
-  if (args.event.event_type === "treatment") {
+  if (secondaryAppointmentCandidate && petId) {
+    await upsertOperationalAppointmentProjection({
+      appointmentEventId: effectiveCanonicalEventId,
+      petId,
+      uid: args.uid,
+      title: buildCanonicalEventTitle(secondaryAppointmentCandidate),
+      eventDate,
+      event: secondaryAppointmentCandidate,
+      narrativeSummary: cleanSentence(
+        [args.narrativeSummary, args.sourceSubject, title].filter(Boolean).join(" · ")
+      ),
+      sourceEmailId: args.sourceEmailId,
+      sourceTruthLevel,
+      effectiveRequiresConfirmation,
+      nowIso,
+    });
+  }
+
+  if (isPrescriptionEventType(args.event.event_type)) {
     if (hasIncompleteTreatmentMeds) {
       return {
         domainType: "medical_event",
-        canonicalEventId,
+        canonicalEventId: effectiveCanonicalEventId,
         blockedMedicationCount: incompleteTreatmentMeds.length,
       };
     }
@@ -5331,9 +7589,9 @@ async function ingestEventToDomain(args: {
           endDate: computedEndDate ? toIsoDateOnly(computedEndDate) : null,
           status: medication.is_active === false ? "completed" : "active",
           linkedConditionIds: [],
-          evidenceEventIds: [canonicalEventId],
-          prescribingProfessional: { name: null, license: null },
-          clinic: { name: null },
+          evidenceEventIds: [effectiveCanonicalEventId],
+          prescribingProfessional: { name: args.event.professional_name || null, license: null },
+          clinic: { name: args.event.clinic_name || null },
           dosage: medication.dose,
           frequency: medication.frequency,
           validation_status: "complete",
@@ -5361,8 +7619,8 @@ async function ingestEventToDomain(args: {
           type: "Medicación",
           startDate: eventDate,
           endDate: computedEndDate ? computedEndDate.toISOString() : null,
-          prescribedBy: null,
-          generatedFromEventId: canonicalEventId,
+          prescribedBy: args.event.professional_name || null,
+          generatedFromEventId: effectiveCanonicalEventId,
           active: medication.is_active !== false,
           validation_status: "complete",
           createdAt: nowIso,
@@ -5379,14 +7637,14 @@ async function ingestEventToDomain(args: {
     }
     return {
       domainType: "treatment",
-      canonicalEventId,
+      canonicalEventId: effectiveCanonicalEventId,
       blockedMedicationCount: 0,
     };
   }
 
   return {
-    domainType: args.event.event_type === "vaccination" ? "vaccination" : "medical_event",
-    canonicalEventId,
+    domainType: isVaccinationEventType(args.event.event_type) ? "vaccination" : "medical_event",
+    canonicalEventId: effectiveCanonicalEventId,
     blockedMedicationCount: 0,
   };
 }
@@ -6569,6 +8827,213 @@ export const forceRunEmailClinicalIngestion = functions
     });
   });
 
+export const backfillGmailTaxonomy = functions
+  .runWith({
+    timeoutSeconds: 540,
+    memory: "1GB",
+    secrets: ["GMAIL_FORCE_SYNC_KEY"],
+  })
+  .region("us-central1")
+  .https.onRequest(async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({ ok: false, error: "method_not_allowed" });
+      return;
+    }
+
+    const configuredKey = asString(process.env.GMAIL_FORCE_SYNC_KEY);
+    const incomingHeader = asString(req.headers["x-force-sync-key"]);
+    const authHeader = asString(req.headers.authorization).replace(/^Bearer\s+/i, "");
+    const incomingKey = incomingHeader || authHeader;
+    if (!configuredKey || !incomingKey || incomingKey !== configuredKey) {
+      res.status(401).json({ ok: false, error: "unauthorized" });
+      return;
+    }
+
+    const body = asRecord(req.body);
+    let uid = asString(body.uid);
+    const byEmail = asString(body.email).toLowerCase();
+    if (!uid && byEmail) {
+      const userQuery = await admin.firestore().collection("users").where("email", "==", byEmail).limit(1).get();
+      if (!userQuery.empty) uid = userQuery.docs[0].id;
+    }
+    if (!uid) {
+      res.status(400).json({ ok: false, error: "uid_or_email_required" });
+      return;
+    }
+
+    const userSnap = await admin.firestore().collection("users").doc(uid).get();
+    const userData = asRecord(userSnap.data());
+    const targetEmail = asString(userData.email) || byEmail;
+    if (!targetEmail) {
+      res.status(404).json({ ok: false, error: "user_email_not_found" });
+      return;
+    }
+    if (!isEmailAllowedForQa(targetEmail)) {
+      res.status(403).json({ ok: false, error: "qa_user_not_allowed" });
+      return;
+    }
+
+    try {
+      const result = await runGmailTaxonomyBackfill({
+        uid,
+        email: targetEmail,
+        dryRun: body.dryRun !== false,
+        limit: asNonNegativeNumber(body.limit, 150),
+        includeAppointments: body.includeAppointments !== false,
+      });
+
+      res.status(200).json({
+        ok: true,
+        uid,
+        email: targetEmail,
+        dryRun: body.dryRun !== false,
+        result,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ ok: false, error: message });
+    }
+  });
+
+export const backfillNarrativeHistory = functions
+  .runWith({
+    timeoutSeconds: 540,
+    memory: "1GB",
+    secrets: ["GMAIL_FORCE_SYNC_KEY"],
+  })
+  .region("us-central1")
+  .https.onRequest(async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({ ok: false, error: "method_not_allowed" });
+      return;
+    }
+
+    const configuredKey = asString(process.env.GMAIL_FORCE_SYNC_KEY);
+    const incomingHeader = asString(req.headers["x-force-sync-key"]);
+    const authHeader = asString(req.headers.authorization).replace(/^Bearer\s+/i, "");
+    const incomingKey = incomingHeader || authHeader;
+    if (!configuredKey || !incomingKey || incomingKey !== configuredKey) {
+      res.status(401).json({ ok: false, error: "unauthorized" });
+      return;
+    }
+
+    const body = asRecord(req.body);
+    let uid = asString(body.uid);
+    const byEmail = asString(body.email).toLowerCase();
+    if (!uid && byEmail) {
+      const userQuery = await admin.firestore().collection("users").where("email", "==", byEmail).limit(1).get();
+      if (!userQuery.empty) uid = userQuery.docs[0].id;
+    }
+    if (!uid) {
+      res.status(400).json({ ok: false, error: "uid_or_email_required" });
+      return;
+    }
+
+    const userSnap = await admin.firestore().collection("users").doc(uid).get();
+    const userData = asRecord(userSnap.data());
+    const targetEmail = asString(userData.email) || byEmail;
+    if (!targetEmail) {
+      res.status(404).json({ ok: false, error: "user_email_not_found" });
+      return;
+    }
+    if (!isEmailAllowedForQa(targetEmail)) {
+      res.status(403).json({ ok: false, error: "qa_user_not_allowed" });
+      return;
+    }
+
+    try {
+      const result = await runNarrativeHistoryBackfill({
+        uid,
+        email: targetEmail,
+        petId: asString(body.petId) || null,
+        dryRun: body.dryRun !== false,
+        limit: asNonNegativeNumber(body.limit, 250),
+      });
+
+      res.status(200).json({
+        ok: true,
+        uid,
+        email: targetEmail,
+        petId: asString(body.petId) || null,
+        dryRun: body.dryRun !== false,
+        result,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ ok: false, error: message });
+    }
+  });
+
+export const cleanupLegacyMailsyncMedicalEvents = functions
+  .runWith({
+    timeoutSeconds: 540,
+    memory: "1GB",
+    secrets: ["GMAIL_FORCE_SYNC_KEY"],
+  })
+  .region("us-central1")
+  .https.onRequest(async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({ ok: false, error: "method_not_allowed" });
+      return;
+    }
+
+    const configuredKey = asString(process.env.GMAIL_FORCE_SYNC_KEY);
+    const incomingHeader = asString(req.headers["x-force-sync-key"]);
+    const authHeader = asString(req.headers.authorization).replace(/^Bearer\s+/i, "");
+    const incomingKey = incomingHeader || authHeader;
+    if (!configuredKey || !incomingKey || incomingKey !== configuredKey) {
+      res.status(401).json({ ok: false, error: "unauthorized" });
+      return;
+    }
+
+    const body = asRecord(req.body);
+    let uid = asString(body.uid);
+    const byEmail = asString(body.email).toLowerCase();
+    if (!uid && byEmail) {
+      const userQuery = await admin.firestore().collection("users").where("email", "==", byEmail).limit(1).get();
+      if (!userQuery.empty) uid = userQuery.docs[0].id;
+    }
+    if (!uid) {
+      res.status(400).json({ ok: false, error: "uid_or_email_required" });
+      return;
+    }
+
+    const userSnap = await admin.firestore().collection("users").doc(uid).get();
+    const userData = asRecord(userSnap.data());
+    const targetEmail = asString(userData.email) || byEmail;
+    if (!targetEmail) {
+      res.status(404).json({ ok: false, error: "user_email_not_found" });
+      return;
+    }
+    if (!isEmailAllowedForQa(targetEmail)) {
+      res.status(403).json({ ok: false, error: "qa_user_not_allowed" });
+      return;
+    }
+
+    try {
+      const result = await runLegacyMailsyncCleanup({
+        uid,
+        email: targetEmail,
+        petId: asString(body.petId) || null,
+        dryRun: body.dryRun !== false,
+        limit: asNonNegativeNumber(body.limit, 250),
+        refreshNarrative: body.refreshNarrative !== false,
+      });
+
+      res.status(200).json({
+        ok: true,
+        uid,
+        email: targetEmail,
+        petId: asString(body.petId) || null,
+        dryRun: body.dryRun !== false,
+        result,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ ok: false, error: message });
+    }
+  });
+
 export const ingestClinicalEmailWebhook = functions
   .runWith({
     timeoutSeconds: 300,
@@ -6659,6 +9124,7 @@ export const ingestClinicalEmailWebhook = functions
       sender_blocked: isBlockedClinicalDomain(fromEmail),
       clinical_attachment: attachmentNamesContainClinicalSignal(attachmentMetadata),
       non_clinical_noise: hasStrongNonClinicalSignal(`${subject}\n${fromEmail}\n${bodyText}`),
+      human_healthcare_noise: hasStrongHumanHealthcareSignal(`${subject}\n${fromEmail}\n${bodyText}`),
     };
 
     if (previewOnly) {
@@ -6681,7 +9147,7 @@ export const ingestClinicalEmailWebhook = functions
       res.status(200).json({
         ok: true,
         ignored: true,
-        reason: "prefilter_non_clinical",
+        reason: prefilter.human_healthcare_noise ? "ignored_human_content" : "prefilter_non_clinical",
         prefilter,
       });
       return;

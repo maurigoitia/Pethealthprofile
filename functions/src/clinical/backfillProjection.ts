@@ -90,7 +90,7 @@ export async function runBackfillProjection(opts?: {
 
 // HTTP Cloud Function — protegida por header BACKFILL_ADMIN_SECRET
 export const backfillClinicalProjection = functions
-  .runWith({ timeoutSeconds: 540, memory: "1GB" })
+  .runWith({ timeoutSeconds: 540, memory: "1GB", secrets: ["BACKFILL_ADMIN_SECRET"] })
   .https.onRequest(async (req, res) => {
     const expectedSecret = asString(process.env.BACKFILL_ADMIN_SECRET);
     const providedSecret = asString(req.headers[ADMIN_SECRET_HEADER]);

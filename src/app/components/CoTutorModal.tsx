@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
 import { usePet, CoTutor } from "../contexts/PetContext";
+import { buildCoTutorReferralUrl } from "../utils/coTutorInvite";
 
 interface CoTutorModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const owner = activePet ? isOwner(activePet) : false;
   const coTutors: CoTutor[] = activePet?.coTutors || [];
@@ -44,6 +46,13 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
     navigator.clipboard.writeText(generatedCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyLink = () => {
+    if (!generatedCode) return;
+    navigator.clipboard.writeText(buildCoTutorReferralUrl(generatedCode));
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
   };
 
   const handleJoin = async () => {
@@ -183,13 +192,31 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                           </button>
                         </div>
                         {generatedCode ? (
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 bg-white dark:bg-slate-900 border-2 border-[#074738] rounded-xl px-4 py-3 text-center">
-                              <span className="text-2xl font-black tracking-[0.3em] text-[#074738]">{generatedCode}</span>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 bg-white dark:bg-slate-900 border-2 border-[#074738] rounded-xl px-4 py-3 text-center">
+                                <span className="text-2xl font-black tracking-[0.3em] text-[#074738]">{generatedCode}</span>
+                              </div>
+                              <button onClick={handleCopy} className="size-12 rounded-xl bg-[#074738] text-white flex items-center justify-center shadow-lg">
+                                <MaterialIcon name={copied ? "check" : "content_copy"} className="text-xl" />
+                              </button>
                             </div>
-                            <button onClick={handleCopy} className="size-12 rounded-xl bg-[#074738] text-white flex items-center justify-center shadow-lg">
-                              <MaterialIcon name={copied ? "check" : "content_copy"} className="text-xl" />
+                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+                              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 mb-1">Link de invitación</p>
+                              <p className="text-xs text-slate-600 dark:text-slate-300 break-all leading-5">
+                                {buildCoTutorReferralUrl(generatedCode)}
+                              </p>
+                            </div>
+                            <button
+                              onClick={handleCopyLink}
+                              className="w-full py-3 rounded-xl border border-[#074738]/20 text-[#074738] font-bold text-sm flex items-center justify-center gap-2"
+                            >
+                              <MaterialIcon name={copiedLink ? "check" : "link"} className="text-base" />
+                              {copiedLink ? "Link copiado" : "Copiar link de invitación"}
                             </button>
+                            <p className="text-[11px] text-slate-500 leading-4">
+                              Este link lleva al co-tutor a entrar o crear cuenta y completar el acceso a la mascota.
+                            </p>
                           </div>
                         ) : (
                           <button onClick={handleGenerateCode} disabled={loadingCode}

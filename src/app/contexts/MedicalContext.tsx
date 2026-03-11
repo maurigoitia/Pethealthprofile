@@ -39,10 +39,53 @@ import {
   slugifyKey,
 } from "../utils/clinicalBrain";
 import { syncAppointmentWithGoogleCalendar } from "../services/calendarSyncService";
-import { isEmailSyncEnabled } from "../utils/runtimeFlags";
+import { isEmailSyncEnabled, isFocusHistoryExperimentHost } from "../utils/runtimeFlags";
 
 // Kill-switch operativo: desactiva visualización de datos provenientes de sincronización por mail.
 const EMAIL_SYNC_ENABLED = isEmailSyncEnabled();
+
+// ─── Tipos episódicos (mirror de episodeCompiler) ──────────────────────────────
+export interface ClinicalEpisodeMedication {
+  name: string;
+  dosage: string | null;
+  frequency: string | null;
+}
+
+export interface ClinicalEpisode {
+  id: string;
+  userId: string;
+  petId: string;
+  petName: string;
+  date: string;
+  timestamp: string;
+  episodeType: "consultation" | "vaccination" | "prescription" | "appointment" | "study" | "laboratory" | "mixed";
+  headline: string;
+  summary: string;
+  diagnoses: string[];
+  medications: ClinicalEpisodeMedication[];
+  studies: string[];
+  provider: { name: string | null; clinic: string | null; specialty: string | null };
+  sourceEventIds: string[];
+  confidence: number;
+  status: "confirmed" | "draft" | "needs_clean_upload";
+  sourceMode: string;
+  updatedAt: string;
+}
+
+export interface ClinicalProfileSnapshot {
+  id: string;
+  userId: string;
+  petId: string;
+  petName: string;
+  generatedAt: string;
+  activeConditions: string[];
+  pastConditions: string[];
+  currentMedications: Array<{ name: string; dosage: string | null; frequency: string | null }>;
+  allergies: string[];
+  recurrentPathologies: string[];
+  narrative: string;
+  sourceEpisodeIds: string[];
+}
 
 const normalizeForHint = (value?: string | null) =>
   (value || "")
@@ -63,6 +106,102 @@ const normalizeMedicationKey = (value?: string | null) =>
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+
+const extractTimeFromText = (value?: string | null): string | null => {
+  const text = (value || "").trim();
+  const match = text.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  if (!match) return null;
+  return `${match[1].padStart(2, "0")}:${match[2]}`;
+};
+
+const hasAppointmentLanguage = (value?: string | null): boolean => {
+  const text = normalizeForHint(value);
+  if (!text) return false;
+  return /(turno|consulta|control|recordatorio|confirmacion|confirmado|agendad|programad|reprogramad|cancelad|cita)/.test(text);
+};
+
+const extractSpecialtyFromText = (value?: string | null): string | null => {
+  const text = (value || "").trim();
+  const match = text.match(/\b(?:consulta|control|turno)\s+([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+){0,3})/i);
+  return match?.[1]?.trim() || null;
+};
+
+const deriveAppointmentCandidateFromEvent = (event: MedicalEvent): Appointment | null => {
+  const extracted = event.extractedData || {};
+  const sourceText = [
+    extracted.sourceSubject,
+    extracted.suggestedTitle,
+    extracted.observations,
+    extracted.aiGeneratedSummary,
+    event.title,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const detectedRows = Array.isArray(extracted.detectedAppointments) ? extracted.detectedAppointments : [];
+  const detected = (detectedRows[0] || {}) as Record<string, unknown>;
+  const rawDate =
+    (typeof detected.date === "string" ? detected.date : "") ||
+    extracted.nextAppointmentDate ||
+    extracted.eventDate ||
+    "";
+  const parsedDate = parseDateSafe(rawDate);
+  if (!parsedDate) return null;
+
+  const endOfYesterday = new Date();
+  endOfYesterday.setHours(0, 0, 0, 0);
+  if (parsedDate.getTime() < endOfYesterday.getTime()) return null;
+
+  const explicitAppointment =
+    extracted.documentType === "appointment" ||
+    detectedRows.length > 0 ||
+    Boolean(extracted.appointmentTime);
+  if (!explicitAppointment && !hasAppointmentLanguage(sourceText)) return null;
+
+  const title =
+    (typeof detected.title === "string" ? detected.title.trim() : "") ||
+    extracted.suggestedTitle ||
+    event.title ||
+    "Turno veterinario";
+  const time =
+    extracted.appointmentTime ||
+    (typeof detected.time === "string" ? detected.time : "") ||
+    extractTimeFromText(sourceText) ||
+    "";
+  const veterinarian =
+    extracted.provider ||
+    (typeof detected.provider === "string" ? detected.provider : "") ||
+    null;
+  const clinic =
+    extracted.clinic ||
+    (typeof detected.clinic === "string" ? detected.clinic : "") ||
+    null;
+  const specialty =
+    (typeof detected.specialty === "string" ? detected.specialty.trim() : "") ||
+    extractSpecialtyFromText(sourceText) ||
+    "";
+
+  if (!explicitAppointment && !time && !veterinarian && !clinic && !specialty) return null;
+
+  const normalizedTitle = title.trim();
+  return {
+    id: `auto_${event.id}`,
+    petId: event.petId,
+    userId: event.userId,
+    ownerId: event.userId,
+    sourceEventId: event.id,
+    sourceSuggestionKey: `${event.id}|${rawDate}|${time}|${normalizedTitle.toLowerCase()}`,
+    autoGenerated: true,
+    type: extracted.documentType === "vaccine" ? "vaccine" : "checkup",
+    title: normalizedTitle,
+    date: rawDate,
+    time,
+    veterinarian,
+    clinic,
+    status: /cancelad/i.test(sourceText) ? "cancelled" : "upcoming",
+    notes: sourceText.slice(0, 500),
+    createdAt: event.createdAt,
+  };
+};
 
 const isMailSyncedEvent = (event: MedicalEvent): boolean => {
   if (EMAIL_SYNC_ENABLED) return false;
@@ -177,6 +316,12 @@ interface MedicalContextType {
   getClinicalConditionsByPetId: (petId: string) => ClinicalCondition[];
   getClinicalAlertsByPetId: (petId: string) => ClinicalAlert[];
   getConsolidatedTreatmentsByPetId: (petId: string) => TreatmentEntity[];
+
+  // ─── Modelo episódico (solo pessy-focus-qa) ───────────────────────────────────
+  clinicalEpisodes: ClinicalEpisode[];
+  clinicalProfileSnapshot: ClinicalProfileSnapshot | null;
+  getClinicalEpisodesByPetId: (petId: string) => ClinicalEpisode[];
+  getProfileSnapshotByPetId: (petId: string) => ClinicalProfileSnapshot | null;
 }
 
 const MedicalContext = createContext<MedicalContextType | undefined>(undefined);
@@ -191,6 +336,10 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   const [clinicalConditions, setClinicalConditions] = useState<ClinicalCondition[]>([]);
   const [clinicalAlerts, setClinicalAlerts] = useState<ClinicalAlert[]>([]);
   const [consolidatedTreatments, setConsolidatedTreatments] = useState<TreatmentEntity[]>([]);
+
+  // ─── Estado episódico (solo pessy-focus-qa) ─────────────────────────────────
+  const [clinicalEpisodes, setClinicalEpisodes] = useState<ClinicalEpisode[]>([]);
+  const [clinicalProfileSnapshot, setClinicalProfileSnapshot] = useState<ClinicalProfileSnapshot | null>(null);
 
   const isMedicationCurrentlyActive = (medication: ActiveMedication): boolean => {
     if (!medication.active) return false;
@@ -243,11 +392,19 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     return end.toISOString();
   };
 
-  // No se autoguardan turnos desde extracción: solo se mantienen sugerencias para confirmación manual.
-  // Esta rutina limpia turnos legacy autogenerados si aún existen.
   const syncAutoAppointmentFromEvent = async (event: MedicalEvent) => {
     if (!event?.id) return;
-    await deleteDoc(doc(db, "appointments", `auto_${event.id}`)).catch(() => undefined);
+    const autoRef = doc(db, "appointments", `auto_${event.id}`);
+    await deleteDoc(autoRef).catch(() => undefined);
+
+    const alreadyPersisted = appointments.some(
+      (appointment) => appointment.sourceEventId === event.id && appointment.id !== `auto_${event.id}`
+    );
+    if (alreadyPersisted) return;
+
+    const candidate = deriveAppointmentCandidateFromEvent(event);
+    if (!candidate) return;
+    await setDoc(autoRef, candidate, { merge: true });
   };
 
   const persistDerivedDataFromEvent = async (event: MedicalEvent) => {
@@ -812,6 +969,52 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     });
   }, [activePet]);
 
+  // ─── Suscripciones episódicas (solo pessy-focus-qa) ──────────────────────────
+  useEffect(() => {
+    if (!activePet || !user?.uid || !isFocusHistoryExperimentHost()) {
+      setClinicalEpisodes([]);
+      return;
+    }
+    const q = query(
+      collection(db, "clinical_episodes"),
+      where("petId", "==", activePet.id),
+      where("userId", "==", user.uid),
+    );
+    return onSnapshot(q, (snapshot) => {
+      const episodes = snapshot.docs
+        .map((d) => ({ id: d.id, ...d.data() } as ClinicalEpisode))
+        .filter((ep) => ep.status !== "needs_clean_upload" && ep.confidence >= 0.75);
+      setClinicalEpisodes(episodes);
+    });
+  }, [activePet, user?.uid]);
+
+  useEffect(() => {
+    if (!activePet || !user?.uid || !isFocusHistoryExperimentHost()) {
+      setClinicalProfileSnapshot(null);
+      return;
+    }
+    const snapshotId = `cps_${activePet.id}`;
+    const q = query(
+      collection(db, "clinical_profile_snapshots"),
+      where("petId", "==", activePet.id),
+      where("userId", "==", user.uid),
+    );
+    return onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) {
+        setClinicalProfileSnapshot(null);
+        return;
+      }
+      // Tomar el snapshot más reciente
+      const sorted = snapshot.docs
+        .map((d) => ({ id: d.id, ...d.data() } as ClinicalProfileSnapshot))
+        .sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
+      setClinicalProfileSnapshot(sorted[0] ?? null);
+    });
+    void snapshotId; // suppress unused var
+  }, [activePet, user?.uid]);
+
+
+
   const addEvent = async (event: MedicalEvent): Promise<boolean> => {
     const eventKey = buildEventDedupKey(event);
     const eventSemanticKey = buildEventSemanticKey(event);
@@ -987,10 +1190,10 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     for (const medicationId of medicationIds) {
       const notificationsByMedicationQuery = petId
         ? query(
-            collection(db, "scheduled_notifications"),
-            where("sourceMedicationId", "==", medicationId),
-            where("petId", "==", petId)
-          )
+          collection(db, "scheduled_notifications"),
+          where("sourceMedicationId", "==", medicationId),
+          where("petId", "==", petId)
+        )
         : query(collection(db, "scheduled_notifications"), where("sourceMedicationId", "==", medicationId));
       const notificationsByMedicationDocs = await getDocsSafe(
         "scheduled_notifications_by_medication",
@@ -1533,6 +1736,17 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       .sort((a, b) => toTimestampSafe(b.updatedAt) - toTimestampSafe(a.updatedAt));
   };
 
+  // ─── Accessors epis\u00f3dicos (solo pessy-focus-qa) ───────────────────────────────
+  const getClinicalEpisodesByPetId = (petId: string): ClinicalEpisode[] => {
+    return clinicalEpisodes
+      .filter((ep) => ep.petId === petId)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
+
+  const getProfileSnapshotByPetId = (petId: string): ClinicalProfileSnapshot | null => {
+    return clinicalProfileSnapshot?.petId === petId ? clinicalProfileSnapshot : null;
+  };
+
   return (
     <MedicalContext.Provider
       value={{
@@ -1553,6 +1767,10 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
         getClinicalConditionsByPetId,
         getClinicalAlertsByPetId,
         getConsolidatedTreatmentsByPetId,
+        clinicalEpisodes,
+        clinicalProfileSnapshot,
+        getClinicalEpisodesByPetId,
+        getProfileSnapshotByPetId,
       }}
     >
       {children}

@@ -13,8 +13,12 @@ import { MaterialIcon } from "./MaterialIcon";
 import { PetHomeView } from "./PetHomeView";
 import { AppointmentsScreen } from "./AppointmentsScreen";
 import { MedicationsScreen } from "./MedicationsScreen";
+import { TermsAcceptanceNotice } from "./TermsAcceptanceNotice";
+import { FocusedHomeExperience } from "./FocusedHomeExperience";
 import { usePet } from "../contexts/PetContext";
 import { useAuth } from "../contexts/AuthContext";
+import { clearPendingCoTutorInvite, readPendingCoTutorInvite } from "../utils/coTutorInvite";
+import { isFocusExperienceHost } from "../utils/runtimeFlags";
 
 const ExportReportModal = lazy(() =>
   import("./ExportReportModal").then((module) => ({ default: module.ExportReportModal }))
@@ -29,8 +33,12 @@ export default function HomeScreen() {
   const [showPetSelector, setShowPetSelector] = useState(false);
   const [currentTab, setCurrentTab] = useState<"home" | "settings">("home");
   const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications">("card");
-  const { activePetId, setActivePetId, pets, activePet, loading: petsLoading } = usePet();
+  const [inviteNotice, setInviteNotice] = useState<{ type: "info" | "success" | "error"; message: string } | null>(null);
+  const [inviteJoiningCode, setInviteJoiningCode] = useState("");
+  const [inviteResolvedCode, setInviteResolvedCode] = useState("");
+  const { activePetId, setActivePetId, pets, activePet, loading: petsLoading, joinWithCode } = usePet();
   const { user, loading: authLoading, userName } = useAuth();
+  const focusExperienceEnabled = isFocusExperienceHost();
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -53,6 +61,52 @@ export default function HomeScreen() {
       return;
     }
   }, [location.search]);
+
+  useEffect(() => {
+    if (!user) return;
+    const pendingInviteCode = readPendingCoTutorInvite();
+    if (!pendingInviteCode) return;
+    if (pendingInviteCode === inviteJoiningCode || pendingInviteCode === inviteResolvedCode) return;
+
+    let cancelled = false;
+    setInviteJoiningCode(pendingInviteCode);
+    setInviteNotice({
+      type: "info",
+      message: "Vinculando la invitación de co-tutor...",
+    });
+
+    void joinWithCode(pendingInviteCode)
+      .then(({ petName }) => {
+        if (cancelled) return;
+        clearPendingCoTutorInvite();
+        setInviteResolvedCode(pendingInviteCode);
+        setInviteNotice({
+          type: "success",
+          message: `Acceso confirmado. Ya sos co-tutor de ${petName}.`,
+        });
+        window.setTimeout(() => {
+          setInviteNotice((current) => (current?.type === "success" ? null : current));
+        }, 5000);
+      })
+      .catch((error: any) => {
+        if (cancelled) return;
+        clearPendingCoTutorInvite();
+        setInviteResolvedCode(pendingInviteCode);
+        setInviteNotice({
+          type: "error",
+          message: error?.message || "No se pudo completar la invitación de co-tutor.",
+        });
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setInviteJoiningCode("");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, inviteJoiningCode, inviteResolvedCode, joinWithCode]);
 
   const safeUserName = (() => {
     const fromContext = (userName || "").trim();
@@ -102,13 +156,39 @@ export default function HomeScreen() {
     navigate("/register-pet");
   };
 
+  const withTermsNotice = (content: React.ReactNode) => (
+    <>
+      {inviteNotice && (
+        <div className="fixed inset-x-4 top-4 z-[60] mx-auto max-w-md">
+          <div
+            className={`rounded-2xl border px-4 py-3 shadow-xl ${
+              inviteNotice.type === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : inviteNotice.type === "error"
+                  ? "border-red-200 bg-red-50 text-red-900"
+                  : "border-slate-200 bg-white text-slate-900"
+            }`}
+          >
+            <p className="text-sm font-semibold leading-5">{inviteNotice.message}</p>
+          </div>
+        </div>
+      )}
+      {content}
+      <TermsAcceptanceNotice />
+    </>
+  );
+
   // Loading state: Waiting for Firestore
-  if (petsLoading && pets.length === 0) {
-    return (
+  if ((petsLoading && pets.length === 0) || inviteJoiningCode) {
+    return withTermsNotice(
       <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen flex items-center justify-center px-6">
         <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 text-center">
-          <p className="text-base font-bold text-slate-900 dark:text-white">Cargando tus datos...</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Un momento, por favor.</p>
+          <p className="text-base font-bold text-slate-900 dark:text-white">
+            {inviteJoiningCode ? "Vinculando invitación..." : "Cargando tus datos..."}
+          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {inviteJoiningCode ? "Estamos sumando esta mascota compartida a tu cuenta." : "Un momento, por favor."}
+          </p>
         </div>
       </div>
     );
@@ -116,7 +196,7 @@ export default function HomeScreen() {
 
   // Empty state: No pets registered
   if (pets.length === 0) {
-    return (
+    return withTermsNotice(
       <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen">
         <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24">
           <div className="flex-1 flex items-center justify-center px-6">
@@ -158,7 +238,7 @@ export default function HomeScreen() {
 
   // Guard: No active pet selected
   if (!activePet) {
-    return (
+    return withTermsNotice(
       <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen">
         <div className="max-w-md mx-auto min-h-screen flex items-center justify-center px-6 pb-24">
           <div className="text-center max-w-sm">
@@ -198,7 +278,7 @@ export default function HomeScreen() {
 
   // Render different screens based on tab
   if (currentTab === "settings") {
-    return (
+    return withTermsNotice(
       <>
         <UserProfileScreen onBack={() => handleTabChange("home")} />
         <BottomNav
@@ -216,7 +296,7 @@ export default function HomeScreen() {
 
   // Show Appointments Screen
   if (viewMode === "appointments") {
-    return (
+    return withTermsNotice(
       <>
         <AppointmentsScreen onBack={() => setViewMode("card")} />
         <BottomNav
@@ -234,7 +314,7 @@ export default function HomeScreen() {
 
   // Show Medications Screen
   if (viewMode === "medications") {
-    return (
+    return withTermsNotice(
       <>
         <MedicationsScreen onBack={() => setViewMode("card")} />
         <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} />
@@ -243,7 +323,7 @@ export default function HomeScreen() {
     );
   }
 
-  return (
+  return withTermsNotice(
     <div className="bg-[#f6f6f8] dark:bg-[#101622] text-slate-900 dark:text-slate-100 min-h-screen font-['Manrope',sans-serif]">
       <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24">
         {/* View Mode Toggle Button */}
@@ -261,19 +341,40 @@ export default function HomeScreen() {
           </div>
         )}
 
-        {/* Card View - New Design */}
+        {/* Card View */}
         {viewMode === "card" && (
           <>
-            <PetHomeView
-              userName={safeUserName}
-              onViewHistory={() => setViewMode("feed")}
-              onPetClick={() => setShowPetSelector(true)}
-              onAppointmentsClick={() => setViewMode("appointments")}
-              onMedicationsClick={() => setViewMode("medications")}
-              pets={pets}
-              activePetId={activePetId}
-              onPetChange={handlePetChange}
-            />
+            {focusExperienceEnabled ? (
+              <FocusedHomeExperience
+                userName={safeUserName}
+                activePetId={activePetId}
+                activePet={{
+                  name: activePet.name,
+                  photo: activePet.photo,
+                  breed: activePet.breed,
+                  species: activePet.species,
+                  age: activePet.age,
+                  weight: activePet.weight,
+                }}
+                onPetClick={() => setShowPetSelector(true)}
+                onOpenFeed={() => setViewMode("feed")}
+                onOpenAppointments={() => setViewMode("appointments")}
+                onOpenMedications={() => setViewMode("medications")}
+                onOpenScanner={() => setShowScanner(true)}
+                onExportReport={() => setShowExportReport(true)}
+              />
+            ) : (
+              <PetHomeView
+                userName={safeUserName}
+                onViewHistory={() => setViewMode("feed")}
+                onPetClick={() => setShowPetSelector(true)}
+                onAppointmentsClick={() => setViewMode("appointments")}
+                onMedicationsClick={() => setViewMode("medications")}
+                pets={pets}
+                activePetId={activePetId}
+                onPetChange={handlePetChange}
+              />
+            )}
           </>
         )}
 

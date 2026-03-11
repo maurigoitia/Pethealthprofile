@@ -1,9 +1,11 @@
 import { MaterialIcon } from "./MaterialIcon";
 import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
-import { isPendingActionsEnabled } from "../utils/runtimeFlags";
+import { isFocusHistoryExperimentHost, isPendingActionsEnabled } from "../utils/runtimeFlags";
 
 export function MonthSummary() {
+  if (isFocusHistoryExperimentHost()) return null;
+
   const { activePetId } = usePet();
   const { getMonthSummary } = useMedical();
   const pendingEnabled = isPendingActionsEnabled();

@@ -80,6 +80,9 @@ import {
   syncAppointmentCalendarEvent,
 } from "./gmail/oauth";
 import {
+  backfillNarrativeHistory,
+  backfillGmailTaxonomy,
+  cleanupLegacyMailsyncMedicalEvents,
   forceRunEmailClinicalIngestion,
   ingestClinicalEmailWebhook,
   runEmailClinicalAiWorker,
@@ -104,6 +107,7 @@ import {
 } from "./clinical/treatmentReminderEngine";
 import { onClinicalEventProjection } from "./clinical/projectionLayer";
 import { backfillClinicalProjection } from "./clinical/backfillProjection";
+import { deleteUserAccount, submitDataDeletionRequest } from "./compliance/accountDeletion";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -2246,6 +2250,9 @@ export {
   runEmailClinicalAttachmentWorker,
   runEmailClinicalAiWorker,
   forceRunEmailClinicalIngestion,
+  backfillNarrativeHistory,
+  backfillGmailTaxonomy,
+  cleanupLegacyMailsyncMedicalEvents,
   ingestClinicalEmailWebhook,
   pessyClinicalBrainGrounding,
   provisionPessyVertexDatastore,
@@ -2259,4 +2266,6 @@ export {
   syncTreatmentTimezoneV3,
   onClinicalEventProjection,
   backfillClinicalProjection,
+  deleteUserAccount,
+  submitDataDeletionRequest,
 };

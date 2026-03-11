@@ -7,6 +7,8 @@ import {
   startGmailConnectFlow,
   subscribeGmailSyncStatus,
 } from "../services/gmailSyncService";
+import { deleteUserAccount } from "../services/accountDeletionService";
+import { auth } from "../../lib/firebase";
 
 interface PrivacySecurityScreenProps {
   onBack: () => void;
@@ -28,6 +30,8 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
   });
   const [gmailLoading, setGmailLoading] = useState(true);
   const [gmailActionLoading, setGmailActionLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [passwords, setPasswords] = useState({
     current: "",
     new: "",
@@ -76,14 +80,34 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
     alert("Sesión cerrada en todos los demás dispositivos");
   };
 
-  const handleDeleteAccount = () => {
-    setShowDeleteConfirm(false);
-    // Clear all data
+  const clearClientArtifacts = async () => {
     localStorage.clear();
-    alert("Cuenta eliminada. Redirigiendo...");
-    setTimeout(() => {
-      onLogout();
-    }, 1000);
+    sessionStorage.clear();
+
+    if ("caches" in window) {
+      const cacheKeys = await caches.keys();
+      await Promise.all(cacheKeys.map((key) => caches.delete(key).catch(() => false)));
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteLoading) return;
+
+    setDeleteLoading(true);
+    setDeleteError("");
+
+    try {
+      await deleteUserAccount();
+      setShowDeleteConfirm(false);
+      await clearClientArtifacts();
+      await auth.signOut().catch(() => undefined);
+      window.location.assign("/");
+    } catch (error) {
+      console.error("No se pudo eliminar la cuenta:", error);
+      setDeleteError("No pudimos eliminar tu cuenta completa. Reintentá en unos minutos.");
+    } finally {
+      setDeleteLoading(false);
+    }
   };
 
   const handleConnectGmail = async () => {
@@ -271,7 +295,7 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
 
           {/* Privacy Policy */}
           <a
-            href="https://pessy.app/privacy"
+            href="https://pessy.app/privacidad"
             target="_blank"
             rel="noopener noreferrer"
             className="w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
@@ -337,12 +361,18 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
                 Cancelar
               </button>
               <button
-                onClick={handleDeleteAccount}
-                className="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors"
+                onClick={() => void handleDeleteAccount()}
+                disabled={deleteLoading}
+                className="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors disabled:opacity-60"
               >
-                Eliminar
+                {deleteLoading ? "Eliminando..." : "Eliminar"}
               </button>
             </div>
+            {deleteError && (
+              <p className="mt-4 text-sm text-red-500 text-center">
+                {deleteError}
+              </p>
+            )}
           </div>
         </div>
       )}

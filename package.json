@@ -5,9 +5,18 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "build:mobile": "npm run build && npx cap sync",
+    "cap:copy": "npx cap copy",
+    "cap:open:android": "npx cap open android",
+    "cap:open:ios": "npx cap open ios",
+    "cap:sync": "npx cap sync",
+    "dev": "vite",
+    "mobile:doctor": "npx cap doctor"
   },
   "dependencies": {
+    "@capacitor/app": "^7.1.1",
+    "@capacitor/browser": "^7.0.2",
+    "@capacitor/core": "^7.4.3",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
     "@mui/icons-material": "7.3.5",
@@ -68,10 +77,14 @@
     "vaul": "1.1.2"
   },
   "devDependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/ios": "^7.4.3",
     "@tailwindcss/vite": "^4.1.12",
     "@vitejs/plugin-react": "^4.7.0",
     "playwright": "^1.58.2",
     "tailwindcss": "^4.1.12",
+    "typescript": "^5.9.2",
     "vite": "^6.3.5",
     "vite-plugin-pwa": "^1.2.0"
   },

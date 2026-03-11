@@ -69,7 +69,7 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
           {/* Legal Links */}
           <div className="space-y-2">
             <a
-              href="https://pessy.app/legal"
+              href="https://pessy.app/terminos"
               target="_blank"
               rel="noopener noreferrer"
               className="w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
@@ -84,7 +84,7 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
             </a>
 
             <a
-              href="https://pessy.app/terms"
+              href="https://pessy.app/terminos"
               target="_blank"
               rel="noopener noreferrer"
               className="w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
@@ -99,7 +99,7 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
             </a>
 
             <a
-              href="https://pessy.app/privacy"
+              href="https://pessy.app/privacidad"
               target="_blank"
               rel="noopener noreferrer"
               className="w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
