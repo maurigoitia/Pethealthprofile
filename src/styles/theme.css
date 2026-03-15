@@ -138,8 +138,24 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    /* Fix 1: dvh — el viewport real sin barra de direcciones / teclado */
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
+
   body {
     @apply bg-background text-foreground;
+    /* Safe area padding for notch devices (iPhone X+, Dynamic Island) */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    /* Fix 2: eliminar "efecto rebote" en iOS/Android — se siente nativa */
+    overscroll-behavior-y: none;
+    /* Fix 1 cont: dvh en body también */
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
   }
 
   /**
@@ -191,5 +207,35 @@
     font-size: var(--text-base);
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
+  }
+}
+
+/*
+ * Fix 1 cont: override min-h-screen de Tailwind para usar dvh
+ * Esto afecta a todos los componentes que usan min-h-screen sin tocar sus archivos.
+ * Fallback a 100vh para navegadores viejos.
+ */
+@layer utilities {
+  .min-h-screen {
+    min-height: 100vh; /* fallback */
+    min-height: 100dvh;
+  }
+
+  .h-screen {
+    height: 100vh; /* fallback */
+    height: 100dvh;
+  }
+}
+
+/*
+ * Fix 3: Visual Viewport — evitar que el teclado desplace elementos fixed.
+ * Los contenedores con position:fixed usan inset:0, que respeta el viewport visual.
+ * Este estilo previene el zoom involuntario en inputs en iOS (font-size < 16px).
+ */
+@supports (height: 100dvh) {
+  .fixed-safe {
+    position: fixed;
+    inset: 0;
+    height: 100dvh;
   }
 }
