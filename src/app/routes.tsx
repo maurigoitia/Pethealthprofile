@@ -30,7 +30,7 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/login", Component: LoginScreen }),
   withErrorBoundary({ path: "/app", element: <Navigate to="/login" replace /> }),
   withErrorBoundary({ path: "/inicio", Component: LandingPage }),
-  withErrorBoundary({ path: "/unite", Component: LandingUnite }),
+  withErrorBoundary({ path: "/empezar", Component: LandingUnite }),
   withErrorBoundary({ path: "/inicio/vacunas", element: <Navigate to="/" replace /> }),
   withErrorBoundary({ path: "/inicio/medicacion", element: <Navigate to="/" replace /> }),
   withErrorBoundary({ path: "/inicio/historial-medico", element: <Navigate to="/" replace /> }),

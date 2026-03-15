@@ -65,7 +65,7 @@ export default function LandingUnite() {
   };
 
   const handleOpenInBrowser = () => {
-    openInSystemBrowser("https://pessy.app/unite");
+    openInSystemBrowser("https://pessy.app/empezar");
   };
 
   return (
@@ -76,7 +76,7 @@ export default function LandingUnite() {
       <SEO
         title="Pessy — Todo de tu mascota, en orden"
         description="Su historial, sus vacunas, sus tratamientos. Todo ordenado, todo visible, todo en tu celular."
-        canonical="https://pessy.app/unite"
+        canonical="https://pessy.app/empezar"
       />
 
       {/* Background decorativo */}
