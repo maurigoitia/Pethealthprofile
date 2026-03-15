@@ -1,18 +1,28 @@
 import * as admin from "firebase-admin";
 import {
-  QueueJobStage,
-  QueueJobStatus,
-  AttachmentQueueJobPayload,
-  AiExtractQueueJobPayload,
+  AttachmentMetadata,
+  RAW_DOCUMENT_TTL_MS,
   RawDocumentLike,
 } from "./types";
-import { getNowIso, asRecord, encryptText, decryptText, sha256 } from "./utils";
-import { RAW_DOCUMENT_TTL_MS } from "./types";
+import {
+  getNowIso, asRecord, asString, asNonNegativeNumber,
+  encryptText, decryptText,
+} from "./utils";
 
-/**
- * Guarda un documento crudo encriptado de forma temporal para que el
- * siguiente worker lo procese sin volver a llamar a la API de Gmail.
- */
+// ─── Firestore helpers ──────────────────────────────────────────────────────
+
+export function sanitizeAttachmentMetadataForFirestore(rows: AttachmentMetadata[]): AttachmentMetadata[] {
+  return rows.map((row) => {
+    const safe: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(row)) {
+      if (value !== undefined) safe[key] = value;
+    }
+    return safe as unknown as AttachmentMetadata;
+  });
+}
+
+// ─── Temporary raw document persistence ─────────────────────────────────────
+
 export async function persistTemporaryRawDocument(args: {
   uid: string;
   sessionId: string;
@@ -21,67 +31,191 @@ export async function persistTemporaryRawDocument(args: {
   sourceSubject: string;
 }): Promise<string> {
   const docId = `${args.sessionId}_${args.rawDocument.message_id}`;
+  const nowIso = getNowIso();
+  const expiresAtIso = new Date(Date.now() + RAW_DOCUMENT_TTL_MS).toISOString();
   const encrypted = encryptText(args.rawDocument.body_text);
-  const expiresAt = new Date(Date.now() + RAW_DOCUMENT_TTL_MS).toISOString();
-
-  await admin
-    .firestore()
-    .collection("gmail_raw_documents_tmp")
-    .doc(docId)
-    .set(
-      {
-        doc_id: docId,
-        session_id: args.sessionId,
-        user_id: args.uid,
-        source_sender: args.sourceSender,
-        source_subject: args.sourceSubject,
-        body_text_encrypted: encrypted,
-        expires_at: expiresAt,
-        created_at: getNowIso(),
-      },
-      { merge: true }
-    );
-
+  await admin.firestore().collection("gmail_raw_documents_tmp").doc(docId).set(
+    {
+      doc_id: docId,
+      session_id: args.sessionId,
+      user_id: args.uid,
+      source: "email",
+      message_id: args.rawDocument.message_id,
+      thread_id: args.rawDocument.thread_id,
+      email_date: args.rawDocument.email_date,
+      source_sender: args.sourceSender.slice(0, 320),
+      source_subject: args.sourceSubject.slice(0, 400),
+      body_text_encrypted: encrypted,
+      attachment_meta: sanitizeAttachmentMetadataForFirestore(args.rawDocument.attachment_meta),
+      hash_signature_raw: args.rawDocument.hash_signature_raw,
+      created_at: nowIso,
+      expires_at: expiresAtIso,
+    },
+    { merge: true }
+  );
   return docId;
 }
 
-/**
- * Carga el documento temporal y lo desencripta para el worker de AI.
- */
-export async function loadTemporaryRawDocument(docId: string) {
+export async function deleteTemporaryRawDocument(docId: string): Promise<void> {
+  await admin.firestore().collection("gmail_raw_documents_tmp").doc(docId).delete().catch(() => undefined);
+}
+
+export async function loadTemporaryRawDocument(docId: string): Promise<{
+  sessionId: string;
+  uid: string;
+  messageId: string;
+  threadId: string;
+  emailDate: string;
+  sourceSender: string;
+  sourceSubject: string;
+  bodyText: string;
+  attachmentMeta: AttachmentMetadata[];
+  hashSignatureRaw: string;
+} | null> {
   const snap = await admin.firestore().collection("gmail_raw_documents_tmp").doc(docId).get();
   if (!snap.exists) return null;
   const data = asRecord(snap.data());
   const encrypted = asRecord(data.body_text_encrypted);
-
+  const ciphertext = asString(encrypted.ciphertext);
+  const iv = asString(encrypted.iv);
+  const tag = asString(encrypted.tag);
+  if (!ciphertext || !iv || !tag) return null;
+  let bodyText = "";
   try {
-    const bodyText = decryptText({
-      ciphertext: String(encrypted.ciphertext),
-      iv: String(encrypted.iv),
-      tag: String(encrypted.tag),
-    });
-    return { ...data, bodyText };
-  } catch (e) {
+    bodyText = decryptText({ ciphertext, iv, tag });
+  } catch {
     return null;
   }
+
+  const attachmentMetaRaw = Array.isArray(data.attachment_meta) ? data.attachment_meta : [];
+  const attachmentMeta: AttachmentMetadata[] = attachmentMetaRaw.map((row) => {
+    const item = asRecord(row);
+    return {
+      filename: asString(item.filename) || "attachment",
+      mimetype: asString(item.mimetype) || "application/octet-stream",
+      size_bytes: asNonNegativeNumber(item.size_bytes, 0),
+      ocr_success: item.ocr_success === true,
+      ocr_reason: asString(item.ocr_reason) || "",
+      ocr_detail: asString(item.ocr_detail) || null,
+      original_mimetype: asString(item.original_mimetype) || null,
+      normalized_mimetype: asString(item.normalized_mimetype) || null,
+      storage_uri: asString(item.storage_uri) || null,
+      storage_path: asString(item.storage_path) || null,
+      storage_bucket: asString(item.storage_bucket) || null,
+      storage_signed_url: asString(item.storage_signed_url) || null,
+      storage_success: item.storage_success === true,
+      storage_error: asString(item.storage_error) || null,
+    };
+  });
+
+  return {
+    sessionId: asString(data.session_id),
+    uid: asString(data.user_id),
+    messageId: asString(data.message_id),
+    threadId: asString(data.thread_id),
+    emailDate: asString(data.email_date),
+    sourceSender: asString(data.source_sender),
+    sourceSubject: asString(data.source_subject),
+    bodyText,
+    attachmentMeta,
+    hashSignatureRaw: asString(data.hash_signature_raw),
+  };
 }
 
-/**
- * Marca el progreso de un job en la cola.
- */
-export async function markJobStatus(
-  collection: string,
-  docId: string,
-  status: QueueJobStatus,
-  error?: any
-) {
-  await admin
+// ─── Temporary attachment extraction ────────────────────────────────────────
+
+export async function saveTemporaryAttachmentExtraction(args: {
+  rawDocId: string;
+  sessionId: string;
+  uid: string;
+  attachmentMetadata: AttachmentMetadata[];
+  extractedText: string;
+}): Promise<void> {
+  const encrypted = encryptText(args.extractedText);
+  const expiresAtIso = new Date(Date.now() + RAW_DOCUMENT_TTL_MS).toISOString();
+  await admin.firestore().collection("gmail_attachment_extract_tmp").doc(args.rawDocId).set(
+    {
+      raw_doc_id: args.rawDocId,
+      session_id: args.sessionId,
+      user_id: args.uid,
+      attachment_metadata: sanitizeAttachmentMetadataForFirestore(args.attachmentMetadata),
+      extracted_text_encrypted: encrypted,
+      created_at: getNowIso(),
+      expires_at: expiresAtIso,
+    },
+    { merge: true }
+  );
+}
+
+export async function loadTemporaryAttachmentExtraction(rawDocId: string): Promise<{
+  attachmentMetadata: AttachmentMetadata[];
+  extractedText: string;
+} | null> {
+  const snap = await admin.firestore().collection("gmail_attachment_extract_tmp").doc(rawDocId).get();
+  if (!snap.exists) return null;
+  const data = asRecord(snap.data());
+  const encrypted = asRecord(data.extracted_text_encrypted);
+  const ciphertext = asString(encrypted.ciphertext);
+  const iv = asString(encrypted.iv);
+  const tag = asString(encrypted.tag);
+  let extractedText = "";
+  if (ciphertext && iv && tag) {
+    try {
+      extractedText = decryptText({ ciphertext, iv, tag });
+    } catch {
+      extractedText = "";
+    }
+  }
+  const attachmentMetaRaw = Array.isArray(data.attachment_metadata) ? data.attachment_metadata : [];
+  const attachmentMetadata: AttachmentMetadata[] = attachmentMetaRaw.map((row) => {
+    const item = asRecord(row);
+    return {
+      filename: asString(item.filename) || "attachment",
+      mimetype: asString(item.mimetype) || "application/octet-stream",
+      size_bytes: asNonNegativeNumber(item.size_bytes, 0),
+      ocr_success: item.ocr_success === true,
+      ocr_reason: asString(item.ocr_reason) || "",
+      ocr_detail: asString(item.ocr_detail) || null,
+      original_mimetype: asString(item.original_mimetype) || null,
+      normalized_mimetype: asString(item.normalized_mimetype) || null,
+      storage_uri: asString(item.storage_uri) || null,
+      storage_path: asString(item.storage_path) || null,
+      storage_bucket: asString(item.storage_bucket) || null,
+      storage_signed_url: asString(item.storage_signed_url) || null,
+      storage_success: item.storage_success === true,
+      storage_error: asString(item.storage_error) || null,
+    };
+  });
+  return {
+    attachmentMetadata,
+    extractedText,
+  };
+}
+
+export async function deleteTemporaryAttachmentExtraction(rawDocId: string): Promise<void> {
+  await admin.firestore().collection("gmail_attachment_extract_tmp").doc(rawDocId).delete().catch(() => undefined);
+}
+
+// ─── Cleanup ────────────────────────────────────────────────────────────────
+
+export async function purgeExpiredRawDocuments(limit = 50): Promise<void> {
+  const cutoffIso = getNowIso();
+  const stale = await admin
     .firestore()
-    .collection(collection)
-    .doc(docId)
-    .update({
-      status,
-      updated_at: getNowIso(),
-      ...(error ? { error: String(error) } : {}),
-    });
+    .collection("gmail_raw_documents_tmp")
+    .where("expires_at", "<=", cutoffIso)
+    .limit(limit)
+    .get();
+  if (stale.empty) return;
+  await Promise.all(stale.docs.map((doc) => doc.ref.delete().catch(() => undefined)));
+
+  const staleAttachment = await admin
+    .firestore()
+    .collection("gmail_attachment_extract_tmp")
+    .where("expires_at", "<=", cutoffIso)
+    .limit(limit)
+    .get();
+  if (!staleAttachment.empty) {
+    await Promise.all(staleAttachment.docs.map((doc) => doc.ref.delete().catch(() => undefined)));
+  }
 }
