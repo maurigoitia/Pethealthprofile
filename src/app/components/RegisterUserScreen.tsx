@@ -6,10 +6,13 @@ import { doc, setDoc } from "firebase/firestore";
 import { COUNTRIES } from "../data/countries";
 import { startGmailConnectFlow } from "../services/gmailSyncService";
 import { normalizeCoTutorInviteCode, rememberPendingCoTutorInvite } from "../utils/coTutorInvite";
+import { persistAcquisitionSource, resolveAcquisitionSource, trackAcquisitionEvent } from "../utils/acquisitionTracking";
+import { AuthPageShell } from "./AuthPageShell";
 
 export function RegisterUserScreen() {
   const navigate = useNavigate();
   const location = useLocation();
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,14 +22,44 @@ export function RegisterUserScreen() {
   const [showGmailStep, setShowGmailStep] = useState(false);
   const [gmailStepLoading, setGmailStepLoading] = useState(false);
   const inviteCode = useMemo(
-    () => normalizeCoTutorInviteCode(new URLSearchParams(location.search).get("invite")),
-    [location.search]
+    () => normalizeCoTutorInviteCode(searchParams.get("invite")),
+    [searchParams]
   );
+  const acquisitionSource = useMemo(
+    () => resolveAcquisitionSource(location.search, location.pathname),
+    [location.pathname, location.search]
+  );
+  const leadName = useMemo(() => searchParams.get("lead_name")?.trim() || "", [searchParams]);
+  const leadEmail = useMemo(() => searchParams.get("lead_email")?.trim().toLowerCase() || "", [searchParams]);
+  const leadPet = useMemo(() => searchParams.get("lead_pet")?.trim() || "", [searchParams]);
 
   useEffect(() => {
     if (!inviteCode) return;
     rememberPendingCoTutorInvite(inviteCode);
   }, [inviteCode]);
+
+  useEffect(() => {
+    if (!acquisitionSource) return;
+    persistAcquisitionSource(acquisitionSource);
+    void trackAcquisitionEvent("pessy_acquisition_register_view", {
+      source: acquisitionSource,
+      path: location.pathname,
+    });
+  }, [acquisitionSource, location.pathname]);
+
+  useEffect(() => {
+    if (leadName) setName((current) => current || leadName);
+    if (leadEmail) setEmail((current) => current || leadEmail);
+    if (!leadPet) return;
+    localStorage.setItem(
+      "pessy_landing_prefill",
+      JSON.stringify({
+        name: leadName || "",
+        email: leadEmail || "",
+        petName: leadPet,
+      })
+    );
+  }, [leadEmail, leadName, leadPet]);
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +108,12 @@ export function RegisterUserScreen() {
         },
       });
 
+      void trackAcquisitionEvent("pessy_acquisition_register_success", {
+        source: acquisitionSource,
+        path: location.pathname,
+        gmail_invite_enabled: inviteEnabled,
+      });
+
       if (inviteCode) {
         navigate("/home", { replace: true });
       } else if (inviteEnabled) {
@@ -116,23 +155,29 @@ export function RegisterUserScreen() {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-6"
-      style={{
-        backgroundImage: "linear-gradient(180deg, #074738 0%, #0e6a5a 50%, #1a9b7d 100%)",
-      }}
+    <AuthPageShell
+      eyebrow="Tu cuenta"
+      title="Su historia comienza aqui."
+      description="Crea tu cuenta y dejale a Pessy el trabajo de organizar todo lo de tu mascota."
+      highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
     >
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl px-6 pt-10 pb-10">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-black text-[#074738]">Pessy</h1>
-          <p className="text-slate-500 text-sm mt-2">Que su historia no se pierda.</p>
-        </div>
+      <div className="mb-8">
+        <h2
+          className="text-3xl font-extrabold tracking-tight text-[#002f24]"
+          style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+        >
+          Crear cuenta
+        </h2>
+        <p className="mt-2 text-sm font-medium leading-6 text-[#5e716b]">
+          Empeza con tus datos. Pessy hace el resto.
+        </p>
+      </div>
 
-        <form onSubmit={handleCreateAccount} className="space-y-4">
+      <form onSubmit={handleCreateAccount} className="space-y-4">
           {inviteCode && (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-left">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-700">Invitación de co-tutor</p>
-              <p className="text-sm text-emerald-900 leading-5 mt-1">
+            <div className="rounded-[1.5rem] border border-[#b5efd9] bg-[#eef8f3] px-4 py-4 text-left">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]">Invitacion de co-tutor</p>
+              <p className="mt-1 text-sm leading-5 text-[#002f24]">
                 Esta cuenta se va a vincular con una mascota compartida apenas termines el registro.
               </p>
             </div>
@@ -188,7 +233,7 @@ export function RegisterUserScreen() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 rounded-2xl bg-[#074738] text-white font-bold disabled:opacity-60"
+            className="w-full rounded-full bg-[#074738] py-4 text-sm font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60"
           >
             {loading ? "Creando..." : "Crear cuenta"}
           </button>
@@ -196,12 +241,11 @@ export function RegisterUserScreen() {
           <button
             type="button"
             onClick={() => navigate(inviteCode ? `/login?invite=${inviteCode}` : "/login")}
-            className="w-full py-4 rounded-2xl border-2 border-[#074738] text-[#074738] font-bold hover:bg-[#074738]/5 transition-all"
+            className="w-full rounded-full border border-[#dfe6e2] py-4 text-sm font-bold uppercase tracking-[0.16em] text-[#074738] transition-all hover:bg-[#f4f3f9]"
           >
             Ya tengo cuenta
           </button>
-        </form>
-      </div>
+      </form>
 
       {showGmailStep && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -213,7 +257,7 @@ export function RegisterUserScreen() {
               Activá sincronización de correo
             </h2>
             <p className="text-sm text-slate-600 text-center leading-relaxed mb-5">
-              Pessy puede leer correos veterinarios para completar historial, tratamientos y turnos.
+              Pessy usa IA para leer correos de turnos y estudios, y organiza todo automaticamente.
               Vas a autorizarlo en Google como <span className="font-bold">pessy.app</span>.
             </p>
             <div className="space-y-3">
@@ -234,6 +278,6 @@ export function RegisterUserScreen() {
           </div>
         </div>
       )}
-    </div>
+    </AuthPageShell>
   );
 }

@@ -6,7 +6,7 @@ import { auth } from "../../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { SEO } from "../components/SEO";
 import { detectInAppBrowser, openInSystemBrowser, getInAppBrowserLabel } from "../utils/inAppBrowser";
-import { ArrowRight, ExternalLink, Mail, Stethoscope } from "lucide-react";
+import { ArrowRight, Briefcase, ExternalLink, Mail } from "lucide-react";
 
 export default function LandingUnite() {
   const navigate = useNavigate();
@@ -74,8 +74,8 @@ export default function LandingUnite() {
       style={{ backgroundImage: "linear-gradient(180deg, #074738 0%, #0e6a5a 50%, #1a9b7d 100%)" }}
     >
       <SEO
-        title="Pessy — Todo de tu mascota, en orden"
-        description="Su historial, sus vacunas, sus tratamientos. Todo ordenado, todo visible, todo en tu celular."
+        title="Pessy — Todo lo de tu mascota, en un solo lugar"
+        description="Pessy es la app con IA que organiza la salud, los servicios y las compras de tu mascota. Todo en un solo lugar."
         canonical="https://pessy.app/empezar"
       />
 
@@ -115,7 +115,7 @@ export default function LandingUnite() {
             className="text-white/85 text-[16px] font-medium text-center tracking-[0.3px] leading-[24px] max-w-[280px]"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
-            Todo de tu mascota, sus cosas y su historia. Todo en orden.
+            Todo lo de tu mascota, en un solo lugar.
           </p>
         </motion.div>
 
@@ -173,7 +173,6 @@ export default function LandingUnite() {
 
           {!showInAppWarning && (
             <>
-              {/* Botón Google — principal */}
               <button
                 onClick={handleGoogleSignIn}
                 disabled={loadingGoogle || authLoading}
@@ -191,7 +190,6 @@ export default function LandingUnite() {
                 {loadingGoogle ? "Conectando..." : "Empezar ahora con Google"}
               </button>
 
-              {/* Botón Email — secundario */}
               <button
                 onClick={() => navigate("/login")}
                 className="w-full py-3.5 rounded-[40px] bg-white/12 border border-white/35 text-white font-bold text-[15px] flex items-center justify-center gap-2 hover:bg-white/20 transition-all"
@@ -224,7 +222,7 @@ export default function LandingUnite() {
           <div className="flex-1 h-px bg-white/20" />
         </div>
 
-        {/* Sección Veterinarios — B2B */}
+        {/* Sección Partners — B2B */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -232,15 +230,15 @@ export default function LandingUnite() {
           className="w-full"
         >
           <a
-            href="mailto:it@pessy.app?subject=Soy%20veterinario%20-%20Quiero%20conocer%20Pessy"
+            href="mailto:it@pessy.app?subject=Trabajo%20en%20pet%20care%20-%20Quiero%20conocer%20Pessy"
             className="w-full py-4 px-6 rounded-[24px] bg-white/8 border border-white/20 flex items-center gap-4 hover:bg-white/14 transition-all group"
           >
             <div className="size-11 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0">
-              <Stethoscope className="size-5 text-white/80" />
+              <Briefcase className="size-5 text-white/80" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white font-bold text-[15px]">
-                ¿Sos veterinario?
+                ¿Trabajas en pet care?
               </p>
               <p className="text-white/60 text-[13px] leading-[18px]">
                 Escribinos a it@pessy.app

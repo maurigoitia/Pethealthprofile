@@ -1,28 +1,61 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
-import { Header } from "./Header";
-import { ActionTray } from "./ActionTray";
-import { Timeline } from "./Timeline";
-import { MonthSummary } from "./MonthSummary";
-import { PetProfileModal } from "./PetProfileModal";
-import { DocumentScannerModal } from "./DocumentScannerModal";
 import { BottomNav } from "./BottomNav";
-import { UserProfileScreen } from "./UserProfileScreen";
-import { PetSelectorModal } from "./PetSelectorModal";
 import { MaterialIcon } from "./MaterialIcon";
 import { PetHomeView } from "./PetHomeView";
-import { AppointmentsScreen } from "./AppointmentsScreen";
-import { MedicationsScreen } from "./MedicationsScreen";
 import { TermsAcceptanceNotice } from "./TermsAcceptanceNotice";
-import { FocusedHomeExperience } from "./FocusedHomeExperience";
 import { usePet } from "../contexts/PetContext";
 import { useAuth } from "../contexts/AuthContext";
-import { clearPendingCoTutorInvite, readPendingCoTutorInvite } from "../utils/coTutorInvite";
+import { clearPendingCoTutorInvite, readPendingCoTutorInvite, rememberPendingCoTutorInvite, normalizeCoTutorInviteCode } from "../utils/coTutorInvite";
 import { isFocusExperienceHost } from "../utils/runtimeFlags";
 
+const Header = lazy(() =>
+  import("./Header").then((module) => ({ default: module.Header }))
+);
+const ActionTray = lazy(() =>
+  import("./ActionTray").then((module) => ({ default: module.ActionTray }))
+);
+const Timeline = lazy(() =>
+  import("./Timeline").then((module) => ({ default: module.Timeline }))
+);
+const MonthSummary = lazy(() =>
+  import("./MonthSummary").then((module) => ({ default: module.MonthSummary }))
+);
+const PetProfileModal = lazy(() =>
+  import("./PetProfileModal").then((module) => ({ default: module.PetProfileModal }))
+);
+const DocumentScannerModal = lazy(() =>
+  import("./DocumentScannerModal").then((module) => ({ default: module.DocumentScannerModal }))
+);
+const UserProfileScreen = lazy(() =>
+  import("./UserProfileScreen").then((module) => ({ default: module.UserProfileScreen }))
+);
+const PetSelectorModal = lazy(() =>
+  import("./PetSelectorModal").then((module) => ({ default: module.PetSelectorModal }))
+);
+const AppointmentsScreen = lazy(() =>
+  import("./AppointmentsScreen").then((module) => ({ default: module.AppointmentsScreen }))
+);
+const MedicationsScreen = lazy(() =>
+  import("./MedicationsScreen").then((module) => ({ default: module.MedicationsScreen }))
+);
+const FocusedHomeExperience = lazy(() =>
+  import("./FocusedHomeExperience").then((module) => ({ default: module.FocusedHomeExperience }))
+);
 const ExportReportModal = lazy(() =>
   import("./ExportReportModal").then((module) => ({ default: module.ExportReportModal }))
 );
+
+function ScreenLoader({ label = "Cargando..." }: { label?: string }) {
+  return (
+    <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen flex items-center justify-center px-6">
+      <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 text-center">
+        <div className="mx-auto mb-4 size-10 rounded-full border-4 border-[#074738]/20 border-t-[#074738] animate-spin" />
+        <p className="text-base font-bold text-slate-900 dark:text-white">{label}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function HomeScreen() {
   const navigate = useNavigate();
@@ -62,6 +95,19 @@ export default function HomeScreen() {
     }
   }, [location.search]);
 
+  // Si llega ?invite=CODE en la URL, guardarlo en localStorage para procesarlo
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const urlInvite = normalizeCoTutorInviteCode(params.get("invite"));
+    if (urlInvite) {
+      rememberPendingCoTutorInvite(urlInvite);
+      // Limpiar el ?invite= de la URL para que no quede visible
+      params.delete("invite");
+      const clean = params.toString();
+      navigate(location.pathname + (clean ? `?${clean}` : ""), { replace: true });
+    }
+  }, [location.search, navigate]);
+
   useEffect(() => {
     if (!user) return;
     const pendingInviteCode = readPendingCoTutorInvite();
@@ -92,10 +138,20 @@ export default function HomeScreen() {
         if (cancelled) return;
         clearPendingCoTutorInvite();
         setInviteResolvedCode(pendingInviteCode);
-        setInviteNotice({
-          type: "error",
-          message: error?.message || "No se pudo completar la invitación de co-tutor.",
-        });
+        // Errores que no requieren mostrar nada al usuario (código propio, ya unido, etc.)
+        const msg = error?.message || "";
+        const silent = msg.includes("propia mascota") || msg.includes("ya sos") || msg.includes("ya fue utilizado") || msg.includes("Ya sos tutor");
+        if (!silent) {
+          setInviteNotice({
+            type: "error",
+            message: msg || "No se pudo completar la invitación de co-tutor.",
+          });
+          window.setTimeout(() => {
+            setInviteNotice((current) => (current?.type === "error" ? null : current));
+          }, 5000);
+        } else {
+          setInviteNotice(null);
+        }
       })
       .finally(() => {
         if (!cancelled) {
@@ -211,7 +267,7 @@ export default function HomeScreen() {
                   ¡Bienvenido a PESSY!
                 </h2>
                 <p className="text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
-                  Comienza agregando tu primera mascota para llevar su historial médico completo
+                  Agrega tu primera mascota y Pessy usa IA para organizar todo automaticamente
                 </p>
               </div>
               <button
@@ -280,16 +336,20 @@ export default function HomeScreen() {
   if (currentTab === "settings") {
     return withTermsNotice(
       <>
-        <UserProfileScreen onBack={() => handleTabChange("home")} />
+        <Suspense fallback={<ScreenLoader label="Cargando perfil..." />}>
+          <UserProfileScreen onBack={() => handleTabChange("home")} />
+        </Suspense>
         <BottomNav
           currentTab={currentTab}
           onTabChange={handleTabChange}
           onAddDocument={() => setShowScanner(true)}
         />
-        <DocumentScannerModal
-          isOpen={showScanner}
-          onClose={() => setShowScanner(false)}
-        />
+        <Suspense fallback={null}>
+          <DocumentScannerModal
+            isOpen={showScanner}
+            onClose={() => setShowScanner(false)}
+          />
+        </Suspense>
       </>
     );
   }
@@ -298,16 +358,20 @@ export default function HomeScreen() {
   if (viewMode === "appointments") {
     return withTermsNotice(
       <>
-        <AppointmentsScreen onBack={() => setViewMode("card")} />
+        <Suspense fallback={<ScreenLoader label="Cargando turnos..." />}>
+          <AppointmentsScreen onBack={() => setViewMode("card")} />
+        </Suspense>
         <BottomNav
           currentTab={currentTab}
           onTabChange={handleTabChange}
           onAddDocument={() => setShowScanner(true)}
         />
-        <DocumentScannerModal
-          isOpen={showScanner}
-          onClose={() => setShowScanner(false)}
-        />
+        <Suspense fallback={null}>
+          <DocumentScannerModal
+            isOpen={showScanner}
+            onClose={() => setShowScanner(false)}
+          />
+        </Suspense>
       </>
     );
   }
@@ -316,9 +380,13 @@ export default function HomeScreen() {
   if (viewMode === "medications") {
     return withTermsNotice(
       <>
-        <MedicationsScreen onBack={() => setViewMode("card")} />
+        <Suspense fallback={<ScreenLoader label="Cargando tratamientos..." />}>
+          <MedicationsScreen onBack={() => setViewMode("card")} />
+        </Suspense>
         <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} />
-        <DocumentScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
+        <Suspense fallback={null}>
+          <DocumentScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
+        </Suspense>
       </>
     );
   }
@@ -345,63 +413,70 @@ export default function HomeScreen() {
         {viewMode === "card" && (
           <>
             {focusExperienceEnabled ? (
-              <FocusedHomeExperience
-                userName={safeUserName}
-                activePetId={activePetId}
-                activePet={{
-                  name: activePet.name,
-                  photo: activePet.photo,
-                  breed: activePet.breed,
-                  species: activePet.species,
-                  age: activePet.age,
-                  weight: activePet.weight,
-                }}
-                onPetClick={() => setShowPetSelector(true)}
-                onOpenFeed={() => setViewMode("feed")}
-                onOpenAppointments={() => setViewMode("appointments")}
-                onOpenMedications={() => setViewMode("medications")}
-                onOpenScanner={() => setShowScanner(true)}
-                onExportReport={() => setShowExportReport(true)}
-              />
+              <Suspense fallback={<ScreenLoader label="Cargando inicio..." />}>
+                <FocusedHomeExperience
+                  userName={safeUserName}
+                  activePetId={activePetId}
+                  activePet={{
+                    name: activePet.name,
+                    photo: activePet.photo,
+                    breed: activePet.breed,
+                    species: activePet.species,
+                    age: activePet.age,
+                    weight: activePet.weight,
+                  }}
+                  onPetClick={() => setShowPetSelector(true)}
+                  onOpenFeed={() => setViewMode("feed")}
+                  onOpenAppointments={() => setViewMode("appointments")}
+                  onOpenMedications={() => setViewMode("medications")}
+                  onOpenScanner={() => setShowScanner(true)}
+                  onExportReport={() => setShowExportReport(true)}
+                />
+              </Suspense>
             ) : (
-              <PetHomeView
-                userName={safeUserName}
-                onViewHistory={() => setViewMode("feed")}
-                onPetClick={() => setShowPetSelector(true)}
-                onAppointmentsClick={() => setViewMode("appointments")}
-                onMedicationsClick={() => setViewMode("medications")}
-                pets={pets}
-                activePetId={activePetId}
-                onPetChange={handlePetChange}
-              />
+              <>
+                <PetHomeView
+                  userName={safeUserName}
+                  onViewHistory={() => setViewMode("feed")}
+                  onProfileClick={() => setShowPetProfile(true)}
+                  onPetClick={() => setShowPetSelector(true)}
+                  onAppointmentsClick={() => setViewMode("appointments")}
+                  onMedicationsClick={() => setViewMode("medications")}
+                  pets={pets}
+                  activePetId={activePetId}
+                  onPetChange={handlePetChange}
+                />
+              </>
             )}
           </>
         )}
 
         {/* Feed View - Original Design */}
         {viewMode === "feed" && (
-          <>
-            <Header
-              onPetClick={() => setShowPetSelector(true)}
-              activePet={{
-                name: activePet.name,
-                photo: activePet.photo,
-                species: activePet.breed
-              }}
-            />
-
-            <main className="flex-1 px-4 space-y-6 mt-4">
-              <Timeline
+          <Suspense fallback={<ScreenLoader label="Cargando historia..." />}>
+            <>
+              <Header
+                onPetClick={() => setShowPetSelector(true)}
                 activePet={{
                   name: activePet.name,
-                  photo: activePet.photo
+                  photo: activePet.photo,
+                  species: activePet.breed
                 }}
-                onExportReport={() => setShowExportReport(true)}
               />
-              <MonthSummary />
-              <ActionTray />
-            </main>
-          </>
+
+              <main className="flex-1 px-4 space-y-6 mt-4">
+                <Timeline
+                  activePet={{
+                    name: activePet.name,
+                    photo: activePet.photo
+                  }}
+                  onExportReport={() => setShowExportReport(true)}
+                />
+                <MonthSummary />
+                <ActionTray />
+              </main>
+            </>
+          </Suspense>
         )}
       </div>
 
@@ -413,29 +488,35 @@ export default function HomeScreen() {
       />
 
       {/* Modals */}
-      <PetProfileModal
-        isOpen={showPetProfile}
-        onClose={() => setShowPetProfile(false)}
-      />
+      <Suspense fallback={null}>
+        <PetProfileModal
+          isOpen={showPetProfile}
+          onClose={() => setShowPetProfile(false)}
+        />
+      </Suspense>
       <Suspense fallback={null}>
         <ExportReportModal
           isOpen={showExportReport}
           onClose={() => setShowExportReport(false)}
         />
       </Suspense>
-      <DocumentScannerModal
-        isOpen={showScanner}
-        onClose={() => setShowScanner(false)}
-      />
-      <PetSelectorModal
-        isOpen={showPetSelector}
-        onClose={() => setShowPetSelector(false)}
-        pets={pets}
-        activePetId={activePetId}
-        onPetChange={handlePetChange}
-        onViewProfile={() => setShowPetProfile(true)}
-        onAddNewPet={handleAddNewPet}
-      />
+      <Suspense fallback={null}>
+        <DocumentScannerModal
+          isOpen={showScanner}
+          onClose={() => setShowScanner(false)}
+        />
+      </Suspense>
+      <Suspense fallback={null}>
+        <PetSelectorModal
+          isOpen={showPetSelector}
+          onClose={() => setShowPetSelector(false)}
+          pets={pets}
+          activePetId={activePetId}
+          onPetChange={handlePetChange}
+          onViewProfile={() => setShowPetProfile(true)}
+          onAddNewPet={handleAddNewPet}
+        />
+      </Suspense>
     </div>
   );
 }
