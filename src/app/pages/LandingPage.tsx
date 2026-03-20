@@ -31,8 +31,8 @@ import { HistoryMockup, MedicationMockup, VaccinesMockup } from "../components/A
 const traducciones = {
   es: {
     hero: {
-      title: "Todo lo de tu mascota, en un solo lugar.",
-      subtitle: "Pessy usa IA para organizar la salud, los servicios y las compras de tu mascota. Su historia, sus papeles, sus rutinas — todo en orden, sin esfuerzo.",
+      title: "Porque quererlo ya es suficiente trabajo.",
+      subtitle: "Pessy lo maneja. Vos lo disfrutás. Porque quererlo ya es suficiente trabajo.",
       tagline: "SU HISTORIA COMIENZA AQUI.",
       cta: "Probar ahora"
     },
@@ -71,7 +71,7 @@ const traducciones = {
       body2: "Un ecosistema digital para acompanar su dia a dia con todo en orden.",
       body3: "",
       body4: "",
-      highlight: "Pessy usa IA para que vos solo disfrutes a tu mascota.",
+      highlight: "Porque quererlo ya es suficiente trabajo.",
       chips: ["Identidad digital", "Ecosistema digital", "Perfil vivo", "Siempre disponible"]
     },
     pricing: {
@@ -145,7 +145,7 @@ const traducciones = {
       { title: "Identidad actualizada", body: "Se ordeno el ultimo documento de Thor en su perfil.", time: "AHORA" }
     ],
     footer: {
-      slogan: "Todo lo de tu mascota, en un solo lugar",
+      slogan: "Pessy lo maneja. Vos lo disfrutás.",
       nav: ["Identidad", "Cuidados", "Rutinas", "Entrar"],
       legal: ["Politica de Privacidad", "Terminos y Condiciones"]
     }

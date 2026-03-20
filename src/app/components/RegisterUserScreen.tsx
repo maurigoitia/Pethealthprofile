@@ -158,7 +158,7 @@ export function RegisterUserScreen() {
     <AuthPageShell
       eyebrow="Tu cuenta"
       title="Su historia comienza aqui."
-      description="Crea tu cuenta y dejale a Pessy el trabajo de organizar todo lo de tu mascota."
+      description="Pessy lo maneja. Vos lo disfrutás. Empezá gratis."
       highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
     >
       <div className="mb-8">
@@ -169,7 +169,7 @@ export function RegisterUserScreen() {
           Crear cuenta
         </h2>
         <p className="mt-2 text-sm font-medium leading-6 text-[#5e716b]">
-          Empeza con tus datos. Pessy hace el resto.
+          Empeza con tus datos. Pessy hace el resto — en serio.
         </p>
       </div>
 
@@ -257,7 +257,7 @@ export function RegisterUserScreen() {
               Activá sincronización de correo
             </h2>
             <p className="text-sm text-slate-600 text-center leading-relaxed mb-5">
-              Pessy usa IA para leer correos de turnos y estudios, y organiza todo automaticamente.
+              Pessy lee tus correos de turnos y estudios, y los ordena solo. Vos no hacés nada.
               Vas a autorizarlo en Google como <span className="font-bold">pessy.app</span>.
             </p>
             <div className="space-y-3">

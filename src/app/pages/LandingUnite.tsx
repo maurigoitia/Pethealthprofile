@@ -74,8 +74,8 @@ export default function LandingUnite() {
       style={{ backgroundImage: "linear-gradient(180deg, #074738 0%, #0e6a5a 50%, #1a9b7d 100%)" }}
     >
       <SEO
-        title="Pessy — Todo lo de tu mascota, en un solo lugar"
-        description="Pessy es la app con IA que organiza la salud, los servicios y las compras de tu mascota. Todo en un solo lugar."
+        title="Pessy — Porque quererlo ya es suficiente trabajo"
+        description="Pessy lo maneja. Vos lo disfrutás. La app con IA que tiene todo lo de tu mascota en un solo lugar."
         canonical="https://pessy.app/empezar"
       />
 
@@ -115,7 +115,7 @@ export default function LandingUnite() {
             className="text-white/85 text-[16px] font-medium text-center tracking-[0.3px] leading-[24px] max-w-[280px]"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
-            Todo lo de tu mascota, en un solo lugar.
+            Porque quererlo ya es suficiente trabajo.
           </p>
         </motion.div>
 

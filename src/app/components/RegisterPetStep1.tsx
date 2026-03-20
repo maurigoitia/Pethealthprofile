@@ -71,8 +71,8 @@ export function RegisterPetStep1() {
   return (
     <AuthPageShell
       eyebrow="Registro"
-      title="Todo lo de tu mascota, en un solo lugar."
-      description="Empezamos por su identidad. Pessy usa IA para organizar su salud, sus rutinas y sus compras automaticamente."
+      title="Porque quererlo ya es suficiente trabajo."
+      description="Contanos quien es. Pessy se encarga del resto."
       highlights={["Perfil digital", "Documentos", "Carnet"]}
     >
       <div className="mb-6">

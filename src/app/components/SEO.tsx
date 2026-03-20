@@ -12,8 +12,8 @@ interface SEOProps {
 }
 
 export function SEO({ 
-  title = "Pessy — Todo lo de tu mascota, en un solo lugar",
-  description = "Pessy es la app con IA que organiza la salud, los servicios y las compras de tu mascota. Todo lo de tu mascota, en un solo lugar.",
+  title = "Pessy — Porque quererlo ya es suficiente trabajo",
+  description = "Pessy lo maneja. Vos lo disfrutás. La app con IA que tiene todo lo de tu mascota en un solo lugar.",
   keywords = "mascota, pet care, identidad digital, servicios para mascotas, rutinas, compras, papeles, recordatorios, perro, gato, ia",
   ogImage = "https://pessy.app/og-image.jpg",
   canonical,

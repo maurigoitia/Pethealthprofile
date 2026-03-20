@@ -105,8 +105,8 @@ export function RegisterPetStep2() {
   return (
     <AuthPageShell
       eyebrow="Registro"
-      title="Su perfil ya esta siendo procesado por IA."
-      description="Con estos datos, Pessy activa su motor de IA para organizar documentos, recordatorios y cuidados automaticamente."
+      title="Ya casi. Pessy empieza a conocerlo."
+      description="Con esto, Pessy organiza sus documentos, recordatorios y cuidados solo. Vos solo disfrutás."
       highlights={["Foto", "Datos base", "Primer perfil"]}
     >
       <div className="mb-6">

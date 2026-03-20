@@ -238,8 +238,8 @@ export function LoginScreen() {
 
       <AuthPageShell
         eyebrow="Acceso"
-        title="Entrar a Pessy — AI-powered"
-        description="Todo lo de tu mascota, en un solo lugar. Con IA."
+        title="Pessy — Porque quererlo ya es suficiente trabajo"
+        description="Porque quererlo ya es suficiente trabajo. Con IA."
         highlights={["Identidad digital", "Recordatorios", "Co-tutores"]}
       >
         <div className="mb-8">

@@ -39,10 +39,10 @@ export function WelcomeScreen() {
             AI-powered
           </div>
           <h1 className="mx-auto max-w-3xl text-6xl font-black leading-[0.95] tracking-tight text-slate-900 md:text-8xl">
-            Todo lo de tu mascota, en un solo lugar.
+            Porque quererlo ya es suficiente trabajo.
           </h1>
           <p className="mx-auto mt-8 max-w-3xl text-2xl font-semibold leading-relaxed text-slate-500 md:text-3xl">
-            Pessy usa IA para organizar la salud, los servicios y las compras de tu mascota — sin que tengas que pensar en nada.
+            Pessy lo maneja. Vos lo disfrutás.
           </p>
 
           <button
@@ -51,7 +51,7 @@ export function WelcomeScreen() {
           >
             Probar ahora
           </button>
-          <p className="mt-8 text-sm font-black uppercase tracking-[0.35em] text-slate-400">TU MASCOTA. NUESTRA IA. TODO EN ORDEN.</p>
+          <p className="mt-8 text-sm font-black uppercase tracking-[0.35em] text-slate-400">PESSY LO MANEJA. VOS LO DISFRUTÁS.</p>
         </motion.div>
       </main>
     </div>
