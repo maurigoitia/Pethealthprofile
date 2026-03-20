@@ -1,6 +1,8 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { Resend } from "resend";
+export * from "./appointments";
+export { ingestHistory } from "./clinical/ingestHistory";
 
 // Resend — email fallback para notificaciones de medicación
 // API key se configura en: firebase functions:secrets:set RESEND_API_KEY
@@ -32,33 +34,114 @@ async function sendEmailReminder(args: {
     timeZone: "America/Argentina/Buenos_Aires",
   });
 
-  const subject = args.minutesBefore === 0
-    ? `⏰ Hora de la medicación — ${args.petName}`
-    : `🐾 En ${args.minutesBefore} min: medicación de ${args.petName}`;
+  const isNow = args.minutesBefore === 0;
+  const subject = isNow
+    ? `Hora de la medicación de ${args.petName} — Pessy`
+    : `En ${args.minutesBefore} min: medicación de ${args.petName} — Pessy`;
+
+  // Logo SVG de Pessy (P + forma orgánica) — inline para máxima compatibilidad con clientes de email
+  const pessynLogoSvg = `<svg width="32" height="36" viewBox="0 0 214.848 240.928" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.8826 0.101688L12.0892 0.0939362C19.3159 -0.118314 27.2282 0.0891794 34.4962 0.133929L70.1119 0.193927L108.921 0.183429C117.756 0.209429 127.246 0.0274282 135.998 0.538928C139.448 0.740678 147.088 2.34518 150.461 3.17818C164.121 6.47343 176.683 13.2814 186.901 22.9272C205.723 40.6399 213.993 61.1484 214.803 86.8074C215.503 109.009 208.096 132.621 192.371 148.569C186.658 153.824 179.556 162.934 171.653 164.326C167.318 164.204 163.026 153.514 162.396 150.046C162.286 148.271 165.603 145.811 166.798 144.891C184.343 131.381 194.678 112.523 195.101 90.1144C195.633 71.1989 188.423 52.8852 175.136 39.4112C169.043 33.1554 158.048 25.9717 149.678 23.2562C138.481 19.6232 128.223 19.8317 116.658 19.8712L97.1804 19.9189L39.5581 19.9119C36.3306 19.8867 32.4451 20.1522 29.3126 20.0337C19.4289 19.6604 19.9614 24.0957 19.9886 32.3012L19.9444 154.071L19.9459 188.229C19.9379 196.381 19.3009 206.164 20.7399 214.041C21.9614 220.729 30.8409 223.971 36.9424 221.449C46.2629 217.519 44.9236 206.946 44.8254 197.696C44.6046 176.944 60.7044 161.226 80.4254 157.371C85.5081 156.376 94.6234 156.574 99.6301 157.461C100.969 157.699 100.658 160.934 100.816 161.931C100.278 165.041 104.758 172.956 103.398 175.101C101.471 176.344 90.2986 175.824 87.1954 176.009C75.8424 176.689 66.2094 183.471 64.8956 195.361C64.1791 201.849 65.1986 208.461 64.1264 214.901C63.1911 220.524 60.6926 226.066 56.8961 230.329C51.3921 236.509 43.9576 240.349 35.6996 240.824C26.2839 241.364 18.0029 239.931 10.7711 233.414C3.56614 226.921 0.771647 218.699 0.330897 209.176C0.119647 204.614 0.274392 200.006 0.284892 195.439L0.262889 173.299L0.215144 98.6262L0.118403 38.9669C0.136403 33.4217 0.121148 27.8762 0.072398 22.3312C0.040898 18.7044 -0.0823572 14.6782 0.0888928 11.0789C0.221893 8.28294 0.476153 5.63918 2.3834 3.52918C5.66515 -0.101572 7.35389 0.236938 11.8826 0.101688Z" fill="white"/><path d="M131.773 134.566C138.826 134.309 140.791 140.514 144.906 144.904C146.801 146.926 149.096 148.784 150.978 150.839C154.043 154.184 155.326 157.091 155.018 161.631C154.883 164.701 153.236 168.364 150.826 170.261C144.251 175.431 140.008 172.509 133.576 172.089L133.181 172.064C125.998 172.209 121.768 175.736 115.543 170.686C104.318 161.579 111.396 151.521 119.671 144.241C124.311 140.161 124.341 135.374 131.773 134.566Z" fill="white"/></svg>`;
 
   const html = `
-    <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
-      <div style="background:#2b6fee;border-radius:16px;padding:20px 24px;margin-bottom:20px;">
-        <h1 style="color:white;margin:0;font-size:22px;">🐾 PESSY</h1>
-        <p style="color:rgba(255,255,255,0.85);margin:4px 0 0;font-size:13px;">Recordatorio de medicación</p>
-      </div>
-      <h2 style="color:#1a1a2e;font-size:18px;margin:0 0 8px;">
-        ${args.minutesBefore > 0 ? `En ${args.minutesBefore} minutos toca la medicación de <strong>${args.petName}</strong>` : `¡Hora de la medicación de <strong>${args.petName}</strong>!`}
-      </h2>
-      <div style="background:#f6f6f8;border-radius:12px;padding:16px;margin:16px 0;">
-        <p style="margin:0 0 8px;color:#555;font-size:13px;">MEDICAMENTO</p>
-        <p style="margin:0;font-size:18px;font-weight:800;color:#1a1a2e;">${args.medicationName}</p>
-        <p style="margin:4px 0 0;font-size:14px;color:#555;">${args.dosage}</p>
-      </div>
-      <div style="background:#2b6fee10;border-radius:12px;padding:16px;margin:16px 0;border-left:4px solid #2b6fee;">
-        <p style="margin:0;font-size:14px;color:#2b6fee;font-weight:700;">
-          🕐 ${dateStr} a las ${timeStr}
-        </p>
-      </div>
-      <p style="color:#888;font-size:12px;margin-top:24px;">
-        Este recordatorio fue configurado en <a href="https://pessy.app" style="color:#2b6fee;">pessy.app</a>
-      </p>
-    </div>
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:480px;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);" cellpadding="0" cellspacing="0">
+
+        <!-- HEADER -->
+        <tr>
+          <td style="background:#074738;padding:24px 28px;">
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align:middle;padding-right:12px;">${pessynLogoSvg}</td>
+                <td style="vertical-align:middle;">
+                  <div style="color:#ffffff;font-size:22px;font-weight:900;letter-spacing:-0.5px;line-height:1;">Pessy</div>
+                  <div style="color:rgba(255,255,255,0.65);font-size:12px;margin-top:2px;">Recordatorio de medicación</div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- ALERTA BADGE -->
+        <tr>
+          <td style="background:${isNow ? '#074738' : '#155848'};padding:12px 28px;">
+            <span style="display:inline-block;background:${isNow ? '#ffffff' : 'rgba(255,255,255,0.15)'};color:${isNow ? '#074738' : '#ffffff'};font-size:12px;font-weight:700;padding:4px 12px;border-radius:100px;letter-spacing:0.05em;text-transform:uppercase;">
+              ${isNow ? 'Hora de la toma' : `En ${args.minutesBefore} minutos`}
+            </span>
+          </td>
+        </tr>
+
+        <!-- BODY -->
+        <tr>
+          <td style="padding:28px 28px 8px;">
+            <h2 style="margin:0 0 6px;font-size:20px;font-weight:800;color:#0f1f1c;line-height:1.2;">
+              ${isNow ? `Hora de darle la medicación a ${args.petName}` : `Preparate, en ${args.minutesBefore} min toca la medicación de ${args.petName}`}
+            </h2>
+          </td>
+        </tr>
+
+        <!-- MEDICAMENTO CARD -->
+        <tr>
+          <td style="padding:8px 28px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f7f4;border-radius:14px;overflow:hidden;">
+              <tr>
+                <td style="padding:4px 0 0 0;">
+                  <div style="height:3px;background:#074738;border-radius:3px 3px 0 0;"></div>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:16px 20px;">
+                  <div style="font-size:11px;font-weight:700;color:#074738;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Medicamento</div>
+                  <div style="font-size:20px;font-weight:900;color:#0f1f1c;line-height:1.1;">${args.medicationName}</div>
+                  ${args.dosage ? `<div style="font-size:14px;color:#4a6b62;margin-top:4px;">${args.dosage}</div>` : ''}
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- HORA -->
+        <tr>
+          <td style="padding:12px 28px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9f9fb;border-radius:12px;border:1px solid #e8eae8;">
+              <tr>
+                <td style="padding:14px 18px;">
+                  <div style="font-size:12px;color:#888;margin-bottom:3px;">Hora de la toma</div>
+                  <div style="font-size:16px;font-weight:700;color:#0f1f1c;">${dateStr} · ${timeStr}</div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- CTA -->
+        <tr>
+          <td style="padding:12px 28px 28px;">
+            <a href="https://pessy.app" style="display:block;background:#074738;color:#ffffff;text-align:center;padding:15px 24px;border-radius:12px;text-decoration:none;font-size:15px;font-weight:700;letter-spacing:-0.2px;">
+              Abrir Pessy
+            </a>
+          </td>
+        </tr>
+
+        <!-- FOOTER -->
+        <tr>
+          <td style="padding:16px 28px 24px;border-top:1px solid #f0f0f0;">
+            <p style="margin:0;font-size:11px;color:#aaa;text-align:center;line-height:1.5;">
+              Este recordatorio fue configurado en <a href="https://pessy.app" style="color:#074738;text-decoration:none;">pessy.app</a><br>
+              Tu mascota, sus cosas, todo en orden.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
   `;
 
   try {
@@ -107,6 +190,7 @@ import {
 } from "./clinical/treatmentReminderEngine";
 import { onClinicalEventProjection } from "./clinical/projectionLayer";
 import { backfillClinicalProjection } from "./clinical/backfillProjection";
+import { backfillClinicalEpisodes } from "./clinical/episodeCompiler";
 import { deleteUserAccount, submitDataDeletionRequest } from "./compliance/accountDeletion";
 
 admin.initializeApp();
@@ -254,40 +338,6 @@ function isTypeEnabled(settings: NotificationSettings, type: NotificationType): 
   return true;
 }
 
-/**
- * Parsea una fecha y hora local (YYYY-MM-DD y HH:mm) en una zona horaria específica
- * y devuelve un objeto Date en UTC.
- */
-function parseLocalToUtc(dateStr: string, timeStr: string, timeZone: string): Date {
-  const localIso = `${dateStr}T${timeStr}:00`;
-  // Paso 1: Interpretar el string local como si fuera UTC para obtener un punto de referencia
-  const tempDate = new Date(`${localIso}Z`);
-
-  // Paso 2: Ver qué hora "cree" el formateador que es ese punto en la zona destino
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
-
-  const parts = formatter.formatToParts(tempDate);
-  const partMap = new Map(parts.map((p) => [p.type, p.value]));
-
-  // Paso 3: Reconstruir la fecha que el formateador devolvió
-  const reconstructed = `${partMap.get("year")}-${partMap.get("month")}-${partMap.get("day")}T${partMap.get("hour")}:${partMap.get("minute")}:${partMap.get("second")}Z`;
-  const reconstructedDate = new Date(reconstructed);
-
-  // Paso 4: La diferencia entre lo que pedimos y lo que el formateador devolvió es el offset
-  const offsetMs = reconstructedDate.getTime() - tempDate.getTime();
-
-  // Paso 5: Aplicar el offset inverso para obtener la fecha UTC real
-  return new Date(tempDate.getTime() - offsetMs);
-}
 
 async function getUserEmail(userId: string): Promise<string | null> {
   try {
@@ -640,59 +690,62 @@ export const sendScheduledNotifications = functions
         }
 
         const { token } = await getUserTokenAndTimezone(userId);
-        if (!token) {
-          console.warn(`[CRON] Sin token para usuario ${userId}`);
+        const tokenMissing = !token;
+
+        if (tokenMissing) {
+          console.warn(`[CRON] Sin token para usuario ${userId} — marcando sent y reprogramando cadena`);
           await docSnap.ref.update({ sent: true, sentAt: nowIso, error: "no_token" });
-          return;
-        }
+          // No hacemos return: dejamos que la lógica de repeat corra igual
+          // para que la cadena recurrente no se rompa cuando el usuario aún no tiene token.
+        } else {
+          await sendPushMessage({
+            token,
+            title: notification.title || "Pessy",
+            body: notification.body || "",
+            type,
+            petId: notification.petId,
+            petName: notification.petName,
+            sourceEventId: notification.sourceEventId,
+            notificationId: docSnap.id,
+          });
 
-        await sendPushMessage({
-          token,
-          title: notification.title || "Pessy",
-          body: notification.body || "",
-          type,
-          petId: notification.petId,
-          petName: notification.petName,
-          sourceEventId: notification.sourceEventId,
-          notificationId: docSnap.id,
-        });
-
-        // Email fallback para medicaciones (solo pre-aviso de 15 min o menos)
-        if (type === "medication") {
-          const scheduledFor = notification.scheduledFor as string;
-          const repeatRootId = (notification.repeatRootId as string) || "";
-          const isPre5 = repeatRootId.endsWith("_pre5");
-          const isPre60 = repeatRootId.endsWith("_pre60");
-          // Solo mandamos email en el aviso de 5 min (isPre5) — es el más cercano a la toma
-          if (isPre5) {
-            const userEmail = await getUserEmail(userId);
-            if (userEmail) {
-              await sendEmailReminder({
-                toEmail: userEmail,
-                petName: (notification.petName as string) || "tu mascota",
-                medicationName: ((notification.body as string) || "").split(" · ")[0] || "Medicación",
-                dosage: ((notification.body as string) || "").split(" · ")[1] || "",
-                scheduledFor,
-                minutesBefore: 5,
-              });
-            }
-          } else if (!isPre60 && !isPre5) {
-            // Es la dosis exacta — también mandamos email
-            const userEmail = await getUserEmail(userId);
-            if (userEmail) {
-              await sendEmailReminder({
-                toEmail: userEmail,
-                petName: (notification.petName as string) || "tu mascota",
-                medicationName: ((notification.body as string) || "").split(" · ")[0] || "Medicación",
-                dosage: ((notification.body as string) || "").split(" · ")[1] || "",
-                scheduledFor,
-                minutesBefore: 0,
-              });
+          // Email fallback para medicaciones (solo pre-aviso de 15 min o menos)
+          if (type === "medication") {
+            const scheduledFor = notification.scheduledFor as string;
+            const repeatRootId = (notification.repeatRootId as string) || "";
+            const isPre5 = repeatRootId.endsWith("_pre5");
+            const isPre60 = repeatRootId.endsWith("_pre60");
+            // Solo mandamos email en el aviso de 5 min (isPre5) — es el más cercano a la toma
+            if (isPre5) {
+              const userEmail = await getUserEmail(userId);
+              if (userEmail) {
+                await sendEmailReminder({
+                  toEmail: userEmail,
+                  petName: (notification.petName as string) || "tu mascota",
+                  medicationName: ((notification.body as string) || "").split(" · ")[0] || "Medicación",
+                  dosage: ((notification.body as string) || "").split(" · ")[1] || "",
+                  scheduledFor,
+                  minutesBefore: 5,
+                });
+              }
+            } else if (!isPre60 && !isPre5) {
+              // Es la dosis exacta — también mandamos email
+              const userEmail = await getUserEmail(userId);
+              if (userEmail) {
+                await sendEmailReminder({
+                  toEmail: userEmail,
+                  petName: (notification.petName as string) || "tu mascota",
+                  medicationName: ((notification.body as string) || "").split(" · ")[0] || "Medicación",
+                  dosage: ((notification.body as string) || "").split(" · ")[1] || "",
+                  scheduledFor,
+                  minutesBefore: 0,
+                });
+              }
             }
           }
-        }
 
-        await docSnap.ref.update({ sent: true, sentAt: nowIso });
+          await docSnap.ref.update({ sent: true, sentAt: nowIso });
+        }
 
         if (notification.repeat !== "none" && Number(notification.repeatInterval) > 0) {
           const currentScheduled = new Date(notification.scheduledFor as string);
@@ -1590,175 +1643,6 @@ export const recomputeClinicalAlertsDaily = functions.pubsub
   });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TRIGGER: Cuando se agrega una cita en Firestore → programa recordatorios
-// ─────────────────────────────────────────────────────────────────────────────
-export const onAppointmentCreated = functions.firestore
-  .document("appointments/{appointmentId}")
-  .onCreate(async (snap, context) => {
-    const appointment = snap.data() as Record<string, any> | undefined;
-    if (!appointment) return;
-    await scheduleAppointmentReminders(context.params.appointmentId, appointment);
-  });
-
-async function clearPendingAppointmentNotifications(appointmentId: string): Promise<void> {
-  const pendingSnap = await db
-    .collection("scheduled_notifications")
-    .where("sourceEventId", "==", appointmentId)
-    .where("type", "==", "appointment")
-    .where("sent", "==", false)
-    .get();
-  if (pendingSnap.empty) return;
-
-  const batch = db.batch();
-  pendingSnap.docs.forEach((docSnap) => batch.delete(docSnap.ref));
-  await batch.commit();
-}
-
-async function scheduleAppointmentReminders(appointmentId: string, appointment: Record<string, any>): Promise<void> {
-  await clearPendingAppointmentNotifications(appointmentId);
-  if (!appointment.date) return;
-  const appointmentStatus = typeof appointment.status === "string" ? appointment.status.toLowerCase() : "upcoming";
-  if (!["upcoming", "scheduled", "confirmed"].includes(appointmentStatus)) return;
-
-  const now = new Date();
-  const nowIso = now.toISOString();
-  const userId = appointment.userId || appointment.ownerId;
-  if (!userId) return;
-
-  const { timezone } = await getUserTokenAndTimezone(userId);
-  const appointmentDate = parseLocalToUtc(
-    appointment.date,
-    appointment.time || "09:00",
-    timezone
-  );
-  if (Number.isNaN(appointmentDate.getTime())) {
-    console.warn(`[TRIGGER] Fecha/hora inválida para cita ${appointmentId}`);
-    return;
-  }
-
-  const reminders: Array<{ id: string; payload: Record<string, any> }> = [];
-
-  const oneDayBefore = new Date(appointmentDate.getTime() - 24 * 3600000);
-  if (oneDayBefore > now) {
-    reminders.push({
-      id: `appt_${appointmentId}_24h`,
-      payload: {
-        userId,
-        petId: appointment.petId || "",
-        petName: appointment.petName || "Tu mascota",
-        type: "appointment",
-        title: `📅 Turno mañana — ${appointment.petName || "Tu mascota"}`,
-        body: `${appointment.title || "Consulta"}${appointment.clinic ? ` · ${appointment.clinic}` : ""}`,
-        scheduledFor: oneDayBefore.toISOString(),
-        sourceEventId: appointmentId,
-        repeat: "none",
-        repeatInterval: null,
-        repeatRootId: `appt_${appointmentId}`,
-        endAt: null,
-        active: true,
-        sent: false,
-        createdAt: nowIso,
-      },
-    });
-  }
-
-  const twoHoursBefore = new Date(appointmentDate.getTime() - 2 * 3600000);
-  if (twoHoursBefore > now) {
-    reminders.push({
-      id: `appt_${appointmentId}_2h`,
-      payload: {
-        userId,
-        petId: appointment.petId || "",
-        petName: appointment.petName || "Tu mascota",
-        type: "appointment",
-        title: `⏰ Turno en 2 horas — ${appointment.petName || "Tu mascota"}`,
-        body: `${appointment.title || "Consulta"}${appointment.veterinarian ? ` · Dr. ${appointment.veterinarian}` : ""}`,
-        scheduledFor: twoHoursBefore.toISOString(),
-        sourceEventId: appointmentId,
-        repeat: "none",
-        repeatInterval: null,
-        repeatRootId: `appt_${appointmentId}`,
-        endAt: null,
-        active: true,
-        sent: false,
-        createdAt: nowIso,
-      },
-    });
-  }
-
-  const appointmentDayKey = toDateKeyInTimezone(appointmentDate, timezone);
-  const localHour = Number(
-    new Intl.DateTimeFormat("en-GB", {
-      timeZone: timezone,
-      hour: "2-digit",
-      hour12: false,
-    }).format(appointmentDate)
-  );
-  const targetHour = Math.max(7, localHour - 3);
-  const sameDayReminderTime = `${targetHour.toString().padStart(2, "0")}:00`;
-  const sameDayReminder = parseLocalToUtc(appointmentDayKey, sameDayReminderTime, timezone);
-
-  if (sameDayReminder > now && sameDayReminder < appointmentDate) {
-    reminders.push({
-      id: `appt_${appointmentId}_today`,
-      payload: {
-        userId,
-        petId: appointment.petId || "",
-        petName: appointment.petName || "Tu mascota",
-        type: "appointment",
-        title: `📌 Hoy toca turno — ${appointment.petName || "Tu mascota"}`,
-        body: `${appointment.title || "Consulta"}${appointment.time ? ` a las ${appointment.time}` : ""}`,
-        scheduledFor: sameDayReminder.toISOString(),
-        sourceEventId: appointmentId,
-        repeat: "none",
-        repeatInterval: null,
-        repeatRootId: `appt_${appointmentId}`,
-        endAt: null,
-        active: true,
-        sent: false,
-        createdAt: nowIso,
-      },
-    });
-  }
-
-  if (reminders.length > 0) {
-    await Promise.all(
-      reminders.map((r) =>
-        db.collection("scheduled_notifications").doc(r.id).set(r.payload)
-      )
-    );
-    console.log(`[TRIGGER] ${reminders.length} recordatorios creados para cita ${appointmentId}`);
-  }
-}
-
-export const onAppointmentUpdated = functions.firestore
-  .document("appointments/{appointmentId}")
-  .onUpdate(async (change, context) => {
-    const before = change.before.data() as Record<string, any> | undefined;
-    const after = change.after.data() as Record<string, any> | undefined;
-    if (!after) return null;
-
-    const significantChange =
-      (before?.date || "") !== (after.date || "") ||
-      (before?.time || "") !== (after.time || "") ||
-      (before?.status || "") !== (after.status || "") ||
-      (before?.clinic || "") !== (after.clinic || "") ||
-      (before?.veterinarian || "") !== (after.veterinarian || "") ||
-      (before?.title || "") !== (after.title || "");
-
-    if (!significantChange) return null;
-    await scheduleAppointmentReminders(context.params.appointmentId, after);
-    return null;
-  });
-
-export const onAppointmentDeleted = functions.firestore
-  .document("appointments/{appointmentId}")
-  .onDelete(async (_snap, context) => {
-    await clearPendingAppointmentNotifications(context.params.appointmentId);
-    return null;
-  });
-
-// ─────────────────────────────────────────────────────────────────────────────
 // CLEANUP: Borra notificaciones enviadas con más de 7 días
 // ─────────────────────────────────────────────────────────────────────────────
 export const cleanupOldNotifications = functions.pubsub
@@ -2239,6 +2123,109 @@ export const resolveBrainPayload = functions
     };
   });
 
+// ---------------------------------------------------------------------------
+// Co-tutor invite — genera magic link via Admin SDK + envía por Resend
+// ---------------------------------------------------------------------------
+export const sendCoTutorInvite = functions
+  .region("us-central1")
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "Requiere sesión activa.");
+    }
+
+    const toEmail = (data.email || "").trim().toLowerCase();
+    const inviteCode = (data.inviteCode || "").trim().toUpperCase();
+    const petName = (data.petName || "tu mascota").trim();
+    const ownerUid = context.auth.uid;
+
+    if (!toEmail || !toEmail.includes("@")) {
+      throw new functions.https.HttpsError("invalid-argument", "Email inválido.");
+    }
+    if (!inviteCode) {
+      throw new functions.https.HttpsError("invalid-argument", "Código de invitación requerido.");
+    }
+
+    // Validar que el código pertenece al dueño y a una mascota real
+    const invRef = db.collection("invitations").doc(inviteCode);
+    const invSnap = await invRef.get();
+    if (!invSnap.exists) {
+      throw new functions.https.HttpsError("not-found", "Código de invitación no encontrado.");
+    }
+    const inv = invSnap.data()!;
+    if (inv.createdBy !== ownerUid) {
+      throw new functions.https.HttpsError("permission-denied", "No sos el dueño de este código.");
+    }
+
+    // Validar que el email del destinatario coincida con el del invite (si se especificó)
+    const inviteEmail = (inv.inviteEmail || "").trim().toLowerCase();
+    if (inviteEmail && inviteEmail !== toEmail) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        `Este código fue generado para ${inviteEmail}, no para ${toEmail}.`
+      );
+    }
+
+    // Link directo a la app con el código — no usamos Firebase Auth magic link
+    // porque manda un email genérico feo desde @firebaseapp.com
+    const appUrl = "https://pessy.app";
+    const magicLink = `${appUrl}/inicio?invite=${inviteCode}`;
+
+    // Enviar por Resend (único email, branded)
+    const resendKey = process.env.RESEND_API_KEY || "";
+    if (!resendKey) {
+      throw new functions.https.HttpsError("internal", "Servicio de email no configurado.");
+    }
+    const resend = new Resend(resendKey);
+
+    const html = `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#ffffff;">
+        <div style="background:#074738;border-radius:16px;padding:20px 24px;margin-bottom:24px;">
+          <h1 style="color:white;margin:0;font-size:24px;font-weight:900;">🐾 PESSY</h1>
+          <p style="color:rgba(255,255,255,0.8);margin:4px 0 0;font-size:13px;">Invitación a co-tutor</p>
+        </div>
+        <h2 style="color:#1a1a2e;font-size:18px;margin:0 0 12px;">Te invitaron a cuidar a <strong>${petName}</strong></h2>
+        <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 24px;">
+          Hacé clic en el botón para unirte al equipo de <strong>${petName}</strong>. El enlace expira en 48 horas.
+        </p>
+        <a href="${magicLink}"
+           style="display:inline-block;background:#074738;color:white;font-weight:900;font-size:15px;padding:14px 28px;border-radius:12px;text-decoration:none;">
+          Ser guardián de ${petName}
+        </a>
+        <p style="color:#aaa;font-size:12px;margin-top:24px;line-height:1.5;">
+          Si no esperabas esta invitación, podés ignorar este mensaje.<br/>
+          Este email fue enviado desde <a href="https://pessy.app" style="color:#074738;">pessy.app</a>
+        </p>
+      </div>
+    `;
+
+    const MAX_RETRIES = 3;
+    let lastErr: any = null;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await resend.emails.send({
+          from: "PESSY <noreply@pessy.app>",
+          to: toEmail,
+          subject: `Te invitaron a ser guardián de ${petName} en PESSY`,
+          html,
+        });
+        console.log(`[COTUTORES] ✅ Invitación enviada a ${toEmail} (código ${inviteCode}, intento ${attempt})`);
+        lastErr = null;
+        break;
+      } catch (err: any) {
+        lastErr = err;
+        console.warn(`[COTUTORES] Intento ${attempt}/${MAX_RETRIES} falló para ${toEmail}:`, err?.message || err);
+        if (attempt < MAX_RETRIES) await new Promise((r) => setTimeout(r, 1000 * attempt));
+      }
+    }
+    if (lastErr) {
+      console.error("[COTUTORES] Error enviando email después de reintentos:", lastErr);
+      throw new functions.https.HttpsError("internal", "No se pudo enviar el correo de invitación.");
+    }
+
+    return { ok: true };
+  });
+
 export {
   getGmailConnectUrl,
   gmailAuthCallback,
@@ -2266,6 +2253,7 @@ export {
   syncTreatmentTimezoneV3,
   onClinicalEventProjection,
   backfillClinicalProjection,
+  backfillClinicalEpisodes,
   deleteUserAccount,
   submitDataDeletionRequest,
 };
