@@ -34,20 +34,24 @@ export function WelcomeScreen() {
           transition={{ duration: 0.45 }}
           className="mx-auto max-w-4xl text-center"
         >
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-[#074738]/20 bg-[#074738]/8 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#074738] mb-6">
+            <span className="size-1.5 rounded-full bg-[#074738] animate-pulse inline-block" />
+            AI-powered
+          </div>
           <h1 className="mx-auto max-w-3xl text-6xl font-black leading-[0.95] tracking-tight text-slate-900 md:text-8xl">
-            No le expliques mas de cero al veterinario.
+            Todo lo de tu mascota, en un solo lugar.
           </h1>
           <p className="mx-auto mt-8 max-w-3xl text-2xl font-semibold leading-relaxed text-slate-500 md:text-3xl">
-            Sacale una foto a cualquier papel y la IA organiza todo. El historial de tu mascota, siempre con vos.
+            Pessy usa IA para organizar la salud, los servicios y las compras de tu mascota — sin que tengas que pensar en nada.
           </p>
 
           <button
             onClick={() => navigate("/login")}
-            className="mt-10 rounded-full bg-[#2b7cee] px-14 py-5 text-2xl font-black text-white shadow-xl shadow-[#2b7cee]/30"
+            className="mt-10 rounded-full bg-[#074738] px-14 py-5 text-2xl font-black text-white shadow-xl shadow-[#074738]/30"
           >
             Probar ahora
           </button>
-          <p className="mt-8 text-sm font-black uppercase tracking-[0.35em] text-slate-400">SIN PAPELES. SIN VUELTAS.</p>
+          <p className="mt-8 text-sm font-black uppercase tracking-[0.35em] text-slate-400">TU MASCOTA. NUESTRA IA. TODO EN ORDEN.</p>
         </motion.div>
       </main>
     </div>

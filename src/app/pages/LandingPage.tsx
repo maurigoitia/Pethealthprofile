@@ -20,7 +20,8 @@ import {
   Users,
   LayoutGrid
 } from "lucide-react";
-import { Link } from "react-router";
+import { Link, Navigate } from "react-router";
+import { useAuth } from "../contexts/AuthContext";
 import { ImageWithFallback } from "../components/ImageWithFallback";
 import { Logo } from "../components/Logo";
 import { SEO } from "../components/SEO";
@@ -30,48 +31,48 @@ import { HistoryMockup, MedicationMockup, VaccinesMockup } from "../components/A
 const traducciones = {
   es: {
     hero: {
-      title: "La proxima vez que entres al veterinario, no necesitas recordarlo todo.",
-      subtitle: "Su historial completo, sus vacunas, sus tratamientos — todo ordenado, todo visible, todo en tu celular. La informacion de tu mascota, siempre en tus manos.",
-      tagline: "SIN PAPELES. SIN VUELTAS.",
+      title: "Todo lo de tu mascota, en un solo lugar.",
+      subtitle: "Pessy usa IA para organizar la salud, los servicios y las compras de tu mascota. Su historia, sus papeles, sus rutinas — todo en orden, sin esfuerzo.",
+      tagline: "SU HISTORIA COMIENZA AQUI.",
       cta: "Probar ahora"
     },
     section2: {
-      title: "Historial Medico Digital",
-      subtitle: "El orden que salva vidas.",
-      body: "Se acabaron los cajones llenos de papeles. Sacale una foto a cualquier documento y Pessy hace el resto.",
+      title: "Identidad digital",
+      subtitle: "Su historia comienza aqui.",
+      body: "Un solo lugar para sus documentos, sus momentos importantes y todo lo que queres tener a mano.",
       features: [
-        { title: "Todo organizado", desc: "Todo lo que importa, siempre organizado y siempre disponible." },
-        { title: "Siempre preparado", desc: "Porque tener el historial a mano puede marcar la diferencia en una emergencia." }
+        { title: "Todo en orden", desc: "Su perfil, sus papeles y sus recuerdos, siempre disponibles." },
+        { title: "Listo para compartir", desc: "Su informacion a mano para familia, guarderia, viajes o quien la acompane." }
       ]
     },
     section3: {
-      title: "Control de Medicacion",
-      subtitle: "Configuras el tratamiento una vez. Pessy se encarga del resto.",
+      title: "Rutinas, compras y recordatorios",
+      subtitle: "Un lugar para sus rutinas, sus compras y lo que viene.",
       features: [
-        { title: "A tiempo, siempre", desc: "Recibis la notificacion en tu celular. Confirma la dosis con un toque." },
-        { title: "Siempre abastecido", desc: "Te avisamos antes de que se terminen los medicamentos." },
-        { title: "Todo de un vistazo", desc: "Calendario limpio, sin confusiones." }
+        { title: "Pessy te cuida y acompana", desc: "Te recuerda lo importante y te ayuda a seguirle el ritmo." },
+        { title: "Compras a tiempo", desc: "Tenes presente cuando toca reponer lo que usa todos los dias." },
+        { title: "Todo visible", desc: "Cada pendiente en un mismo lugar, sin vueltas." }
       ]
     },
     section4: {
-      title: "Calendario de Vacunacion",
-      subtitle: "Nunca mas pierdas la libreta sanitaria.",
-      body: "Todas las vacunas de tu mascota, organizadas y siempre al dia. Te avisamos antes de cada vencimiento para que no tengas que recordar nada.",
+      title: "Cuidados y carnet digital",
+      subtitle: "Sus vacunas, sus cuidados y su dia a dia, siempre a mano.",
+      body: "Pessy reune sus vacunas y sus cuidados recurrentes en una identidad digital simple de consultar, compartir y seguir.",
       features: [
         { title: "Cronograma visual", desc: "Todas las dosis aplicadas y las que vienen, en un solo lugar." },
         { title: "Alertas anticipadas", desc: "Te avisamos una semana antes de cada refuerzo." },
-        { title: "Carnet digital", desc: "En tu celular, listo para el vet, la guarderia o cualquier tramite." }
+        { title: "Carnet digital", desc: "En tu celular, listo para viajes, guarderia o cualquier tramite." }
       ]
     },
     vision: {
-      eyebrow: "ECOSISTEMA PESSY",
-      title: "Su identidad digital activa todo lo demas.",
-      body1: "Pessy organiza toda la informacion de tu mascota en un perfil digital unico — historial clinico, vacunas, tratamientos y documentos.",
-      body2: "Todo lo que importa, siempre organizado y siempre disponible.",
+      eyebrow: "ECOSISTEMA DIGITAL",
+      title: "Su identidad digital vive en Pessy.",
+      body1: "Pessy conecta su perfil, sus rutinas, sus compras, sus vacunas, sus turnos, sus documentos y sus recordatorios.",
+      body2: "Un ecosistema digital para acompanar su dia a dia con todo en orden.",
       body3: "",
       body4: "",
-      highlight: "Cada dato de tu mascota, organizado y listo cuando lo necesitas.",
-      chips: ["Identidad digital", "IA aplicada", "Historial completo", "Siempre disponible"]
+      highlight: "Pessy usa IA para que vos solo disfrutes a tu mascota.",
+      chips: ["Identidad digital", "Ecosistema digital", "Perfil vivo", "Siempre disponible"]
     },
     pricing: {
       eyebrow: "Beta · Acceso exclusivo",
@@ -92,7 +93,7 @@ const traducciones = {
           period: "mensual",
           badge: "MAS POPULAR",
           badge2: "Precio congelado al lanzamiento",
-          features: ["1 mascota", "Reconocimiento ilimitado", "alertas instantaneas", "historial completo", "co-tutores"],
+          features: ["1 mascota", "Reconocimiento ilimitado", "alertas instantaneas", "perfil completo", "co-tutores"],
           cta: "Consultar",
           popular: true
         },
@@ -110,7 +111,7 @@ const traducciones = {
     team: {
       eyebrow: "EL EQUIPO",
       title: "Las personas detras de Pessy.",
-      subtitle: "Construyendo el futuro de la identidad digital animal.",
+      subtitle: "Construyendo un ecosistema digital para mascotas.",
       members: [
         {
           name: "Mauri",
@@ -139,60 +140,60 @@ const traducciones = {
       ]
     },
     notifs: [
-      { title: "Vacuna por vencer", body: "La quintuple de Thor vence en 3 dias.", time: "AHORA" },
-      { title: "Recordatorio", body: "Manana 10:30hs Turno con el Dr Garcia.", time: "AHORA" },
-      { title: "Historial Actualizado", body: "Se proceso el ultimo estudio de sangre.", time: "AHORA" }
+      { title: "Rutina de hoy", body: "Thor ya tiene en orden su paseo, su recordatorio y su proxima compra.", time: "AHORA" },
+      { title: "Recordatorio", body: "Manana 10:30hs tenes un turno agendado para Thor.", time: "AHORA" },
+      { title: "Identidad actualizada", body: "Se ordeno el ultimo documento de Thor en su perfil.", time: "AHORA" }
     ],
     footer: {
-      slogan: "Tu mascota, sus cosas, todo en orden",
-      nav: ["Historial", "Vacunas", "Medicacion", "Entrar"],
+      slogan: "Todo lo de tu mascota, en un solo lugar",
+      nav: ["Identidad", "Cuidados", "Rutinas", "Entrar"],
       legal: ["Politica de Privacidad", "Terminos y Condiciones"]
     }
   },
   pt: {
     hero: {
-      title: "Na proxima vez que entrar no veterinario, nao precisa se lembrar de tudo.",
-      subtitle: "Seu historico completo, vacinas, tratamentos — tudo ordenado, visivel e no seu celular. A informacao do seu pet, sempre em suas maos.",
-      tagline: "SEM PAPEIS. SEM VOLTAS.",
+      title: "Seu pet, as coisas dele, tudo em ordem.",
+      subtitle: "A historia dele comeca aqui. Pessy e sua identidade digital em um ecossistema digital com rotinas, compras, vacinas, compromissos, documentos e lembretes.",
+      tagline: "A HISTORIA DELE COMECA AQUI.",
       cta: "Testar agora"
     },
     section2: {
-      title: "Historico Medico Digital",
-      subtitle: "A ordem que salva vidas.",
-      body: "Chega de gavetas cheias de papeis. Tire uma foto de qualquer documento e Pessy faz o resto.",
+      title: "Identidade digital",
+      subtitle: "A historia dele comeca aqui.",
+      body: "Um so lugar para os documentos, momentos importantes e tudo o que voce quer ter a mao.",
       features: [
-        { title: "Tudo organizado", desc: "Tudo disponivel, de qualquer dispositivo." },
-        { title: "Sempre preparado", desc: "Porque ter o historico em maos pode fazer a diferenca em uma emergencia." }
+        { title: "Tudo em ordem", desc: "O perfil, os papeis e as lembrancas dele, sempre disponiveis." },
+        { title: "Pronto para compartilhar", desc: "Com familia, creche, viagens ou quem cuida dele." }
       ]
     },
     section3: {
-      title: "Controle de Medicacao",
-      subtitle: "Voce configura o tratamento uma vez. Pessy cuida do resto.",
+      title: "Rotinas, compras e lembretes",
+      subtitle: "Um lugar para as rotinas, as compras e o que vem depois.",
       features: [
-        { title: "No prazo, sempre", desc: "Voce recebe a notificacao no seu celular. Confirme a dose com um toque." },
-        { title: "Sempre abastecido", desc: "Te avisamos antes que os medicamentos acabem." },
-        { title: "Tudo em um olhar", desc: "Calendario limpo, sem confusoes." }
+        { title: "Pessy cuida e acompanha", desc: "Te lembra do importante e ajuda a manter o ritmo." },
+        { title: "Compras na hora certa", desc: "Voce sabe quando repor o que ele usa todos os dias." },
+        { title: "Tudo visivel", desc: "Cada pendencia em um so lugar, sem confusao." }
       ]
     },
     section4: {
-      title: "Calendario de Vacunacao",
-      subtitle: "Nunca mais perca a caderneta sanitaria.",
-      body: "Todas as vacinas do seu pet, organizadas e sempre em dia. Te avisamos antes de cada vencimento para que voce nao precise lembrar de nada.",
+      title: "Cuidados e cartao digital",
+      subtitle: "As vacinas, os cuidados e o dia a dia dele, sempre a mao.",
+      body: "Pessy reune as vacinas e os cuidados recorrentes do seu pet em uma identidade digital simples de consultar, compartilhar e acompanhar.",
       features: [
         { title: "Cronograma visual", desc: "Todas as doses aplicadas e as proximas, em um so lugar." },
         { title: "Alertas antecipados", desc: "Te avisamos uma semana antes de cada reforco." },
-        { title: "Cartao digital", desc: "No seu celular, pronto para o vet, a creche ou qualquer tramite." }
+        { title: "Cartao digital", desc: "No seu celular, pronto para viagens, creche ou qualquer tramite." }
       ]
     },
     vision: {
-      eyebrow: "ECOSSISTEMA PESSY",
-      title: "Sua identidade digital ativa todo o resto.",
-      body1: "Pessy organiza toda a informacao do seu pet em um perfil digital unico — historico clinico, vacinas, tratamentos e documentos.",
-      body2: "Tudo o que importa, sempre organizado e siempre disponivel.",
+      eyebrow: "ECOSSISTEMA DIGITAL",
+      title: "A identidade digital dele vive na Pessy.",
+      body1: "Pessy conecta o perfil, as rotinas, as compras, as vacinas, os compromissos, os documentos e os lembretes do seu pet.",
+      body2: "Um ecossistema digital para acompanhar o dia a dia dele com tudo em ordem.",
       body3: "",
       body4: "",
-      highlight: "Cada dado do seu pet, organizado e pronto quando voce precisar.",
-      chips: ["Identidade digital", "IA aplicada", "Historico completo", "Sempre disponivel"]
+      highlight: "Pessy cuida e acompanha, com tudo em ordem.",
+      chips: ["Identidade digital", "Ecossistema digital", "Perfil vivo", "Sempre disponivel"]
     },
     pricing: {
       eyebrow: "Beta · Preco de pioneiro",
@@ -213,7 +214,7 @@ const traducciones = {
           period: "mensal",
           badge: "MAIS POPULAR",
           badge2: "Preco congelado no lancamento",
-          features: ["1 pet", "Reconhecimento ilimitado", "alertas instantaneas", "historico completo", "co-tutores"],
+          features: ["1 pet", "Reconhecimento ilimitado", "alertas instantaneas", "perfil completo", "co-tutores"],
           cta: "Consultar",
           popular: true
         },
@@ -231,7 +232,7 @@ const traducciones = {
     team: {
       eyebrow: "A EQUIPE",
       title: "As personas detras de Pessy.",
-      subtitle: "Construindo o futuro da identidade digital animal.",
+      subtitle: "Construindo um ecossistema digital para pets.",
       members: [
         {
           name: "Mauri",
@@ -262,58 +263,58 @@ const traducciones = {
     notifs: [
       { title: "Vacina vencendo", body: "A quintupla de Thor vence em 3 dias.", time: "AGORA" },
       { title: "Lembrete", body: "Amanha 10:30hs Consulta com Dr Garcia.", time: "AGORA" },
-      { title: "Historico Atualizado", body: "O ultimo exame de sangue foi processado.", time: "AGORA" }
+      { title: "Perfil atualizado", body: "O ultimo documento de Thor foi organizado.", time: "AGORA" }
     ],
     footer: {
-      slogan: "Seu pet, suas coisas, tudo em ordem",
-      nav: ["Historico", "Vacinas", "Medicacao", "Entrar"],
+      slogan: "Seu pet, as coisas dele, tudo em ordem",
+      nav: ["Identidade", "Cuidados", "Rotinas", "Entrar"],
       legal: ["Politica de Privacidade", "Terminos e Condicoes"]
     }
   },
   en: {
     hero: {
-      title: "The next time you visit the vet, you don't need to remember everything.",
-      subtitle: "Their full history, vaccines, treatments — all organized, visible, and on your phone. Your pet's information, always in your hands.",
-      tagline: "NO PAPER. NO FUSS.",
+      title: "Your pet, their things, all in order.",
+      subtitle: "Their story starts here. Pessy is a digital ecosystem for pets that organizes their identity, routines, purchases, vaccinations, records, and caregivers.",
+      tagline: "THEIR STORY STARTS HERE.",
       cta: "Try now"
     },
     section2: {
-      title: "Digital Medical History",
-      subtitle: "Order that saves lives.",
-      body: "No more drawers full of papers. Take a photo of any document and Pessy does the rest.",
+      title: "Digital identity",
+      subtitle: "Their story starts here.",
+      body: "One place for their documents, their key moments and everything you want to keep close.",
       features: [
-        { title: "Everything organized", desc: "Everything available, from any device." },
-        { title: "Always ready", desc: "Because having the history at hand can make the difference in an emergency." }
+        { title: "Everything in order", desc: "Their profile, papers and memories, always available." },
+        { title: "Ready to share", desc: "With family, daycare, travel or anyone who helps care for them." }
       ]
     },
     section3: {
-      title: "Medication Control",
-      subtitle: "Set up the treatment once. Pessy takes care of the rest.",
+      title: "Routines, shopping and reminders",
+      subtitle: "One place for their routines, their shopping and what comes next.",
       features: [
-        { title: "On time, always", desc: "Receive the notification on your phone. Confirm the dose with a tap." },
-        { title: "Always stocked", desc: "We notify you before medications run out." },
-        { title: "Everything at a glance", desc: "Clean calendar, no confusion." }
+        { title: "Pessy cares and supports", desc: "It reminds you about what matters and helps you keep pace." },
+        { title: "Shopping on time", desc: "Know when it is time to restock what they use every day." },
+        { title: "Everything visible", desc: "Every pending item in one place, without friction." }
       ]
     },
     section4: {
-      title: "Vaccination Calendar",
-      subtitle: "Never lose the health record again.",
-      body: "All your pet's vaccines, organized and always up to date. We notify you before each expiration so you don't have to remember a thing.",
+      title: "Care and digital card",
+      subtitle: "Their vaccines, care and daily life, always within reach.",
+      body: "Pessy brings together vaccines and recurring care in a digital identity that is simple to check, share and follow.",
       features: [
         { title: "Visual schedule", desc: "All doses applied and upcoming ones, in one place." },
         { title: "Early alerts", desc: "We notify you one week before each booster." },
-        { title: "Digital card", desc: "On your phone, ready for the vet, daycare, or any paperwork." }
+        { title: "Digital card", desc: "On your phone, ready for travel, daycare or any paperwork." }
       ]
     },
     vision: {
-      eyebrow: "PESSY ECOSYSTEM",
-      title: "Their digital identity activates everything else.",
-      body1: "Pessy organizes all your pet's information in a unique digital profile — medical history, vaccines, treatments and documents.",
-      body2: "Everything that matters, always organized and always available.",
+      eyebrow: "DIGITAL ECOSYSTEM",
+      title: "Their digital identity lives in Pessy.",
+      body1: "Pessy connects your pet's profile, routines, shopping, vaccines, appointments, documents and reminders.",
+      body2: "A digital ecosystem to support their day to day with everything in order.",
       body3: "",
       body4: "",
-      highlight: "Every data point of your pet, organized and ready when you need it.",
-      chips: ["Digital identity", "Applied AI", "Full history", "Always available"]
+      highlight: "Pessy cares and supports, with everything in order.",
+      chips: ["Digital identity", "Digital ecosystem", "Living profile", "Always available"]
     },
     pricing: {
       eyebrow: "Beta · Exclusive access",
@@ -334,7 +335,7 @@ const traducciones = {
           period: "monthly",
           badge: "MOST POPULAR",
           badge2: "Price frozen at launch",
-          features: ["1 pet", "Unlimited recognition", "instant alerts", "full history", "co-owners"],
+          features: ["1 pet", "Unlimited recognition", "instant alerts", "full profile", "co-owners"],
           cta: "Inquire",
           popular: true
         },
@@ -352,7 +353,7 @@ const traducciones = {
     team: {
       eyebrow: "THE TEAM",
       title: "The people behind Pessy.",
-      subtitle: "Building the future of pet digital identity.",
+      subtitle: "Building a digital ecosystem for pets.",
       members: [
         {
           name: "Mauri",
@@ -386,14 +387,21 @@ const traducciones = {
       { title: "History Updated", body: "The latest blood test was processed.", time: "NOW" }
     ],
     footer: {
-      slogan: "Your pet, their stuff, all in order",
-      nav: ["History", "Vacines", "Meds", "Sign in"],
+      slogan: "Your pet, their things, all in order",
+      nav: ["Identity", "Care", "Routines", "Sign in"],
       legal: ["Privacy Policy", "Terms and Conditions"]
     }
   }
 };
 
 export default function LandingPage() {
+  const { user, loading: authLoading } = useAuth();
+
+  // Si el usuario ya está logueado, redirigir directo a la app
+  if (!authLoading && user) {
+    return <Navigate to="/home" replace />;
+  }
+
   const [time, setTime] = useState(new Date());
   const [deviceType, setDeviceType] = useState<'ios' | 'android'>('ios');
   const [activeNotification, setActiveNotification] = useState(0);
@@ -454,10 +462,10 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-['Manrope'] selection:bg-emerald-100 selection:text-[#074738] overflow-x-hidden text-slate-900">
       <SEO
-        title="Pessy - Ecosistema de Identidad Digital para Mascotas"
-        description="Construyendo el perfil digital de tu mascota. Tecnologia avanzada para estructurar informacion medica, historial clinico y servicios bajo demanda. Plataforma 360 para pet care."
-        keywords="mascota, identidad digital, historial medico, veterinario, tecnologia, salud animal, pet care"
-        canonical="https://pessy.app/inicio"
+        title="Pessy - Tu mascota, sus cosas, todo en orden"
+        description="Su historia comienza aqui. Pessy organiza su identidad digital, sus rutinas, sus compras, sus vacunas, sus turnos y sus documentos en un ecosistema digital para mascotas."
+        keywords="mascota, identidad digital, ecosistema digital para mascotas, rutinas, compras, vacunas, turnos, tecnologia, pet care"
+        canonical="https://pessy.app/"
       />
 
       <header
@@ -466,7 +474,7 @@ export default function LandingPage() {
       >
         <nav className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between" aria-label="Navegacion principal">
           <Link
-            to="/inicio"
+            to="/"
             className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#074738] focus:ring-offset-2 rounded-lg"
           >
             <Logo className="size-8" color="#074738" />
@@ -492,7 +500,7 @@ export default function LandingPage() {
             </button>
 
             <Link
-              to="/app"
+              to="/inicio"
               className="px-5 py-1.5 text-[10px] font-black text-[#074738] bg-[#e0f2f1] rounded-full hover:bg-emerald-100 transition-all uppercase tracking-widest"
             >
               ENTRAR
@@ -540,7 +548,7 @@ export default function LandingPage() {
                   className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start"
                 >
                   <Link
-                    to="/app"
+                    to="/inicio"
                     className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#1a9b7d] text-white rounded-full font-black text-base shadow-lg shadow-[#1a9b7d]/10 hover:scale-105 active:scale-95 transition-all"
                   >
                     {t.hero.cta}
@@ -1043,7 +1051,7 @@ export default function LandingPage() {
           <div className="max-w-7xl mx-auto">
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-10 mb-10">
               <div className="space-y-5 lg:col-span-2">
-                <Link to="/inicio" className="flex items-center gap-2">
+                <Link to="/" className="flex items-center gap-2">
                   <Logo className="size-8" color="#074738" />
                   <span className="text-xl font-black tracking-tight text-[#074738]">Pessy</span>
                 </Link>
@@ -1065,7 +1073,7 @@ export default function LandingPage() {
                   <a href="#historial" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-[#074738] transition-colors">{t.footer.nav[0]}</a>
                   <a href="#vacunas" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-[#074738] transition-colors">{t.footer.nav[1]}</a>
                   <a href="#medicacion" className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-[#074738] transition-colors">{t.footer.nav[2]}</a>
-                  <Link to="/app" className="text-[10px] font-black uppercase tracking-widest text-[#1a9b7d] hover:opacity-70 transition-opacity">{t.footer.nav[3]}</Link>
+                  <Link to="/inicio" className="text-[10px] font-black uppercase tracking-widest text-[#1a9b7d] hover:opacity-70 transition-opacity">{t.footer.nav[3]}</Link>
                 </div>
               </div>
 

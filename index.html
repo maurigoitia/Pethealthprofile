@@ -9,23 +9,28 @@
   <link rel="shortcut icon" href="/pessy-favicon.svg" />
   <meta name="theme-color" content="#074738" />
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pessy - Ecosistema de Identidad Digital para Mascotas</title>
-  <meta name="description" content="La información de tu mascota, siempre organizada y siempre disponible. Historial, vacunas, tratamientos y documentos en un solo lugar." />
-  <meta name="keywords" content="mascota, identidad digital, historial medico, vacunas, medicacion, pet care, veterinario, salud animal" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <!-- iOS PWA meta tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pessy" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <title>Pessy — Todo lo de tu mascota, en un solo lugar</title>
+  <meta name="description" content="Pessy es la app con IA que organiza la salud, los servicios y las compras de tu mascota. Todo lo de tu mascota, en un solo lugar." />
+  <meta name="keywords" content="mascota, app con inteligencia artificial, pet care, recordatorios automaticos, salud mascota, AI powered, identidad digital mascota, veterinaria digital" />
   <meta name="robots" content="index,follow" />
   <link rel="canonical" href="https://pessy.app/" />
   <meta name="googlebot" content="index,follow" />
-  <meta property="og:title" content="Pessy - Ecosistema de Identidad Digital para Mascotas" />
-  <meta property="og:description" content="La información de tu mascota, siempre organizada y siempre disponible. Historial, vacunas, tratamientos y documentos en un solo lugar." />
+  <meta property="og:title" content="Pessy — Todo lo de tu mascota, en un solo lugar" />
+  <meta property="og:description" content="Pessy es la app con IA que organiza la salud, los servicios y las compras de tu mascota. Todo lo de tu mascota, en un solo lugar." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://pessy.app/" />
   <meta property="og:image" content="https://pessy.app/pessy-logo.svg" />
   <meta property="og:site_name" content="Pessy" />
   <meta property="og:locale" content="es_419" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Pessy - Ecosistema de Identidad Digital para Mascotas" />
-  <meta name="twitter:description" content="La información de tu mascota, siempre organizada y siempre disponible. Historial, vacunas, tratamientos y documentos en un solo lugar." />
+  <meta name="twitter:title" content="Pessy — Todo lo de tu mascota, en un solo lugar" />
+  <meta name="twitter:description" content="Pessy es la app con IA que organiza la salud, los servicios y las compras de tu mascota. Todo lo de tu mascota, en un solo lugar." />
   <meta name="twitter:image" content="https://pessy.app/pessy-logo.svg" />
   <script type="application/ld+json">
     {
@@ -45,6 +50,7 @@
     (function () {
       var path = window.location.pathname;
       var isAppRoute =
+        path === "/inicio" ||
         path === "/login" ||
         path === "/home" ||
         path === "/register" ||
@@ -56,8 +62,8 @@
         path.indexOf("/verify/") === 0;
 
       var defaults = {
-        title: "Pessy - Ecosistema de Identidad Digital para Mascotas",
-        description: "La información de tu mascota, siempre organizada y siempre disponible. Historial, vacunas, tratamientos y documentos en un solo lugar.",
+        title: "Pessy - Tu mascota, sus cosas, todo en orden",
+        description: "Pessy organiza la identidad, los servicios, las compras, los papeles y los recordatorios de tu mascota en un solo lugar.",
         canonical: "https://pessy.app/",
         robots: "index,follow",
         lang: "es"
