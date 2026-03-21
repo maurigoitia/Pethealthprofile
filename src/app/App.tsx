@@ -1,4 +1,5 @@
 import { RouterProvider } from "react-router";
+import { Toaster } from "sonner";
 import { router } from "./routes.tsx";
 import { PetProvider } from "./contexts/PetContext";
 import { MedicalProvider } from "./contexts/MedicalContext";
@@ -16,6 +17,7 @@ export default function App() {
             <NotificationProvider>
               <RemindersProvider>
                 <RouterProvider router={router} />
+                <Toaster position="top-center" richColors />
               </RemindersProvider>
             </NotificationProvider>
           </MedicalProvider>

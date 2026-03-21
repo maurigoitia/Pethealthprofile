@@ -168,7 +168,7 @@ export function FocusedHomeExperience({
               Así se ve hoy {activePet.name}.
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              Hola, {safeUserName}. PESSY convierte la historia de tu mascota en estado actual, agenda y acciones.
+              Hola, {safeUserName}. PESSY convierte la historia de tu mascota en agenda, recordatorios y proximos pasos.
             </p>
           </div>
         </div>
@@ -338,7 +338,7 @@ export function FocusedHomeExperience({
                 className="rounded-[22px] border border-white/70 dark:border-white/10 bg-white dark:bg-slate-900 p-4 text-left shadow-sm"
               >
                 <MaterialIcon name="history" className="text-[#074738] text-xl mb-3" />
-                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Historial</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Historia</p>
                 <p className="text-lg font-black text-slate-900 dark:text-white mt-1">{events.length}</p>
               </button>
             </div>
@@ -370,7 +370,7 @@ export function FocusedHomeExperience({
 
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-black text-slate-900 dark:text-white">Historia clínica y operativa</h2>
+            <h2 className="text-base font-black text-slate-900 dark:text-white">Historia y actividad</h2>
             <button onClick={onExportReport} className="text-xs font-black uppercase tracking-[0.14em] text-[#074738]">
               Exportar
             </button>

@@ -62,7 +62,7 @@ const MONTHLY_BUCKET_UNTIL_MONTHS = 18;
 const FILTERS: { label: string; value: TimelineFilter }[] = [
   { label: "Todos", value: "all" },
   { label: "Estudios", value: "studies" },
-  { label: "Diagnósticos", value: "diagnosis" },
+  { label: "Hallazgos", value: "diagnosis" },
   { label: "Vacunas", value: "vaccines" },
   { label: "Tratamientos", value: "treatments" },
 ];
@@ -74,7 +74,7 @@ const KIND_CONFIG: Record<ClinicalRenderKind, { icon: string; label: string; ico
   imaging_report: { icon: "radiology", label: "Estudio", iconTone: "bg-violet-100 text-violet-700", badgeTone: "bg-violet-100 text-violet-700", accent: "#7c3aed" },
   laboratory_report: { icon: "biotech", label: "Laboratorio", iconTone: "bg-teal-100 text-teal-700", badgeTone: "bg-teal-100 text-teal-700", accent: "#0d9488" },
   vaccination_record: { icon: "vaccines", label: "Vacuna", iconTone: "bg-emerald-100 text-emerald-600", badgeTone: "bg-emerald-100 text-emerald-700", accent: "#10b981" },
-  clinical_report: { icon: "stethoscope", label: "Diagnóstico", iconTone: "bg-sky-100 text-sky-700", badgeTone: "bg-sky-100 text-sky-700", accent: "#0284c7" },
+  clinical_report: { icon: "stethoscope", label: "Hallazgo", iconTone: "bg-sky-100 text-sky-700", badgeTone: "bg-sky-100 text-sky-700", accent: "#0284c7" },
   other: { icon: "description", label: "Documento", iconTone: "bg-slate-100 text-slate-600", badgeTone: "bg-slate-100 text-slate-600", accent: "#64748b" },
 };
 
@@ -418,7 +418,7 @@ function buildEventTitle(event: MedicalEvent, petName: string): string {
             : "Turno programado"
         }${cleanText(firstAppointment?.specialty || appointmentHints.specialty) ? ` · ${cleanText(firstAppointment?.specialty || appointmentHints.specialty)}` : ""}`;
     case "prescription":
-      return firstMedication ? `Receta médica · ${firstMedication}` : "Receta médica";
+      return firstMedication ? `Receta · ${firstMedication}` : "Receta";
     case "treatment_plan":
       return specificTitle || "Plan de tratamiento";
     case "imaging_report":
@@ -431,9 +431,9 @@ function buildEventTitle(event: MedicalEvent, petName: string): string {
     case "vaccination_record":
       return specificTitle || "Registro de vacunación";
     case "clinical_report":
-      return specificTitle || cleanDiagnosisText(d.diagnosis) || `Informe clínico de ${petName}`;
+      return specificTitle || cleanDiagnosisText(d.diagnosis) || `Informe de ${petName}`;
     default:
-      return specificTitle || cleanText(d.studyType) || `Documento clínico de ${petName}`;
+      return specificTitle || cleanText(d.studyType) || `Documento de ${petName}`;
   }
 }
 
@@ -458,7 +458,7 @@ function buildEventSummary(event: MedicalEvent, petName: string): string {
   if (kind === "appointment_confirmation") {
     const time = d.appointmentTime || detected?.time || appointmentHints.time;
     const specialty = cleanText(detected?.specialty || appointmentHints.specialty || "");
-    const reason = cleanText(detected?.title || appointmentHints.reason || d.suggestedTitle || "consulta veterinaria");
+    const reason = cleanText(detected?.title || appointmentHints.reason || d.suggestedTitle || "consulta");
     const appointmentDate = formatDateSafe(
       detected?.date || d.eventDate || event.createdAt,
       "es-AR",
@@ -483,7 +483,7 @@ function buildEventSummary(event: MedicalEvent, petName: string): string {
       const details = [dose, freq].filter(Boolean).join(" · ");
       return `Tratamiento indicado para ${petName}: ${cleanText(firstMedication.name)}${details ? ` (${details})` : ""}. Fecha de receta: ${eventDate}${whoWhere ? `. Prescriptor: ${whoWhere}` : ""}.`;
     }
-    return `Receta médica registrada para ${petName} el ${eventDate}${whoWhere ? `. Prescriptor: ${whoWhere}` : ""}.`;
+    return `Receta registrada para ${petName} el ${eventDate}${whoWhere ? `. Referencia: ${whoWhere}` : ""}.`;
   }
 
   if (kind === "treatment_plan") {
@@ -497,7 +497,7 @@ function buildEventSummary(event: MedicalEvent, petName: string): string {
     if (conciseDiagnosis) {
       return `Hallazgo principal del ${eventDate}: ${conciseDiagnosis}${whoWhere ? `. Firmado por ${whoWhere}` : ""}.`;
     }
-    return `Estudio por imágenes del ${eventDate} para ${petName}. El documento no incluye interpretación clínica explícita${whoWhere ? ` (${whoWhere})` : ""}.`;
+    return `Estudio por imágenes del ${eventDate} para ${petName}. El documento no incluye una interpretación estructurada${whoWhere ? ` (${whoWhere})` : ""}.`;
   }
 
   if (kind === "laboratory_report") {
@@ -514,14 +514,14 @@ function buildEventSummary(event: MedicalEvent, petName: string): string {
   }
 
   if (kind === "clinical_report" && diagnosis) {
-    return `Hallazgo clínico del ${eventDate}: ${condenseClinicalSentence(diagnosis, diagnosis)}${whoWhere ? `. Atención en ${whoWhere}` : ""}.`;
+    return `Hallazgo del ${eventDate}: ${condenseClinicalSentence(diagnosis, diagnosis)}${whoWhere ? `. Referencia: ${whoWhere}` : ""}.`;
   }
 
   const genericNarrative = cleanText(d.aiGeneratedSummary || d.observations);
   if (d.aiGeneratedSummary) {
-    return `Resumen IA (no canónico): ${genericNarrative || `Documento clínico de ${petName} registrado el ${eventDate}.`}`;
+    return `Resumen IA (no canónico): ${genericNarrative || `Documento de ${petName} registrado el ${eventDate}.`}`;
   }
-  return genericNarrative || `Documento clínico de ${petName} registrado el ${eventDate}.`;
+  return genericNarrative || `Documento de ${petName} registrado el ${eventDate}.`;
 }
 
 function buildMetaPills(event: MedicalEvent, kind: ClinicalRenderKind): string[] {
@@ -569,7 +569,7 @@ function buildMetaPills(event: MedicalEvent, kind: ClinicalRenderKind): string[]
   }
 
   if (kind === "imaging_report") {
-    pills.push(d.provider ? "Informe firmado" : "Sin firma clínica");
+    pills.push(d.provider ? "Informe firmado" : "Sin firma");
     if (d.provider) pills.push(cleanText(d.provider));
     return pills.slice(0, 3);
   }
@@ -740,7 +740,7 @@ function buildEpisodeThreadLabel(event: MedicalEvent): string {
 
   if (d.linkedEpisodeKey) return cleanText(d.linkedEpisodeKey);
   if (kind === "vaccination_record") return "Vacunación";
-  if (kind === "appointment_confirmation") return specialty || "Agenda veterinaria";
+  if (kind === "appointment_confirmation") return specialty || "Agenda";
   if ((kind === "prescription" || kind === "treatment_plan") && medicationNames.length > 0) {
     return medicationNames.slice(0, 2).join(" · ");
   }
@@ -748,7 +748,7 @@ function buildEpisodeThreadLabel(event: MedicalEvent): string {
   if (topic) return topic;
   if (kind === "imaging_report") return "Estudios por imágenes";
   if (kind === "laboratory_report") return "Laboratorio";
-  if (kind === "clinical_report") return "Seguimiento clínico";
+  if (kind === "clinical_report") return "Seguimiento";
   return KIND_CONFIG[kind]?.label || "Resumen histórico";
 }
 
@@ -801,18 +801,18 @@ function buildHistoricalNarrative(events: MedicalEvent[], petName: string, perio
     (imagingCount > 0 ? "estudios y controles" : "") ||
     (medications[0] ? "tratamiento crónico" : "") ||
     (vaccineCount > 0 ? "seguimiento preventivo" : "") ||
-    (appointmentCount > 0 ? "actividad veterinaria" : "") ||
-    "seguimiento clínico";
+    (appointmentCount > 0 ? "actividad registrada" : "") ||
+    "seguimiento";
 
   const firstSentence = diagnoses.length > 0
     ? `En ${periodLabel} ${petName} tuvo seguimiento por ${diagnoses.join(", ")}.`
     : imagingCount > 0
       ? `En ${periodLabel} ${petName} tuvo ${imagingCount} estudio${imagingCount > 1 ? "s" : ""} y controles asociados.`
       : treatmentCount > 0
-        ? `En ${periodLabel} ${petName} tuvo continuidad terapéutica y seguimiento clínico.`
+        ? `En ${periodLabel} ${petName} tuvo continuidad de cuidados y seguimiento.`
         : vaccineCount > 0
-          ? `En ${periodLabel} ${petName} tuvo actividad preventiva y control veterinario.`
-          : `En ${periodLabel} ${petName} tuvo actividad veterinaria registrada por correo.`;
+          ? `En ${periodLabel} ${petName} tuvo actividad preventiva y controles registrados.`
+          : `En ${periodLabel} ${petName} tuvo actividad registrada por correo.`;
 
   const extraSentences = [
     medications.length > 0 ? `También estuvo medicado con ${medications.join(", ")}.` : "",
@@ -927,15 +927,15 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
   // ─── Mapeo de episodeType a etiqueta en español ────────────────────────────────
   const episodeTypeToThreadLabel = (ep: ClinicalEpisode): string => {
     const typeMap: Record<string, string> = {
-      consultation: "Consulta clínica",
+      consultation: "Consulta",
       vaccination: "Vacunación",
       prescription: "Receta / Tratamiento",
-      appointment: "Turno veterinario",
+      appointment: "Turno",
       study: "Estudio por imágenes",
       laboratory: "Laboratorio",
-      mixed: "Acto clínico mixto",
+      mixed: "Acto mixto",
     };
-    const base = typeMap[ep.episodeType] ?? "Episodio clínico";
+    const base = typeMap[ep.episodeType] ?? "Episodio";
     if (ep.provider?.specialty) return `${base} – ${ep.provider.specialty}`;
     return base;
   };
@@ -951,22 +951,15 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
       }));
     }
 
-    const recentCutoff = Date.now() - RECENT_HISTORY_WINDOW_DAYS * 86400000;
+    // Zona activa = mes calendario actual
+    const now = new Date();
+    const recentCutoff = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
     const entries: TimelineEntry[] = [];
 
-    // Zona activa (≤90 días): mostrar medical_events crudos individuales
+    // Zona activa (mes actual): mostrar medical_events crudos individuales
     for (const event of filteredSortedEvents) {
       const timestamp = getEventTimestamp(event);
-      if (timestamp < recentCutoff) continue; // los históricos los manejamos desde Firestore
-      if (
-        event.status === "processing" ||
-        event.status === "draft" ||
-        event.workflowStatus === "review_required" ||
-        event.workflowStatus === "invalid_future_date" ||
-        event.requiresManualConfirmation
-      ) {
-        // Solo mostrar en activo si necesita acción del usuario
-      }
+      if (timestamp < recentCutoff) continue;
       entries.push({
         kind: "event",
         id: event.id,
@@ -976,11 +969,18 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
       });
     }
 
-    // Zona histórica (>90 días): usar clinical_episodes baked de Firestore
+    // Zona histórica (meses anteriores): usar clinical_episodes baked de Firestore
     const firestoreEpisodes = getClinicalEpisodesByPetId(activePetId);
+    const firestoreEpisodeKeys = new Set(
+      firestoreEpisodes.map((ep) => {
+        const ts = new Date(ep.date).getTime();
+        return buildHistoricalPeriodMeta(ts, Date.now()).periodKey;
+      })
+    );
+
     for (const ep of firestoreEpisodes) {
       const timestamp = new Date(ep.date).getTime();
-      if (timestamp >= recentCutoff) continue; // ya aparece en zona activa si es reciente
+      if (timestamp >= recentCutoff) continue;
 
       const periodMeta = buildHistoricalPeriodMeta(timestamp, Date.now());
       const threadLabel = episodeTypeToThreadLabel(ep);
@@ -998,13 +998,50 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
         diagnoses: ep.diagnoses,
         medications: ep.medications.map((m) => m.name),
         providers: [ep.provider?.name, ep.provider?.clinic].filter(Boolean) as string[],
-        sourceEvents: [], // los source events no se necesitan para la vista baked
+        sourceEvents: [],
         eventCount: ep.sourceEventIds.length || 1,
       });
     }
 
+    // Fallback cliente: agrupar por mes/año los eventos históricos sin Firestore episode
+    const byPeriod = new Map<string, MedicalEvent[]>();
+    for (const event of filteredSortedEvents) {
+      const ts = getEventTimestamp(event);
+      if (ts >= recentCutoff) continue;
+      const meta = buildHistoricalPeriodMeta(ts, Date.now());
+      if (firestoreEpisodeKeys.has(meta.periodKey)) continue;
+      if (!byPeriod.has(meta.periodKey)) byPeriod.set(meta.periodKey, []);
+      byPeriod.get(meta.periodKey)!.push(event);
+    }
+
+    let fallbackIdx = 0;
+    const petName = cleanText(activePet?.name) || "tu mascota";
+    for (const [periodKey, periodEvents] of byPeriod.entries()) {
+      if (periodEvents.length === 0) continue;
+      const ts = getEventTimestamp(periodEvents[0]);
+      const meta = buildHistoricalPeriodMeta(ts, Date.now());
+      const narrative = buildHistoricalNarrative(periodEvents, petName, meta.periodLabel);
+      const threadLabel = buildEpisodeThreadLabel(periodEvents[0]);
+      entries.push({
+        kind: "episode",
+        id: `client-episode-${periodKey}-${fallbackIdx++}`,
+        yearKey: meta.yearKey,
+        timestamp: ts,
+        periodType: meta.periodType,
+        periodLabel: meta.periodLabel,
+        threadLabel,
+        headline: narrative.headline,
+        narrative: narrative.narrative,
+        diagnoses: narrative.diagnoses,
+        medications: narrative.medications,
+        providers: narrative.providers,
+        sourceEvents: periodEvents,
+        eventCount: periodEvents.length,
+      });
+    }
+
     return entries.sort((a, b) => b.timestamp - a.timestamp);
-  }, [filteredSortedEvents, historicalEpisodesEnabled, activePetId, getClinicalEpisodesByPetId]);
+  }, [filteredSortedEvents, historicalEpisodesEnabled, activePetId, getClinicalEpisodesByPetId, activePet?.name]);
 
   const displayedEntries = showAll ? timelineEntries : timelineEntries.slice(0, 8);
   const visibleEntryCount = historicalEpisodesEnabled ? timelineEntries.length : filteredSortedEvents.length;
@@ -1021,7 +1058,8 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
 
   const annualSummaryByYear = useMemo(() => {
     if (!historicalEpisodesEnabled) return new Map<string, AnnualSummaryCard>();
-    const recentCutoff = Date.now() - RECENT_HISTORY_WINDOW_DAYS * 86400000;
+    const now2 = new Date();
+    const recentCutoff = new Date(now2.getFullYear(), now2.getMonth(), 1).getTime();
     const petName = cleanText(activePet?.name) || "tu mascota";
     const groupedEvents = new Map<string, MedicalEvent[]>();
 
@@ -1045,7 +1083,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
           <MaterialIcon name="timeline" className="text-[#074738] text-xl" />
-          Historial Médico
+          Historial
         </h2>
         <div className="flex items-center gap-2">
           <button
@@ -1100,7 +1138,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
           <EmptyState
             icon="inbox"
-            title={allEvents.length === 0 ? "Sin eventos médicos" : "Sin resultados para este filtro"}
+            title={allEvents.length === 0 ? "Sin registros" : "Sin resultados para este filtro"}
             description={
               allEvents.length === 0
                 ? "Los documentos que subas aparecerán aquí automáticamente"
@@ -1124,7 +1162,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                   <div className="rounded-[24px] border border-[#074738]/15 bg-[#074738]/5 p-4 shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-wide text-[#074738]">Memoria clínica</p>
+                        <p className="text-[10px] font-black uppercase tracking-wide text-[#074738]">Memoria de cuidados</p>
                         <h3 className="text-[15px] font-black text-slate-900 mt-1">
                           {annualSummaryByYear.get(year)!.headline}
                         </h3>
@@ -1263,7 +1301,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                           Regla de lectura
                                         </p>
                                         <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-                                          Este bloque resume eventos históricos confirmados para hacer legible la vida clínica de la mascota. Los eventos originales siguen siendo la fuente canónica.
+                                          Este bloque resume hitos historicos confirmados para hacer legible la historia de cuidados de la mascota. Los eventos originales siguen siendo la fuente canonica.
                                         </p>
                                       </div>
 
@@ -1500,7 +1538,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
 
                                     {d.diagnosis && renderKind !== "appointment_confirmation" && (
                                       <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
-                                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400 mb-1">Diagnóstico / Hallazgo</p>
+                                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400 mb-1">Detalle / Hallazgo</p>
                                         <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                                           {cleanDiagnosisText(d.diagnosis)}
                                         </p>

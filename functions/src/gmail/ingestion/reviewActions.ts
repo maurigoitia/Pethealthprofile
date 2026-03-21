@@ -6,7 +6,7 @@ import {
 } from "./types";
 import {
   sha256, getNowIso, asString, asRecord,
-  normalizeForHash, normalizeClinicalToken, clamp,
+  normalizeForHash, normalizeClinicalToken,
   sanitizeReferenceRange, toIsoDateOnly,
   jaccardSimilarity, dateProximityScore,
 } from "./utils";

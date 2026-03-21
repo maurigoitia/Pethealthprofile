@@ -51,32 +51,38 @@ export function buildEventDedupKey(event: MedicalEvent): string {
 
 export function buildEventSemanticKey(event: MedicalEvent): string {
   const extracted = event.extractedData;
-  const diagnosisSignature = normalizeText(extracted.diagnosis);
-  const titleSignature = normalizeText(extracted.suggestedTitle || event.title || event.fileName);
+  const docType = documentTypeBucket(extracted.documentType);
+  
+  // Extract only the metric names, ignoring specific values which might fluctuate slightly in OCR
   const measurementSignature = (extracted.measurements || [])
-    .map((measurement) => normalizeText(`${measurement.name}|${measurement.value}|${measurement.unit || ""}`))
+    .map((measurement) => normalizeText(measurement.name))
     .filter(Boolean)
     .sort()
     .join(";");
 
+  // Extract only medication names, ignoring dosage/frequency text variants from AI
   const medSignature = (extracted.medications || [])
-    .map((med) =>
-      normalizeText(`${med.name}|${med.dosage || ""}|${med.frequency || ""}|${med.duration || ""}`)
-    )
+    .map((med) => normalizeText(med.name))
     .sort()
     .join(";");
 
-  const fallbackSignature = normalizeText(
-    [diagnosisSignature, titleSignature, measurementSignature].filter(Boolean).join("|")
-  ) || normalizeText(extracted.observations).slice(0, 40) || "sin_firma";
+  // Only use title or diagnosis as a fallback if it's an "other" document and there are no meds/measurements
+  let fallbackSignature = "";
+  if (docType === "other" && !medSignature && !measurementSignature) {
+     const titleSignature = normalizeText(extracted.suggestedTitle || event.title || event.fileName).slice(0, 20);
+     fallbackSignature = titleSignature || normalizeText(extracted.observations).slice(0, 20) || "sin_firma";
+  }
 
+  // The semantic dedup key now relies strictly on deterministic properties
   return [
     "event",
-    documentTypeBucket(extracted.documentType),
+    docType,
     toDateKey(extracted.eventDate || event.createdAt),
     providerFingerprint(extracted.provider),
-    medSignature || fallbackSignature,
-  ].join("|");
+    medSignature || measurementSignature || fallbackSignature,
+  ]
+    .filter(Boolean)
+    .join("|");
 }
 
 export function dedupeEvents(events: MedicalEvent[]): MedicalEvent[] {

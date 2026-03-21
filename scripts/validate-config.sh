@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ID="${PROJECT_ID:-gen-lang-client-0123805751}"
+PROJECT_ID="${PROJECT_ID:-polar-scene-488615-i0}"
 CALLBACK_URL="https://us-central1-${PROJECT_ID}.cloudfunctions.net/gmailAuthCallback"
 
 check_secret() {

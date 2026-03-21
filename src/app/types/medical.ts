@@ -268,6 +268,19 @@ export interface ProactiveCarePlan {
   imagingFindings: ProactiveImagingFinding[];
 }
 
+export type RoutineKind =
+  | "walk"
+  | "play"
+  | "hydration"
+  | "symptom_check"
+  | "medication_support";
+
+export type RoutineCompletionFeedback =
+  | "perfect"
+  | "too_easy"
+  | "too_intense"
+  | "skipped";
+
 // ============================================================================
 // Evento médico completo
 // ============================================================================
@@ -372,6 +385,16 @@ export interface PendingAction {
   sourceTag?: string | null;       // e.g. "ai_projection", "proactive_care"
   clinicalEventId?: string | null; // ID del clinical_event si vino de proyección
   targetCollection?: string | null; // Colección destino del item proyectado
+  routineKind?: RoutineKind | null;
+  routineDateKey?: string | null;
+  habitPoints?: number | null;
+  coachSummary?: string | null;
+  coachTitle?: string | null;
+  adaptiveLabel?: "subiendo_desafio" | "equilibrado" | "bajando_intensidad" | null;
+  routineVersion?: string | null;
+  intensityHint?: "low" | "medium" | "high" | null;
+  completionFeedback?: RoutineCompletionFeedback | null;
+  completionOutcome?: "done" | "skipped" | null;
 }
 
 export interface ClinicalReviewMedicationDraft {

@@ -12,6 +12,8 @@ interface ImportMetaEnv {
     readonly VITE_GEMINI_API_KEY: string
     readonly VITE_USE_BACKEND_ANALYSIS: string
     readonly VITE_ENABLE_PENDING_ACTIONS: string
+    readonly VITE_ENABLE_EMAIL_SYNC: string
+    readonly VITE_ENABLE_PREVIEW_ROUTES: string
     readonly VITE_GOOGLE_CLIENT_ID: string
 }
 

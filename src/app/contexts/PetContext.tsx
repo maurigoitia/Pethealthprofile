@@ -1,11 +1,11 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { auth, db } from "../../lib/firebase";
+import { auth, db, functions } from "../../lib/firebase";
 import {
-  collection, query, where, onSnapshot, doc, updateDoc, addDoc, arrayUnion, setDoc, getDoc
+  collection, query, where, onSnapshot, doc, updateDoc, addDoc, arrayUnion, setDoc, getDoc,
+  runTransaction
 } from "firebase/firestore";
-import { sendSignInLinkToEmail } from "firebase/auth";
+import { httpsCallable } from "firebase/functions";
 import { useAuth } from "./AuthContext";
-import { createCoTutorActionCodeSettings } from "../utils/authActionLinks";
 import { buildCoTutorReferralUrl } from "../utils/coTutorInvite";
 import { isFocusHistoryExperimentHost } from "../utils/runtimeFlags";
 
@@ -217,7 +217,9 @@ export function PetProvider({ children }: { children: ReactNode }) {
     const petData = petSnap.data();
     if (petData.ownerId !== user.uid) throw new Error("Solo el dueño puede invitar co-tutores");
 
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    const bytes = crypto.getRandomValues(new Uint8Array(6));
+    const code = Array.from(bytes, (b) => CHARSET[b % 36]).join("");
     const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
     await setDoc(doc(db, "invitations", code), {
       petId,
@@ -241,26 +243,22 @@ export function PetProvider({ children }: { children: ReactNode }) {
       throw new Error("No podés invitarte a vos mismo.");
     }
 
+    // Obtener nombre de la mascota para el email
+    const petDoc = await getDoc(doc(db, "pets", petId));
+    const petName = petDoc.exists() ? (petDoc.data().name as string) || "tu mascota" : "tu mascota";
+
     const code = await generateInviteCode(petId, normalizedEmail);
     const inviteLink = buildCoTutorReferralUrl(code);
 
+    // Envío vía Cloud Function (Resend) — más confiable que Firebase Auth email
+    const callSendInvite = httpsCallable(functions, "sendCoTutorInvite");
     try {
-      await sendSignInLinkToEmail(auth, normalizedEmail, createCoTutorActionCodeSettings(code));
+      await callSendInvite({ email: normalizedEmail, inviteCode: code, petName });
     } catch (err: any) {
-      const codeErr = err?.code || "";
-      if (codeErr === "auth/operation-not-allowed") {
-        throw new Error("Email Link no está habilitado en Firebase Auth. Activá Sign-in method > Email/Password > Email link.");
-      }
-      if (codeErr === "auth/unauthorized-domain") {
-        throw new Error("Dominio no autorizado en Firebase Auth. Agregá este dominio en Authorized domains.");
-      }
-      if (codeErr === "auth/invalid-continue-uri" || codeErr === "auth/invalid-dynamic-link-domain") {
-        throw new Error("La URL de invitación no es válida en Firebase Auth. Revisá Action URL / dominio.");
-      }
-      throw new Error("No se pudo enviar el correo de invitación. Revisá configuración de Auth.");
+      const msg = err?.message || "";
+      throw new Error(msg || "No se pudo enviar el correo de invitación.");
     }
 
-    localStorage.setItem("pessy_magic_link_email", normalizedEmail);
     return { code, inviteLink };
   };
 
@@ -294,52 +292,58 @@ export function PetProvider({ children }: { children: ReactNode }) {
     if (inv.createdBy === currentUser.uid) throw new Error("No podés unirte a tu propia mascota con un código");
 
     const petRef = doc(db, "pets", inv.petId);
-    const petSnap = await getDoc(petRef);
-    if (!petSnap.exists()) throw new Error("La mascota ya no está disponible");
-    const petData = petSnap.data();
-    const currentCoTutorUids: string[] = Array.isArray(petData.coTutorUids) ? petData.coTutorUids : [];
-    const currentCoTutors: CoTutor[] = Array.isArray(petData.coTutors) ? petData.coTutors : [];
 
-    if (petData.ownerId === currentUser.uid) {
-      throw new Error("Ya sos tutor principal de esta mascota.");
-    }
+    // Transacción atómica: actualizar mascota + quemar código en un solo movimiento
+    const resultName = await runTransaction(db, async (transaction) => {
+      const petSnap = await transaction.get(petRef);
+      if (!petSnap.exists()) throw new Error("La mascota ya no está disponible");
+      const petData = petSnap.data();
+      const currentCoTutorUids: string[] = Array.isArray(petData.coTutorUids) ? petData.coTutorUids : [];
+      const currentCoTutors: CoTutor[] = Array.isArray(petData.coTutors) ? petData.coTutors : [];
 
-    const alreadyJoined = currentCoTutorUids.includes(currentUser.uid);
-    if (alreadyJoined) {
-      await updateDoc(invRef, {
+      if (petData.ownerId === currentUser.uid) {
+        throw new Error("Ya sos tutor principal de esta mascota.");
+      }
+
+      const alreadyJoined = currentCoTutorUids.includes(currentUser.uid);
+      if (alreadyJoined) {
+        transaction.update(invRef, {
+          used: true,
+          usedBy: currentUser.uid,
+          usedAt: new Date(),
+        });
+        return inv.petName || petData.name || "la mascota";
+      }
+
+      const newCoTutor: CoTutor = {
+        uid: currentUser.uid,
+        email: currentUser.email || "",
+        name: currentUser.displayName || currentUser.email || "",
+        addedAt: new Date().toISOString(),
+      };
+
+      const nextCoTutorUids = [...currentCoTutorUids, currentUser.uid];
+      const nextCoTutors = [
+        ...currentCoTutors.filter((ct) => ct.uid !== currentUser.uid),
+        newCoTutor,
+      ];
+
+      transaction.update(petRef, {
+        coTutors: nextCoTutors,
+        coTutorUids: nextCoTutorUids,
+        lastJoinInviteCode: normalizedCode,
+      });
+
+      transaction.update(invRef, {
         used: true,
         usedBy: currentUser.uid,
         usedAt: new Date(),
       });
-      return { petName: inv.petName || petData.name || "la mascota" };
-    }
 
-    const newCoTutor: CoTutor = {
-      uid: currentUser.uid,
-      email: currentUser.email || "",
-      name: currentUser.displayName || currentUser.email || "",
-      addedAt: new Date().toISOString(),
-    };
-
-    const nextCoTutorUids = [...currentCoTutorUids, currentUser.uid];
-    const nextCoTutors = [
-      ...currentCoTutors.filter((ct) => ct.uid !== currentUser.uid),
-      newCoTutor,
-    ];
-
-    await updateDoc(petRef, {
-      coTutors: nextCoTutors,
-      coTutorUids: nextCoTutorUids,
-      lastJoinInviteCode: normalizedCode,
+      return inv.petName || petData.name || "la mascota";
     });
 
-    await updateDoc(invRef, {
-      used: true,
-      usedBy: currentUser.uid,
-      usedAt: new Date(),
-    });
-
-    return { petName: inv.petName || "la mascota" };
+    return { petName: resultName };
   };
 
   const removeCoTutor = async (petId: string, coTutorUid: string) => {

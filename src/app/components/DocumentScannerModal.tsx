@@ -6,7 +6,8 @@ import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
 import { useAuth } from "../contexts/AuthContext";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "../../lib/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { storage, db } from "../../lib/firebase";
 import { extractMedicalData } from "../services/analysisService";
 import { NotificationService } from "../services/notificationService";
 import { MedicalEvent, ActiveMedication } from "../types/medical";
@@ -260,10 +261,12 @@ export function DocumentScannerModal({
 
       setProcessingStatus("Verificando duplicados...");
       const fileHash = await hashFile(file);
-      const existingEvents = getEventsByPetId(activePet.id);
-      const duplicated = existingEvents.find((event) => event.fileHash && event.fileHash === fileHash);
-
-      if (duplicated) {
+      // Consultar Firestore directamente para evitar falsos positivos por estado React desactualizado
+      // (puede pasar si el usuario acaba de eliminar el evento y el listener no refrescó aún).
+      const hashSnap = await getDocs(
+        query(collection(db, "medical_events"), where("petId", "==", activePet.id), where("fileHash", "==", fileHash))
+      );
+      if (!hashSnap.empty) {
         setUploadStage("error");
         setProcessingStatus("Documento duplicado: ya existe en el historial. Se canceló para evitar doble costo.");
         return;
@@ -354,10 +357,15 @@ export function DocumentScannerModal({
 
       newEvent.dedupKey = buildEventSemanticKey(newEvent);
 
-      const duplicatedByContent = existingEvents.some(
-        (event) => buildEventSemanticKey(event) === newEvent.dedupKey
+      // Consultar Firestore directamente (no estado local) para evitar falso
+      // positivo cuando el usuario acaba de eliminar el evento y el listener
+      // de React aún no actualizó el array local.
+      const dedupSnap = await getDocs(
+        query(collection(db, "medical_events"),
+          where("petId", "==", activePet.id),
+          where("dedupKey", "==", newEvent.dedupKey))
       );
-      if (duplicatedByContent) {
+      if (!dedupSnap.empty) {
         setUploadStage("error");
         setProcessingStatus("Documento duplicado: ya existe uno equivalente en el historial.");
         return;

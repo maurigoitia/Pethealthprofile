@@ -1,8 +1,7 @@
 const PROD_HOSTS = new Set([
   "pessy.app",
   "www.pessy.app",
-  "gen-lang-client-0123805751.web.app",
-  "itpessy.web.app",
+  "polar-scene-488615-i0.web.app",
 ]);
 
 const FOCUS_HISTORY_EXPERIMENT_HOSTS = new Set([

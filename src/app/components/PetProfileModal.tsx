@@ -1,8 +1,7 @@
 import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
-import { useState, useRef, useMemo } from "react";
+import { lazy, Suspense, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { VaccinationCardModal } from "./VaccinationCardModal";
 import { BirthDatePrecision, usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -13,6 +12,10 @@ import { DEFAULT_PET_PHOTO } from "../constants/petDefaults";
 import { PetPhoto } from "./PetPhoto";
 import { getPetPhotoAcceptValue, preparePetPhotoForUpload } from "../utils/petPhotoUpload";
 import { uploadPetPhotoWithFallback } from "../services/petPhotoService";
+
+const VaccinationCardModal = lazy(() =>
+  import("./VaccinationCardModal").then((module) => ({ default: module.VaccinationCardModal }))
+);
 
 interface PetProfileModalProps {
   isOpen: boolean;
@@ -213,6 +216,12 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
           ? formatDateSafe(e.extractedData.nextAppointmentDate, "es-ES", { day: "2-digit", month: "short", year: "numeric" }, "Sin fecha")
           : "No especificada",
         veterinarian: e.extractedData.provider || "Profesional no especificado",
+        lotNumber: (e.extractedData.vaccine_artifacts as Record<string, unknown> | null)?.lot_number as string | null
+          ?? e.extractedData.vaccineLotNumber as string | null
+          ?? null,
+        serialNumber: (e.extractedData.vaccine_artifacts as Record<string, unknown> | null)?.serial_number as string | null
+          ?? e.extractedData.vaccineSerialNumber as string | null
+          ?? null,
         status: (() => {
           if (!e.extractedData.nextAppointmentDate) return "current" as const;
           const next = parseDateSafe(e.extractedData.nextAppointmentDate);
@@ -506,7 +515,7 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                     </div>
                   </div>
                   {vaccines.length === 0 && (
-                    <p className="text-center text-slate-400 text-sm py-8">Aún no hay vacunas registradas. Subí un documento veterinario para detectarlas automáticamente.</p>
+                    <p className="text-center text-slate-400 text-sm py-8">Aún no hay vacunas registradas. Subí un documento para detectarlas automáticamente.</p>
                   )}
                   {vaccines.map((v) => (
                     <div key={v.id} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 p-4">
@@ -719,18 +728,20 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
             </div>
           </motion.div>
 
-          <VaccinationCardModal
-            isOpen={showVaccinationCard}
-            onClose={() => setShowVaccinationCard(false)}
-            petData={{
-              name: activePet?.name || "",
-              breed: displayBreed,
-              birthDate: displayBirth,
-              microchip: editData.microchip,
-              photo,
-            }}
-            vaccines={vaccines}
-          />
+          <Suspense fallback={null}>
+            <VaccinationCardModal
+              isOpen={showVaccinationCard}
+              onClose={() => setShowVaccinationCard(false)}
+              petData={{
+                name: activePet?.name || "",
+                breed: displayBreed,
+                birthDate: displayBirth,
+                microchip: editData.microchip,
+                photo,
+              }}
+              vaccines={vaccines}
+            />
+          </Suspense>
         </>
       )}
     </AnimatePresence>

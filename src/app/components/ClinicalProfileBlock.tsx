@@ -42,7 +42,7 @@ export function ClinicalProfileBlock({ snapshot, petName }: ClinicalProfileBlock
                 </div>
                 <div>
                     <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#074738]">
-                        Perfil Clínico
+                        Perfil Vivo
                     </p>
                     <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-tight">
                         {petName}
@@ -60,7 +60,7 @@ export function ClinicalProfileBlock({ snapshot, petName }: ClinicalProfileBlock
             {/* Condiciones activas */}
             {snapshot.activeConditions.length > 0 && (
                 <div className="mb-2">
-                    <p className="text-[9px] font-black uppercase tracking-wide text-slate-400 mb-1">Condiciones activas</p>
+                    <p className="text-[9px] font-black uppercase tracking-wide text-slate-400 mb-1">Temas activos</p>
                     <ChipList
                         items={snapshot.activeConditions}
                         tone="bg-blue-100 text-blue-700 border border-blue-200/60"
@@ -71,7 +71,7 @@ export function ClinicalProfileBlock({ snapshot, petName }: ClinicalProfileBlock
             {/* Medicación actual */}
             {snapshot.currentMedications.length > 0 && (
                 <div className="mb-2">
-                    <p className="text-[9px] font-black uppercase tracking-wide text-slate-400 mb-1">Medicación actual</p>
+                    <p className="text-[9px] font-black uppercase tracking-wide text-slate-400 mb-1">Cuidados actuales</p>
                     <ChipList
                         items={snapshot.currentMedications.map((m) =>
                             [m.name, m.dosage].filter(Boolean).join(" · ")

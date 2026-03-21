@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { createBrowserRouter, Navigate } from "react-router";
 import { RegisterUserScreen } from "./components/RegisterUserScreen";
 import { RegisterPetStep1 } from "./components/RegisterPetStep1";
@@ -8,17 +9,85 @@ import { VerifyReportScreen } from "./components/VerifyReportScreen";
 import { EmailLinkSignInScreen } from "./components/EmailLinkSignInScreen";
 import { RouteErrorFallback } from "./components/RouteErrorFallback";
 import { ClinicalReviewScreen } from "./components/ClinicalReviewScreen";
-import LandingPage from "./pages/LandingPage";
-import LandingUnite from "./pages/LandingUnite";
+import LandingEcosystemPreviewPage from "./pages/LandingEcosystemPreviewPage";
 import LegalPage from "./pages/LegalPage";
+import { isProductionAppHost } from "./utils/runtimeFlags";
 
 const withErrorBoundary = <T extends Record<string, unknown>>(route: T): T => ({
   ...route,
   errorElement: <RouteErrorFallback />,
 });
 
+function PreviewOnlyRoute({ children }: { children: ReactNode }) {
+  return isProductionAppHost() ? <Navigate to="/" replace /> : <>{children}</>;
+}
+
+const previewRoutesEnabled =
+  import.meta.env.DEV || import.meta.env.VITE_ENABLE_PREVIEW_ROUTES === "true";
+
+const previewRoutes = previewRoutesEnabled
+  ? [
+      withErrorBoundary({
+        path: "/preview/landing-ecosistema",
+        element: (
+          <PreviewOnlyRoute>
+            <LandingEcosystemPreviewPage />
+          </PreviewOnlyRoute>
+        ),
+      }),
+      withErrorBoundary({
+        path: "/preview/wellbeing",
+        lazy: async () => {
+          const module = await import("./pages/WellbeingProductPreviewPage");
+          const Page = module.default;
+          return {
+            Component: function PreviewWellbeingRoute() {
+              return (
+                <PreviewOnlyRoute>
+                  <Page />
+                </PreviewOnlyRoute>
+              );
+            },
+          };
+        },
+      }),
+      withErrorBoundary({
+        path: "/preview/wellbeing-master",
+        lazy: async () => {
+          const module = await import("./pages/WellbeingMasterBookPreviewPage");
+          const Page = module.default;
+          return {
+            Component: function PreviewWellbeingMasterRoute() {
+              return (
+                <PreviewOnlyRoute>
+                  <Page />
+                </PreviewOnlyRoute>
+              );
+            },
+          };
+        },
+      }),
+      withErrorBoundary({
+        path: "/preview/vaccination-card",
+        lazy: async () => {
+          const module = await import("./pages/VaccinationCardPreviewPage");
+          const Page = module.default;
+          return {
+            Component: function PreviewVaccinationCardRoute() {
+              return (
+                <PreviewOnlyRoute>
+                  <Page />
+                </PreviewOnlyRoute>
+              );
+            },
+          };
+        },
+      }),
+    ]
+  : [];
+
 export const router = createBrowserRouter([
-  withErrorBoundary({ path: "/", element: <Navigate to="/inicio" replace /> }),
+  withErrorBoundary({ path: "/", Component: LandingEcosystemPreviewPage }),
   withErrorBoundary({ path: "/welcome", element: <Navigate to="/" replace /> }),
   withErrorBoundary({ path: "/onboarding", element: <Navigate to="/" replace /> }),
   withErrorBoundary({ path: "/register", element: <Navigate to="/register-user" replace /> }),
@@ -28,9 +97,9 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/register-pet/step2", Component: RegisterPetStep2 }),
   withErrorBoundary({ path: "/register-pet-step2", element: <Navigate to="/register-pet/step2" replace /> }),
   withErrorBoundary({ path: "/login", Component: LoginScreen }),
-  withErrorBoundary({ path: "/app", element: <Navigate to="/login" replace /> }),
-  withErrorBoundary({ path: "/inicio", Component: LandingPage }),
-  withErrorBoundary({ path: "/empezar", Component: LandingUnite }),
+  withErrorBoundary({ path: "/app", element: <Navigate to="/inicio" replace /> }),
+  withErrorBoundary({ path: "/inicio", Component: LoginScreen }),
+  withErrorBoundary({ path: "/empezar", Component: LandingEcosystemPreviewPage }),
   withErrorBoundary({ path: "/inicio/vacunas", element: <Navigate to="/" replace /> }),
   withErrorBoundary({ path: "/inicio/medicacion", element: <Navigate to="/" replace /> }),
   withErrorBoundary({ path: "/inicio/historial-medico", element: <Navigate to="/" replace /> }),
@@ -43,6 +112,7 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/register-pet-old", element: <Navigate to="/register-pet" replace /> }),
   withErrorBoundary({ path: "/home", Component: HomeScreen }),
   withErrorBoundary({ path: "/review/:reviewId", Component: ClinicalReviewScreen }),
+  ...previewRoutes,
   withErrorBoundary({ path: "/email-link", Component: EmailLinkSignInScreen }),
   withErrorBoundary({ path: "/verify/:hash", Component: VerifyReportScreen }),
   withErrorBoundary({ path: "*", element: <Navigate to="/" replace /> }),

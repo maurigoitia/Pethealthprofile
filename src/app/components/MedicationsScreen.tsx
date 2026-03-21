@@ -246,7 +246,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   }, [highlightEventId]);
 
   const { activePetId, activePet } = usePet();
-  const { getEventsByPetId, updateEvent, confirmEvent, deleteEvent, activeMedications, updateMedication } = useMedical();
+  const { getEventsByPetId, updateEvent, confirmEvent, deleteEvent, activeMedications, updateMedication, addMedication } = useMedical();
   const { addReminder } = useReminders();
   const focusExperienceEnabled = isFocusExperienceHost();
 
@@ -364,11 +364,20 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   const activeItems = (showExpiredInActive ? [...activeBaseItems, ...expiredItems] : activeBaseItems)
     .sort((a, b) => toTimestampSafe(b.startDate) - toTimestampSafe(a.startDate));
   const shownItems = activeTab === "active" ? activeItems : completedItems;
-  const reminderPills = activeBaseItems.slice(0, 6).map((item) => ({
-    id: item.id,
-    name: item.medicationName,
-    when: nextDoseLabel(item.lastDoseAt || item.startDate, item.frequency),
-  }));
+  const todayKey = toDateKeySafe(new Date().toISOString());
+  const reminderPills = activeBaseItems
+    .map((item) => {
+      const next = computeNextDoseDate(item.lastDoseAt || item.startDate, item.frequency);
+      if (!next) return null;
+      if (toDateKeySafe(next.toISOString()) !== todayKey) return null;
+      return {
+        id: item.id,
+        name: item.medicationName,
+        when: `hoy ${next.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`,
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 6) as { id: string; name: string; when: string }[];
 
   const saveNote = async (event: MedicalEvent) => {
     const text = (draftNoteByEvent[event.id] || "").trim();
@@ -536,25 +545,61 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
           (medication) => medication.active && medication.generatedFromEventId === item.event.id
         );
 
-    for (const medication of fallbackLinked) {
-      await updateMedication(medication.id, {
+    if (fallbackLinked.length === 0) {
+      const newMedicationId = `med_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      const newMedication = {
+        id: newMedicationId,
+        petId: item.event.petId,
+        userId: item.event.userId || "",
+        name: item.medicationName,
+        dosage: item.dosage,
+        frequency: item.frequency,
+        type: "Receta",
+        startDate: item.startDate,
+        endDate: item.endDate || null,
+        prescribedBy: item.provider || null,
+        generatedFromEventId: item.event.id,
+        active: true,
         lastDoseAt: nowIso,
         nextDoseAt: nextDoseIso,
-      });
+      };
+      await addMedication(newMedication);
 
       if (parseFrequencyHours(item.frequency)) {
         await NotificationService.scheduleMedicationReminders({
-          petId: medication.petId,
+          petId: newMedication.petId,
           petName: activePet.name,
-          medicationName: medication.name,
-          dosage: item.dosage || medication.dosage || "Según receta",
+          medicationName: newMedication.name,
+          dosage: item.dosage || "Según receta",
           frequency: item.frequency,
-          startDate: medication.startDate,
-          endDate: medication.endDate,
+          startDate: newMedication.startDate,
+          endDate: newMedication.endDate,
           sourceEventId: item.event.id,
-          sourceMedicationId: medication.id,
+          sourceMedicationId: newMedication.id,
           lastDoseAt: nowIso,
         });
+      }
+    } else {
+      for (const medication of fallbackLinked) {
+        await updateMedication(medication.id, {
+          lastDoseAt: nowIso,
+          nextDoseAt: nextDoseIso,
+        });
+
+        if (parseFrequencyHours(item.frequency)) {
+          await NotificationService.scheduleMedicationReminders({
+            petId: medication.petId,
+            petName: activePet.name,
+            medicationName: medication.name,
+            dosage: item.dosage || medication.dosage || "Según receta",
+            frequency: item.frequency,
+            startDate: medication.startDate,
+            endDate: medication.endDate,
+            sourceEventId: item.event.id,
+            sourceMedicationId: medication.id,
+            lastDoseAt: nowIso,
+          });
+        }
       }
     }
 

@@ -1,18 +1,13 @@
 {
   "projects": {
-    "default": "gen-lang-client-0123805751"
+    "default": "polar-scene-488615-i0",
+    "pessy": "polar-scene-488615-i0"
   },
   "targets": {
-    "gen-lang-client-0123805751": {
+    "polar-scene-488615-i0": {
       "hosting": {
         "app": [
-          "gen-lang-client-0123805751"
-        ],
-        "landing": [
-          "gen-lang-client-landing-qa"
-        ],
-        "landingqa": [
-          "pessy-qa-landing"
+          "polar-scene-488615-i0"
         ],
         "appqa": [
           "pessy-qa-app"

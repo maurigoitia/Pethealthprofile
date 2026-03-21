@@ -9,6 +9,8 @@ import {
 } from "../services/gmailSyncService";
 import { deleteUserAccount } from "../services/accountDeletionService";
 import { auth } from "../../lib/firebase";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { toast } from "sonner";
 
 interface PrivacySecurityScreenProps {
   onBack: () => void;
@@ -61,23 +63,24 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
     return unsubscribe;
   }, [user?.uid]);
 
-  const handleChangePassword = () => {
-    if (passwords.new !== passwords.confirm) {
-      alert("Las contraseñas no coinciden");
+  const handleChangePassword = async () => {
+    const email = user?.email;
+    if (!email) {
+      toast.error("No se pudo obtener tu email. Intentá cerrar sesión y volver a entrar.");
       return;
     }
-    if (passwords.new.length < 6) {
-      alert("La contraseña debe tener al menos 6 caracteres");
-      return;
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast.success("Te enviamos un correo para restablecer tu contraseña.");
+      setShowChangePassword(false);
+      setPasswords({ current: "", new: "", confirm: "" });
+    } catch {
+      toast.error("Error al enviar el correo. Intentá de nuevo en unos minutos.");
     }
-    // Simulate password change
-    alert("Contraseña cambiada exitosamente");
-    setShowChangePassword(false);
-    setPasswords({ current: "", new: "", confirm: "" });
   };
 
   const handleLogoutOtherDevices = () => {
-    alert("Sesión cerrada en todos los demás dispositivos");
+    toast.info("Próximamente: gestión avanzada de dispositivos.");
   };
 
   const clearClientArtifacts = async () => {
@@ -245,7 +248,7 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
                   Sincronización Gmail (Pessy App)
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                  Permiso solicitado por Pessy para leer correos veterinarios y extraer historia clínica.
+                  Permiso solicitado por Pessy para leer correos de turnos y documentos y ordenar la informacion de tu mascota.
                 </p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
                   Scope: <span className="font-semibold">gmail.readonly</span>
@@ -351,7 +354,7 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 text-center mb-6">
               Esta acción es permanente y no se puede deshacer. Se eliminarán todos tus
-              datos y el historial de tus mascotas.
+              datos y la historia de tus mascotas.
             </p>
             <div className="flex gap-3">
               <button

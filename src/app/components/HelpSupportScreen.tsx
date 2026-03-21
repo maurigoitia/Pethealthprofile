@@ -15,14 +15,14 @@ export function HelpSupportScreen({ onBack }: HelpSupportScreenProps) {
 
   const faqs: FAQItem[] = [
     {
-      question: "¿Cómo agrego un documento médico?",
+      question: "¿Cómo agrego un documento?",
       answer:
-        'Toca el botón "+" en la parte inferior central de la pantalla, luego selecciona "Escanear con Cámara" o "Seleccionar Archivo". PESSY procesará automáticamente el documento y lo agregará al historial.',
+        'Toca el botón "+" en la parte inferior central de la pantalla, luego selecciona "Escanear con Cámara" o "Seleccionar Archivo". PESSY procesará automáticamente el documento y lo agregará al perfil de tu mascota.',
     },
     {
       question: "¿Qué tipos de documentos puedo subir?",
       answer:
-        "Puedes subir comprobantes de vacunación, análisis de laboratorio, radiografías, recetas médicas, estudios cardíacos y cualquier otro documento veterinario en formato imagen (JPG, PNG) o PDF.",
+        "Puedes subir comprobantes de vacunación, análisis, radiografías, recetas, estudios y cualquier otro documento de tu mascota en formato imagen (JPG, PNG) o PDF.",
     },
     {
       question: "¿Cómo cambio de mascota activa?",
@@ -32,12 +32,12 @@ export function HelpSupportScreen({ onBack }: HelpSupportScreenProps) {
     {
       question: "¿Los documentos están seguros?",
       answer:
-        "Sí. Todos los documentos se almacenan de forma segura y solo tú tienes acceso a ellos. Puedes verificar la integridad de los reportes médicos exportados mediante códigos QR y hash de verificación.",
+        "Sí. Todos los documentos se almacenan de forma segura y solo tú tienes acceso a ellos. Puedes verificar la integridad de los reportes exportados mediante códigos QR y hash de verificación.",
     },
     {
-      question: "¿Cómo exporto un reporte médico?",
+      question: "¿Cómo exporto un reporte?",
       answer:
-        'En la sección "Historial", toca el ícono de documento en la esquina superior derecha. Selecciona el tipo de reporte que deseas generar y compártelo vía email, WhatsApp u otras apps.',
+        'En la sección "Historial", toca el ícono de documento en la esquina superior derecha. Selecciona el tipo de resumen que deseas generar y compártelo vía email, WhatsApp u otras apps.',
     },
   ];
 

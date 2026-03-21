@@ -36,7 +36,7 @@ export function MonthSummary() {
               {summary.totalEvents}
             </div>
             <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-              Eventos médicos
+              Registros
             </p>
           </div>
 
@@ -67,7 +67,7 @@ export function MonthSummary() {
               {summary.activeMedications}
             </div>
             <p className="text-[10px] font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wider">
-              Medicaciones
+              Cuidados activos
             </p>
           </div>
         </div>

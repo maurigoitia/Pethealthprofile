@@ -28,9 +28,8 @@ function buildGmailScopes(includeCalendar: boolean): string {
 const ALLOWED_RETURN_ORIGINS = new Set([
   "https://pessy.app",
   "https://www.pessy.app",
-  "https://gen-lang-client-0123805751.web.app",
-  "https://itpessy.web.app",
-  "https://pessy-qa-app.web.app",
+  "https://app.pessy.app",
+  "https://polar-scene-488615-i0.web.app",
   "http://localhost:5173",
   "http://localhost:4173",
 ]);

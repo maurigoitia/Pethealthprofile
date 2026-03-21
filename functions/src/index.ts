@@ -630,10 +630,10 @@ async function resolveClinicalAlert(alertId: string, notes: string, nowIso: stri
 // ─────────────────────────────────────────────────────────────────────────────
 export const sendScheduledNotifications = functions
   .runWith({ secrets: ["RESEND_API_KEY"] })
-  .pubsub.schedule("every 5 minutes")
+  .pubsub.schedule("every 15 minutes")
   .onRun(async () => {
     const now = new Date();
-    const windowEnd = new Date(now.getTime() + 6 * 60 * 1000); // ventana 6 min para cubrir gap entre ejecuciones
+    const windowEnd = new Date(now.getTime() + 16 * 60 * 1000); // ventana 16 min para cubrir gap entre ejecuciones
     const nowIso = now.toISOString();
 
     console.log(`[CRON] Revisando notificaciones hasta ${windowEnd.toISOString()}`);

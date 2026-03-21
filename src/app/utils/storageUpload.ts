@@ -86,7 +86,11 @@ export async function uploadWithAuthFallback({
     }
   }
 
-  const projectId = auth.app.options.projectId || "gen-lang-client-0123805751";
+  const projectId =
+    String(auth.app.options.projectId || import.meta.env.VITE_FIREBASE_PROJECT_ID || "").trim();
+  if (!projectId) {
+    throw new Error("No se pudo resolver el proyecto Firebase para reintentar la subida.");
+  }
   const legacyStorage = getStorage(auth.app, `gs://${projectId}.appspot.com`);
   return uploadToStorageWithAttempts(legacyStorage, file, attempts);
 }

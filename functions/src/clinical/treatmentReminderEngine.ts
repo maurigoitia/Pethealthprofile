@@ -608,7 +608,7 @@ export const onTreatmentWriteScheduleV3 = functions
 
 export const dispatchTreatmentRemindersV3 = functions
   .region("us-central1")
-  .pubsub.schedule("every 1 minutes")
+  .pubsub.schedule("every 5 minutes")
   .onRun(async () => {
     const now = Date.now();
     const windowEnd = new Date(now + 5 * ONE_MINUTE_MS).toISOString();

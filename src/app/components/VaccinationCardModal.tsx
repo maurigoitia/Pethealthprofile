@@ -1,8 +1,7 @@
 import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
-import jsPDF from "jspdf";
 import { PetPhoto } from "./PetPhoto";
-import { savePdfWithFallback } from "../utils/pdfExport";
+import { loadJsPdf, savePdfWithFallback } from "../utils/pdfExport";
 
 interface Vaccine {
   id: number;
@@ -11,6 +10,8 @@ interface Vaccine {
   nextDue: string;
   veterinarian: string;
   status: "current" | "due-soon" | "overdue";
+  lotNumber?: string | null;
+  serialNumber?: string | null;
 }
 
 interface VaccinationCardModalProps {
@@ -35,7 +36,8 @@ const STATUS_CONFIG = {
 export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: VaccinationCardModalProps) {
 
   const handleDownloadPDF = async () => {
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const JsPdf = await loadJsPdf();
+    const pdf = new JsPdf({ orientation: "portrait", unit: "mm", format: "a4" });
     const pageW = 210;
     const margin = 16;
     const contentW = pageW - margin * 2;
@@ -113,6 +115,7 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
       pdf.setTextColor(100, 100, 100);
       pdf.text(`Aplicada: ${vac.date}`, margin + 9, y + 12);
       pdf.text(`Próxima: ${vac.nextDue}`, pageW / 2, y + 12);
+      if (vac.lotNumber) pdf.text(`Lote: ${vac.lotNumber}`, margin + 9, y + 17);
       // Status pill
       pdf.setFillColor(r, g, b);
       pdf.setTextColor(255, 255, 255);
@@ -236,7 +239,7 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
               {/* Vaccine list */}
               {vaccines.length === 0 ? (
                 <div className="text-center py-8 text-slate-400 text-sm">
-                  No hay vacunas registradas. Subí un documento veterinario para detectarlas.
+                  No hay vacunas registradas. Subí un documento para detectarlas.
                 </div>
               ) : (
                 vaccines.map((v) => {
@@ -264,6 +267,22 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
                             </p>
                           </div>
                         </div>
+                        {(v.lotNumber || v.serialNumber) && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {v.lotNumber && (
+                              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 rounded-md px-2 py-1">
+                                <MaterialIcon name="barcode_scanner" className="text-[13px] text-slate-500" />
+                                <span className="text-[10px] text-slate-500 font-mono">Lote: {v.lotNumber}</span>
+                              </div>
+                            )}
+                            {v.serialNumber && (
+                              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 rounded-md px-2 py-1">
+                                <MaterialIcon name="tag" className="text-[13px] text-slate-500" />
+                                <span className="text-[10px] text-slate-500 font-mono">Serie: {v.serialNumber}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

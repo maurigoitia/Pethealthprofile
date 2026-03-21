@@ -1,42 +1,33 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
-import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from "crypto";
-import { Readable, Transform } from "stream";
+import { Readable } from "stream";
 import { pipeline } from "stream/promises";
 import * as mammoth from "mammoth/lib/index";
-import { resolveClinicalKnowledgeContext } from "../clinical/knowledgeBase";
-import { resolveBrainOutput } from "../clinical/brainResolver";
 import { assertGmailInvitationOrThrow } from "./invitation";
 import {
-  isVetDomain, isTrustedClinicalSender, isBlockedClinicalDomain,
-  isMassMarketingDomain, scorePetCandidate, choosePetByHints,
-  detectPetIdentityConflict, inferSpeciesSignalsFromCorpus,
-  petMatchesByName, petMatchesByBreed, petMatchesBySpeciesSignal,
+  isTrustedClinicalSender, isBlockedClinicalDomain,
+  choosePetByHints,
+  detectPetIdentityConflict,
   resolvePetConditionHints, isCandidateClinicalEmail,
-  hasStrongHumanHealthcareSignal, hasStrongVeterinaryEvidence,
+  hasStrongHumanHealthcareSignal,
   hasStrongNonClinicalSignal, attachmentNamesContainClinicalSignal,
-  extractSenderDomain, speciesAliases, canonicalSpeciesKey,
 } from "./ingestion/petMatching";
 import {
   uniqueNonEmpty, getNowIso, asRecord, asString,
-  asNonNegativeNumber, clamp, hasNumericSignal,
-  sanitizeReferenceRange, normalizeClinicalToken, cleanSentence,
+  asNonNegativeNumber, clamp,
+  cleanSentence,
   normalizeForHash, sha256, base64UrlToBase64,
   decodeBase64UrlToBuffer, decodeBase64UrlToText,
-  sanitizePathToken, buildAttachmentStoragePath,
+  buildAttachmentStoragePath,
   createBase64DecodeTransform, iterateBase64Chunks,
-  toIsoDateOnly, toGmailDate, parseIsoDate, parseDateOnly,
+  toIsoDateOnly, parseIsoDate, parseDateOnly,
   parseBirthDateFromPet, calculateAgeYears, calculateMaxLookbackMonths,
   getMaxMailsPerSync, parseGmailDate, monthsBetween,
   sanitizeNarrativeLabel,
-  normalizeSemanticText, jaccardSimilarity, dateProximityScore,
-  tryParseJson, splitTextForAi,
-  encryptText, decryptText, decryptPayload, getEncryptionKey,
+  decryptPayload,
 } from "./ingestion/utils";
 import {
   PetResolutionHints, PetCandidateProfile, UserPlanType,
-  ClinicalClassificationOutput, ClinicalClassificationInput,
-  ClinicalExtractionOutput,
 } from "./ingestion/types";
 import {
   createIngestionSession, updateIngestionProgress,
@@ -50,20 +41,10 @@ import {
 } from "./ingestion/sessionQueue";
 import {
   isAppointmentEventType, isPrescriptionEventType, isVaccinationEventType, isStudyEventType,
-  inferAppointmentStatusFromText, normalizeAppointmentStatusValue,
-  sanitizeAppointmentTime, extractAppointmentTimeFromText,
-  extractProfessionalNameFromText,
-  extractClinicNameFromText, extractAppointmentSpecialtyFromText,
-  deriveAppointmentLabel,
-  inferImagingTypeFromSignals, inferStudySubtypeFromSignals,
-  normalizeExtractedEventType,
   buildCanonicalEventTitle,
-  toMedicalEventDocumentType,
   reconstructStoredEventForTaxonomy,
   extractOperationalAppointmentCandidate,
   shouldReplaceLegacyStoredTitle, shouldPreserveExistingObservations,
-  medicationHasDoseAndFrequency,
-  applyConstitutionalGuardrails,
   isLegacyMailsyncEvent, classifyLegacyMailsyncEvent,
   GmailTaxonomyBackfillResult, LegacyMailsyncCleanupResult,
 } from "./ingestion/clinicalNormalization";
@@ -73,20 +54,11 @@ import {
   normalizeMimeType, fetchAttachmentMetadata,
 } from "./ingestion/emailParsing";
 import {
-  decodeHtmlEntitiesBasic, stripHtmlToText,
-  normalizeExternalLink, extractCandidateExternalLinks,
-  isPrivateOrLocalHost, shouldFetchExternalLink,
-  isRedirectStatus, resolveRedirectUrl, likelyLoginUrl,
-  detectLoginRequiredHtml,
-  fetchWithControlledRedirects, readResponseBodyWithLimit,
   fetchExternalLinkTextChunks,
 } from "./ingestion/textProcessing";
 import {
-  consumeGlobalAiQuota, callGemini, extractGeminiText,
-  ocrAttachmentViaGemini, buildClinicalPrompt,
-  deriveVeterinaryEvidenceHints, applyVeterinaryEvidencePriority,
-  toClinicalOutput, heuristicClinicalExtraction,
-  heuristicClinicalClassification,
+  ocrAttachmentViaGemini,
+  heuristicClinicalExtraction,
   classifyClinicalContentWithAi, extractClinicalEventsWithAi,
 } from "./ingestion/clinicalAi";
 import {
@@ -98,64 +70,40 @@ import {
 } from "./ingestion/jobProcessing";
 import {
   persistReviewEvent, buildDefaultExtractedData,
-  buildIncompleteTreatmentSubtitle, selectBestAttachmentForReview,
+  selectBestAttachmentForReview,
   upsertClinicalReviewDraft, upsertIncompleteTreatmentPendingAction,
-  buildSyncReviewTitle, buildReviewReasonCopy, buildSyncReviewSubtitle,
   upsertSyncReviewPendingAction, detectSemanticDuplicateCandidate,
   isDuplicateEventByFingerprint,
 } from "./ingestion/reviewActions";
 import {
   storeKnowledgeSignal, mapEventTypeToBrainCategory,
   inferBrainCategoryFromSubject, buildBrainEntitiesFromEvent,
-  mirrorBrainResolution, appointmentStatusToCollectionStatus,
-  findExistingOperationalAppointmentEvent,
+  mirrorBrainResolution,
   upsertOperationalAppointmentProjection,
   ingestEventToDomain,
 } from "./ingestion/domainIngestion";
 import {
-  getBoundedIntFromEnv, getPremiumPlanMaxEmailsPerSync,
+  getPremiumPlanMaxEmailsPerSync,
   getFreePlanMaxEmailsPerSync, getScanBatchSize,
   getMaxConcurrentExtractionJobs, getScanWorkersPerTick,
   getAttachmentWorkersPerTick, getAiWorkersPerTick,
-  getMaxExternalLinksPerEmail, getExternalLinkFetchTimeoutMs,
-  getExternalLinkMaxBytes, getExternalLinkMaxRedirects,
-  isExternalLinkFetchEnabled, getAutoIngestConfidenceThreshold,
-  getSilentApprovalWindowHours, parseDomainListEnv,
-  parseEmailListEnv, getQaAllowedUserEmails, isEmailAllowedForQa,
-  isSmartPetMatchingEnabled, domainMatches, isAttachmentStorageEnabled,
+  getAutoIngestConfidenceThreshold,
+  getQaAllowedUserEmails, isEmailAllowedForQa,
+  isSmartPetMatchingEnabled, isAttachmentStorageEnabled,
 } from "./ingestion/envConfig";
 
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_GMAIL_PROFILE_URL = "https://gmail.googleapis.com/gmail/v1/users/me/profile";
 const GMAIL_API_BASE_URL = "https://gmail.googleapis.com/gmail/v1/users/me";
 
-const MAX_EMAILS_PER_USER_PER_DAY = 500;
-const FREE_PLAN_MAX_EMAILS_PER_SYNC = 300;
-const DEFAULT_BATCH_SIZE = 20;
-const MAX_CONCURRENT_EXTRACTION_JOBS = 20;
 const MAX_ATTACHMENT_SIZE_BYTES = 25 * 1024 * 1024;
 const MAX_ATTACHMENTS_PER_EMAIL = 10;
 const DEDUP_WINDOW_DAYS = 30;
 const SESSION_AUDIT_RETENTION_DAYS = 90;
-const OCR_TIMEOUT_MS = 120_000;
-const CLINICAL_AI_TIMEOUT_MS = 15_000;
-const CLASSIFICATION_AI_TIMEOUT_MS = 7_000;
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const GMAIL_SCOPE_READONLY = "https://www.googleapis.com/auth/gmail.readonly";
-const RAW_DOCUMENT_TTL_MS = 24 * ONE_DAY_MS;
 const FREE_PLAN_ATTACHMENT_PROCESS_LIMIT = 20;
 const MAX_AI_DOCUMENT_TEXT_CHARS = 120_000;
-const MIN_LIGHTWEIGHT_BODY_LENGTH = 140;
-const MAX_SCAN_WORKERS_PER_TICK = 1;
-const MAX_ATTACHMENT_WORKERS_PER_TICK = 2;
-const MAX_AI_WORKERS_PER_TICK = 2;
-const MAX_JOB_ATTEMPTS = 5;
-const JOB_RETRY_DELAYS_MS = [
-  15 * 60 * 1000, // 15m
-  60 * 60 * 1000, // 1h
-  24 * 60 * 60 * 1000, // 24h
-  24 * 60 * 60 * 1000, // +24h (48h total)
-];
 const LOW_RESULT_FALLBACK_MAX_SCANNED = 3;
 const LOW_RESULT_FALLBACK_MAX_CANDIDATES = 1;
 const STALE_PROCESSING_JOB_MS = 5 * 60 * 1000;
@@ -164,27 +112,8 @@ const STALE_ACTIVE_SESSION_MS = 60 * 60 * 1000;
 const FORCE_DRAIN_POLL_MS = 1200;
 const FORCE_DRAIN_MAX_WAIT_MS = 4 * 60 * 1000;
 const FORCE_DRAIN_MAX_JOBS_PER_STAGE = 30;
-const DEFAULT_MAX_EXTERNAL_LINKS_PER_EMAIL = 2;
-const MAX_EXTERNAL_LINKS_PER_EMAIL_HARD_CAP = 5;
-const DEFAULT_EXTERNAL_LINK_FETCH_TIMEOUT_MS = 9000;
-const DEFAULT_EXTERNAL_LINK_MAX_BYTES = 6 * 1024 * 1024;
-const DEFAULT_EXTERNAL_LINK_MAX_REDIRECTS = 4;
-const MAX_EXTERNAL_LINK_REDIRECTS_HARD_CAP = 8;
-const MAX_EXTERNAL_LINK_TEXT_CHARS = 120_000;
 const RECENT_HISTORY_WINDOW_DAYS = 90;
 const MONTHLY_BUCKET_UNTIL_MONTHS = 18;
-const DEFAULT_HUMAN_BLOCKED_SENDER_DOMAINS = [
-  "huesped.org",
-  "huesped.org.ar",
-  "osde.com.ar",
-  "osdebinario.com.ar",
-  "swissmedical.com.ar",
-  "medicus.com.ar",
-  "galeno.com.ar",
-  "omint.com.ar",
-  "hospitalitaliano.org.ar",
-  "hospitalaleman.com",
-];
 
 type IngestionStatus =
   | "idle"
@@ -205,7 +134,6 @@ type EventType =
   | "prescription_record"
   | "vaccination_record";
 type DomainIngestionType = "appointment" | "treatment" | "vaccination" | "medical_event";
-type QueueJobStatus = "pending" | "processing" | "completed" | "failed";
 type QueueJobStage = "scan" | "attachment" | "ai_extract";
 type AppointmentEventStatus = "confirmed" | "reminder" | "cancelled" | "scheduled" | null;
 type StudySubtype = "imaging" | "lab" | null;
@@ -385,21 +313,6 @@ interface ProcessOptions {
   maxEmailsToProcess: number;
   hardDeadlineMs: number;
   disableDedup?: boolean;
-}
-
-interface QueueJobBase {
-  stage: QueueJobStage;
-  status: QueueJobStatus;
-  session_id: string;
-  user_id: string;
-  attempts: number;
-  available_at: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface ScanQueueJobPayload {
-  page_token?: string | null;
 }
 
 interface AttachmentQueueJobPayload {
@@ -3103,7 +3016,7 @@ export const runEmailClinicalIngestionQueue = functions
     secrets: ["GMAIL_OAUTH_CLIENT_ID", "GMAIL_OAUTH_CLIENT_SECRET", "MAIL_TOKEN_ENCRYPTION_KEY", "GEMINI_API_KEY"],
   })
   .region("us-central1")
-  .pubsub.schedule("every 5 minutes")
+  .pubsub.schedule("every 15 minutes")
   .timeZone("America/Argentina/Buenos_Aires")
   .onRun(async () => {
     const now = Date.now();
@@ -3425,7 +3338,7 @@ export const runEmailClinicalScanWorker = functions
     secrets: ["GMAIL_OAUTH_CLIENT_ID", "GMAIL_OAUTH_CLIENT_SECRET", "MAIL_TOKEN_ENCRYPTION_KEY", "GEMINI_API_KEY"],
   })
   .region("us-central1")
-  .pubsub.schedule("every 5 minutes")
+  .pubsub.schedule("every 15 minutes")
   .timeZone("America/Argentina/Buenos_Aires")
   .onRun(async () => {
     await runStageWorkers({
@@ -3444,7 +3357,7 @@ export const runEmailClinicalAttachmentWorker = functions
     secrets: ["GMAIL_OAUTH_CLIENT_ID", "GMAIL_OAUTH_CLIENT_SECRET", "MAIL_TOKEN_ENCRYPTION_KEY", "GEMINI_API_KEY"],
   })
   .region("us-central1")
-  .pubsub.schedule("every 5 minutes")
+  .pubsub.schedule("every 15 minutes")
   .timeZone("America/Argentina/Buenos_Aires")
   .onRun(async () => {
     await runStageWorkers({
@@ -3463,7 +3376,7 @@ export const runEmailClinicalAiWorker = functions
     secrets: ["GMAIL_OAUTH_CLIENT_ID", "GMAIL_OAUTH_CLIENT_SECRET", "MAIL_TOKEN_ENCRYPTION_KEY", "GEMINI_API_KEY"],
   })
   .region("us-central1")
-  .pubsub.schedule("every 5 minutes")
+  .pubsub.schedule("every 15 minutes")
   .timeZone("America/Argentina/Buenos_Aires")
   .onRun(async () => {
     await runStageWorkers({

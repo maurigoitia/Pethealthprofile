@@ -100,3 +100,4 @@ functions/lib/
 !public/icons/**/*.png
 !src/**/*.png
 .claude/
+functions/.env.*

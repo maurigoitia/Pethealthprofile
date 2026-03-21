@@ -1,14 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect } from "react";
 import { motion } from "motion/react";
 import { 
   Shield, 
   FileText, 
   Database, 
   Check, 
-  Mail,
   ChevronUp,
   ChevronRight,
-  Globe
 } from "lucide-react";
 import { Link, useLocation } from "react-router";
 import { Logo } from "../components/Logo";
@@ -31,7 +29,7 @@ const jurisdictions = [
 
 const subProcessors = [
   { provider: 'Google Firebase', service: 'Base de datos, autenticacion, hosting', region: 'EE.UU. (Google Cloud)', data: 'Todos los datos de usuario y mascota' },
-  { provider: 'Google Gemini AI', service: 'Procesamiento de IA transversal', region: 'EE.UU. (Google Cloud)', data: 'Documentos, historial clinico' },
+  { provider: 'Google Gemini AI', service: 'Procesamiento de IA transversal', region: 'EE.UU. (Google Cloud)', data: 'Documentos y datos estructurados de la mascota' },
   { provider: 'Google Cloud Platform', service: 'Infraestructura cloud, almacenamiento', region: 'EE.UU.', data: 'Datos de la plataforma' },
   { provider: 'Google Analytics', service: 'Analitica de uso (anonimizada)', region: 'EE.UU.', data: 'Datos tecnicos anonimizados' }
 ];
@@ -58,27 +56,29 @@ export default function LegalPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white font-['Manrope'] text-slate-900 selection:bg-emerald-100 selection:text-[#074738] overflow-x-hidden relative">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#faf9ff] text-[#1a1b20] selection:bg-emerald-100 selection:text-[#074738]">
       <SEO 
         title="Legal - Pessy"
         description="Documentos legales de Pessy: Politica de Privacidad, Terminos y Condiciones y Acuerdo de Procesamiento de Datos."
         canonical="https://pessy.app/legal"
       />
 
-      {/* BACKGROUND ELEMENTS (Matching Inicio) */}
-      <div className="absolute top-[-364px] left-[-317px] w-full h-full pointer-events-none z-0">
-        <div className="absolute w-[634px] h-[634px] left-[-194px] top-[2176px] bg-[#FFD6D6] blur-[500px] opacity-10" />
-        <div className="absolute w-[634px] h-[634px] left-[-317px] top-[-280px] bg-[#52BDAA] blur-[500px] opacity-10" />
-        <div className="absolute w-[634px] h-[634px] left-[1123px] top-[270px] bg-[#54BE96] blur-[500px] opacity-10" />
-        <div className="absolute w-[634px] h-[634px] left-[581px] top-[-364px] bg-[#FFD6D6] blur-[500px] opacity-10" />
+      <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-[#b5efd9]/35 blur-[120px]" />
+        <div className="absolute -right-24 top-0 h-80 w-80 rounded-full bg-[#e3dfff]/40 blur-[120px]" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-[#ffdad3]/25 blur-[120px]" />
       </div>
 
-      {/* HEADER (Matching Inicio) */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100 h-20">
-        <nav className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
-          <Link to="/inicio" className="flex items-center gap-2.5 group">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-[#d8e4de] bg-white/80 backdrop-blur-xl">
+        <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
+          <Link to="/" className="flex items-center gap-2.5 group">
             <Logo className="size-10 transition-transform group-hover:scale-105" color="#074738" />
-            <span className="text-2xl font-black tracking-tight text-[#074738]">Pessy</span>
+            <span
+              className="text-2xl font-extrabold tracking-tight text-[#074738]"
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+            >
+              Pessy
+            </span>
           </Link>
 
           <div className="hidden lg:flex items-center gap-10">
@@ -86,41 +86,52 @@ export default function LegalPage() {
               <a 
                 key={i} 
                 href={`#${section.id}`} 
-                className="text-[10px] font-black tracking-[0.2em] text-slate-400 hover:text-[#074738] transition-colors uppercase"
+                className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#5e716b] transition-colors hover:text-[#074738]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
               >
                 {section.label}
               </a>
             ))}
           </div>
 
-          <Link to="/app" className="px-8 py-3 bg-[#54BD95] text-white text-[10px] font-black tracking-widest rounded-full shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all uppercase">
-            ENTRAR
+          <Link
+            to="/inicio"
+            className="rounded-full bg-[#074738] px-8 py-3 text-[10px] font-bold uppercase tracking-[0.22em] text-white transition-all hover:scale-[1.02]"
+            style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+          >
+            Entrar
           </Link>
         </nav>
       </header>
 
       <main className="relative z-10 pt-20">
-        {/* HERO SECTION */}
         <section className="relative pt-24 pb-20 px-6">
           <div className="max-w-7xl mx-auto text-center space-y-8">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-50 text-[#074738] rounded-full border border-emerald-100"
+              className="inline-flex items-center gap-2 rounded-full border border-[#dfe6e2] bg-white px-4 py-1.5 text-[#074738]"
             >
-              <div className="size-1.5 rounded-full bg-[#54BD95]" />
-              <span className="text-[10px] font-black tracking-[0.2em] uppercase">Documentos Legales</span>
+              <div className="size-1.5 rounded-full bg-[#074738]" />
+              <span
+                className="text-[10px] font-bold uppercase tracking-[0.22em]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                Legal y privacidad
+              </span>
             </motion.div>
 
             <motion.h1 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-5xl md:text-8xl font-bold leading-[1.1] tracking-tighter text-[#191A15]"
+              className="text-5xl md:text-7xl font-extrabold leading-[1.05] tracking-tight text-[#002f24]"
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
             >
-              Transparencia<br />
-              <span className="text-[#54BD95]">
-                en cada dato
+              Privacidad,
+              <br />
+              <span className="text-[#5048ca]">
+                terminos y datos.
               </span>
             </motion.h1>
 
@@ -128,18 +139,18 @@ export default function LegalPage() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-xl text-slate-500 font-medium max-w-xl mx-auto leading-relaxed"
+              className="mx-auto max-w-2xl text-xl font-medium leading-relaxed text-[#404945]"
             >
-              Todos los documentos que rigen el uso del ecosistema Pessy en un solo lugar.
+              Toda la informacion legal de Pessy, en un solo lugar.
             </motion.p>
 
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="inline-block px-4 py-1.5 bg-slate-50 border border-slate-100 rounded-full"
+              className="inline-block rounded-full border border-[#dfe6e2] bg-white px-4 py-1.5"
             >
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ultima actualizacion: Marzo 2026</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#707975]">Ultima actualizacion: Marzo 2026</span>
             </motion.div>
           </div>
         </section>
@@ -212,10 +223,10 @@ export default function LegalPage() {
           onBackTop={scrollToTop}
         >
           <SectionTitle>1. Responsable del Tratamiento</SectionTitle>
-          <p>Pessy es un ecosistema de identidad digital para mascotas. El tratamiento de datos personales se realiza con el fin de proveer un ecosistema de informacion centralizado para tutores y profesionales del sector pet care.</p>
+          <p>Pessy es un ecosistema digital para mascotas. El tratamiento de datos personales se realiza con el fin de proveer una plataforma centralizada para tutores, co-tutores y actores del sector pet care.</p>
           <HighlightBox>
             <strong className="text-[#074738] uppercase tracking-[0.2em] text-[10px] block mb-2">Responsable</strong>
-            Pessy — Ecosistema de Identidad Digital para Mascotas<br />
+            Pessy — Ecosistema Digital para Mascotas<br />
             <strong className="text-[#074738] uppercase tracking-[0.2em] text-[10px] block mt-4 mb-2">Contacto</strong>
             <span className="underline underline-offset-8 decoration-2 decoration-emerald-200 font-black text-[#074738]">privacidad@pessy.app</span>
           </HighlightBox>
@@ -225,7 +236,7 @@ export default function LegalPage() {
             <div>
               <p className="font-black text-slate-900 uppercase text-[11px] tracking-widest mb-4">De la mascota:</p>
               <ul className="space-y-3">
-                {['Nombre, especie, raza, edad, peso y fotografias.', 'Historial clinico, registros de vacunacion y tratamientos.', 'Documentos procesados por inteligencia artificial.'].map((item, i) => (
+                {['Nombre, especie, raza, edad, peso y fotografias.', 'Historia de cuidado, registros de vacunacion, tratamientos y rutinas.', 'Documentos procesados por inteligencia artificial.'].map((item, i) => (
                   <li key={i} className="flex gap-3 text-slate-600 font-medium">
                     <Check className="size-5 text-[#54BD95] flex-shrink-0" /> {item}
                   </li>
@@ -249,9 +260,9 @@ export default function LegalPage() {
           <ul className="space-y-4 mt-6">
             {[
               'Generar y mantener el perfil de identidad digital de la mascota.',
-              'Estructurar informacion clinica mediante inteligencia artificial.',
+              'Estructurar informacion y documentos mediante inteligencia artificial.',
               'Enviar recordatorios de vacunas y tratamientos.',
-              'Facilitar la comunicacion con profesionales veterinarios.',
+              'Facilitar la coordinacion entre quienes cuidan a la mascota.',
               'Mejorar la experiencia de usuario de forma agregada.'
             ].map((item, i) => (
               <li key={i} className="flex gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 font-medium text-slate-600">
@@ -285,15 +296,15 @@ export default function LegalPage() {
           <p>Al acceder o utilizar Pessy, aceptas cumplir con estos Terminos y Condiciones. Si no estas de acuerdo con alguna parte de los mismos, no podras utilizar el servicio.</p>
 
           <SectionTitle>2. Descripcion del Servicio</SectionTitle>
-          <p>Pessy es un ecosistema de identidad digital para mascotas que utiliza inteligencia artificial para estructurar informacion clinica. La IA de Pessy es una capa transversal de asistencia — no constituye un diagnostico medico ni reemplaza la consulta veterinaria profesional.</p>
+          <p>Pessy es un ecosistema digital para mascotas que organiza informacion, documentos, turnos, rutinas y recordatorios. Algunas funciones pueden estructurar informacion proveniente de documentos o correos, pero Pessy no constituye un diagnostico medico ni reemplaza la consulta veterinaria profesional.</p>
 
           <SectionTitle>3. Responsabilidad del Usuario</SectionTitle>
-          <p>El usuario es el unico responsable de la veracidad de la informacion cargada en la plataforma. Pessy no se hace responsable por errores en el historial clinico derivados de informacion incorrecta proporcionada por el tutor.</p>
+          <p>El usuario es el unico responsable de la veracidad de la informacion cargada en la plataforma. Pessy no se hace responsable por errores en la informacion organizada derivados de datos incorrectos proporcionados por el tutor.</p>
 
           <SectionTitle>4. Limitacion Medica</SectionTitle>
           <HighlightBox>
             <strong className="text-[#074738] block mb-2 uppercase tracking-[0.2em] text-[10px]">Aviso Importante</strong>
-            Pessy no es un servicio veterinario. No sustituye la consulta con un profesional habilitado. Toda decision medica debe ser validada por un veterinario colegiado.
+            Pessy no es un servicio veterinario ni una herramienta de diagnostico. No sustituye la consulta con un profesional habilitado. Toda decision medica debe ser validada por un veterinario colegiado.
           </HighlightBox>
         </DocSection>
 
@@ -370,53 +381,33 @@ export default function LegalPage() {
         </section>
       </main>
 
-      {/* FOOTER */}
-      <footer className="pt-32 pb-16 px-6 bg-white border-t border-slate-100">
-        <div className="max-w-7xl mx-auto space-y-24">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-20">
-            <div className="space-y-10 lg:col-span-2">
-              <div className="flex items-center gap-3">
-                <Logo className="size-10" color="#074738" />
-                <span className="text-2xl font-black tracking-tighter text-[#074738]">Pessy</span>
-              </div>
-              <p className="text-slate-400 font-medium max-w-sm leading-relaxed">
-                Tu mascota, sus cosas, todo en orden. El futuro de la identidad animal ya esta aqui.
-              </p>
-              <div className="flex gap-4">
-                <a href="mailto:it@pessy.app" className="size-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-[#54BD95] hover:text-white transition-all">
-                  <Mail size={20} />
-                </a>
-                <a href="#" className="size-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-[#54BD95] hover:text-white transition-all">
-                  <Globe size={20} />
-                </a>
-              </div>
+      <footer className="mt-16 rounded-t-[2rem] bg-[#052f27]">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div
+              className="text-lg font-bold text-[#f1f7f4]"
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+            >
+              Pessy
             </div>
-
-            <div className="space-y-10">
-              <h4 className="text-[10px] font-black tracking-[0.4em] text-slate-300 uppercase">EXPLORAR</h4>
-              <ul className="space-y-4">
-                {['Historial', 'Vacunas', 'Medicacion', 'Entrar'].map((item, i) => (
-                  <li key={i}>
-                    <Link to="/inicio" className="text-sm font-bold text-slate-500 hover:text-[#54BD95] transition-colors uppercase tracking-tight">{item}</Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="space-y-10">
-              <h4 className="text-[10px] font-black tracking-[0.4em] text-slate-300 uppercase">LEGAL</h4>
-              <ul className="space-y-4">
-                <li><Link to="/legal" className="text-sm font-bold text-slate-500 hover:text-[#54BD95] transition-colors uppercase tracking-tight">Politica de Privacidad</Link></li>
-                <li><Link to="/legal" className="text-sm font-bold text-slate-500 hover:text-[#54BD95] transition-colors uppercase tracking-tight">Terminos y Condiciones</Link></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-16 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-10">
-            <p className="text-[10px] font-black tracking-[0.4em] text-slate-300 uppercase leading-relaxed text-center">
-              © 2026 PESSY — ECOSISTEMA DE IDENTIDAD DIGITAL PARA MASCOTAS
+            <p className="mt-1 text-xs text-[#cfe0da]">
+              Tu mascota, sus cosas, todo en orden.
             </p>
           </div>
+
+          <div className="flex flex-wrap gap-x-5 gap-y-3 text-xs text-[#cfe0da]">
+            <Link to="/">Inicio</Link>
+            <a href="#privacidad">Privacidad</a>
+            <a href="#terminos">Terminos</a>
+            <a href="#dpa">DPA</a>
+            <a href="mailto:privacidad@pessy.app">privacidad@pessy.app</a>
+          </div>
+        </div>
+
+        <div className="mx-auto max-w-7xl border-t border-[#1f4d43] px-6 pb-6 pt-4">
+          <p className="text-center text-[10px] uppercase tracking-[0.16em] text-[#9ab5ad]">
+            Pessy organiza informacion y acompana el cuidado diario.
+          </p>
         </div>
       </footer>
     </div>

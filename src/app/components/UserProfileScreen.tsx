@@ -43,7 +43,7 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
     photo: userPhoto || user?.photoURL || "",
     verified: user?.emailVerified || false,
     petsCount: pets.length,
-    recordsCount: events.length,
+    recordsCount: events.filter((e) => !e.deletedAt).length,
     daysActive: user?.metadata.creationTime
       ? Math.floor((Date.now() - new Date(user.metadata.creationTime).getTime()) / 86400000)
       : 0,

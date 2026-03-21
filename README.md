@@ -72,9 +72,6 @@ npm run cap:open:android
 # Diagnóstico de Capacitor
 npm run mobile:doctor
 
-# Deploy a QA
-firebase deploy --only hosting:appqa
-
 # Deploy a producción
 firebase deploy --only hosting:app
 ```
@@ -86,8 +83,7 @@ firebase deploy --only hosting:app
 | URL | Firebase site | Para qué |
 |-----|---------------|---------- |
 | `pessy.app` | `app` | Producción |
-| `pessy-focus-qa.web.app` | `appqa` | QA / experimentos (ej: modelo episódico) |
-| `pessy-focus-it.web.app` | `appit` | Integración |
+| `polar-scene-488615-i0.web.app` | `app` | Host Firebase del proyecto productivo |
 
 ---
 

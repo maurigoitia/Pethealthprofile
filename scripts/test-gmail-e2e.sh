@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ID="${PROJECT_ID:-gen-lang-client-0123805751}"
+PROJECT_ID="${PROJECT_ID:-polar-scene-488615-i0}"
 QA_URL="${QA_URL:-https://pessy-qa-app.web.app}"
 CALLBACK_URL="https://us-central1-${PROJECT_ID}.cloudfunctions.net/gmailAuthCallback"
 FORCE_SYNC_URL="https://us-central1-${PROJECT_ID}.cloudfunctions.net/forceRunEmailClinicalIngestion"

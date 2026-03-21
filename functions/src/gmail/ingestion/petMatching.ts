@@ -9,7 +9,6 @@ import {
 import {
   asString,
   asRecord,
-  asNonNegativeNumber,
   normalizeTextForMatch,
   tokenizeIdentity,
   hasExactPhrase,
@@ -19,7 +18,6 @@ import {
   domainMatches,
   parseDomainListEnv,
 } from "./utils";
-import { isSmartPetMatchingEnabled, isEmailAllowedForQa } from "./envConfig";
 
 // ─── Sender domain classification ───────────────────────────────
 

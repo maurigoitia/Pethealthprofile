@@ -4,35 +4,43 @@
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-firebase.initializeApp({
-  apiKey: "AIzaSyAzaoRnO1bH1aLEhwVQMv-NHhkTE4H-ClQ",
-  authDomain: "gen-lang-client-0123805751.firebaseapp.com",
-  projectId: "gen-lang-client-0123805751",
-  storageBucket: "gen-lang-client-0123805751.firebasestorage.app",
-  messagingSenderId: "1014436216914",
-  appId: "1:1014436216914:web:98f94f55738c08a20b9f8b"
-});
-
-const messaging = firebase.messaging();
+async function initMessaging() {
+  try {
+    const response = await fetch('/__/firebase/init.json', { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`init.json HTTP ${response.status}`);
+    }
+    const config = await response.json();
+    firebase.initializeApp(config);
+    return firebase.messaging();
+  } catch (error) {
+    console.error('[SW] No se pudo inicializar Firebase Messaging:', error);
+    return null;
+  }
+}
 
 // Maneja notificaciones en background (app cerrada o en segundo plano)
-messaging.onBackgroundMessage((payload) => {
-  console.log('[SW] Notificación background recibida:', payload);
+initMessaging().then((messaging) => {
+  if (!messaging) return;
 
-  const { title, body, icon, data } = payload.notification || {};
+  messaging.onBackgroundMessage((payload) => {
+    console.log('[SW] Notificación background recibida:', payload);
 
-  self.registration.showNotification(title || 'PESSY', {
-    body: body || 'Recordatorio de tu mascota',
-    icon: icon || '/pwa-192x192.png',
-    badge: '/pwa-192x192.png',
-    tag: data?.notificationId || 'pessy-reminder',
-    data: data || {},
-    actions: [
-      { action: 'view', title: 'Ver detalles' },
-      { action: 'dismiss', title: 'Descartar' }
-    ],
-    requireInteraction: true,
-    vibrate: [200, 100, 200],
+    const { title, body, icon, data } = payload.notification || {};
+
+    self.registration.showNotification(title || 'PESSY', {
+      body: body || 'Recordatorio de tu mascota',
+      icon: icon || '/pwa-192x192.png',
+      badge: '/pwa-192x192.png',
+      tag: data?.notificationId || 'pessy-reminder',
+      data: data || {},
+      actions: [
+        { action: 'view', title: 'Ver detalles' },
+        { action: 'dismiss', title: 'Descartar' }
+      ],
+      requireInteraction: true,
+      vibrate: [200, 100, 200],
+    });
   });
 });
 

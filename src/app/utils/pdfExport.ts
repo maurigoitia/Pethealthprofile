@@ -1,5 +1,10 @@
 import type jsPDF from "jspdf";
 
+export async function loadJsPdf() {
+  const module = await import("jspdf");
+  return module.default;
+}
+
 function isIosDevice(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
@@ -74,4 +79,3 @@ export async function savePdfWithFallback(pdf: jsPDF, fileName: string): Promise
   // Último recurso: método nativo de jsPDF
   pdf.save(fileName);
 }
-

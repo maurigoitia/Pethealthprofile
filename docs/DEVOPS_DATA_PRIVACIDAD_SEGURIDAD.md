@@ -1,7 +1,7 @@
 # PESSY - Nota DevOps de Datos, Privacidad y Seguridad
 
 Fecha: 2026-03-05  
-Entorno revisado: repo local + configuracion Firebase del proyecto `gen-lang-client-0123805751`.
+Entorno revisado: repo local + configuracion Firebase del proyecto `polar-scene-488615-i0`.
 
 ## 1. Resumen Ejecutivo
 
@@ -26,7 +26,7 @@ Riesgos relevantes a cerrar:
   - Ingesta Gmail + extraccion clinica + sincronizacion calendario
   - Scheduler jobs (recordatorios, reconciliacion, workers)
 - Hosting:
-  - Targets separados (`app`, `appqa`, `appit`, `landing`, `landingqa`).
+  - Target productivo unico (`app`) sobre `polar-scene-488615-i0`, expuesto via `pessy.app`.
 
 ## 3. Estructura de Datos (Firestore)
 

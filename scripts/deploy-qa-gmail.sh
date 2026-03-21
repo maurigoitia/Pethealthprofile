@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ID="${PROJECT_ID:-gen-lang-client-0123805751}"
+PROJECT_ID="${PROJECT_ID:-polar-scene-488615-i0}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "==> Building web app"
@@ -19,7 +19,7 @@ firebase deploy \
   --only \
 functions:getGmailConnectUrl,functions:gmailAuthCallback,functions:disconnectGmailSync,functions:triggerEmailClinicalIngestion,functions:runEmailClinicalIngestionQueue,functions:runEmailClinicalScanWorker,functions:runEmailClinicalAttachmentWorker,functions:runEmailClinicalAiWorker,functions:forceRunEmailClinicalIngestion,functions:sendGmailSyncConsentReminders,functions:syncAppointmentCalendarEvent
 
-echo "==> Deploying QA app hosting to ${PROJECT_ID}"
+echo "==> Deploying app QA hosting to ${PROJECT_ID}"
 firebase deploy --project "$PROJECT_ID" --only hosting:appqa
 
 echo "Done."

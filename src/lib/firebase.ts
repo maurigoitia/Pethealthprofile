@@ -25,7 +25,7 @@ const KNOWN_PROJECT_CONFIG: Record<
   // Proyecto pessy.app org — cuenta mauri@pessy.app — con créditos Google
   "polar-scene-488615-i0": {
     apiKey: "AIzaSyBwyy3aPNQ392g69L6yheLxvR0IirgjpoE",
-    authDomain: "pessy.app",
+    authDomain: "polar-scene-488615-i0.firebaseapp.com",
     storageBucket: "polar-scene-488615-i0.firebasestorage.app",
     messagingSenderId: "842879609097",
     appId: "1:842879609097:web:b4fcb8fb0b04f316b68bd8",
@@ -36,6 +36,7 @@ const KNOWN_PROJECT_CONFIG: Record<
 const HOST_PROJECT_MAP = new Map<string, string>([
   ["pessy.app", "polar-scene-488615-i0"],
   ["www.pessy.app", "polar-scene-488615-i0"],
+  ["app.pessy.app", "polar-scene-488615-i0"],
   ["polar-scene-488615-i0.web.app", "polar-scene-488615-i0"],
   ["polar-scene-488615-i0.firebaseapp.com", "polar-scene-488615-i0"],
   ["pessy-qa-app.web.app", "polar-scene-488615-i0"],

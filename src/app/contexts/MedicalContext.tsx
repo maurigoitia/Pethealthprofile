@@ -302,7 +302,7 @@ interface MedicalContextType {
   getActiveMedicationsByPetId: (petId: string) => ActiveMedication[];
 
   getMonthSummary: (petId: string, month: Date) => MonthSummary;
-  saveVerifiedReport: (report: any) => Promise<string>;
+  saveVerifiedReport: (report: Record<string, unknown>) => Promise<string>;
 
   appointments: Appointment[];
   addAppointment: (appointment: Appointment) => Promise<void>;
@@ -317,7 +317,7 @@ interface MedicalContextType {
   getClinicalAlertsByPetId: (petId: string) => ClinicalAlert[];
   getConsolidatedTreatmentsByPetId: (petId: string) => TreatmentEntity[];
 
-  // ─── Modelo episódico (solo pessy-focus-qa) ───────────────────────────────────
+  // ─── Modelo episódico (solo con flag experimental) ────────────────────────────
   clinicalEpisodes: ClinicalEpisode[];
   clinicalProfileSnapshot: ClinicalProfileSnapshot | null;
   getClinicalEpisodesByPetId: (petId: string) => ClinicalEpisode[];
@@ -337,7 +337,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   const [clinicalAlerts, setClinicalAlerts] = useState<ClinicalAlert[]>([]);
   const [consolidatedTreatments, setConsolidatedTreatments] = useState<TreatmentEntity[]>([]);
 
-  // ─── Estado episódico (solo pessy-focus-qa) ─────────────────────────────────
+  // ─── Estado episódico (solo con flag experimental) ───────────────────────────
   const [clinicalEpisodes, setClinicalEpisodes] = useState<ClinicalEpisode[]>([]);
   const [clinicalProfileSnapshot, setClinicalProfileSnapshot] = useState<ClinicalProfileSnapshot | null>(null);
 
@@ -409,16 +409,21 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
 
   const persistDerivedDataFromEvent = async (event: MedicalEvent) => {
     if (event.derivedDataPersistedAt) return;
-    if (event.extractedData.documentType !== "medication") return;
     if (!event.extractedData.medications || event.extractedData.medications.length === 0) return;
+
+    // Verificar contra Firestore (no el argumento) para evitar race conditions
+    const freshSnap = await getDoc(doc(db, "medical_events", event.id));
+    if (freshSnap.exists() && freshSnap.data()?.derivedDataPersistedAt) return;
 
     const treatmentStart = event.extractedData.eventDate || event.createdAt;
 
-    for (const medicationExtracted of event.extractedData.medications) {
+    for (let idx = 0; idx < event.extractedData.medications.length; idx++) {
+      const medicationExtracted = event.extractedData.medications[idx];
       const treatmentEnd = parseDurationToEndDate(medicationExtracted.duration, treatmentStart);
-
+      // ID determinístico basado en evento + índice — evita duplicados si se re-ejecuta
+      const medName = (medicationExtracted.name || "").toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 40);
       const medication: ActiveMedication = {
-        id: `med_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        id: `med_${event.id}_${idx}_${medName}`,
         petId: event.petId,
         userId: event.userId || user?.uid,
         name: medicationExtracted.name,
@@ -764,7 +769,15 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
         });
       }
     } else if (isLabLike) {
-      const activeOutOfRange = clinicalAlerts.filter((alert) => alert.petId === event.petId && alert.type === "out_of_range" && alert.status === "active");
+      // Leer directo de Firestore para evitar stale closures del estado React
+      const activeOutOfRangeSnap = await getDocs(
+        query(collection(db, "clinical_alerts"),
+          where("petId", "==", event.petId),
+          where("type", "==", "out_of_range"),
+          where("status", "==", "active"),
+        )
+      );
+      const activeOutOfRange = activeOutOfRangeSnap.docs.map(d => ({ id: d.id, ...d.data() } as ClinicalAlert));
       for (const alert of activeOutOfRange) {
         await resolveClinicalAlert(alert.id, "Normalizado en control posterior sin hallazgos alterados.");
       }
@@ -803,9 +816,15 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     if (requiresFollowup) {
       const windowMs = 45 * 24 * 60 * 60 * 1000;
       const nowTs = Date.now();
-      const hasFutureAppointment = appointments.some((appointment) => {
-        if (appointment.petId !== event.petId) return false;
-        if (appointment.status !== "upcoming") return false;
+      // Leer appointments desde Firestore para evitar stale closures
+      const petAppointmentsSnap = await getDocs(
+        query(collection(db, "appointments"),
+          where("petId", "==", event.petId),
+          where("status", "==", "upcoming"),
+        )
+      );
+      const freshAppointments = petAppointmentsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Appointment));
+      const hasFutureAppointment = freshAppointments.some((appointment) => {
         const ts = toTimestampSafe(`${appointment.date}T${appointment.time || "00:00"}:00`);
         return ts >= nowTs && ts <= nowTs + windowMs;
       }) || createdAppointmentIds.length > 0;
@@ -835,13 +854,24 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
 
     // R4: tratamiento activo sin seguimiento reciente
     const followupGapMs = 45 * 24 * 60 * 60 * 1000;
+    // Leer events frescos desde Firestore en vez del state (evita stale closures)
+    const freshEventsSnap = await getDocs(
+      query(collection(db, "medical_events"), where("petId", "==", event.petId))
+    );
+    const freshEvents = freshEventsSnap.docs
+      .map(d => ({ id: d.id, ...d.data() } as MedicalEvent))
+      .filter(e => !e.deletedAt);
     const latestEventTs = Math.max(
-      ...getEventsByPetId(event.petId).map((row) => toTimestampSafe(row.extractedData?.eventDate || row.createdAt)),
+      ...freshEvents.map((row) => toTimestampSafe(row.extractedData?.eventDate || row.createdAt)),
       toTimestampSafe(eventEntity.event_date || event.createdAt)
     );
 
-    const activeTreatmentsForPet = consolidatedTreatments
-      .filter((treatment) => treatment.petId === event.petId && treatment.status === "active")
+    // Leer treatments frescos desde Firestore
+    const freshTreatmentsSnap = await getDocs(
+      query(collection(db, "treatments"), where("petId", "==", event.petId), where("status", "==", "active"))
+    );
+    const freshTreatments = freshTreatmentsSnap.docs.map(d => ({ id: d.id, ...d.data() } as TreatmentEntity));
+    const activeTreatmentsForPet = freshTreatments
       .concat(
         eventEntity.treatments_detected
           .filter((treatment) => treatment.status === "active")
@@ -857,8 +887,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       const alertId = buildAlertId(event.petId, "R4_treatment_no_followup", treatment.normalizedName);
       const lastEvidenceTs = Math.max(
         latestEventTs,
-        ...events
-          .filter((row) => row.petId === event.petId)
+        ...freshEvents
           .map((row) => toTimestampSafe(row.extractedData?.eventDate || row.createdAt))
       );
       const stale = Date.now() - lastEvidenceTs > followupGapMs;
@@ -893,7 +922,13 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     }
     const q = query(collection(db, "medical_events"), where("petId", "==", activePet.id));
     return onSnapshot(q, (snapshot) => {
-      setEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as MedicalEvent)));
+      // Filtrar soft-deleted en el listener para que nunca lleguen al estado.
+      // Sin esto, componentes que usen `events` directo ven fantasmas.
+      setEvents(
+        snapshot.docs
+          .map(d => ({ id: d.id, ...d.data() } as MedicalEvent))
+          .filter(e => !e.deletedAt)
+      );
     });
   }, [activePet]);
 
@@ -969,7 +1004,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     });
   }, [activePet]);
 
-  // ─── Suscripciones episódicas (solo pessy-focus-qa) ──────────────────────────
+  // ─── Suscripciones episódicas (solo con flag experimental) ───────────────────
   useEffect(() => {
     if (!activePet || !user?.uid || !isFocusHistoryExperimentHost()) {
       setClinicalEpisodes([]);
@@ -993,7 +1028,6 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       setClinicalProfileSnapshot(null);
       return;
     }
-    const snapshotId = `cps_${activePet.id}`;
     const q = query(
       collection(db, "clinical_profile_snapshots"),
       where("petId", "==", activePet.id),
@@ -1010,7 +1044,6 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
         .sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
       setClinicalProfileSnapshot(sorted[0] ?? null);
     });
-    void snapshotId; // suppress unused var
   }, [activePet, user?.uid]);
 
 
@@ -1147,7 +1180,18 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     };
 
     try {
-      await deleteDoc(doc(db, "medical_events", id));
+      // Soft-delete: marcar con deletedAt en lugar de deleteDoc.
+      // El backend puede recrear eventos email-importados (deterministic IDs + set merge:true).
+      // Al preservar deletedAt en Firestore, el campo sobrevive a re-ingestas futuras
+      // y getEventsByPetId lo filtra, impidiendo que la vacuna "reaparezca".
+      await updateDoc(doc(db, "medical_events", id), {
+        deletedAt: new Date().toISOString(),
+        deletedBy: user?.uid ?? null,
+      });
+      // Actualizar estado local de forma optimista — el onSnapshot tarda
+      // unos ms en reflejar el update y el usuario ve el evento "hardcodeado"
+      // hasta que llega. Esto lo elimina de la UI de forma inmediata.
+      setEvents((prev) => prev.filter((e) => e.id !== id));
     } catch (error) {
       if (isPermissionError(error)) {
         throw new Error("No tenés permisos para eliminar este evento.");
@@ -1256,7 +1300,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   };
 
   const getEventsByPetId = (petId: string) => {
-    const visibleEvents = events.filter((event) => event.petId === petId && !isMailSyncedEvent(event));
+    const visibleEvents = events.filter((event) => event.petId === petId && !isMailSyncedEvent(event) && !event.deletedAt);
     return dedupeEvents(visibleEvents).sort((a, b) => {
       // Ordenar por fecha del documento (eventDate), si no existe usar createdAt (fecha de escaneo)
       const dateA = a.extractedData?.eventDate || a.createdAt;
@@ -1285,7 +1329,10 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
 
   const completePendingAction = async (id: string) => {
     const ref = doc(db, "pending_actions", id);
-    await updateDoc(ref, { completed: true, completedAt: new Date().toISOString() });
+    await updateDoc(ref, {
+      completed: true,
+      completedAt: new Date().toISOString(),
+    });
   };
 
   const deletePendingAction = async (id: string) => {
@@ -1294,7 +1341,10 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
 
   const getPendingActionsByPetId = (petId: string) => {
     const visiblePendingActions = pendingActions.filter(
-      (action) => action.petId === petId && !action.completed && !isMailSyncedPendingAction(action)
+      (action) =>
+        action.petId === petId &&
+        !action.completed &&
+        !isMailSyncedPendingAction(action)
     );
     return dedupePendingActions(visiblePendingActions)
       .sort((a, b) => toTimestampSafe(a.dueDate) - toTimestampSafe(b.dueDate));
@@ -1549,7 +1599,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     };
   };
 
-  const saveVerifiedReport = async (report: any) => {
+  const saveVerifiedReport = async (report: Record<string, unknown>) => {
     if (!user?.uid) {
       throw new Error("auth_required_for_verified_report");
     }
@@ -1736,7 +1786,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       .sort((a, b) => toTimestampSafe(b.updatedAt) - toTimestampSafe(a.updatedAt));
   };
 
-  // ─── Accessors epis\u00f3dicos (solo pessy-focus-qa) ───────────────────────────────
+  // ─── Accessors episódicos (solo con flag experimental) ───────────────────────
   const getClinicalEpisodesByPetId = (petId: string): ClinicalEpisode[] => {
     return clinicalEpisodes
       .filter((ep) => ep.petId === petId)
