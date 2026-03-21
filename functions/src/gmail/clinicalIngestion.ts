@@ -1644,7 +1644,7 @@ function buildAnnualSummaryRecord(args: {
       medications[0] ? `La medicación más repetida fue ${medications[0]}.` : "",
     ].filter(Boolean).slice(0, 3).join(" "),
     highlights,
-    diagnositcos_clave: diagnoses,
+    diagnosticos_clave: diagnoses,
     medicacion_relevante: medications,
     providers,
     confidence_ia: 0.94,
@@ -7363,7 +7363,9 @@ async function upsertOperationalAppointmentProjection(args: {
       source_email_id: args.sourceEmailId,
       requires_confirmation: args.effectiveRequiresConfirmation,
       source_truth_level: args.sourceTruthLevel,
-      validated_by_human: false,
+      validated_by_human: existingAppointmentSnap.empty
+        ? false
+        : existingAppointmentSnap.docs[0].get("validated_by_human") === true,
       protocolSnapshotFrozenAt: existingAppointmentSnap.empty
         ? args.nowIso
         : asString(existingAppointmentSnap.docs[0].get("protocolSnapshotFrozenAt")) || args.nowIso,
@@ -7601,7 +7603,6 @@ async function ingestEventToDomain(args: {
           source_email_id: args.sourceEmailId,
           requires_user_confirmation: effectiveRequiresConfirmation,
           source_truth_level: sourceTruthLevel,
-          validated_by_human: false,
           protocolSnapshotFrozenAt: nowIso,
         },
         { merge: true }
@@ -7629,7 +7630,6 @@ async function ingestEventToDomain(args: {
           source_email_id: args.sourceEmailId,
           requires_confirmation: effectiveRequiresConfirmation,
           source_truth_level: sourceTruthLevel,
-          validated_by_human: false,
           protocolSnapshotFrozenAt: nowIso,
         },
         { merge: true }

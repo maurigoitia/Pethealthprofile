@@ -1,3 +1,93 @@
+import type { WellbeingSpeciesGroupId } from "../domain/wellbeing/WELLBEING_MASTER_BOOK";
+
+// Mapea raza → grupo del WELLBEING_MASTER_BOOK para sugerencias térmicas y de comportamiento.
+// Razas no listadas caen en el grupo default de su especie (dog.general / cat.general).
+const BREED_GROUP_MAP: Record<string, WellbeingSpeciesGroupId> = {
+  // Braquicéfalos — sensibles al calor
+  "French Bulldog": "dog.brachycephalic",
+  "Bulldog": "dog.brachycephalic",
+  "Pug": "dog.brachycephalic",
+  "Boston Terrier": "dog.brachycephalic",
+  "Boxer": "dog.brachycephalic",
+  "Shih Tzu": "dog.brachycephalic",
+  "Pekingese": "dog.brachycephalic",
+  "Brussels Griffon": "dog.brachycephalic",
+  "Cavalier King Charles Spaniel": "dog.brachycephalic",
+  "American Bulldog": "dog.brachycephalic",
+  "American Bully Pocket": "dog.brachycephalic",
+  "American Bully Standard": "dog.brachycephalic",
+  "American Bully Classic": "dog.brachycephalic",
+  "American Bully XL": "dog.brachycephalic",
+  "American Bully XXL": "dog.brachycephalic",
+  "American Bully Micro": "dog.brachycephalic",
+  "American Bully Extreme": "dog.brachycephalic",
+  "Bullmastiff": "dog.brachycephalic",
+  "Chinese Shar-Pei": "dog.brachycephalic",
+  "Lhasa Apso": "dog.brachycephalic",
+  "Japanese Chin": "dog.brachycephalic",
+  // Activos / Trabajo
+  "Border Collie": "dog.active_working",
+  "German Shepherd": "dog.active_working",
+  "Belgian Malinois": "dog.active_working",
+  "Belgian Sheepdog": "dog.active_working",
+  "Belgian Tervuren": "dog.active_working",
+  "Siberian Husky": "dog.active_working",
+  "Alaskan Malamute": "dog.active_working",
+  "Australian Cattle Dog": "dog.active_working",
+  "Australian Shepherd": "dog.active_working",
+  "Dutch Shepherd": "dog.active_working",
+  "Doberman Pinscher": "dog.active_working",
+  "Rottweiler": "dog.active_working",
+  "Weimaraner": "dog.active_working",
+  "Vizsla": "dog.active_working",
+  "Rhodesian Ridgeback": "dog.active_working",
+  "Dalmatian": "dog.active_working",
+  "German Shorthaired Pointer": "dog.active_working",
+  "German Wirehaired Pointer": "dog.active_working",
+  "Pointer": "dog.active_working",
+  // Compañía
+  "Golden Retriever": "dog.companion",
+  "Labrador Retriever": "dog.companion",
+  "Beagle": "dog.companion",
+  "Cocker Spaniel": "dog.companion",
+  "English Cocker Spaniel": "dog.companion",
+  "American Cocker Spaniel": "dog.companion",
+  "Miniature Schnauzer": "dog.companion",
+  "Standard Schnauzer": "dog.companion",
+  "Giant Schnauzer": "dog.companion",
+  "Poodle": "dog.companion",
+  "Poodle Miniatura": "dog.companion",
+  "Poodle Toy": "dog.companion",
+  "Caniche": "dog.companion",
+  "Caniche Toy": "dog.companion",
+  "Caniche Miniatura": "dog.companion",
+  "Caniche Enano": "dog.companion",
+  "Maltese": "dog.companion",
+  "Bichon Frisé": "dog.companion",
+  "Havanese": "dog.companion",
+  "Pomeranian": "dog.companion",
+  "Chihuahua": "dog.companion",
+  "Yorkshire Terrier": "dog.companion",
+  // Gatos braquicéfalos
+  "Persian": "cat.brachycephalic",
+  "Exotic Shorthair": "cat.brachycephalic",
+  "Himalayan": "cat.brachycephalic",
+};
+
+/**
+ * Devuelve el WellbeingSpeciesGroupId para una raza + especie.
+ * Si la raza no está mapeada, devuelve el grupo general de la especie.
+ */
+export function getBreedGroupId(
+  breedName: string,
+  species: "dog" | "cat" | "other",
+): WellbeingSpeciesGroupId {
+  const mapped = BREED_GROUP_MAP[breedName];
+  if (mapped) return mapped;
+  if (species === "cat") return "cat.general";
+  return "dog.general";
+}
+
 export const DOG_BREEDS = [
   // American Bully y todas sus variantes
   "American Bully Pocket",
