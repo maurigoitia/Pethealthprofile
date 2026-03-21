@@ -1,5 +1,5 @@
 import { MaterialIcon } from "./MaterialIcon";
-import { motion, PanInfo } from "motion/react";
+import { motion, PanInfo, AnimatePresence } from "motion/react";
 import { useEffect, useState } from "react";
 import { useMedical } from "../contexts/MedicalContext";
 import { formatDateSafe, toTimestampSafe } from "../utils/dateUtils";
@@ -127,6 +127,8 @@ export function PetHomeView({
 }: PetHomeViewProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [dietPreference, setDietPreference] = useState<DietPreference | null>(null);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [discoveryCard, setDiscoveryCard] = useState<{ type: string; data?: any; text?: string; detail?: string } | null>(null);
   const [weather, setWeather] = useState<LiveWeatherSnapshot>({
     status: "loading",
     temperatureC: null,
@@ -275,6 +277,7 @@ export function PetHomeView({
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        setUserCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
         void loadWeather(position.coords.latitude, position.coords.longitude);
       },
       () => {
@@ -322,6 +325,58 @@ export function PetHomeView({
         title: `Todo en orden con ${activePet?.name || "tu mascota"}`,
         detail: "No hay nada próximo para resolver ahora.",
       };
+
+  // ─── Discovery Feed — rotación diaria ───────────────────────────────────────
+  useEffect(() => {
+    const loadDiscovery = async () => {
+      if (!activePet) return;
+
+      const today = new Date().toDateString();
+      const lastDate = localStorage.getItem("pessy_discovery_date");
+      let idx = Number(localStorage.getItem("pessy_discovery_index") || 0);
+
+      if (lastDate !== today) {
+        idx = (idx + 1) % 3;
+        localStorage.setItem("pessy_discovery_date", today);
+        localStorage.setItem("pessy_discovery_index", idx.toString());
+      }
+
+      if (idx === 0 && userCoords) {
+        // PLACE — buscar parque cercano via Places API
+        try {
+          const apiKey = (import.meta as any).env.VITE_GOOGLE_PLACES_KEY;
+          if (!apiKey) { setDiscoveryCard({ type: "ACTIVITY", text: "Día de exploración", detail: "Salí a descubrir un lugar nuevo con tu mascota." }); return; }
+          const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${userCoords.lat},${userCoords.lng}&radius=2000&type=park&language=es&key=${apiKey}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          const place = (data.results || []).filter((p: any) => p.business_status === "OPERATIONAL").sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0))[0];
+          if (place) setDiscoveryCard({ type: "PLACE", data: place });
+          else setDiscoveryCard({ type: "ACTIVITY", text: "Día de exploración", detail: "Salí a descubrir un lugar nuevo con tu mascota." });
+        } catch {
+          setDiscoveryCard({ type: "GAMIFICATION" });
+        }
+      } else if (idx === 1) {
+        // ACTIVITY — sugerencia del Master Book según groupId y clima
+        const currentStatus = walkSafetyRef.current;
+        const condition = currentStatus === "blocked" ? "blocked" : currentStatus === "caution" ? "safe" : "safe";
+        const petGroupIds = resolveGroupIds(resolveSpecies(activePet?.species, activePet?.breed), activePet?.breed || "");
+        const groupId = petGroupIds[0] || "dog.companion";
+        const suggestions = WELLBEING_MASTER_BOOK.daily_suggestions.filter(
+          (s) => s.groupId === groupId && (s.weatherCondition === condition || s.weatherCondition === "any")
+        );
+        const fallback = { title: "Día de actividad", detail: "Un buen momento para compartir tiempo con tu mascota." };
+        const pick = suggestions.length > 0 ? suggestions[Math.floor(Math.random() * suggestions.length)] : fallback;
+        setDiscoveryCard({ type: "ACTIVITY", text: pick.title, detail: pick.detail });
+      } else {
+        // GAMIFICATION
+        setDiscoveryCard({ type: "GAMIFICATION" });
+      }
+    };
+    loadDiscovery();
+  }, [activePetId, userCoords]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Ref para acceder a walkSafety.status dentro del useEffect sin dependencia circular
+  const walkSafetyRef = { current: "safe" as string };
 
   const walkSafety: WalkSafetyState = (() => {
     const breed = (activePet?.breed || "").trim();
@@ -425,6 +480,9 @@ export function PetHomeView({
       icon: "check_circle",
     };
   })();
+
+  // Actualizar ref con el status actual para el Discovery Feed
+  walkSafetyRef.current = walkSafety.status;
 
   const supplySummary = (() => {
     if (!activePet) {
@@ -825,6 +883,84 @@ export function PetHomeView({
           Esto arranca simple: qué come, cómo viene y cuándo conviene reponer.
         </div>
       </motion.section>
+
+      {/* ─── Discovery Feed ─────────────────────────────────────────────────── */}
+      {discoveryCard && (
+        <motion.section
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800/80"
+        >
+          <AnimatePresence mode="wait">
+            {discoveryCard.type === "PLACE" && discoveryCard.data && (
+              <motion.div key="place" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <span className="mb-3 inline-block rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white" style={{ backgroundColor: "#074738" }}>
+                  Cerca tuyo
+                </span>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">{discoveryCard.data.name}</h3>
+                <p className="mt-1 text-sm text-slate-500">{discoveryCard.data.vicinity}</p>
+                {discoveryCard.data.rating && (
+                  <p className="mt-1 text-xs text-slate-400">⭐ {discoveryCard.data.rating}</p>
+                )}
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${discoveryCard.data.geometry?.location?.lat},${discoveryCard.data.geometry?.location?.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 block rounded-xl py-3 text-center text-sm font-bold text-white"
+                  style={{ backgroundColor: "#074738" }}
+                >
+                  Ver en Maps
+                </a>
+              </motion.div>
+            )}
+
+            {discoveryCard.type === "ACTIVITY" && (
+              <motion.div key="activity" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <span className="mb-3 inline-block rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white" style={{ backgroundColor: "#074738" }}>
+                  Plan del día
+                </span>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white">{discoveryCard.text}</h3>
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{discoveryCard.detail}</p>
+              </motion.div>
+            )}
+
+            {discoveryCard.type === "GAMIFICATION" && (
+              <motion.div key="gamification" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <span className="mb-3 inline-block rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white" style={{ backgroundColor: "#074738" }}>
+                  Tu progreso
+                </span>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">Perfil de {activePet.name}</span>
+                  <span className="text-sm font-bold" style={{ color: "#074738" }}>{identityProgress}%</span>
+                </div>
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${identityProgress}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: "#074738" }}
+                  />
+                </div>
+                {identityProgress < 100 && (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Falta completar:{" "}
+                    <span className="font-bold" style={{ color: "#074738" }}>
+                      {identityItems.find((i) => !i.ready)?.label || "datos adicionales"}
+                    </span>
+                  </p>
+                )}
+                {identityProgress === 100 && (
+                  <p className="mt-2 text-sm font-bold" style={{ color: "#074738" }}>
+                    ✓ Perfil completo
+                  </p>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.section>
+      )}
     </div>
   );
 }
