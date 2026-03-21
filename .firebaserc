@@ -17,6 +17,9 @@
         ],
         "appfocusqa": [
           "pessy-focus-qa"
+        ],
+        "appsubdomain": [
+          "pessy-app-subdomain"
         ]
       }
     }

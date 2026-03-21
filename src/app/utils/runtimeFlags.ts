@@ -1,6 +1,7 @@
 const PROD_HOSTS = new Set([
   "pessy.app",
   "www.pessy.app",
+  "app.pessy.app",
   "polar-scene-488615-i0.web.app",
 ]);
 

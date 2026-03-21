@@ -79,15 +79,13 @@ const team = [
   {
     name: "Ronald",
     role: "Cofundador",
-    image:
-      "https://media.licdn.com/dms/image/v2/D4D03AQGEb7DhO681gw/profile-displayphoto-crop_800_800/B4DZwPn2W8GUAI-/0/1769788632610?e=1774483200&v=beta&t=vBPHfR92eEAl8Rww4-eGayc61kCqdt8Cn-4C_zYvF7Q",
+    image: "/team/ronald.jpg",
     linkedin: "https://www.linkedin.com/in/ronaldacarvajal/",
   },
   {
     name: "Ary",
     role: "Marketing",
-    image:
-      "https://media.licdn.com/dms/image/v2/D4D03AQFpZ54-bZ_rkg/profile-displayphoto-shrink_800_800/profile-displayphoto-shrink_800_800/0/1722288671526?e=1774483200&v=beta&t=tvpQdEQxjWcWlY_BsPPnq9wpNyhMuusLy0hNVSD53oE",
+    image: "/team/founder-2.jpg",
     linkedin: "https://www.linkedin.com/in/ariannysbermudez/",
   },
   {
@@ -173,6 +171,7 @@ export default function LandingEcosystemPreviewPage() {
   );
   const inAppInfo = useMemo(() => detectInAppBrowser(), []);
   const [showInAppWarning, setShowInAppWarning] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const entryHref = useMemo(
     () => withAcquisitionParams("/inicio", acquisitionSource),
     [acquisitionSource]
@@ -341,10 +340,35 @@ export default function LandingEcosystemPreviewPage() {
             </Link>
           </div>
 
-          <div className="md:hidden">
-            <MaterialIcon name="menu" className="text-3xl text-[#074738]" />
-          </div>
+          <button type="button" className="md:hidden" onClick={() => setMobileMenuOpen((v) => !v)}>
+            <MaterialIcon name={mobileMenuOpen ? "close" : "menu"} className="text-3xl text-[#074738]" />
+          </button>
         </div>
+
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden border-t border-[#d8e4de] bg-white/95 backdrop-blur-xl md:hidden"
+            >
+              <div
+                className="flex flex-col gap-4 px-6 py-5 text-base font-bold tracking-tight text-[#36584e]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                <a href="#identidad" onClick={() => setMobileMenuOpen(false)} className="transition-colors hover:text-[#074738]">Identidad</a>
+                <a href="#como-funciona" onClick={() => setMobileMenuOpen(false)} className="transition-colors hover:text-[#074738]">Como funciona</a>
+                <a href="#planes" onClick={() => setMobileMenuOpen(false)} className="transition-colors hover:text-[#074738]">Planes</a>
+                <a href="#equipo" onClick={() => setMobileMenuOpen(false)} className="transition-colors hover:text-[#074738]">Equipo</a>
+                <Link to={entryHref} onClick={() => setMobileMenuOpen(false)} className="rounded-full bg-[#074738] px-6 py-3 text-center text-white transition-transform hover:scale-[0.98]">
+                  Entrar
+                </Link>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </nav>
 
       <main className="pt-28">

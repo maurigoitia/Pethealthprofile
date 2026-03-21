@@ -191,37 +191,33 @@ export function LoginScreen() {
   const handleGoogleSignIn = async () => {
     if (loadingGoogle) return;
     setError("");
-    setLoadingGoogle(true);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
+    
     try {
       if (isStandalonePwa()) {
+        setLoadingGoogle(true);
         await signInWithRedirect(auth, provider);
         return;
       }
-      await signInWithPopup(auth, provider);
+      
+      // Keep popup initialization strictly synchronous to avoid Safari blocking it
+      const signInPromise = signInWithPopup(auth, provider);
+      setLoadingGoogle(true);
+      await signInPromise;
+      
       navigate("/home");
     } catch (err: any) {
       if (err?.code === "auth/popup-blocked" || err?.code === "auth/popup-closed-by-user") {
-        try {
-          await signInWithRedirect(auth, provider);
-          return;
-        } catch (redirectErr: any) {
-          console.error("Google redirect sign-in error:", {
-            code: redirectErr?.code,
-            message: redirectErr?.message,
-            domain: window.location.hostname,
-          });
-          setError(getGoogleAuthErrorMessage(redirectErr?.code));
-          return;
-        }
+        setError("La ventana de Google fue bloqueada o cerrada. Por favor, permití las ventanas emergentes (pop-ups) e intentá de nuevo.");
+      } else {
+        console.error("Google sign-in error:", {
+          code: err?.code,
+          message: err?.message,
+          domain: window.location.hostname,
+        });
+        setError(getGoogleAuthErrorMessage(err?.code));
       }
-      console.error("Google popup sign-in error:", {
-        code: err?.code,
-        message: err?.message,
-        domain: window.location.hostname,
-      });
-      setError(getGoogleAuthErrorMessage(err?.code));
     } finally {
       setLoadingGoogle(false);
     }

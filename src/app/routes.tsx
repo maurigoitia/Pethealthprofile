@@ -86,8 +86,16 @@ const previewRoutes = previewRoutesEnabled
     ]
   : [];
 
+function RootRoute() {
+  const host = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
+  if (host === "app.pessy.app") {
+    return <Navigate to="/inicio" replace />;
+  }
+  return <LandingEcosystemPreviewPage />;
+}
+
 export const router = createBrowserRouter([
-  withErrorBoundary({ path: "/", Component: LandingEcosystemPreviewPage }),
+  withErrorBoundary({ path: "/", Component: RootRoute }),
   withErrorBoundary({ path: "/welcome", element: <Navigate to="/" replace /> }),
   withErrorBoundary({ path: "/onboarding", element: <Navigate to="/" replace /> }),
   withErrorBoundary({ path: "/register", element: <Navigate to="/register-user" replace /> }),
