@@ -23,7 +23,6 @@ import type {
   AttachmentMetadata,
   AttachmentQueueJobPayload,
   ClinicalEventExtraction,
-  ClinicalExtractionOutput,
   ExternalLinkExtractionMetadata,
   GmailAttachmentResponse,
   GmailMessageDetailResponse,
@@ -31,14 +30,11 @@ import type {
   GmailMessagePart,
   GmailProfileResponse,
   GoogleTokenResponse,
-  IngestionStatus,
   PetCandidateProfile,
   PetResolutionHints,
   ProcessOptions,
-  QueueJobStage,
   QueueStatus,
   RawDocumentLike,
-  ScanQueueJobPayload,
   SessionCounters,
   UserEmailConfig,
   UserPlanType,
@@ -68,7 +64,6 @@ import {
   buildAttachmentStoragePath,
   clamp,
   calculateAgeYears,
-  calculateMaxLookbackMonths,
   createBase64DecodeTransform,
   decodeBase64UrlToBuffer,
   decodeBase64UrlToText,
@@ -85,7 +80,6 @@ import {
 } from "./utils";
 
 import {
-  domainMatches,
   getAutoIngestConfidenceThreshold,
   getFreePlanMaxEmailsPerSync,
   getMaxConcurrentExtractionJobs,
@@ -116,9 +110,7 @@ import {
 } from "./clinicalAi";
 
 import {
-  applyConstitutionalGuardrails,
   buildBrainEntitiesFromEvent,
-  buildCanonicalEventTitle,
   inferBrainCategoryFromSubject,
   isPrescriptionEventType,
   mapEventTypeToBrainCategory,
@@ -1283,6 +1275,7 @@ export async function processAiQueueJob(
     ? await fetchExternalLinkTextChunks({
       bodyText: rawDoc.bodyText,
       sourceSender,
+      ocrFn: ocrAttachmentViaGemini,
     })
     : { detectedCount: 0, fetchedCount: 0, extractedChunks: [] as string[], metadata: [] as ExternalLinkExtractionMetadata[] };
   const externalLinkRequiresLogin = externalLinkExtraction.metadata.some(
