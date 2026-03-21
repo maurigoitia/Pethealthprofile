@@ -53,7 +53,18 @@ export default defineConfig({
         clientsClaim: true,
         skipWaiting: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // heic2any (1.35 MB) solo lo necesitan usuarios que suben fotos iPhone en formato HEIC.
+        // Lo excluimos del precache y lo dejamos como runtime cache (descarga bajo demanda).
+        globIgnores: ['**/vendor-heic*.js'],
         runtimeCaching: [
+          {
+            urlPattern: /vendor-heic.*\.js$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'heic-lib-cache',
+              expiration: { maxEntries: 1, maxAgeSeconds: 60 * 60 * 24 * 90 },
+            },
+          },
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: 'CacheFirst',
@@ -92,4 +103,30 @@ export default defineConfig({
     },
   },
   assetsInclude: ['**/*.svg', '**/*.csv'],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Firebase — split por módulo para tree-shaking
+          'firebase-app': ['firebase/app'],
+          'firebase-auth': ['firebase/auth'],
+          'firebase-firestore': ['firebase/firestore'],
+          'firebase-storage': ['firebase/storage'],
+          'firebase-messaging': ['firebase/messaging'],
+          // Paquetes pesados — cada uno en su propio chunk
+          'vendor-heic': ['heic2any'],
+          'vendor-jspdf': ['jspdf'],
+          'vendor-motion': ['motion'],
+          'vendor-lucide': ['lucide-react'],
+          // App code
+          'app-utils': [
+            './src/app/utils/clinicalBrain',
+            './src/app/utils/clinicalRouting',
+            './src/app/utils/medicalRulesEngine',
+            './src/app/utils/deduplication',
+          ],
+        },
+      },
+    },
+  },
 })

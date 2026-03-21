@@ -1,15 +1,44 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { CAT_BREEDS, DOG_BREEDS, OTHER_BREEDS } from "../data/breeds";
 import { searchBreeds } from "../utils/breedSearch";
+import { AuthPageShell } from "./AuthPageShell";
 
 export function RegisterPetStep1() {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
+  const [name, setName] = useState(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      const raw = window.localStorage.getItem("pessy_landing_prefill");
+      if (!raw) return "";
+      const parsed = JSON.parse(raw) as { petName?: string };
+      return parsed.petName?.trim() || "";
+    } catch {
+      return "";
+    }
+  });
   const [species, setSpecies] = useState<"dog" | "cat" | "other">("dog");
   const [breedInput, setBreedInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [breedSuggestions, setBreedSuggestions] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!name.trim() || typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("pessy_landing_prefill");
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { name?: string; email?: string; petName?: string };
+      window.localStorage.setItem(
+        "pessy_landing_prefill",
+        JSON.stringify({
+          ...parsed,
+          petName: name.trim(),
+        })
+      );
+    } catch {
+      // noop
+    }
+  }, [name]);
 
   const getBreedList = () => {
     if (species === "dog") return DOG_BREEDS;
@@ -40,27 +69,23 @@ export function RegisterPetStep1() {
   };
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-6"
-      style={{
-        backgroundImage: "linear-gradient(180deg, #074738 0%, #0e6a5a 50%, #1a9b7d 100%)",
-      }}
+    <AuthPageShell
+      eyebrow="Registro"
+      title="Todo lo de tu mascota, en un solo lugar."
+      description="Empezamos por su identidad. Pessy usa IA para organizar su salud, sus rutinas y sus compras automaticamente."
+      highlights={["Perfil digital", "Documentos", "Carnet"]}
     >
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl px-6 pt-8 pb-8">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-black text-[#074738]">
-            Pessy
-          </h1>
-          <p className="text-slate-500 text-sm mt-2">Que su historia no se pierda.</p>
-          <h2 className="text-xl font-bold mt-4 text-slate-900">
-            Registrar mascota
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Paso 1 de 2
-          </p>
-        </div>
+      <div className="mb-6">
+        <h2
+          className="text-3xl font-extrabold tracking-tight text-[#002f24]"
+          style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+        >
+          Registrar mascota
+        </h2>
+        <p className="mt-2 text-sm font-medium text-[#5e716b]">Paso 1 de 2</p>
+      </div>
 
-        <div className="space-y-5">
+      <div className="space-y-5">
           <input
             type="text"
             placeholder="Nombre"
@@ -129,12 +154,11 @@ export function RegisterPetStep1() {
           <button
             onClick={handleNext}
             disabled={!name.trim()}
-            className="w-full py-4 rounded-2xl bg-[#074738] text-white font-bold disabled:opacity-60"
+            className="w-full rounded-full bg-[#074738] py-4 text-sm font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60"
           >
             Continuar
           </button>
-        </div>
       </div>
-    </div>
+    </AuthPageShell>
   );
 }

@@ -9,6 +9,7 @@ import { EmailLinkSignInScreen } from "./components/EmailLinkSignInScreen";
 import { RouteErrorFallback } from "./components/RouteErrorFallback";
 import { ClinicalReviewScreen } from "./components/ClinicalReviewScreen";
 import LandingPage from "./pages/LandingPage";
+import LandingUnite from "./pages/LandingUnite";
 import LegalPage from "./pages/LegalPage";
 
 const withErrorBoundary = <T extends Record<string, unknown>>(route: T): T => ({
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/login", Component: LoginScreen }),
   withErrorBoundary({ path: "/app", element: <Navigate to="/login" replace /> }),
   withErrorBoundary({ path: "/inicio", Component: LandingPage }),
+  withErrorBoundary({ path: "/empezar", Component: LandingUnite }),
   withErrorBoundary({ path: "/inicio/vacunas", element: <Navigate to="/" replace /> }),
   withErrorBoundary({ path: "/inicio/medicacion", element: <Navigate to="/" replace /> }),
   withErrorBoundary({ path: "/inicio/historial-medico", element: <Navigate to="/" replace /> }),

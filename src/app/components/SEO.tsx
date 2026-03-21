@@ -8,16 +8,18 @@ interface SEOProps {
   canonical?: string;
   robots?: string;
   lang?: string;
+  structuredData?: Record<string, unknown> | Array<Record<string, unknown>>;
 }
 
 export function SEO({ 
-  title = "Pessy - El historial medico de tu mascota",
-  description = "No le expliques mas de cero al veterinario. Sacale una foto a cualquier papel y la IA organiza todo. El historial de tu mascota, siempre con vos.",
-  keywords = "mascota, veterinario, historial medico, vacunas, medicacion, perro, gato, ia, salud animal",
+  title = "Pessy — Todo lo de tu mascota, en un solo lugar",
+  description = "Pessy es la app con IA que organiza la salud, los servicios y las compras de tu mascota. Todo lo de tu mascota, en un solo lugar.",
+  keywords = "mascota, pet care, identidad digital, servicios para mascotas, rutinas, compras, papeles, recordatorios, perro, gato, ia",
   ogImage = "https://pessy.app/og-image.jpg",
   canonical,
   robots,
-  lang
+  lang,
+  structuredData
 }: SEOProps) {
   useEffect(() => {
     // Update title
@@ -53,6 +55,12 @@ export function SEO({
     // Update canonical URL
     if (canonical) {
       updateLinkTag('canonical', canonical);
+    }
+
+    removeStructuredDataScripts();
+    if (structuredData) {
+      const payloads = Array.isArray(structuredData) ? structuredData : [structuredData];
+      payloads.forEach((payload) => appendStructuredDataScript(payload));
     }
 
     // Crear Favicon SVG dinamico que se adapta a dark mode
@@ -106,9 +114,10 @@ export function SEO({
     document.head.appendChild(appleTouchIcon);
 
     return () => {
+      removeStructuredDataScripts();
       URL.revokeObjectURL(faviconUrl);
     };
-  }, [title, description, keywords, ogImage, canonical, robots, lang]);
+  }, [title, description, keywords, ogImage, canonical, robots, lang, structuredData]);
 
   return null;
 }
@@ -135,4 +144,17 @@ function updateLinkTag(rel: string, href: string) {
   }
   
   element.setAttribute('href', href);
+}
+
+function removeStructuredDataScripts() {
+  const existing = document.querySelectorAll('script[data-pessy-seo="structured-data"]');
+  existing.forEach((element) => element.remove());
+}
+
+function appendStructuredDataScript(payload: Record<string, unknown>) {
+  const script = document.createElement('script');
+  script.type = 'application/ld+json';
+  script.setAttribute('data-pessy-seo', 'structured-data');
+  script.text = JSON.stringify(payload);
+  document.head.appendChild(script);
 }

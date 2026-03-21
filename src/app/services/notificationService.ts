@@ -4,8 +4,12 @@ import { app, auth, db } from "../../lib/firebase";
 import { parseDateSafe } from "../utils/dateUtils";
 
 // VAPID key — generala en Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
-const DEFAULT_VAPID_KEY = "BG4wi3_yDKJa6XYueelKVk-Tz8qt2Adg34fzK5lhCduewZ-CyaPULVu8VqA2oP_jVz9FYpONPy68J_zV9KQ";
-const RAW_VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || DEFAULT_VAPID_KEY;
+const DEFAULT_VAPID_KEYS: Record<string, string> = {
+  "polar-scene-488615-i0": "BG4wi3_yDKJa6XYueelKVk-Tz8qt2Adg34fzK5lhCduewZ-CyaPULVu8VqA2oP_jVz9FYpONPy68J_zV9KQ",
+};
+const runtimeProjectId = String(app.options.projectId || import.meta.env.VITE_FIREBASE_PROJECT_ID || "").trim();
+const RAW_VAPID_KEY =
+  import.meta.env.VITE_FIREBASE_VAPID_KEY || DEFAULT_VAPID_KEYS[runtimeProjectId] || "";
 const VAPID_KEY = RAW_VAPID_KEY.replace(/\s+/g, "").trim();
 
 export interface ScheduledNotification {
