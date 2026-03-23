@@ -8,6 +8,7 @@ import { startGmailConnectFlow } from "../services/gmailSyncService";
 import { normalizeCoTutorInviteCode, rememberPendingCoTutorInvite } from "../utils/coTutorInvite";
 import { persistAcquisitionSource, resolveAcquisitionSource, trackAcquisitionEvent } from "../utils/acquisitionTracking";
 import { AuthPageShell } from "./AuthPageShell";
+import { GmailConsentScreen } from "./GmailConsentScreen";
 
 export function RegisterUserScreen() {
   const navigate = useNavigate();
@@ -259,46 +260,11 @@ export function RegisterUserScreen() {
       </form>
 
       {showGmailStep && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="relative bg-white rounded-2xl p-6 max-w-sm w-full">
-            {/* BUG-006 FIX: botón X para cerrar el modal sin quedar atrapado */}
-            <button
-              type="button"
-              onClick={handleContinueWithoutGmail}
-              className="absolute top-4 right-4 size-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"
-              aria-label="Cerrar"
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </button>
-            <div className="size-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-              <span className="material-symbols-outlined text-emerald-600 text-3xl">mail</span>
-            </div>
-            <h2 className="text-xl font-black text-slate-900 text-center mb-2">
-              Activá sincronización de correo
-            </h2>
-            <p className="text-sm text-slate-600 text-center leading-relaxed mb-5">
-              Pessy usa IA para leer correos de turnos y estudios, y organiza todo automaticamente.
-              Vas a autorizarlo en Google como <span className="font-bold">pessy.app</span>.
-            </p>
-            <div className="space-y-3">
-              <button
-                onClick={() => void handleConnectGmailNow()}
-                disabled={gmailStepLoading}
-                className="w-full py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition-colors disabled:opacity-60"
-              >
-                {gmailStepLoading ? "Abriendo Google..." : "Dar permiso ahora"}
-              </button>
-              <button
-                onClick={handleContinueWithoutGmail}
-                className="w-full py-3 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors"
-              >
-                Continuar sin conectar
-              </button>
-            </div>
-          </div>
-        </div>
+        <GmailConsentScreen
+          onAccept={() => void handleConnectGmailNow()}
+          onDecline={handleContinueWithoutGmail}
+          loading={gmailStepLoading}
+        />
       )}
     </AuthPageShell>
   );

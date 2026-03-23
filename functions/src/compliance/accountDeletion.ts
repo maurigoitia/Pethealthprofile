@@ -52,6 +52,8 @@ const PET_SCOPED_DELETES: FieldDeleteConfig[] = [
   { collection: "diagnoses", field: "petId" },
   { collection: "clinical_alerts", field: "petId" },
   { collection: "clinical_review_drafts", field: "petId" },
+  { collection: "clinical_episodes", field: "petId" },
+  { collection: "clinical_profile_snapshots", field: "petId" },
   { collection: "pending_actions", field: "petId" },
   { collection: "pending_reviews", field: "petId" },
   { collection: "clinical_events", field: "petId" },
@@ -263,6 +265,115 @@ export const deleteUserAccount = functions
       throw new functions.https.HttpsError(
         "internal",
         "No se pudo eliminar la cuenta completa. Reintentá en unos minutos."
+      );
+    }
+  });
+
+/**
+ * GDPR Art. 17 — Right to erasure of health data.
+ * Deletes ALL clinical + Gmail ingestion data for the authenticated user
+ * WITHOUT deleting the user account itself.
+ * Also disconnects Gmail sync and wipes clinical Storage prefixes.
+ */
+export const deleteAllUserClinicalData = functions
+  .region("us-central1")
+  .https.onCall(async (_data, context) => {
+    if (!context.auth?.uid) {
+      throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    }
+
+    const uid = context.auth.uid;
+    functions.logger.warn("[deleteAllUserClinicalData] Starting clinical data deletion", { uid });
+
+    try {
+      const CLINICAL_USER_COLLECTIONS: FieldDeleteConfig[] = [
+        { collection: "medical_events", field: "userId" },
+        { collection: "clinical_review_drafts", field: "userId" },
+        { collection: "gmail_ingestion_sessions", field: "user_id" },
+        { collection: "gmail_ingestion_documents", field: "user_id" },
+        { collection: "gmail_raw_documents_tmp", field: "user_id" },
+        { collection: "gmail_attachment_extract_tmp", field: "user_id" },
+        { collection: "gmail_event_reviews", field: "user_id" },
+        { collection: "gmail_event_fingerprints", field: "user_id" },
+        { collection: "gmail_document_hashes", field: "user_id" },
+        { collection: "gmail_ingestion_errors", field: "user_id" },
+        { collection: "structured_medical_dataset", field: "user_id" },
+        { collection: "dose_events", field: "userId" },
+        { collection: "verified_reports", field: "ownerId" },
+      ];
+
+      const CLINICAL_PET_COLLECTIONS: FieldDeleteConfig[] = [
+        { collection: "medical_events", field: "petId" },
+        { collection: "clinical_conditions", field: "petId" },
+        { collection: "diagnoses", field: "petId" },
+        { collection: "clinical_alerts", field: "petId" },
+        { collection: "clinical_episodes", field: "petId" },
+        { collection: "clinical_profile_snapshots", field: "petId" },
+        { collection: "clinical_events", field: "petId" },
+        { collection: "clinical_review_drafts", field: "petId" },
+        { collection: "structured_medical_dataset", field: "pet_id" },
+        { collection: "gmail_event_reviews", field: "pet_id" },
+        { collection: "dose_events", field: "petId" },
+      ];
+
+      let docsDeleted = 0;
+
+      // Delete user-scoped clinical docs
+      for (const config of CLINICAL_USER_COLLECTIONS) {
+        docsDeleted += await deleteDocsByField(config.collection, config.field, uid);
+      }
+
+      // Delete pet-scoped clinical docs for all owned pets
+      const ownedPetsSnap = await admin.firestore().collection("pets").where("ownerId", "==", uid).get();
+      for (const petDoc of ownedPetsSnap.docs) {
+        for (const config of CLINICAL_PET_COLLECTIONS) {
+          docsDeleted += await deleteDocsByField(config.collection, config.field, petDoc.id);
+        }
+
+        // Clear clinical subcollections from pet docs
+        const petRef = admin.firestore().collection("pets").doc(petDoc.id);
+        const subcollections = await petRef.listCollections();
+        for (const sub of subcollections) {
+          if (sub.id.startsWith("clinical_") || sub.id.startsWith("gmail_") || sub.id === "medical_events") {
+            docsDeleted += await deleteQueryInBatches(sub);
+          }
+        }
+      }
+
+      // Disconnect Gmail sync
+      const userRef = admin.firestore().collection("users").doc(uid);
+      await userRef.update({
+        "gmailSync.connected": false,
+        "gmailSync.accountEmail": null,
+        "gmailSync.grantedScopes": [],
+        "gmailSync.updatedAt": nowIso(),
+      });
+
+      // Delete Gmail OAuth state docs
+      for (const col of ["userGmailConnections", "gmail_oauth_attempts", "gmail_oauth_states", "gmail_user_locks"]) {
+        const ref = admin.firestore().collection(col).doc(uid);
+        const snap = await ref.get();
+        if (snap.exists) {
+          await ref.delete();
+          docsDeleted += 1;
+        }
+      }
+
+      // Wipe clinical Storage
+      const storagePrefixesDeleted: string[] = [];
+      for (const prefix of [`documents/${uid}/`, `gmail_ingestion/${uid}/`]) {
+        const removed = await deleteStoragePrefix(prefix);
+        if (removed) storagePrefixesDeleted.push(prefix);
+      }
+
+      const summary = { userId: uid, docsDeleted, storagePrefixesDeleted };
+      functions.logger.warn("[deleteAllUserClinicalData] Completed", summary);
+      return { ok: true, ...summary };
+    } catch (error) {
+      functions.logger.error("[deleteAllUserClinicalData] Failed", { uid, error });
+      throw new functions.https.HttpsError(
+        "internal",
+        "No se pudo eliminar los datos clínicos. Reintentá en unos minutos."
       );
     }
   });

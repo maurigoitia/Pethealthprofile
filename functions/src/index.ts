@@ -191,7 +191,7 @@ import {
 import { onClinicalEventProjection } from "./clinical/projectionLayer";
 import { backfillClinicalProjection } from "./clinical/backfillProjection";
 import { backfillClinicalEpisodes } from "./clinical/episodeCompiler";
-import { deleteUserAccount, submitDataDeletionRequest } from "./compliance/accountDeletion";
+import { deleteUserAccount, deleteAllUserClinicalData, submitDataDeletionRequest } from "./compliance/accountDeletion";
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -2255,5 +2255,6 @@ export {
   backfillClinicalProjection,
   backfillClinicalEpisodes,
   deleteUserAccount,
+  deleteAllUserClinicalData,
   submitDataDeletionRequest,
 };

@@ -7,10 +7,11 @@ import {
   startGmailConnectFlow,
   subscribeGmailSyncStatus,
 } from "../services/gmailSyncService";
-import { deleteUserAccount } from "../services/accountDeletionService";
+import { deleteUserAccount, deleteAllUserClinicalData } from "../services/accountDeletionService";
 import { auth } from "../../lib/firebase";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { toast } from "sonner";
+import { GmailConsentScreen } from "./GmailConsentScreen";
 
 interface PrivacySecurityScreenProps {
   onBack: () => void;
@@ -32,6 +33,8 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
   });
   const [gmailLoading, setGmailLoading] = useState(true);
   const [gmailActionLoading, setGmailActionLoading] = useState(false);
+  const [showGmailConsent, setShowGmailConsent] = useState(false);
+  const [clinicalDeleteLoading, setClinicalDeleteLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [passwords, setPasswords] = useState({
@@ -113,9 +116,14 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
     }
   };
 
-  const handleConnectGmail = async () => {
+  const handleConnectGmail = () => {
+    setShowGmailConsent(true);
+  };
+
+  const handleGmailConsentAccepted = async () => {
     if (gmailActionLoading) return;
     setGmailActionLoading(true);
+    setShowGmailConsent(false);
     try {
       await startGmailConnectFlow();
     } catch (error) {
@@ -136,6 +144,21 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
       alert("No se pudo desconectar Gmail. Reintentá en unos segundos.");
     } finally {
       setGmailActionLoading(false);
+    }
+  };
+
+  const handleDeleteClinicalData = async () => {
+    if (clinicalDeleteLoading) return;
+    if (!confirm("¿Borrar todos los datos clínicos y de Gmail? Tu cuenta y mascotas se mantienen, pero se pierde toda la historia médica.")) return;
+    setClinicalDeleteLoading(true);
+    try {
+      await deleteAllUserClinicalData();
+      toast.success("Datos clínicos eliminados correctamente.");
+    } catch (error) {
+      console.error("No se pudieron eliminar datos clínicos:", error);
+      toast.error("No se pudieron eliminar los datos clínicos. Reintentá en unos minutos.");
+    } finally {
+      setClinicalDeleteLoading(false);
     }
   };
 
@@ -319,6 +342,28 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
             <MaterialIcon name="open_in_new" className="text-slate-400" />
           </a>
 
+          {/* GDPR: Delete Clinical Data Only */}
+          <button
+            onClick={() => void handleDeleteClinicalData()}
+            disabled={clinicalDeleteLoading}
+            className="w-full bg-white dark:bg-slate-900 rounded-xl border border-amber-200 dark:border-amber-900/30 p-4 flex items-center justify-between hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors disabled:opacity-60"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                <MaterialIcon name="healing" className="text-amber-600 text-xl" />
+              </div>
+              <div className="text-left">
+                <h3 className="font-bold text-amber-700 dark:text-amber-400">
+                  {clinicalDeleteLoading ? "Eliminando..." : "Borrar datos clínicos"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Elimina historia médica y datos de Gmail. Tu cuenta y mascotas se mantienen.
+                </p>
+              </div>
+            </div>
+            <MaterialIcon name="chevron_right" className="text-amber-400" />
+          </button>
+
           {/* Delete Account */}
           <button
             onClick={() => setShowDeleteConfirm(true)}
@@ -341,6 +386,15 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
           </button>
         </div>
       </div>
+
+      {/* Gmail Consent Screen — Apple 5.1.1 / Google Data Safety compliant */}
+      {showGmailConsent && (
+        <GmailConsentScreen
+          onAccept={() => void handleGmailConsentAccepted()}
+          onDecline={() => setShowGmailConsent(false)}
+          loading={gmailActionLoading}
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (

@@ -86,6 +86,19 @@ export const ingestHistory = functions
 
     const { petId, docs } = data;
     const uid = context.auth.uid;
+
+    // SEC: Verify the calling user owns this pet or is a co-tutor
+    const petSnap = await admin.firestore().collection("pets").doc(petId).get();
+    if (!petSnap.exists) {
+      throw new functions.https.HttpsError("not-found", "Mascota no encontrada.");
+    }
+    const petData = petSnap.data() as Record<string, unknown>;
+    const isOwner = petData.ownerId === uid;
+    const isCoTutor = Array.isArray(petData.coTutorUids) && petData.coTutorUids.includes(uid);
+    if (!isOwner && !isCoTutor) {
+      throw new functions.https.HttpsError("permission-denied", "No tenés acceso a esta mascota.");
+    }
+
     const isBatch = docs.length > BATCH_THRESHOLD;
 
     const jobId = await createJob(uid, petId, docs);
