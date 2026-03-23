@@ -25,7 +25,7 @@ const KNOWN_PROJECT_CONFIG: Record<
   // Proyecto pessy.app org — cuenta mauri@pessy.app — con créditos Google
   "polar-scene-488615-i0": {
     apiKey: "AIzaSyBwyy3aPNQ392g69L6yheLxvR0IirgjpoE",
-    authDomain: "polar-scene-488615-i0.firebaseapp.com",
+    authDomain: "pessy.app",
     storageBucket: "polar-scene-488615-i0.firebasestorage.app",
     messagingSenderId: "842879609097",
     appId: "1:842879609097:web:b4fcb8fb0b04f316b68bd8",

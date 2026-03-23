@@ -34,19 +34,19 @@ export function LoginScreen() {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState("");
   const [resetError, setResetError] = useState("");
-  const inviteCode = useMemo(
-    () => normalizeCoTutorInviteCode(new URLSearchParams(location.search).get("invite")),
-    [location.search]
-  );
+  // BUG-009 FIX: guardar el invite code sincrónicamente durante el render, no en un useEffect.
+  // Si el usuario ya está logueado, el useEffect de redirect puede dispararse antes de que el
+  // useEffect de inviteCode corra (aunque en teoría corren en orden, hay edge cases con
+  // Firebase Auth que resuelve en el primer render). Guardar en useMemo es seguro e idempotente.
+  const inviteCode = useMemo(() => {
+    const code = normalizeCoTutorInviteCode(new URLSearchParams(location.search).get("invite"));
+    if (code) rememberPendingCoTutorInvite(code);
+    return code;
+  }, [location.search]);
   const acquisitionSource = useMemo(
     () => resolveAcquisitionSource(location.search, location.pathname),
     [location.pathname, location.search]
   );
-
-  useEffect(() => {
-    if (!inviteCode) return;
-    rememberPendingCoTutorInvite(inviteCode);
-  }, [inviteCode]);
 
   useEffect(() => {
     if (!acquisitionSource) return;
