@@ -1,3 +1,5 @@
+import * as admin from "firebase-admin";
+
 export const PESSY_CLINICAL_KNOWLEDGE_VERSION = "pessy-clinical-kb-v1-2026-03-02";
 
 interface KnowledgeSection {
@@ -16,7 +18,7 @@ interface ExternalKnowledgeContext {
 export interface ClinicalKnowledgeContext {
   version: string;
   sectionIds: string[];
-  source: "local" | "local+external";
+  source: "local" | "local+external" | "local+notebook" | "local+external+notebook";
   contextText: string;
 }
 
@@ -160,6 +162,52 @@ function pickKnowledgeSections(query: string, maxSections: number): KnowledgeSec
   return sorted.slice(0, size);
 }
 
+interface NotebookKnowledgeDoc {
+  notebook: string;
+  title: string;
+  body: string;
+  keywords: string[];
+  priority: number;
+}
+
+async function fetchNotebookKnowledge(query: string): Promise<ExternalKnowledgeContext | null> {
+  try {
+    const db = admin.firestore();
+    const queryNormalized = normalizeText(query || "");
+
+    const snapshot = await db
+      .collection("notebook_knowledge")
+      .where("active", "==", true)
+      .orderBy("priority", "desc")
+      .limit(20)
+      .get();
+
+    if (snapshot.empty) return null;
+
+    const scored = snapshot.docs.map((doc) => {
+      const data = doc.data() as NotebookKnowledgeDoc;
+      const keywords: string[] = Array.isArray(data.keywords) ? data.keywords : [];
+      let score = typeof data.priority === "number" ? data.priority : 50;
+      for (const keyword of keywords) {
+        if (queryNormalized.includes(normalizeText(keyword))) score += 25;
+      }
+      return { data, score };
+    });
+
+    scored.sort((a: { score: number }, b: { score: number }) => b.score - a.score);
+    const topSections = scored.slice(0, 5);
+
+    const text = topSections
+      .map((s: { data: NotebookKnowledgeDoc }) => `- [${s.data.notebook}] ${s.data.title}: ${s.data.body}`)
+      .join("\n");
+
+    if (!text.trim()) return null;
+    return { text: text.trim(), source: "notebook-knowledge-firestore" };
+  } catch {
+    return null;
+  }
+}
+
 async function fetchExternalClinicalContext(query: string): Promise<ExternalKnowledgeContext | null> {
   const endpoint = (process.env.PESSY_CLINICAL_KNOWLEDGE_ENDPOINT || "").trim();
   if (!endpoint) return null;
@@ -217,7 +265,12 @@ export async function resolveClinicalKnowledgeContext(params: {
 }): Promise<ClinicalKnowledgeContext> {
   const query = (params.query || "").trim();
   const selected = pickKnowledgeSections(query, params.maxSections ?? 7);
-  const external = await fetchExternalClinicalContext(query);
+
+  // Fetch both external sources in parallel for speed
+  const [external, notebook] = await Promise.all([
+    fetchExternalClinicalContext(query),
+    fetchNotebookKnowledge(query),
+  ]);
 
   const localBlock = selected
     .map((section) => `- [${section.id}] ${section.title}: ${section.body}`)
@@ -227,6 +280,19 @@ export async function resolveClinicalKnowledgeContext(params: {
     ? `\n\nCONTEXTO CLÍNICO EXTERNO (${external.source}):\n${external.text.slice(0, 5000)}`
     : "";
 
+  const notebookBlock = notebook?.text
+    ? `\n\nCONTEXTO NOTEBOOK KNOWLEDGE (${notebook.source}):\n${notebook.text.slice(0, 5000)}`
+    : "";
+
+  const hasExternalSources = Boolean(external) || Boolean(notebook);
+  const sourceLabel = notebook && external
+    ? "local+external+notebook"
+    : notebook
+      ? "local+notebook"
+      : external
+        ? "local+external"
+        : "local";
+
   const contextText = [
     "PESSY CLINICAL KNOWLEDGE BASE",
     `version: ${PESSY_CLINICAL_KNOWLEDGE_VERSION}`,
@@ -235,12 +301,13 @@ export async function resolveClinicalKnowledgeContext(params: {
     "KNOWLEDGE SECTIONS:",
     localBlock,
     externalBlock,
+    notebookBlock,
   ].join("\n");
 
   return {
     version: PESSY_CLINICAL_KNOWLEDGE_VERSION,
     sectionIds: selected.map((section) => section.id),
-    source: external ? "local+external" : "local",
+    source: sourceLabel as ClinicalKnowledgeContext["source"],
     contextText,
   };
 }
