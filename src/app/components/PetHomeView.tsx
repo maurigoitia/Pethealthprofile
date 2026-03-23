@@ -1,9 +1,14 @@
 import { MaterialIcon } from "./MaterialIcon";
 import { motion, PanInfo, AnimatePresence } from "motion/react";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useMedical } from "../contexts/MedicalContext";
+import { usePet } from "../contexts/PetContext";
 import { formatDateSafe, toTimestampSafe } from "../utils/dateUtils";
 import { PetPhoto } from "./PetPhoto";
+
+const PetPreferencesEditor = lazy(() =>
+  import("./PetPreferencesEditor").then((m) => ({ default: m.PetPreferencesEditor }))
+);
 import {
   WELLBEING_MASTER_BOOK,
   type ThermalSafetyProfile,
@@ -125,8 +130,10 @@ export function PetHomeView({
   activePetId,
   onPetChange,
 }: PetHomeViewProps) {
+  const { updatePet } = usePet();
   const [isDragging, setIsDragging] = useState(false);
   const [dietPreference, setDietPreference] = useState<DietPreference | null>(null);
+  const [showPreferences, setShowPreferences] = useState(false);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [discoveryCard, setDiscoveryCard] = useState<{ type: string; data?: any; text?: string; detail?: string } | null>(null);
   const [weather, setWeather] = useState<LiveWeatherSnapshot>({
@@ -883,9 +890,28 @@ export function PetHomeView({
           })}
         </div>
 
-        <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-slate-800/80 dark:text-slate-300">
-          Esto arranca simple: qué come, cómo viene y cuándo conviene reponer.
-        </div>
+        {/* Supply Forecast or fallback hint */}
+        {activePet?.preferences?.foodBagKg && activePet?.preferences?.foodDailyGrams && activePet?.preferences?.foodLastPurchase ? (
+          <SupplyForecastInline
+            bagKg={activePet.preferences.foodBagKg}
+            dailyGrams={activePet.preferences.foodDailyGrams}
+            lastPurchase={activePet.preferences.foodLastPurchase}
+            foodBrand={activePet.preferences.foodBrand}
+          />
+        ) : (
+          <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-slate-800/80 dark:text-slate-300">
+            Esto arranca simple: qué come, cómo viene y cuándo conviene reponer.
+          </div>
+        )}
+
+        {/* Gustos Button */}
+        <button
+          onClick={() => setShowPreferences(true)}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[#074738]/30 py-3 text-sm font-bold text-[#074738] transition-colors hover:bg-[#074738]/5 dark:border-emerald-400/30 dark:text-emerald-400 dark:hover:bg-emerald-400/5"
+        >
+          <MaterialIcon name="tune" className="text-lg" />
+          {activePet?.preferences ? "Editar gustos y stock" : "Configurar gustos y stock"}
+        </button>
       </motion.section>
 
       {/* ─── Discovery Feed ─────────────────────────────────────────────────── */}
@@ -963,6 +989,72 @@ export function PetHomeView({
           </AnimatePresence>
         </motion.section>
       )}
+
+      {/* ─── Preferences Editor Modal ─────────────────────────────────────── */}
+      {showPreferences && activePet && (
+        <Suspense fallback={null}>
+          <PetPreferencesEditor
+            petName={activePet.name}
+            preferences={activePet.preferences || {}}
+            onSave={async (prefs) => {
+              await updatePet(activePetId, { preferences: prefs } as any);
+              // Also sync diet preference locally
+              if (prefs.foodType) {
+                setDietPreference(prefs.foodType);
+                localStorage.setItem(`pessy_supply_diet_${activePetId}`, prefs.foodType);
+              }
+              setShowPreferences(false);
+            }}
+            onClose={() => setShowPreferences(false)}
+          />
+        </Suspense>
+      )}
+    </div>
+  );
+}
+
+// ─── Inline Supply Forecast (Home View) ──────────────────────────────────────
+
+function SupplyForecastInline({ bagKg, dailyGrams, lastPurchase, foodBrand }: {
+  bagKg: number;
+  dailyGrams: number;
+  lastPurchase: string;
+  foodBrand?: string;
+}) {
+  const totalGrams = bagKg * 1000;
+  const purchaseDate = new Date(lastPurchase);
+  const today = new Date();
+  const daysSincePurchase = Math.max(0, Math.floor((today.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24)));
+  const gramsConsumed = daysSincePurchase * dailyGrams;
+  const gramsLeft = Math.max(0, totalGrams - gramsConsumed);
+  const daysLeft = Math.max(0, Math.floor(gramsLeft / dailyGrams));
+  const percentLeft = Math.round((gramsLeft / totalGrams) * 100);
+  const runOutDate = new Date(today.getTime() + daysLeft * 24 * 60 * 60 * 1000);
+
+  const urgency = daysLeft <= 3 ? "red" : daysLeft <= 7 ? "amber" : "emerald";
+  const barColor = urgency === "red" ? "bg-red-500" : urgency === "amber" ? "bg-amber-500" : "bg-emerald-500";
+  const textColor = urgency === "red" ? "text-red-700 dark:text-red-400" : urgency === "amber" ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400";
+  const bgColor = urgency === "red" ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800" : urgency === "amber" ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800" : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800";
+
+  return (
+    <div className={`mt-4 rounded-2xl border p-4 ${bgColor}`}>
+      <div className="flex items-center justify-between">
+        <span className={`text-sm font-bold ${textColor}`}>
+          {daysLeft === 0 ? "Sin stock" : `${daysLeft} días de comida`}
+          {foodBrand ? ` (${foodBrand})` : ""}
+        </span>
+        <span className={`text-xs font-semibold ${textColor}`}>{percentLeft}%</span>
+      </div>
+      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+        <div className={`h-full rounded-full ${barColor} transition-all`} style={{ width: `${percentLeft}%` }} />
+      </div>
+      <p className="mt-2 text-xs text-slate-500">
+        {daysLeft <= 3
+          ? `Comprá ya. Se termina el ${runOutDate.toLocaleDateString("es-AR")}.`
+          : daysLeft <= 7
+            ? `Conviene reponer. Queda hasta el ${runOutDate.toLocaleDateString("es-AR")}.`
+            : `Próxima compra: ${runOutDate.toLocaleDateString("es-AR")}`}
+      </p>
     </div>
   );
 }

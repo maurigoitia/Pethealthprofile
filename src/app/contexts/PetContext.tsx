@@ -22,6 +22,22 @@ export interface CoTutor {
 
 export type BirthDatePrecision = "exact" | "month" | "year" | "unknown";
 
+export interface PetPreferences {
+  // Gustos del tutor y la mascota
+  favoriteActivities?: ("walk" | "park" | "cafe" | "beach" | "hiking" | "playdate" | "training" | "swim")[];
+  favoritePlaces?: string[]; // nombres o place_ids de Google Places
+  walkTimes?: string[]; // horarios preferidos "08:00", "18:00"
+  foodBrand?: string;
+  foodType?: "balanced" | "barf" | "mixed";
+  foodBagKg?: number; // kg de la bolsa actual
+  foodDailyGrams?: number; // consumo diario estimado
+  foodLastPurchase?: string; // ISO date
+  allergies?: string[];
+  fears?: string[]; // truenos, fuegos artificiales, otros perros, etc.
+  personality?: ("calm" | "energetic" | "shy" | "social" | "independent" | "playful" | "protective")[];
+  notes?: string;
+}
+
 export interface Pet {
   id: string;
   name: string;
@@ -38,6 +54,7 @@ export interface Pet {
   weightHistory?: WeightEntry[];
   coTutors?: CoTutor[];
   coTutorUids?: string[];
+  preferences?: PetPreferences;
 }
 
 interface PetContextType {
