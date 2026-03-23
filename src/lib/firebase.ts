@@ -5,81 +5,48 @@ import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
 import { getMessaging, isSupported } from "firebase/messaging";
 
-const DEFAULT_PROJECT_ID = "polar-scene-488615-i0";
-const envProjectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
-const projectId = envProjectId || DEFAULT_PROJECT_ID;
-const envMessagingSenderId = import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID;
-const envAppId = import.meta.env.VITE_FIREBASE_APP_ID;
+// SEC-001 FIX: Toda la Firebase config viene de variables de entorno VITE_*.
+// Nunca hardcodear API keys, app IDs, ni project IDs en el código fuente.
+// Configurar en .env.local (desarrollo) y en CI/CD secrets (producción).
+// BUG-001 FIX: VITE_FIREBASE_AUTH_DOMAIN debe ser "pessy.app" (no firebaseapp.com)
+// para que Google Sign-In y email links funcionen en producción.
+const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
 
-const KNOWN_PROJECT_CONFIG: Record<
-  string,
-  {
-    apiKey: string;
-    authDomain: string;
-    storageBucket: string;
-    messagingSenderId: string;
-    appId: string;
-    measurementId?: string;
-  }
-> = {
-  // Proyecto pessy.app org — cuenta mauri@pessy.app — con créditos Google
-  "polar-scene-488615-i0": {
-    apiKey: "AIzaSyBwyy3aPNQ392g69L6yheLxvR0IirgjpoE",
-    authDomain: "pessy.app",
-    storageBucket: "polar-scene-488615-i0.firebasestorage.app",
-    messagingSenderId: "842879609097",
-    appId: "1:842879609097:web:b4fcb8fb0b04f316b68bd8",
-    measurementId: "G-LV2E710H09",
-  },
-};
-
-const HOST_PROJECT_MAP = new Map<string, string>([
-  ["pessy.app", "polar-scene-488615-i0"],
-  ["www.pessy.app", "polar-scene-488615-i0"],
-  ["app.pessy.app", "polar-scene-488615-i0"],
-  ["polar-scene-488615-i0.web.app", "polar-scene-488615-i0"],
-  ["polar-scene-488615-i0.firebaseapp.com", "polar-scene-488615-i0"],
-  ["pessy-qa-app.web.app", "polar-scene-488615-i0"],
-  ["pessy-focus-qa.web.app", "polar-scene-488615-i0"],
-  ["itpessy.web.app", "polar-scene-488615-i0"],
-]);
-
-const known = KNOWN_PROJECT_CONFIG[projectId];
-const configMismatch =
-  Boolean(known) &&
-  ((import.meta.env.VITE_FIREBASE_API_KEY &&
-    import.meta.env.VITE_FIREBASE_API_KEY !== known.apiKey) ||
-    (import.meta.env.VITE_FIREBASE_AUTH_DOMAIN &&
-      import.meta.env.VITE_FIREBASE_AUTH_DOMAIN !== known.authDomain) ||
-    (import.meta.env.VITE_FIREBASE_STORAGE_BUCKET &&
-      import.meta.env.VITE_FIREBASE_STORAGE_BUCKET !== known.storageBucket) ||
-    (envMessagingSenderId && envMessagingSenderId !== known.messagingSenderId) ||
-    (envAppId && envAppId !== known.appId));
-
-if (configMismatch) {
-  console.warn(
-    "[firebase] Config inconsistente detectada. Se aplica fallback del proyecto para evitar fallas de auth/session.",
-  );
+if (!projectId) {
+  throw new Error("[firebase] VITE_FIREBASE_PROJECT_ID no configurado. Revisá tu .env.local o CI/CD secrets.");
 }
+
+const ALLOWED_HOSTS = new Set([
+  "pessy.app",
+  "www.pessy.app",
+  "app.pessy.app",
+  "polar-scene-488615-i0.web.app",
+  "polar-scene-488615-i0.firebaseapp.com",
+  "pessy-qa-app.web.app",
+  "pessy-focus-qa.web.app",
+  "itpessy.web.app",
+  "localhost",
+]);
 
 const currentHost =
   typeof window !== "undefined" ? window.location.hostname.toLowerCase().trim() : "";
-const expectedProjectId = currentHost ? HOST_PROJECT_MAP.get(currentHost) : null;
-if (expectedProjectId && expectedProjectId !== projectId) {
-  throw new Error(
-    `[firebase] El host ${currentHost} requiere projectId=${expectedProjectId}, pero el build usa ${projectId}.`,
-  );
+if (currentHost && !ALLOWED_HOSTS.has(currentHost) && !currentHost.startsWith("localhost")) {
+  throw new Error(`[firebase] Host no autorizado: ${currentHost}`);
 }
 
 const firebaseConfig = {
-  apiKey: known?.apiKey || import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: known?.authDomain || import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId,
-  storageBucket: known?.storageBucket || import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: known?.messagingSenderId || envMessagingSenderId,
-  appId: known?.appId || envAppId,
-  measurementId: known?.measurementId || import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
+
+if (!firebaseConfig.apiKey) {
+  throw new Error("[firebase] VITE_FIREBASE_API_KEY no configurada. Revisá tu .env.local o CI/CD secrets.");
+}
 
 export const app = getApps().length > 0 ? getApps()[0]! : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
