@@ -29,6 +29,46 @@ import { randomUUID } from "crypto";
 
 const GMAIL_MAX_QUERY_CHARS = 480;
 
+const GMAIL_OPERATOR_PREFIXES = [
+  "from:", "to:", "subject:", "has:", "in:", "is:", "label:", "filename:",
+  "after:", "before:", "newer_than:", "older_than:", "larger:", "smaller:",
+  "deliveredto:", "cc:", "bcc:", "rfc822msgid:",
+];
+
+/**
+ * Sanitizes a user-supplied string so it is safe to embed inside a quoted
+ * Gmail search term, e.g. `"<sanitized>"`.
+ *
+ * Removes:
+ *  - double quotes (would break out of the phrase match)
+ *  - grouping characters: ( ) { }
+ *  - standalone boolean operators OR / AND (case-sensitive, whole-word)
+ *  - known Gmail field-operator prefixes (from:, subject:, has:, …)
+ */
+export function sanitizeGmailQueryTerm(term: string): string {
+  // Remove Gmail field-operator prefixes (case-insensitive for robustness)
+  let sanitized = term;
+  for (const prefix of GMAIL_OPERATOR_PREFIXES) {
+    // Replace every occurrence, case-insensitively
+    const regex = new RegExp(prefix.replace(":", "\\:"), "gi");
+    sanitized = sanitized.replace(regex, "");
+  }
+
+  // Remove double quotes
+  sanitized = sanitized.replace(/"/g, "");
+
+  // Remove grouping characters
+  sanitized = sanitized.replace(/[(){}]/g, "");
+
+  // Remove standalone OR / AND (case-sensitive, surrounded by word boundaries)
+  sanitized = sanitized.replace(/\bOR\b/g, "").replace(/\bAND\b/g, "");
+
+  // Collapse multiple spaces left by removals
+  sanitized = sanitized.replace(/\s{2,}/g, " ").trim();
+
+  return sanitized;
+}
+
 export function buildSessionDateWindow(maxLookbackMonths: number): { afterDate: Date; beforeDate: Date } {
   const beforeDate = new Date();
   const afterDate = new Date(beforeDate);
@@ -61,8 +101,8 @@ export function buildGmailSearchQuery(args: {
     .join(" OR ");
 
   const petFilters: string[] = [];
-  const petName = asString(args.petName);
-  const petId = asString(args.petId);
+  const petName = sanitizeGmailQueryTerm(asString(args.petName));
+  const petId = sanitizeGmailQueryTerm(asString(args.petId));
   if (petName) petFilters.push(`"${petName}"`);
   if (petId) petFilters.push(`"${petId}"`);
 

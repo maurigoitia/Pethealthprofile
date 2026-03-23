@@ -233,15 +233,15 @@ service cloud.firestore {
 
     // Gmail ingestion — temporary collections (user can only access own data)
     match /gmail_raw_documents_tmp/{docId} {
-      allow read, delete: if signedIn() && resource.data.userId == request.auth.uid;
+      allow read, delete: if signedIn() && resource.data.user_id == request.auth.uid;
       allow create, update: if false; // Solo backend (Cloud Functions)
     }
     match /gmail_attachment_extract_tmp/{docId} {
-      allow read, delete: if signedIn() && resource.data.userId == request.auth.uid;
+      allow read, delete: if signedIn() && resource.data.user_id == request.auth.uid;
       allow create, update: if false;
     }
     match /gmail_ingestion_sessions/{sessionId} {
-      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow read: if signedIn() && resource.data.user_id == request.auth.uid;
       allow create, update, delete: if false;
     }
 

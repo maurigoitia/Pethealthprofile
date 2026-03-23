@@ -33,6 +33,41 @@ import { resolveClinicalKnowledgeContext } from "../../clinical/knowledgeBase";
 
 // ─── Rate limiting ──────────────────────────────────────────────────────────
 
+export async function consumeUserAiQuota(userId: string, units = 1): Promise<void> {
+  const capRaw = Number(process.env.CLINICAL_AI_MAX_CALLS_PER_MINUTE_PER_USER || 5);
+  const perUserCap = Number.isFinite(capRaw) ? clamp(Math.round(capRaw), 1, 600) : 5;
+  const now = new Date();
+  const minuteKey = now.toISOString().slice(0, 16);
+  const docId = `${userId}_${minuteKey}`;
+  const quotaRef = admin.firestore().collection("gmail_ai_quota_user").doc(docId);
+  let blocked = false;
+  await admin.firestore().runTransaction(async (tx) => {
+    blocked = false;
+    const snap = await tx.get(quotaRef);
+    const data = asRecord(snap.data());
+    const used = asNonNegativeNumber(data.used, 0);
+    if (used + units > perUserCap) {
+      blocked = true;
+      return;
+    }
+    tx.set(
+      quotaRef,
+      {
+        user_id: userId,
+        minute_key: minuteKey,
+        used: used + units,
+        cap: perUserCap,
+        updated_at: getNowIso(),
+        expires_at: new Date(Date.now() + 10 * ONE_DAY_MS).toISOString(),
+      },
+      { merge: true }
+    );
+  });
+  if (blocked) {
+    throw new Error("user_ai_rate_limited");
+  }
+}
+
 export async function consumeGlobalAiQuota(units = 1): Promise<void> {
   const capRaw = Number(process.env.CLINICAL_AI_MAX_CALLS_PER_MINUTE || 30);
   const perMinuteCap = Number.isFinite(capRaw) ? clamp(Math.round(capRaw), 1, 600) : 30;
@@ -71,10 +106,13 @@ export async function consumeGlobalAiQuota(units = 1): Promise<void> {
 export async function callGemini(
   payload: Record<string, unknown>,
   timeoutMs: number,
-  options?: { softFailUnsupportedMime?: boolean }
+  options?: { softFailUnsupportedMime?: boolean; userId?: string }
 ): Promise<Record<string, unknown>> {
   const apiKey = asString(process.env.GEMINI_API_KEY);
   if (!apiKey) throw new Error("gemini_api_key_missing");
+  if (options?.userId) {
+    await consumeUserAiQuota(options.userId, 1);
+  }
   await consumeGlobalAiQuota(1);
   const model = asString(process.env.ANALYSIS_MODEL) || "gemini-2.5-flash";
   const controller = new AbortController();

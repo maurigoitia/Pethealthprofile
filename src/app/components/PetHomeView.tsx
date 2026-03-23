@@ -1,8 +1,8 @@
 import { MaterialIcon } from "./MaterialIcon";
 import { motion, PanInfo, AnimatePresence } from "motion/react";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useMedical } from "../contexts/MedicalContext";
-import { usePet } from "../contexts/PetContext";
+import { usePet, type PetPreferences } from "../contexts/PetContext";
 import { formatDateSafe, toTimestampSafe } from "../utils/dateUtils";
 import { PetPhoto } from "./PetPhoto";
 
@@ -14,6 +14,10 @@ import {
   type ThermalSafetyProfile,
   type WellbeingSpeciesGroupId,
 } from "../../domain/wellbeing/wellbeingMasterBook";
+import {
+  runPessyIntelligence,
+  type PessyIntelligenceRecommendation,
+} from "../../domain/intelligence/pessyIntelligenceEngine";
 
 type DietPreference = "balanced" | "barf" | "mixed";
 type PetSpecies = "dog" | "cat";
@@ -23,6 +27,9 @@ interface LiveWeatherSnapshot {
   status: "loading" | "ready" | "unavailable";
   temperatureC: number | null;
   humidityPct: number | null;
+  weatherCode: number | null;
+  windSpeedKmh: number | null;
+  uvIndex: number | null;
 }
 
 interface WalkSafetyState {
@@ -120,6 +127,16 @@ function getReplacementTime(groupIds: WellbeingSpeciesGroupId[]) {
   return groupIds.includes("dog.brachycephalic") ? "19:00" : "18:30";
 }
 
+const WMO_RAIN_CODES = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82];
+
+function computeFoodDaysLeft(prefs: PetPreferences | undefined): number | null {
+  if (!prefs?.foodBagKg || !prefs?.foodDailyGrams || !prefs?.foodLastPurchase) return null;
+  const totalGrams = prefs.foodBagKg * 1000;
+  const daysSince = Math.max(0, Math.floor((Date.now() - new Date(prefs.foodLastPurchase).getTime()) / 86_400_000));
+  const gramsLeft = Math.max(0, totalGrams - daysSince * prefs.foodDailyGrams);
+  return Math.max(0, Math.floor(gramsLeft / prefs.foodDailyGrams));
+}
+
 export function PetHomeView({
   onViewHistory,
   onProfileClick,
@@ -140,6 +157,9 @@ export function PetHomeView({
     status: "loading",
     temperatureC: null,
     humidityPct: null,
+    weatherCode: null,
+    windSpeedKmh: null,
+    uvIndex: null,
   });
   const [nudgedBreed, setNudgedBreed] = useState(false);
   const { getEventsByPetId, getActiveMedicationsByPetId, getAppointmentsByPetId } = useMedical();
@@ -179,6 +199,37 @@ export function PetHomeView({
   const species = resolveSpecies(activePet?.species, activePet?.breed);
   const groupIds = resolveGroupIds(species, activePet?.breed || "");
   const thermalProfile = resolveThermalProfile(species, groupIds);
+  const foodDaysLeft = computeFoodDaysLeft(activePet?.preferences);
+
+  const intelligenceResult = useMemo(() => {
+    if (!activePet?.breed) return null;
+    const wc = weather.weatherCode;
+    return runPessyIntelligence({
+      petName: activePet.name,
+      species,
+      breed: activePet.breed,
+      ageLabel: activePet.age || "",
+      groupIds,
+      temperatureC: weather.temperatureC,
+      humidityPct: weather.humidityPct,
+      isRaining: wc !== null && WMO_RAIN_CODES.includes(wc),
+      isStormy: wc !== null && wc >= 95,
+      windSpeedKmh: weather.windSpeedKmh,
+      uvIndex: weather.uvIndex,
+      currentHour: new Date().getHours(),
+      fears: activePet.preferences?.fears,
+      personality: activePet.preferences?.personality,
+      favoriteActivities: activePet.preferences?.favoriteActivities,
+      walkTimes: activePet.preferences?.walkTimes,
+      foodDaysLeft,
+    });
+  }, [activePet?.id, activePet?.breed, activePet?.name, activePet?.age, activePet?.preferences, species, groupIds, weather, foodDaysLeft]);
+
+  const sortedRecommendations = useMemo(() => {
+    if (!intelligenceResult) return [];
+    const order: Record<string, number> = { block: 0, alert: 1, recommendation: 2 };
+    return [...intelligenceResult.recommendations].sort((a, b) => (order[a.kind] ?? 2) - (order[b.kind] ?? 2));
+  }, [intelligenceResult]);
 
   useEffect(() => {
     if (!dietStorageKey || typeof window === "undefined") {
@@ -217,6 +268,9 @@ export function PetHomeView({
           status: "unavailable",
           temperatureC: null,
           humidityPct: null,
+          weatherCode: null,
+          windSpeedKmh: null,
+          uvIndex: null,
         });
       }
     };
@@ -224,10 +278,12 @@ export function PetHomeView({
     const loadWeather = async (lat: number, lng: number) => {
       try {
         const response = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m&forecast_days=1&timezone=auto`
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&hourly=uv_index&forecast_days=1&timezone=auto`
         );
         if (!response.ok) throw new Error(`weather_http_${response.status}`);
         const payload = await response.json();
+        const currentHourIndex = new Date().getHours();
+        const uvArray = payload?.hourly?.uv_index;
         const snapshot: LiveWeatherSnapshot = {
           status: "ready",
           temperatureC: typeof payload?.current?.temperature_2m === "number" ? Math.round(payload.current.temperature_2m) : null,
@@ -235,6 +291,9 @@ export function PetHomeView({
             typeof payload?.current?.relative_humidity_2m === "number"
               ? Math.round(payload.current.relative_humidity_2m)
               : null,
+          weatherCode: typeof payload?.current?.weather_code === "number" ? payload.current.weather_code : null,
+          windSpeedKmh: typeof payload?.current?.wind_speed_10m === "number" ? Math.round(payload.current.wind_speed_10m) : null,
+          uvIndex: Array.isArray(uvArray) && typeof uvArray[currentHourIndex] === "number" ? Math.round(uvArray[currentHourIndex]) : null,
         };
         if (!cancelled) {
           setWeather(snapshot);
@@ -264,6 +323,9 @@ export function PetHomeView({
               status: "ready",
               temperatureC: parsed.temperatureC,
               humidityPct: parsed.humidityPct,
+              weatherCode: parsed.weatherCode ?? null,
+              windSpeedKmh: parsed.windSpeedKmh ?? null,
+              uvIndex: parsed.uvIndex ?? null,
             });
             return () => {
               cancelled = true;
@@ -848,6 +910,23 @@ export function PetHomeView({
         </div>
       </motion.section>
 
+      {/* ─── Pessy Intelligence Cards ─────────────────────────────────────── */}
+      {sortedRecommendations.length > 0 && (
+        <motion.section
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: 0.18 }}
+          className="space-y-3"
+        >
+          <p className="px-1 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+            Pessy te dice
+          </p>
+          {sortedRecommendations.map((rec) => (
+            <RecommendationCard key={rec.id} rec={rec} />
+          ))}
+        </motion.section>
+      )}
+
       <motion.section
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1055,6 +1134,49 @@ function SupplyForecastInline({ bagKg, dailyGrams, lastPurchase, foodBrand }: {
             ? `Conviene reponer. Queda hasta el ${runOutDate.toLocaleDateString("es-AR")}.`
             : `Próxima compra: ${runOutDate.toLocaleDateString("es-AR")}`}
       </p>
+    </div>
+  );
+}
+
+// ─── Intelligence Recommendation Card ───────────────────────────────────────
+
+const REC_STYLES = {
+  block: {
+    bg: "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800",
+    text: "text-red-800 dark:text-red-300",
+    badge: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
+  },
+  alert: {
+    bg: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800",
+    text: "text-amber-800 dark:text-amber-300",
+    badge: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
+  },
+  recommendation: {
+    bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800",
+    text: "text-emerald-800 dark:text-emerald-300",
+    badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
+  },
+} as const;
+
+function RecommendationCard({ rec }: { rec: PessyIntelligenceRecommendation }) {
+  const styles = REC_STYLES[rec.kind];
+
+  return (
+    <div className={`rounded-2xl border p-4 ${styles.bg}`}>
+      <div className="flex items-start gap-3">
+        <MaterialIcon name={rec.icon} className={`text-xl ${styles.text}`} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className={`text-sm font-bold ${styles.text}`}>{rec.title}</h4>
+            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${styles.badge}`}>
+              {rec.slot}
+            </span>
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
+            {rec.detail}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

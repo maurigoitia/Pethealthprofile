@@ -1,3 +1,4 @@
+import * as dns from "dns";
 import { ExternalLinkExtractionMetadata, MAX_EXTERNAL_LINK_TEXT_CHARS } from "./types";
 import { asString } from "./utils";
 import {
@@ -88,6 +89,79 @@ export function isPrivateOrLocalHost(hostname: string): boolean {
     }
   }
   if (host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:")) return true;
+  return false;
+}
+
+// ─── DNS-based SSRF protection (resolves hostname → checks resolved IP) ─────
+
+/**
+ * Resolves the hostname in `url` via DNS and checks whether the resolved IP
+ * falls in any private / reserved range.  Returns `true` if the URL is safe
+ * to fetch, `false` if the resolved IP is private/reserved or if DNS fails.
+ *
+ * This is an ADDITIONAL layer on top of the string-based `isPrivateOrLocalHost`
+ * check — it defends against DNS rebinding attacks where a public-looking
+ * hostname resolves to an internal address.
+ */
+export async function resolveAndValidateUrl(url: string): Promise<boolean> {
+  let hostname: string;
+  try {
+    hostname = new URL(url).hostname;
+  } catch {
+    return false;
+  }
+
+  // Strip IPv6 bracket notation so dns.promises.lookup receives a bare address.
+  const bare = hostname.startsWith("[") && hostname.endsWith("]")
+    ? hostname.slice(1, -1)
+    : hostname;
+
+  // If the hostname is already an IP literal, re-use the existing string check.
+  if (isPrivateOrLocalHost(bare)) return false;
+
+  let resolvedAddress: string;
+  try {
+    // `verbatim: true` preserves the address family returned by the OS resolver.
+    const result = await dns.promises.lookup(bare, { verbatim: true });
+    resolvedAddress = result.address;
+  } catch {
+    // Resolution failure → refuse the URL.
+    return false;
+  }
+
+  return !isPrivateOrLocalHostIp(resolvedAddress);
+}
+
+/**
+ * Checks a *resolved* IP address string (IPv4 or IPv6) against private /
+ * reserved ranges.  Separated from `isPrivateOrLocalHost` so it can be used
+ * independently on the result of `dns.promises.lookup`.
+ */
+export function isPrivateOrLocalHostIp(address: string): boolean {
+  const addr = address.trim().toLowerCase();
+  if (!addr) return true;
+
+  // ── IPv6 ──────────────────────────────────────────────────────────────────
+  if (addr.includes(":")) {
+    if (addr === "::1") return true;                     // loopback
+    if (addr.startsWith("fc") || addr.startsWith("fd")) return true; // ULA fc00::/7
+    if (addr.startsWith("fe80:")) return true;           // link-local fe80::/10
+    return false;
+  }
+
+  // ── IPv4 ──────────────────────────────────────────────────────────────────
+  const parts = addr.split(".").map(Number);
+  if (parts.length !== 4 || parts.some((p) => !Number.isFinite(p) || p < 0 || p > 255)) {
+    // Unrecognised format — treat as private to be safe.
+    return true;
+  }
+  const [a, b] = parts;
+  if (a === 0)   return true;  // 0.0.0.0/8 — unspecified
+  if (a === 10)  return true;  // 10.0.0.0/8
+  if (a === 127) return true;  // 127.0.0.0/8 — loopback
+  if (a === 169 && b === 254) return true; // 169.254.0.0/16 — link-local
+  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+  if (a === 192 && b === 168) return true; // 192.168.0.0/16
   return false;
 }
 
@@ -209,6 +283,21 @@ export async function fetchWithControlledRedirects(args: {
   let redirectCount = 0;
 
   for (let attempt = 0; attempt <= args.maxRedirects; attempt += 1) {
+    // DNS-resolution check: defend against DNS rebinding — a hostname that
+    // passes the string-based isPrivateOrLocalHost check but resolves to a
+    // private/reserved IP.  We run this before every fetch attempt so that
+    // both the initial URL and any redirect destinations are validated.
+    const dnsOk = await resolveAndValidateUrl(currentUrl);
+    if (!dnsOk) {
+      return {
+        ok: false,
+        reason: attempt === 0 ? "dns_resolved_private_ip" : "redirect_dns_resolved_private_ip",
+        finalUrl: currentUrl,
+        redirectCount,
+        statusCode: null,
+      };
+    }
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), args.timeoutMs);
     try {
