@@ -2,7 +2,6 @@ import { createContext, useContext, useState, ReactNode, useEffect } from "react
 import { auth, db, functions } from "../../lib/firebase";
 import {
   collection, query, where, onSnapshot, doc, updateDoc, addDoc, arrayUnion, setDoc, getDoc,
-  runTransaction
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { useAuth } from "./AuthContext";
@@ -250,13 +249,16 @@ export function PetProvider({ children }: { children: ReactNode }) {
     const code = await generateInviteCode(petId, normalizedEmail);
     const inviteLink = buildCoTutorReferralUrl(code);
 
-    // Envío vía Cloud Function (Resend) — más confiable que Firebase Auth email
-    const callSendInvite = httpsCallable(functions, "sendCoTutorInvite");
+    // Envío vía Cloud Function (Resend) — timeout 30s para evitar spinner infinito
+    const callSendInvite = httpsCallable(functions, "sendCoTutorInvite", { timeout: 30000 });
     try {
       await callSendInvite({ email: normalizedEmail, inviteCode: code, petName });
     } catch (err: any) {
-      const msg = err?.message || "";
-      throw new Error(msg || "No se pudo enviar el correo de invitación.");
+      // Firebase HttpsError: el mensaje real puede estar en err.details
+      const detail = err?.details?.message || err?.details || "";
+      const msg = (typeof detail === "string" && detail.length > 3) ? detail : err?.message || "";
+      const fallback = "No se pudo enviar el correo de invitación. Intentá de nuevo.";
+      throw new Error((msg && msg !== "internal" && msg !== "INTERNAL") ? msg : fallback);
     }
 
     return { code, inviteLink };
@@ -293,57 +295,64 @@ export function PetProvider({ children }: { children: ReactNode }) {
 
     const petRef = doc(db, "pets", inv.petId);
 
-    // Transacción atómica: actualizar mascota + quemar código en un solo movimiento
-    const resultName = await runTransaction(db, async (transaction) => {
-      const petSnap = await transaction.get(petRef);
-      if (!petSnap.exists()) throw new Error("La mascota ya no está disponible");
-      const petData = petSnap.data();
-      const currentCoTutorUids: string[] = Array.isArray(petData.coTutorUids) ? petData.coTutorUids : [];
-      const currentCoTutors: CoTutor[] = Array.isArray(petData.coTutors) ? petData.coTutors : [];
+    // BUG-003 FIX: NO usar runTransaction para ambos writes juntos.
+    // Las Security Rules de invitaciones hacen get(pet) para verificar que el uid ya esté en
+    // coTutorUids — ese get() ve el estado PRE-transacción, por lo que si el pet update y el
+    // invite update van en la misma transacción, el get() siempre ve coTutorUids sin el usuario
+    // nuevo → PERMISSION_DENIED.
+    // Solución: escribir el pet primero (commit), luego marcar la invitación como usada.
+    const petSnap = await getDoc(petRef);
+    if (!petSnap.exists()) throw new Error("La mascota ya no está disponible");
+    const petData = petSnap.data();
+    const currentCoTutorUids: string[] = Array.isArray(petData.coTutorUids) ? petData.coTutorUids : [];
+    const currentCoTutors: CoTutor[] = Array.isArray(petData.coTutors) ? petData.coTutors : [];
 
-      if (petData.ownerId === currentUser.uid) {
-        throw new Error("Ya sos tutor principal de esta mascota.");
-      }
+    if (petData.ownerId === currentUser.uid) {
+      throw new Error("Ya sos tutor principal de esta mascota.");
+    }
 
-      const alreadyJoined = currentCoTutorUids.includes(currentUser.uid);
-      if (alreadyJoined) {
-        transaction.update(invRef, {
-          used: true,
-          usedBy: currentUser.uid,
-          usedAt: new Date(),
-        });
-        return inv.petName || petData.name || "la mascota";
-      }
+    const petName = inv.petName || petData.name || "la mascota";
+    const alreadyJoined = currentCoTutorUids.includes(currentUser.uid);
 
+    if (!alreadyJoined) {
       const newCoTutor: CoTutor = {
         uid: currentUser.uid,
         email: currentUser.email || "",
         name: currentUser.displayName || currentUser.email || "",
         addedAt: new Date().toISOString(),
       };
-
       const nextCoTutorUids = [...currentCoTutorUids, currentUser.uid];
       const nextCoTutors = [
         ...currentCoTutors.filter((ct) => ct.uid !== currentUser.uid),
         newCoTutor,
       ];
 
-      transaction.update(petRef, {
+      // Paso 1: Actualizar mascota — Security Rules (canJoinPetWithInvite) verifican que
+      // invitation.used == false, que se cumple porque aún no marcamos la invitación.
+      await updateDoc(petRef, {
         coTutors: nextCoTutors,
         coTutorUids: nextCoTutorUids,
         lastJoinInviteCode: normalizedCode,
       });
+    }
 
-      transaction.update(invRef, {
-        used: true,
-        usedBy: currentUser.uid,
-        usedAt: new Date(),
-      });
+    // Paso 2: Marcar invitación como usada — Security Rules verifican
+    // petData().coTutorUids.hasAny([uid]), que ahora es verdadero porque el paso 1 ya commitió.
+    // Si falla, reintentar 1 vez. Dejar el código sin marcar es un riesgo de seguridad (otro
+    // usuario podría usarlo), pero el acceso ya fue concedido — no lanzamos error al usuario.
+    const invPayload = { used: true, usedBy: currentUser.uid, usedAt: new Date() };
+    try {
+      await updateDoc(invRef, invPayload);
+    } catch (invErr: any) {
+      console.warn("[joinWithCode] Primer intento de marcar código falló, reintentando:", invErr?.message);
+      try {
+        await updateDoc(invRef, invPayload);
+      } catch (retryErr: any) {
+        console.error("[joinWithCode] No se pudo marcar el código como usado después de reintento. El código sigue activo.", retryErr?.message);
+      }
+    }
 
-      return inv.petName || petData.name || "la mascota";
-    });
-
-    return { petName: resultName };
+    return { petName };
   };
 
   const removeCoTutor = async (petId: string, coTutorUid: string) => {

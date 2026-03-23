@@ -19,12 +19,15 @@ export function RegisterUserScreen() {
   const [country, setCountry] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showGmailStep, setShowGmailStep] = useState(false);
   const [gmailStepLoading, setGmailStepLoading] = useState(false);
-  const inviteCode = useMemo(
-    () => normalizeCoTutorInviteCode(searchParams.get("invite")),
-    [searchParams]
-  );
+  // BUG-009 FIX: guardar sincrónicamente durante el render (ver LoginScreen)
+  const inviteCode = useMemo(() => {
+    const code = normalizeCoTutorInviteCode(searchParams.get("invite"));
+    if (code) rememberPendingCoTutorInvite(code);
+    return code;
+  }, [searchParams]);
   const acquisitionSource = useMemo(
     () => resolveAcquisitionSource(location.search, location.pathname),
     [location.pathname, location.search]
@@ -32,11 +35,6 @@ export function RegisterUserScreen() {
   const leadName = useMemo(() => searchParams.get("lead_name")?.trim() || "", [searchParams]);
   const leadEmail = useMemo(() => searchParams.get("lead_email")?.trim().toLowerCase() || "", [searchParams]);
   const leadPet = useMemo(() => searchParams.get("lead_pet")?.trim() || "", [searchParams]);
-
-  useEffect(() => {
-    if (!inviteCode) return;
-    rememberPendingCoTutorInvite(inviteCode);
-  }, [inviteCode]);
 
   useEffect(() => {
     if (!acquisitionSource) return;
@@ -114,12 +112,13 @@ export function RegisterUserScreen() {
         gmail_invite_enabled: inviteEnabled,
       });
 
-      if (inviteCode) {
-        navigate("/home", { replace: true });
-      } else if (inviteEnabled) {
+      // BUG-005 FIX: usuarios con invite también pasan por el step de Gmail (flujo consistente).
+      // Después del step de Gmail, se redirigen a /home (donde se procesa el invite code)
+      // en lugar de /register-pet (que no aplica para co-tutores).
+      if (inviteEnabled) {
         setShowGmailStep(true);
       } else {
-        navigate("/register-pet");
+        navigate(inviteCode ? "/home" : "/register-pet", { replace: true });
       }
     } catch (err: any) {
       if (err?.code === "auth/email-already-in-use") {
@@ -141,8 +140,10 @@ export function RegisterUserScreen() {
   const handleConnectGmailNow = async () => {
     if (gmailStepLoading) return;
     setGmailStepLoading(true);
+    // BUG-005 FIX: si viene con invite code, volver a /home después de Gmail OAuth
+    const afterGmailPath = inviteCode ? "/home" : "/register-pet";
     try {
-      await startGmailConnectFlow({ returnPath: "/register-pet" });
+      await startGmailConnectFlow({ returnPath: afterGmailPath });
     } catch (error) {
       console.error("No se pudo iniciar OAuth Gmail en registro:", error);
       alert("No se pudo iniciar la conexión con Gmail. Podés continuar y conectarlo después.");
@@ -151,7 +152,8 @@ export function RegisterUserScreen() {
   };
 
   const handleContinueWithoutGmail = () => {
-    navigate("/register-pet");
+    // BUG-005 FIX: co-tutores van a /home (donde se procesa el invite), otros a /register-pet
+    navigate(inviteCode ? "/home" : "/register-pet", { replace: true });
   };
 
   return (
@@ -200,14 +202,23 @@ export function RegisterUserScreen() {
             required
           />
 
-          <input
-            type="password"
-            placeholder="Contraseña"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
-            required
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Contraseña"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-4 pr-28 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-[#074738]"
+            >
+              {showPassword ? "Ocultar" : "Mostrar"}
+            </button>
+          </div>
 
           {/* País */}
           <div className="relative">
@@ -249,7 +260,18 @@ export function RegisterUserScreen() {
 
       {showGmailStep && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+          <div className="relative bg-white rounded-2xl p-6 max-w-sm w-full">
+            {/* BUG-006 FIX: botón X para cerrar el modal sin quedar atrapado */}
+            <button
+              type="button"
+              onClick={handleContinueWithoutGmail}
+              className="absolute top-4 right-4 size-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"
+              aria-label="Cerrar"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
             <div className="size-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
               <span className="material-symbols-outlined text-emerald-600 text-3xl">mail</span>
             </div>
