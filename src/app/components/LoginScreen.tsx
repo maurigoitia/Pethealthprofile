@@ -7,7 +7,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
-  fetchSignInMethodsForEmail,
+  getRedirectResult,
 } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
@@ -89,6 +89,13 @@ export function LoginScreen() {
     }
   };
 
+  // Handle redirect result from signInWithRedirect (PWA standalone mode)
+  useEffect(() => {
+    getRedirectResult(auth).catch(() => {
+      // Redirect result errors (e.g. user closed Google) are non-fatal
+    });
+  }, []);
+
   useEffect(() => {
     if (user && !authLoading) {
       navigate("/home", { replace: true });
@@ -135,18 +142,7 @@ export function LoginScreen() {
       navigate("/home", { replace: true });
     } catch (err: any) {
       if (err?.code === "auth/user-not-found" || err?.code === "auth/wrong-password" || err?.code === "auth/invalid-credential") {
-        const genericCredentialError =
-          "Correo o contraseña incorrectos. Si te registraste con Google, ingresá con Google o usá recuperación de contraseña.";
-        try {
-          const methods = await fetchSignInMethodsForEmail(auth, cleanEmail);
-          if (methods.includes("google.com") && !methods.includes("password")) {
-            setError("Este correo está registrado con Google. Ingresá con el botón Google.");
-          } else {
-            setError(genericCredentialError);
-          }
-        } catch {
-          setError(genericCredentialError);
-        }
+        setError("Correo o contraseña incorrectos. Si te registraste con Google, ingresá con Google o usá recuperación de contraseña.");
       } else if (err?.code === "auth/too-many-requests") {
         setError("Demasiados intentos. Esperá unos minutos o recuperá tu contraseña.");
       } else if (err?.code === "auth/network-request-failed") {
@@ -205,17 +201,11 @@ export function LoginScreen() {
       const signInPromise = signInWithPopup(auth, provider);
       setLoadingGoogle(true);
       await signInPromise;
-      
-      navigate("/home");
+      // useEffect handles navigate to /home when user is set
     } catch (err: any) {
       if (err?.code === "auth/popup-blocked" || err?.code === "auth/popup-closed-by-user") {
         setError("La ventana de Google fue bloqueada o cerrada. Por favor, permití las ventanas emergentes (pop-ups) e intentá de nuevo.");
       } else {
-        console.error("Google sign-in error:", {
-          code: err?.code,
-          message: err?.message,
-          domain: window.location.hostname,
-        });
         setError(getGoogleAuthErrorMessage(err?.code));
       }
     } finally {
@@ -282,6 +272,7 @@ export function LoginScreen() {
           <input
             type="email"
             placeholder="Correo electrónico"
+            aria-label="Correo electrónico"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-[1.5rem] border border-[#dfe6e2] bg-white px-5 py-4 text-slate-900 outline-none focus:ring-2 focus:ring-[#074738]/20"
@@ -292,6 +283,7 @@ export function LoginScreen() {
             <input
               type={showPassword ? "text" : "password"}
               placeholder="Contraseña"
+              aria-label="Contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-[1.5rem] border border-[#dfe6e2] bg-white px-5 py-4 pr-28 text-slate-900 outline-none focus:ring-2 focus:ring-[#074738]/20"
@@ -300,6 +292,7 @@ export function LoginScreen() {
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
               className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-[#dfe6e2] bg-[#f4f3f9] px-3 py-1 text-xs font-bold text-[#074738]"
             >
               {showPassword ? "Ocultar" : "Mostrar"}
@@ -387,6 +380,7 @@ export function LoginScreen() {
                 <input
                   type="email"
                   placeholder="Tu correo electrónico"
+                  aria-label="Correo electrónico para recuperar contraseña"
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#074738]"
