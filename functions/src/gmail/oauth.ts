@@ -18,7 +18,7 @@ const BASE_GMAIL_SCOPES = [
   "https://www.googleapis.com/auth/gmail.readonly",
 ];
 const REQUIRED_GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly";
-const OPTIONAL_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+const OPTIONAL_CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
 
 function buildGmailScopes(includeCalendar: boolean): string {
   const scopes = includeCalendar ? [...BASE_GMAIL_SCOPES, OPTIONAL_CALENDAR_SCOPE] : BASE_GMAIL_SCOPES;

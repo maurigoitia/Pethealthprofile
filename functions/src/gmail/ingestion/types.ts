@@ -27,7 +27,7 @@ export const CLASSIFICATION_AI_TIMEOUT_MS = 7_000;
 
 // ── Gmail ────────────────────────────────────────────────────────────────────
 export const GMAIL_SCOPE_READONLY = "https://www.googleapis.com/auth/gmail.readonly";
-export const RAW_DOCUMENT_TTL_MS = 24 * ONE_DAY_MS;
+export const RAW_DOCUMENT_TTL_MS = 1 * ONE_DAY_MS; // 24h — destrucción rápida por privacidad
 
 // ── Workers ──────────────────────────────────────────────────────────────────
 export const MAX_SCAN_WORKERS_PER_TICK = 1;
