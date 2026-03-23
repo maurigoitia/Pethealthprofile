@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from "react-router";
 import { BottomNav } from "./BottomNav";
 import { MaterialIcon } from "./MaterialIcon";
 import { PetHomeView } from "./PetHomeView";
+import { Sidebar } from "./Sidebar";
 import { TermsAcceptanceNotice } from "./TermsAcceptanceNotice";
 import { usePet } from "../contexts/PetContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -45,6 +46,9 @@ const FocusedHomeExperience = lazy(() =>
 const ExportReportModal = lazy(() =>
   import("./ExportReportModal").then((module) => ({ default: module.ExportReportModal }))
 );
+const NearbyVetsScreen = lazy(() =>
+  import("./NearbyVetsScreen").then((module) => ({ default: module.NearbyVetsScreen }))
+);
 
 function ScreenLoader({ label = "Cargando..." }: { label?: string }) {
   return (
@@ -64,13 +68,14 @@ export default function HomeScreen() {
   const [showExportReport, setShowExportReport] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showPetSelector, setShowPetSelector] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
   const [currentTab, setCurrentTab] = useState<"home" | "settings">("home");
-  const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications">("card");
+  const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications" | "nearby-vets">("card");
   const [inviteNotice, setInviteNotice] = useState<{ type: "info" | "success" | "error"; message: string } | null>(null);
   const [inviteJoiningCode, setInviteJoiningCode] = useState("");
   const [inviteResolvedCode, setInviteResolvedCode] = useState("");
   const { activePetId, setActivePetId, pets, activePet, loading: petsLoading, joinWithCode } = usePet();
-  const { user, loading: authLoading, userName } = useAuth();
+  const { user, loading: authLoading, userName, logout } = useAuth();
   const focusExperienceEnabled = isFocusExperienceHost();
 
   useEffect(() => {
@@ -200,6 +205,16 @@ export default function HomeScreen() {
   const handleTabChange = (tab: "home" | "settings") => {
     setCurrentTab(tab);
     if (tab === "home") setViewMode("card");
+  };
+
+  // Handle sidebar navigation
+  const handleSidebarNavigate = (screen: "home" | "appointments" | "medications" | "feed" | "settings" | "nearby-vets") => {
+    if (screen === "settings") {
+      setCurrentTab("settings");
+    } else {
+      setCurrentTab("home");
+      setViewMode(screen === "home" ? "card" : screen);
+    }
   };
 
   const handlePetChange = (petId: string) => {
@@ -391,9 +406,53 @@ export default function HomeScreen() {
     );
   }
 
+  // Show Nearby Vets Screen
+  if (viewMode === "nearby-vets") {
+    return withTermsNotice(
+      <>
+        <Suspense fallback={<ScreenLoader label="Buscando veterinarias..." />}>
+          <NearbyVetsScreen onBack={() => setViewMode("card")} />
+        </Suspense>
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} />
+        <Suspense fallback={null}>
+          <DocumentScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
+        </Suspense>
+      </>
+    );
+  }
+
   return withTermsNotice(
     <div className="bg-[#f6f6f8] dark:bg-[#101622] text-slate-900 dark:text-slate-100 min-h-screen font-['Manrope',sans-serif]">
+      {/* Sidebar */}
+      <Sidebar
+        isOpen={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        userName={safeUserName}
+        userEmail={user?.email || undefined}
+        pets={pets.map((p) => ({ id: p.id, name: p.name, photo: p.photo, breed: p.breed }))}
+        activePetId={activePetId}
+        onPetChange={handlePetChange}
+        onAddPet={handleAddNewPet}
+        onNavigate={handleSidebarNavigate}
+        onLogout={logout}
+      />
+
       <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24">
+        {/* Hamburger Menu Button */}
+        {viewMode === "card" && (
+          <div className="fixed top-4 left-4 z-40">
+            <button
+              onClick={() => setShowSidebar(true)}
+              className="size-10 rounded-full bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center hover:scale-110 transition-transform"
+            >
+              <MaterialIcon
+                name="menu"
+                className="text-[#074738] dark:text-emerald-400 text-xl"
+              />
+            </button>
+          </div>
+        )}
+
         {/* View Mode Toggle Button */}
         {viewMode === "feed" && (
           <div className="fixed top-4 left-4 z-40">
