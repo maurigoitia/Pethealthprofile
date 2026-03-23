@@ -234,8 +234,8 @@ export function LoginScreen() {
 
       <AuthPageShell
         eyebrow="Acceso"
-        title="Entrar a Pessy — AI-powered"
-        description="Todo lo de tu mascota, en un solo lugar. Con IA."
+        title="Pessy — Porque quererlo ya es suficiente trabajo"
+        description="Porque quererlo ya es suficiente trabajo. Con IA."
         highlights={["Identidad digital", "Recordatorios", "Co-tutores"]}
       >
         <div className="mb-8">
@@ -259,7 +259,7 @@ export function LoginScreen() {
           <div className="w-full rounded-[1.75rem] border border-[#dfe6e2] bg-[#f4f3f9] p-5">
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]">Tu mascota, sus cosas</p>
             <p className="mt-2 text-sm font-medium leading-6 text-[#36584e]">
-              Todo lo de tu mascota, en un solo lugar.
+              Porque quererlo ya es suficiente trabajo.
             </p>
           </div>
         </motion.div>

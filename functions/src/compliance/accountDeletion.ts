@@ -267,12 +267,30 @@ export const deleteUserAccount = functions
     }
   });
 
+// SEC-002 FIX: CORS restringido a dominios Pessy (no wildcard *).
+const ALLOWED_ORIGINS = new Set([
+  "https://pessy.app",
+  "https://www.pessy.app",
+  "https://app.pessy.app",
+  "https://polar-scene-488615-i0.web.app",
+  "https://polar-scene-488615-i0.firebaseapp.com",
+]);
+
+function setCorsHeaders(req: functions.https.Request, res: functions.Response): void {
+  const origin = req.headers.origin || "";
+  if (ALLOWED_ORIGINS.has(origin)) {
+    res.set("Access-Control-Allow-Origin", origin);
+  } else {
+    res.set("Access-Control-Allow-Origin", "https://pessy.app");
+  }
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+}
+
 export const submitDataDeletionRequest = functions
   .region("us-central1")
   .https.onRequest(async (req, res) => {
-    res.set("Access-Control-Allow-Origin", "*");
-    res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-    res.set("Access-Control-Allow-Headers", "Content-Type");
+    setCorsHeaders(req, res);
 
     if (req.method === "OPTIONS") {
       res.status(204).send("");

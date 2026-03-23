@@ -121,7 +121,7 @@ export function FocusedHomeExperience({
     },
     {
       icon: "medication",
-      label: "Tratamientos",
+      label: "Seguimientos",
       value: String(activeMedications.length),
     },
     {
@@ -146,7 +146,7 @@ export function FocusedHomeExperience({
     },
     {
       icon: "medication",
-      label: "Tratamientos",
+      label: "Seguimientos",
       value: String(activeMedications.length),
       tone: "text-slate-900 dark:text-white",
     },
@@ -330,7 +330,7 @@ export function FocusedHomeExperience({
                 className="rounded-[22px] border border-white/70 dark:border-white/10 bg-white dark:bg-slate-900 p-4 text-left shadow-sm"
               >
                 <MaterialIcon name="medication" className="text-[#074738] text-xl mb-3" />
-                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Tratamientos</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Seguimientos</p>
                 <p className="text-lg font-black text-slate-900 dark:text-white mt-1">{activeMedications.length}</p>
               </button>
               <button

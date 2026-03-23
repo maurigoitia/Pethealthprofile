@@ -335,7 +335,7 @@ export function PetHomeView({
         helper: "Cargá la raza y Pessy activa el semáforo de seguridad.",
         primaryLabel: "Completar perfil",
         primaryAction: "profile",
-        secondaryLabel: "Historia clínica",
+        secondaryLabel: "Actividad",
         secondaryAction: "history",
         toneClassName: "border-slate-300 bg-slate-100 text-slate-900 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white",
         icon: "help",
@@ -618,7 +618,7 @@ export function PetHomeView({
                 }}
                 className="rounded-2xl bg-[#074738] px-4 py-3 text-sm font-bold text-white shadow-lg shadow-[#074738]/25 transition-colors hover:bg-[#0c5d4a]"
               >
-                Historia clínica
+                Actividad
               </button>
             </div>
           </div>
@@ -713,7 +713,7 @@ export function PetHomeView({
             onClick={onViewHistory}
             className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-900 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
           >
-            Historia clínica
+            Actividad
           </button>
         </div>
       </motion.section>

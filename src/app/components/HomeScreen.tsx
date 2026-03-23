@@ -267,7 +267,7 @@ export default function HomeScreen() {
                   ¡Bienvenido a PESSY!
                 </h2>
                 <p className="text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
-                  Agrega tu primera mascota y Pessy usa IA para organizar todo automaticamente
+                  Agrega tu primera mascota. Pessy hace el resto.
                 </p>
               </div>
               <button

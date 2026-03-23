@@ -9,7 +9,8 @@ interface ImportMetaEnv {
     readonly VITE_FIREBASE_APP_ID: string
     readonly VITE_FIREBASE_MEASUREMENT_ID: string
     readonly VITE_FIREBASE_VAPID_KEY: string
-    readonly VITE_GEMINI_API_KEY: string
+    // SEC-003: VITE_GEMINI_API_KEY removida de types. El análisis AI va por Cloud Functions.
+    // Si necesitás fallback local en dev, usá VITE_ALLOW_DIRECT_ANALYSIS_FALLBACK=true
     readonly VITE_USE_BACKEND_ANALYSIS: string
     readonly VITE_ENABLE_PENDING_ACTIONS: string
     readonly VITE_ENABLE_EMAIL_SYNC: string

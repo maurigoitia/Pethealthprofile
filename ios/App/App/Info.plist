@@ -45,5 +45,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Pessy necesita la cámara para sacar fotos de tu mascota y documentos médicos</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Pessy necesita acceder a tus fotos para subir imágenes de tu mascota y documentos</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Pessy necesita guardar fotos de documentos y reportes en tu galería</string>
 </dict>
 </plist>

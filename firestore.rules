@@ -221,6 +221,16 @@ service cloud.firestore {
       allow read, update, delete: if canAccessPetById(resource.data.petId);
     }
 
+    match /clinical_episodes/{episodeId} {
+      allow create: if canAccessPetById(request.resource.data.petId);
+      allow read, update, delete: if canAccessPetById(resource.data.petId);
+    }
+
+    match /clinical_profile_snapshots/{snapshotId} {
+      allow create: if canAccessPetById(request.resource.data.petId);
+      allow read, update, delete: if canAccessPetById(resource.data.petId);
+    }
+
     match /reminders/{reminderId} {
       allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
       allow read, update, delete: if signedIn() && resource.data.userId == request.auth.uid;
