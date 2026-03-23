@@ -354,8 +354,42 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
     }
   }
 
+  // ─── MODULE: UV Index alert ──────────────────────────────────────────────
+  if (input.uvIndex !== null && input.uvIndex !== undefined && input.uvIndex >= 8) {
+    const isLightCoated = input.groupIds.some((id) => id.includes("brachycephalic")) || input.species === "cat";
+    recommendations.push({
+      id: `${input.petName}_uv_alert`,
+      code: "high_uv_protection",
+      title: `UV muy alto hoy (${input.uvIndex})`,
+      detail: isLightCoated
+        ? `${input.breed} tiene mayor riesgo de quemaduras en nariz y orejas. Evitá exposición directa al sol entre 11:00 y 16:00.`
+        : `Evitá paseos largos bajo sol directo. Si no hay sombra, acortá la salida. El asfalto también quema las almohadillas.`,
+      slot: "Hoy",
+      icon: "wb_sunny",
+      kind: input.uvIndex >= 11 ? "alert" : "recommendation",
+      sourceModule: "uv_index",
+    });
+  }
+
+  // ─── MODULE: Wind chill / strong wind ───────────────────────────────────
+  if (input.windSpeedKmh !== null && input.windSpeedKmh !== undefined && input.windSpeedKmh >= 50) {
+    const isSmallOrPuppy = input.isPuppy || input.groupIds.includes("dog.puppy");
+    recommendations.push({
+      id: `${input.petName}_wind_alert`,
+      code: "strong_wind_caution",
+      title: `Viento fuerte hoy (${input.windSpeedKmh} km/h)`,
+      detail: isSmallOrPuppy
+        ? `Cachorros y perros chicos pueden estresarse mucho con viento fuerte. Mejor salida corta y protegida.`
+        : `El viento puede levantar objetos y generar ruidos que estresan. Paseo corto en zona reparada.`,
+      slot: "Hoy",
+      icon: "air",
+      kind: "recommendation",
+      sourceModule: "wind_alert",
+    });
+  }
+
   // ─── MODULE: Breed-specific daily needs ───────────────────────────────────
-  const breedProfile = WELLBEING_MASTER_BOOK.breed_profiles?.find((p) =>
+  const breedProfile = WELLBEING_MASTER_BOOK.breed_profiles.groups?.find((p) =>
     input.groupIds.includes(p.id as WellbeingSpeciesGroupId)
   );
   if (breedProfile) {
@@ -448,8 +482,14 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
       f.toLowerCase().includes("fuego") || f.toLowerCase().includes("pirotecnia") || f.toLowerCase().includes("artifici")
     );
 
-    // Alertar cerca de fechas con pirotecnia (24-25 dic, 31 dic-1 ene, fiestas patrias)
-    const isFireworksSeason = (month === 11 && day >= 20) || (month === 0 && day <= 2);
+    // Alertar cerca de fechas con pirotecnia:
+    // - Navidad y Año Nuevo (20 dic - 2 ene)
+    // - Día de la Revolución de Mayo (24-25 mayo)
+    // - Día de la Independencia Argentina (8-9 julio)
+    const isFireworksSeason =
+      (month === 11 && day >= 20) || (month === 0 && day <= 2) ||
+      (month === 4 && day >= 24 && day <= 25) ||
+      (month === 6 && day >= 8 && day <= 9);
 
     if (hasNoiseFear && isFireworksSeason) {
       recommendations.push({
