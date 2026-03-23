@@ -158,6 +158,7 @@ export function extractGeminiText(data: Record<string, unknown>): string {
 export async function ocrAttachmentViaGemini(args: {
   mimeType: string;
   base64Data: string;
+  userId?: string;
 }): Promise<string> {
   const payload = {
     contents: [
@@ -184,7 +185,7 @@ export async function ocrAttachmentViaGemini(args: {
       maxOutputTokens: 1600,
     },
   };
-  const data = await callGemini(payload, OCR_TIMEOUT_MS, { softFailUnsupportedMime: true });
+  const data = await callGemini(payload, OCR_TIMEOUT_MS, { softFailUnsupportedMime: true, userId: args.userId });
   return extractGeminiText(data).slice(0, 120_000);
 }
 
@@ -621,7 +622,8 @@ export function heuristicClinicalClassification(input: ClinicalClassificationInp
 
 export async function classifyClinicalContentWithAi(
   input: ClinicalClassificationInput,
-  sessionId?: string
+  sessionId?: string,
+  userId?: string,
 ): Promise<ClinicalClassificationOutput> {
   const bodyText = asString(input.bodyText);
   const subject = asString(input.subject).slice(0, 500);
@@ -705,7 +707,7 @@ export async function classifyClinicalContentWithAi(
 
   try {
     const started = Date.now();
-    const response = await callGemini(payload, CLASSIFICATION_AI_TIMEOUT_MS);
+    const response = await callGemini(payload, CLASSIFICATION_AI_TIMEOUT_MS, { userId });
     const rawText = extractGeminiText(response);
     const parsed = tryParseJson(rawText);
     const json = asRecord(parsed);
@@ -739,6 +741,7 @@ export async function extractClinicalEventsWithAi(args: {
   petContext: Record<string, unknown>;
   attachmentMetadata: AttachmentMetadata[];
   sessionId?: string;
+  userId?: string;
 }): Promise<ClinicalExtractionOutput> {
   if (!asString(args.extractedText)) {
     return {
@@ -786,14 +789,14 @@ export async function extractClinicalEventsWithAi(args: {
       };
       const started = Date.now();
       let aiCallsUsed = 1;
-      let response = await callGemini(payload, CLINICAL_AI_TIMEOUT_MS);
+      let response = await callGemini(payload, CLINICAL_AI_TIMEOUT_MS, { userId: args.userId });
       let rawText = extractGeminiText(response);
       let parsed = tryParseJson(rawText);
 
       // Retry once when the model returns malformed JSON.
       if (!parsed) {
         aiCallsUsed += 1;
-        response = await callGemini(payload, CLINICAL_AI_TIMEOUT_MS);
+        response = await callGemini(payload, CLINICAL_AI_TIMEOUT_MS, { userId: args.userId });
         rawText = extractGeminiText(response);
         parsed = tryParseJson(rawText);
       }

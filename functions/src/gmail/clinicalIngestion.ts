@@ -1358,6 +1358,7 @@ async function fetchAttachmentTextChunks(args: {
             extractedText = await ocrAttachmentViaGemini({
               mimeType,
               base64Data: normalizedBase64,
+              userId: args.uid,
             });
             ocrSuccess = Boolean(extractedText.trim());
             reason = ocrSuccess ? "gemini_ocr" : "gemini_ocr_empty";
@@ -1998,7 +1999,8 @@ async function processAiQueueJob(
         fromEmail: sourceSender,
         attachmentMetadata: rawDoc.attachmentMeta,
       },
-      sessionId
+      sessionId,
+      uid,
     );
 
     if (!classification.is_clinical) {
@@ -2118,6 +2120,7 @@ async function processAiQueueJob(
     petContext: planAndPet.petContext,
     attachmentMetadata,
     sessionId,
+    userId: uid,
   });
   await recordSessionStageMetric({
     sessionId,
