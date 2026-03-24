@@ -2319,6 +2319,8 @@ export const approveAccessRequest = functions
       const resend = new Resend(RESEND_API_KEY_SECRET);
 
       const inviteLink = `https://app.pessy.app/register-user?access=${accessToken}`;
+      const safeName = (reqData.name || "").replace(/[<>&"']/g, (c: string) =>
+        ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
 
       await resend.emails.send({
         from: "PESSY <noreply@pessy.app>",
@@ -2326,7 +2328,7 @@ export const approveAccessRequest = functions
         subject: "Ya tenés acceso a Pessy",
         html: `
           <div style="font-family: 'Manrope', sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
-            <h1 style="color: #074738; font-size: 24px;">Hola ${reqData.name}</h1>
+            <h1 style="color: #074738; font-size: 24px;">Hola ${safeName}</h1>
             <p style="color: #5e716b; font-size: 15px; line-height: 1.6;">
               Tu solicitud de acceso a Pessy fue aprobada. Tenés 24 horas para crear tu cuenta.
             </p>

@@ -7,7 +7,7 @@ import { COUNTRIES } from "../data/countries";
 import { startGmailConnectFlow } from "../services/gmailSyncService";
 import { normalizeCoTutorInviteCode, rememberPendingCoTutorInvite } from "../utils/coTutorInvite";
 import { persistAcquisitionSource, resolveAcquisitionSource, trackAcquisitionEvent } from "../utils/acquisitionTracking";
-import { validatePlatformInviteCode, validateAccessToken, markPlatformInviteUsed } from "../utils/platformInvite";
+import { validatePlatformInviteCode, validateAccessToken, markPlatformInviteUsed, markAccessTokenUsed } from "../utils/platformInvite";
 import { AuthPageShell } from "./AuthPageShell";
 import { GmailConsentScreen } from "./GmailConsentScreen";
 
@@ -172,6 +172,11 @@ export function RegisterUserScreen() {
       if (refCode) {
         try { await markPlatformInviteUsed(refCode, user.uid); } catch (err) {
           console.warn("Could not mark platform invite as used:", err);
+        }
+      }
+      if (accessToken) {
+        try { await markAccessTokenUsed(accessToken, user.uid); } catch (err) {
+          console.warn("Could not mark access token as used:", err);
         }
       }
 

@@ -2,9 +2,12 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
+  query,
   runTransaction,
   setDoc,
   Timestamp,
+  where,
 } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { buildAuthActionUrl } from "./authActionLinks";
@@ -76,6 +79,8 @@ export interface PlatformInvitationDoc {
 export interface AccessRequestDoc {
   token: string;
   email: string;
+  name?: string;
+  docId?: string;
   createdAt: Timestamp;
   expiresAt: Timestamp;
   used: boolean;
@@ -202,17 +207,34 @@ export const validateAccessToken = async (
   const normalizedToken = token.trim().toUpperCase();
   if (!normalizedToken) return { valid: false, reason: "not_found" };
 
-  const ref = doc(db, "access_requests", normalizedToken);
-  const snap = await getDoc(ref);
+  // Query by accessToken field (docs have auto-generated IDs)
+  const q = query(
+    collection(db, "access_requests"),
+    where("accessToken", "==", normalizedToken),
+    where("status", "==", "approved")
+  );
+  const snapshot = await getDocs(q);
 
-  if (!snap.exists()) return { valid: false, reason: "not_found" };
+  if (snapshot.empty) return { valid: false, reason: "not_found" };
 
-  const data = snap.data() as AccessRequestDoc;
+  const docSnap = snapshot.docs[0]!;
+  const data = docSnap.data();
 
   if (data.used) return { valid: false, reason: "already_used" };
-  if (data.expiresAt.toMillis() < Date.now()) return { valid: false, reason: "expired" };
+  if (data.accessTokenExpiresAt?.toMillis() < Date.now()) return { valid: false, reason: "expired" };
 
-  return { valid: true, doc: data };
+  return {
+    valid: true,
+    doc: {
+      token: normalizedToken,
+      email: data.email,
+      name: data.name,
+      createdAt: data.createdAt,
+      expiresAt: data.accessTokenExpiresAt,
+      used: data.used ?? false,
+      docId: docSnap.id,
+    } as AccessRequestDoc & { name?: string; docId: string },
+  };
 };
 
 /**
@@ -227,19 +249,25 @@ export const markAccessTokenUsed = async (
   userId: string
 ): Promise<void> => {
   const normalizedToken = token.trim().toUpperCase();
-  const ref = doc(db, "access_requests", normalizedToken);
+
+  // Find the doc by accessToken field (auto-generated ID)
+  const q = query(
+    collection(db, "access_requests"),
+    where("accessToken", "==", normalizedToken)
+  );
+  const snapshot = await getDocs(q);
+  if (snapshot.empty) throw new Error("access_token_not_found");
+
+  const docRef = snapshot.docs[0]!.ref;
 
   await runTransaction(db, async (tx) => {
-    const snap = await tx.get(ref);
-
+    const snap = await tx.get(docRef);
     if (!snap.exists()) throw new Error("access_token_not_found");
 
-    const data = snap.data() as AccessRequestDoc;
-
+    const data = snap.data();
     if (data.used) throw new Error("access_token_already_used");
-    if (data.expiresAt.toMillis() < Date.now()) throw new Error("access_token_expired");
 
-    tx.update(ref, {
+    tx.update(docRef, {
       used: true,
       usedBy: userId,
       usedAt: Timestamp.now(),
@@ -256,7 +284,7 @@ export const markAccessTokenUsed = async (
  * Note: `?invite=` is reserved for co-tutor invites.
  */
 export const buildPlatformInviteUrl = (inviteCode: string): string =>
-  buildAuthActionUrl("/login", { ref: normalizePlatformInviteCode(inviteCode) });
+  buildAuthActionUrl("/register-user", { ref: normalizePlatformInviteCode(inviteCode) });
 
 // ---------------------------------------------------------------------------
 // localStorage helpers
