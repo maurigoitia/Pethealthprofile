@@ -43,6 +43,13 @@ export function LoginScreen() {
     if (code) rememberPendingCoTutorInvite(code);
     return code;
   }, [location.search]);
+
+  // Platform invite code (?ref=CODE) — enables register button
+  const refCode = useMemo(
+    () => new URLSearchParams(location.search).get("ref")?.trim() || "",
+    [location.search]
+  );
+  const hasValidCode = !!(inviteCode || refCode);
   const acquisitionSource = useMemo(
     () => resolveAcquisitionSource(location.search, location.pathname),
     [location.pathname, location.search]
@@ -343,21 +350,38 @@ export function LoginScreen() {
             {loadingGoogle ? "Conectando con Google..." : "Google"}
           </button>
 
-          <button
-            type="button"
-            disabled
-            className="w-full rounded-full border border-[#dfe6e2] bg-white py-4 font-bold uppercase tracking-[0.16em] text-[#9ca8a2] cursor-not-allowed"
-            style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-          >
-            Solo por invitación
-          </button>
-
-          <a
-            href="/solicitar-acceso"
-            className="block text-center text-sm font-semibold text-[#1A9B7D] hover:underline mt-2"
-          >
-            ¿Querés acceso? Solicitalo acá
-          </a>
+          {hasValidCode ? (
+            <button
+              type="button"
+              onClick={() => {
+                const params = new URLSearchParams();
+                if (inviteCode) params.set("invite", inviteCode);
+                if (refCode) params.set("ref", refCode);
+                navigate(`/register-user?${params.toString()}`);
+              }}
+              className="w-full rounded-full border border-[#dfe6e2] bg-white py-4 font-bold uppercase tracking-[0.16em] text-[#074738] transition-all hover:bg-[#f4f3f9]"
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+            >
+              Registrarse
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled
+                className="w-full rounded-full border border-[#dfe6e2] bg-white py-4 font-bold uppercase tracking-[0.16em] text-[#9ca8a2] cursor-not-allowed"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                Solo por invitación
+              </button>
+              <a
+                href="/solicitar-acceso"
+                className="block text-center text-sm font-semibold text-[#1A9B7D] hover:underline mt-2"
+              >
+                ¿Querés acceso? Solicitalo acá
+              </a>
+            </>
+          )}
         </motion.form>
       </AuthPageShell>
 
