@@ -345,12 +345,19 @@ export function LoginScreen() {
 
           <button
             type="button"
-            onClick={() => navigate(inviteCode ? `/register-user?invite=${inviteCode}` : "/register-user")}
-            className="w-full rounded-full border border-[#dfe6e2] bg-white py-4 font-bold uppercase tracking-[0.16em] text-[#074738] transition-all hover:bg-[#f4f3f9]"
+            disabled
+            className="w-full rounded-full border border-[#dfe6e2] bg-white py-4 font-bold uppercase tracking-[0.16em] text-[#9ca8a2] cursor-not-allowed"
             style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
           >
-            Registrarse gratis
+            Solo por invitación
           </button>
+
+          <a
+            href="/solicitar-acceso"
+            className="block text-center text-sm font-semibold text-[#1A9B7D] hover:underline mt-2"
+          >
+            ¿Querés acceso? Solicitalo acá
+          </a>
         </motion.form>
       </AuthPageShell>
 
