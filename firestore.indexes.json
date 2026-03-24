@@ -102,6 +102,14 @@
         { "fieldPath": "subtype", "order": "ASCENDING" },
         { "fieldPath": "generatedFromEventId", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "access_requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
