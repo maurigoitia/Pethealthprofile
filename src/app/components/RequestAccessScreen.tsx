@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { AuthPageShell } from "./AuthPageShell";
 
@@ -24,7 +24,7 @@ export function RequestAccessScreen() {
         email: email.trim().toLowerCase(),
         source,
         status: "pending",
-        createdAt: Timestamp.now(),
+        createdAt: serverTimestamp(),
       });
       setSubmitted(true);
     } catch {
