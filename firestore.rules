@@ -80,6 +80,10 @@ service cloud.firestore {
         && request.resource.data.coTutors.size() == resource.data.coTutors.size() - 1;
     }
 
+    function isAdmin() {
+      return signedIn() && request.auth.token.email == 'mauriciogoitia@gmail.com';
+    }
+
     match /users/{userId} {
       allow read, write: if signedIn() && request.auth.uid == userId;
 
@@ -108,23 +112,50 @@ service cloud.firestore {
       allow delete: if isPetOwner(resource.data);
     }
 
-    match /invitations/{code} {
-      allow create: if signedIn()
-        && code.matches('^[A-Z0-9]{6}$')
-        && request.resource.data.createdBy == request.auth.uid
-        && request.resource.data.petId is string
-        && isPetOwnerById(request.resource.data.petId)
-        && request.resource.data.used == false;
+    match /access_requests/{docId} {
+      allow create: if request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.keys().hasAll(['name', 'email', 'source', 'status', 'createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.email is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.email.size() > 5;
+      allow read, update: if isAdmin();
+      allow delete: if false;
+    }
 
-      allow get: if signedIn() && (
-        resource.data.createdBy == request.auth.uid ||
-        resource.data.inviteEmail == null ||
+    match /invitations/{code} {
+      allow create: if signedIn() && code.matches('^[A-Z0-9]{6}$') && (
+        // Existing co-tutor invite rule (unchanged)
         (
-          request.auth.token.email != null &&
-          resource.data.inviteEmail is string &&
-          resource.data.inviteEmail == request.auth.token.email
+          request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.petId is string
+          && isPetOwnerById(request.resource.data.petId)
+          && request.resource.data.used == false
+        )
+        ||
+        // New platform invite rule
+        (
+          request.resource.data.type == 'platform'
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.used == false
         )
       );
+
+      allow get: if
+        // Platform invites: anyone can read (needed before auth for registration gate)
+        (resource.data.type == 'platform')
+        ||
+        // Co-tutor invites: existing rules (unchanged)
+        (signedIn() && (
+          resource.data.createdBy == request.auth.uid ||
+          resource.data.inviteEmail == null ||
+          (
+            request.auth.token.email != null &&
+            resource.data.inviteEmail is string &&
+            resource.data.inviteEmail == request.auth.token.email
+          )
+        ));
       allow list: if false;
 
       allow update: if signedIn() && (
@@ -152,6 +183,15 @@ service cloud.firestore {
             !(resource.data.expiresAt is timestamp) ||
             resource.data.expiresAt > request.time
           ) &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(['used', 'usedBy', 'usedAt'])
+        )
+        ||
+        // Platform invite mark-as-used (new)
+        (
+          resource.data.type == 'platform' &&
+          resource.data.used == false &&
+          request.resource.data.used == true &&
+          request.resource.data.usedBy == request.auth.uid &&
           request.resource.data.diff(resource.data).changedKeys().hasOnly(['used', 'usedBy', 'usedAt'])
         )
       );

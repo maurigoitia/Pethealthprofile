@@ -2260,3 +2260,88 @@ export {
   submitDataDeletionRequest,
   syncNotebookKnowledge,
 };
+
+// ---------------------------------------------------------------------------
+// Approve waitlist access request — generates token + sends welcome email
+// ---------------------------------------------------------------------------
+export const approveAccessRequest = functions
+  .region("us-central1")
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "Requiere sesión activa.");
+    }
+
+    const callerEmail = (context.auth.token.email || "").toLowerCase();
+    if (callerEmail !== "mauriciogoitia@gmail.com") {
+      throw new functions.https.HttpsError("permission-denied", "Solo admin puede aprobar.");
+    }
+
+    const requestId = (data.requestId || "").trim();
+    if (!requestId) {
+      throw new functions.https.HttpsError("invalid-argument", "requestId requerido.");
+    }
+
+    const firestore = admin.firestore();
+    const docRef = firestore.collection("access_requests").doc(requestId);
+    const snap = await docRef.get();
+
+    if (!snap.exists) {
+      throw new functions.https.HttpsError("not-found", "Solicitud no encontrada.");
+    }
+
+    const reqData = snap.data()!;
+    if (reqData.status !== "pending") {
+      throw new functions.https.HttpsError("failed-precondition", "Solicitud ya procesada.");
+    }
+
+    // Generate 8-char access token
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let accessToken = "";
+    for (let i = 0; i < 8; i++) {
+      accessToken += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    const now = admin.firestore.Timestamp.now();
+    const expiresAt = admin.firestore.Timestamp.fromMillis(now.toMillis() + 24 * 60 * 60 * 1000);
+
+    await docRef.update({
+      status: "approved",
+      approvedAt: now,
+      approvedBy: context.auth.uid,
+      accessToken,
+      accessTokenExpiresAt: expiresAt,
+    });
+
+    // Send approval email via Resend
+    const RESEND_API_KEY_SECRET = process.env.RESEND_API_KEY;
+    if (RESEND_API_KEY_SECRET) {
+      const resend = new Resend(RESEND_API_KEY_SECRET);
+
+      const inviteLink = `https://app.pessy.app/register-user?access=${accessToken}`;
+      const safeName = (reqData.name || "").replace(/[<>&"']/g, (c: string) =>
+        ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
+
+      await resend.emails.send({
+        from: "PESSY <noreply@pessy.app>",
+        to: reqData.email,
+        subject: "Ya tenés acceso a Pessy",
+        html: `
+          <div style="font-family: 'Manrope', sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
+            <h1 style="color: #074738; font-size: 24px;">Hola ${safeName}</h1>
+            <p style="color: #5e716b; font-size: 15px; line-height: 1.6;">
+              Tu solicitud de acceso a Pessy fue aprobada. Tenés 24 horas para crear tu cuenta.
+            </p>
+            <a href="${inviteLink}" style="display: block; background: #074738; color: white; text-align: center; padding: 16px; border-radius: 999px; font-weight: bold; text-decoration: none; margin-top: 24px;">
+              Crear mi cuenta
+            </a>
+            <p style="color: #9ca8a2; font-size: 12px; margin-top: 24px;">
+              Este link expira en 24 horas. Si no lo pediste, ignorá este email.
+            </p>
+          </div>
+        `,
+      });
+    }
+
+    return { ok: true, accessToken };
+  });

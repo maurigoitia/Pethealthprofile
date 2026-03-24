@@ -11,7 +11,10 @@ import { RouteErrorFallback } from "./components/RouteErrorFallback";
 import { ClinicalReviewScreen } from "./components/ClinicalReviewScreen";
 import LandingEcosystemPreviewPage from "./pages/LandingEcosystemPreviewPage";
 import LegalPage from "./pages/LegalPage";
+import { RequestAccessScreen } from "./components/RequestAccessScreen";
 import { isProductionAppHost } from "./utils/runtimeFlags";
+
+const AdminAccessRequests = () => import("./components/AdminAccessRequests").then(m => ({ Component: m.AdminAccessRequests }));
 
 const withErrorBoundary = <T extends Record<string, unknown>>(route: T): T => ({
   ...route,
@@ -105,6 +108,8 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/register-pet/step2", Component: RegisterPetStep2 }),
   withErrorBoundary({ path: "/register-pet-step2", element: <Navigate to="/register-pet/step2" replace /> }),
   withErrorBoundary({ path: "/login", Component: LoginScreen }),
+  withErrorBoundary({ path: "/solicitar-acceso", Component: RequestAccessScreen }),
+  withErrorBoundary({ path: "/admin/access-requests", lazy: AdminAccessRequests }),
   withErrorBoundary({ path: "/app", element: <Navigate to="/inicio" replace /> }),
   withErrorBoundary({ path: "/inicio", Component: HomeScreen }),
   withErrorBoundary({ path: "/empezar", Component: LandingEcosystemPreviewPage }),

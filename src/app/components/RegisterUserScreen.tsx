@@ -7,6 +7,7 @@ import { COUNTRIES } from "../data/countries";
 import { startGmailConnectFlow } from "../services/gmailSyncService";
 import { normalizeCoTutorInviteCode, rememberPendingCoTutorInvite } from "../utils/coTutorInvite";
 import { persistAcquisitionSource, resolveAcquisitionSource, trackAcquisitionEvent } from "../utils/acquisitionTracking";
+import { validatePlatformInviteCode, validateAccessToken, markPlatformInviteUsed, markAccessTokenUsed } from "../utils/platformInvite";
 import { AuthPageShell } from "./AuthPageShell";
 import { GmailConsentScreen } from "./GmailConsentScreen";
 
@@ -23,6 +24,14 @@ export function RegisterUserScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showGmailStep, setShowGmailStep] = useState(false);
   const [gmailStepLoading, setGmailStepLoading] = useState(false);
+  const [gateStatus, setGateStatus] = useState<"loading" | "allowed" | "blocked" | "invalid">("loading");
+  const [gateMessage, setGateMessage] = useState("");
+  const [platformInviteCreatedBy, setPlatformInviteCreatedBy] = useState<string | null>(null);
+  const [accessTokenDocId, setAccessTokenDocId] = useState<string | null>(null);
+
+  const refCode = useMemo(() => (searchParams.get("ref") || "").trim().toUpperCase(), [searchParams]);
+  const accessToken = useMemo(() => (searchParams.get("access") || "").trim(), [searchParams]);
+
   // BUG-009 FIX: guardar sincrónicamente durante el render (ver LoginScreen)
   const inviteCode = useMemo(() => {
     const code = normalizeCoTutorInviteCode(searchParams.get("invite"));
@@ -59,6 +68,51 @@ export function RegisterUserScreen() {
       })
     );
   }, [leadEmail, leadName, leadPet]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function checkGate() {
+      if (refCode) {
+        const result = await validatePlatformInviteCode(refCode);
+        if (cancelled) return;
+        if (result.valid) {
+          setPlatformInviteCreatedBy(result.doc.createdBy);
+          setGateStatus("allowed");
+        } else {
+          setGateMessage(
+            result.reason === "expired" ? "Este link expiró. Pedile uno nuevo a quien te invitó." :
+            result.reason === "already_used" ? "Este link ya fue usado." :
+            "Este link no es válido."
+          );
+          setGateStatus("invalid");
+        }
+        return;
+      }
+      if (accessToken) {
+        const result = await validateAccessToken(accessToken);
+        if (cancelled) return;
+        if (result.valid) {
+          setAccessTokenDocId(result.doc.token);
+          if (result.doc.email) setEmail((c) => c || result.doc.email);
+          setGateStatus("allowed");
+        } else {
+          setGateMessage(
+            result.reason === "expired" ? "Este acceso expiró. Solicitá uno nuevo." :
+            "Este acceso no es válido."
+          );
+          setGateStatus("invalid");
+        }
+        return;
+      }
+      if (inviteCode) {
+        setGateStatus("allowed");
+        return;
+      }
+      setGateStatus("blocked");
+    }
+    void checkGate();
+    return () => { cancelled = true; };
+  }, [refCode, accessToken, inviteCode]);
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,6 +159,8 @@ export function RegisterUserScreen() {
           updatedAt: nowIso,
           lastError: null,
         },
+        ...(platformInviteCreatedBy ? { invitedBy: platformInviteCreatedBy } : {}),
+        accessSource: refCode ? "invite" : accessToken ? "waitlist" : inviteCode ? "cotutor" : "direct",
       });
 
       void trackAcquisitionEvent("pessy_acquisition_register_success", {
@@ -112,6 +168,17 @@ export function RegisterUserScreen() {
         path: location.pathname,
         gmail_invite_enabled: inviteEnabled,
       });
+
+      if (refCode) {
+        try { await markPlatformInviteUsed(refCode, user.uid); } catch (err) {
+          console.warn("Could not mark platform invite as used:", err);
+        }
+      }
+      if (accessToken) {
+        try { await markAccessTokenUsed(accessToken, user.uid); } catch (err) {
+          console.warn("Could not mark access token as used:", err);
+        }
+      }
 
       // BUG-005 FIX: usuarios con invite también pasan por el step de Gmail (flujo consistente).
       // Después del step de Gmail, se redirigen a /home (donde se procesa el invite code)
@@ -156,6 +223,84 @@ export function RegisterUserScreen() {
     // BUG-005 FIX: co-tutores van a /home (donde se procesa el invite), otros a /register-pet
     navigate(inviteCode ? "/home" : "/register-pet", { replace: true });
   };
+
+  if (gateStatus === "loading") {
+    return (
+      <AuthPageShell
+        eyebrow="Tu cuenta"
+        title="Su historia comienza aqui."
+        description="Pessy lo maneja. Vos lo disfrutás. Empezá gratis."
+        highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
+      >
+        <div className="flex flex-col items-center justify-center py-16 gap-4">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#074738] border-t-transparent" />
+          <p className="text-sm text-[#5e716b]">Verificando acceso...</p>
+        </div>
+      </AuthPageShell>
+    );
+  }
+
+  if (gateStatus === "blocked") {
+    return (
+      <AuthPageShell
+        eyebrow="Tu cuenta"
+        title="Su historia comienza aqui."
+        description="Pessy lo maneja. Vos lo disfrutás. Empezá gratis."
+        highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
+      >
+        <div className="space-y-6">
+          <div className="rounded-[1.5rem] border border-[#e8d5b5] bg-[#fdf6ec] px-6 py-6 text-center">
+            <p className="text-base font-bold text-[#002f24]">Pessy es solo por invitación</p>
+            <p className="mt-2 text-sm leading-5 text-[#5e716b]">
+              Por ahora el acceso es limitado. Podés solicitar tu lugar en la lista de espera.
+            </p>
+          </div>
+          <a
+            href="/solicitar-acceso"
+            className="block w-full rounded-full bg-[#074738] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-white"
+          >
+            Solicitar acceso
+          </a>
+          <a
+            href="/login"
+            className="block w-full rounded-full border border-[#dfe6e2] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-[#074738]"
+          >
+            Ya tengo cuenta
+          </a>
+        </div>
+      </AuthPageShell>
+    );
+  }
+
+  if (gateStatus === "invalid") {
+    return (
+      <AuthPageShell
+        eyebrow="Tu cuenta"
+        title="Su historia comienza aqui."
+        description="Pessy lo maneja. Vos lo disfrutás. Empezá gratis."
+        highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
+      >
+        <div className="space-y-6">
+          <div className="rounded-[1.5rem] border border-[#e8d5b5] bg-[#fdf6ec] px-6 py-6 text-center">
+            <p className="text-base font-bold text-[#002f24]">Link inválido</p>
+            <p className="mt-2 text-sm leading-5 text-[#5e716b]">{gateMessage}</p>
+          </div>
+          <a
+            href="/solicitar-acceso"
+            className="block w-full rounded-full bg-[#074738] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-white"
+          >
+            Solicitar acceso
+          </a>
+          <a
+            href="/login"
+            className="block w-full rounded-full border border-[#dfe6e2] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-[#074738]"
+          >
+            Ya tengo cuenta
+          </a>
+        </div>
+      </AuthPageShell>
+    );
+  }
 
   return (
     <AuthPageShell
