@@ -74,7 +74,7 @@ export default function HomeScreen() {
   const [inviteNotice, setInviteNotice] = useState<{ type: "info" | "success" | "error"; message: string } | null>(null);
   const [inviteJoiningCode, setInviteJoiningCode] = useState("");
   const [inviteResolvedCode, setInviteResolvedCode] = useState("");
-  const { activePetId, setActivePetId, pets, activePet, loading: petsLoading, joinWithCode } = usePet();
+  const { activePetId, setActivePetId, pets, activePet, loading: petsLoading, loadingSlow, joinWithCode } = usePet();
   const { user, loading: authLoading, userName, logout } = useAuth();
   const focusExperienceEnabled = isFocusExperienceHost();
 
@@ -126,7 +126,12 @@ export default function HomeScreen() {
       message: "Vinculando la invitación de co-tutor...",
     });
 
-    void joinWithCode(pendingInviteCode)
+    const joinWithTimeout = Promise.race([
+      joinWithCode(pendingInviteCode),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("La vinculación tardó demasiado. Intentá de nuevo.")), 15000)),
+    ]);
+
+    void joinWithTimeout
       .then(({ petName }) => {
         if (cancelled) return;
         clearPendingCoTutorInvite();
@@ -260,6 +265,11 @@ export default function HomeScreen() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             {inviteJoiningCode ? "Estamos sumando esta mascota compartida a tu cuenta." : "Un momento, por favor."}
           </p>
+          {loadingSlow && !inviteJoiningCode && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 font-medium">
+              Está tardando más de lo usual. Revisá tu conexión o recargá la app.
+            </p>
+          )}
         </div>
       </div>
     );
