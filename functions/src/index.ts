@@ -2175,7 +2175,8 @@ export const sendCoTutorInvite = functions
     // Enviar por Resend (único email, branded)
     const resendKey = process.env.RESEND_API_KEY || "";
     if (!resendKey) {
-      throw new functions.https.HttpsError("internal", "Servicio de email no configurado.");
+      console.warn("[COTUTORES] RESEND_API_KEY no configurada — email omitido para", toEmail);
+      return { ok: true, emailSent: false, reason: "email_not_configured" };
     }
     const resend = new Resend(resendKey);
 
@@ -2221,10 +2222,89 @@ export const sendCoTutorInvite = functions
     }
     if (lastErr) {
       console.error("[COTUTORES] Error enviando email después de reintentos:", lastErr);
-      throw new functions.https.HttpsError("internal", "No se pudo enviar el correo de invitación.");
+      // No tiramos error: el código ya se generó. Devolvemos estado para que el frontend avise.
+      return { ok: true, emailSent: false, reason: "send_failed" };
     }
 
-    return { ok: true };
+    return { ok: true, emailSent: true };
+  });
+
+// ── Firestore trigger: send co-tutor invite email on invitation creation ──
+export const onInvitationCreated = functions
+  .region("us-central1")
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .firestore.document("invitations/{code}")
+  .onCreate(async (snap, context) => {
+    const data = snap.data();
+    const inviteEmail = (data.inviteEmail || "").trim().toLowerCase();
+
+    // Only send email if inviteEmail is present
+    if (!inviteEmail || !inviteEmail.includes("@")) {
+      console.log(`[COTUTORES-TRIGGER] No inviteEmail on invitation ${context.params.code}, skipping email.`);
+      return;
+    }
+
+    const code = context.params.code;
+    const petName = data.petName || "tu mascota";
+    const appUrl = "https://pessy.app";
+    const magicLink = `${appUrl}/inicio?invite=${code}`;
+
+    const resendKey = process.env.RESEND_API_KEY || "";
+    if (!resendKey) {
+      console.warn("[COTUTORES-TRIGGER] RESEND_API_KEY no configurada — email omitido para", inviteEmail);
+      await snap.ref.update({ emailSent: false, emailReason: "email_not_configured" });
+      return;
+    }
+
+    const resend = new Resend(resendKey);
+
+    const html = `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#ffffff;">
+        <div style="background:#074738;border-radius:16px;padding:20px 24px;margin-bottom:24px;">
+          <h1 style="color:white;margin:0;font-size:24px;font-weight:900;">🐾 PESSY</h1>
+          <p style="color:rgba(255,255,255,0.8);margin:4px 0 0;font-size:13px;">Invitación a co-tutor</p>
+        </div>
+        <h2 style="color:#1a1a2e;font-size:18px;margin:0 0 12px;">Te invitaron a cuidar a <strong>${petName}</strong></h2>
+        <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 24px;">
+          Hacé clic en el botón para unirte al equipo de <strong>${petName}</strong>. El enlace expira en 48 horas.
+        </p>
+        <a href="${magicLink}"
+           style="display:inline-block;background:#074738;color:white;font-weight:900;font-size:15px;padding:14px 28px;border-radius:12px;text-decoration:none;">
+          Ser guardián de ${petName}
+        </a>
+        <p style="color:#aaa;font-size:12px;margin-top:24px;line-height:1.5;">
+          Si no esperabas esta invitación, podés ignorar este mensaje.<br/>
+          Este email fue enviado desde <a href="https://pessy.app" style="color:#074738;">pessy.app</a>
+        </p>
+      </div>
+    `;
+
+    const MAX_RETRIES = 3;
+    let lastErr: any = null;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await resend.emails.send({
+          from: "PESSY <noreply@pessy.app>",
+          to: inviteEmail,
+          subject: `Te invitaron a ser guardián de ${petName} en PESSY`,
+          html,
+        });
+        console.log(`[COTUTORES-TRIGGER] ✅ Email enviado a ${inviteEmail} (código ${code}, intento ${attempt})`);
+        lastErr = null;
+        break;
+      } catch (err: any) {
+        lastErr = err;
+        console.warn(`[COTUTORES-TRIGGER] Intento ${attempt}/${MAX_RETRIES} falló para ${inviteEmail}:`, err?.message || err);
+        if (attempt < MAX_RETRIES) await new Promise((r) => setTimeout(r, 1000 * attempt));
+      }
+    }
+
+    if (lastErr) {
+      console.error("[COTUTORES-TRIGGER] Error enviando email después de reintentos:", lastErr);
+      await snap.ref.update({ emailSent: false, emailReason: "send_failed" });
+    } else {
+      await snap.ref.update({ emailSent: true, emailSentAt: admin.firestore.FieldValue.serverTimestamp() });
+    }
   });
 
 export {
@@ -2318,7 +2398,7 @@ export const approveAccessRequest = functions
     if (RESEND_API_KEY_SECRET) {
       const resend = new Resend(RESEND_API_KEY_SECRET);
 
-      const inviteLink = `https://app.pessy.app/register-user?access=${accessToken}`;
+      const inviteLink = `https://pessy.app/register-user?access=${accessToken}`;
       const safeName = (reqData.name || "").replace(/[<>&"']/g, (c: string) =>
         ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
 
