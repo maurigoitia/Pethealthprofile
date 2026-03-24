@@ -201,9 +201,11 @@ export default function HomeScreen() {
     );
   }
 
-  // Guard de autenticación para evitar navegación en bucle hacia pantallas internas
+  // Guard de autenticación — preservar invite code en redirect para co-tutores nuevos
   if (!user) {
-    return <Navigate to="/login" replace />;
+    const pendingInvite = readPendingCoTutorInvite();
+    const loginPath = pendingInvite ? `/login?invite=${pendingInvite}` : "/login";
+    return <Navigate to={loginPath} replace />;
   }
 
   // Handle tab change and reset viewMode to "card" when going to home tab

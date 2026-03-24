@@ -2170,7 +2170,7 @@ export const sendCoTutorInvite = functions
     // Link directo a la app con el código — no usamos Firebase Auth magic link
     // porque manda un email genérico feo desde @firebaseapp.com
     const appUrl = "https://pessy.app";
-    const magicLink = `${appUrl}/inicio?invite=${inviteCode}`;
+    const magicLink = `${appUrl}/login?invite=${inviteCode}`;
 
     // Enviar por Resend (único email, branded)
     const resendKey = process.env.RESEND_API_KEY || "";
@@ -2236,7 +2236,7 @@ export const onInvitationCreated = functions
     const code = context.params.code;
     const petName = data.petName || "tu mascota";
     const appUrl = "https://pessy.app";
-    const magicLink = `${appUrl}/inicio?invite=${code}`;
+    const magicLink = `${appUrl}/login?invite=${code}`;
 
     const resendKey = process.env.RESEND_API_KEY || "";
     if (!resendKey) {
