@@ -59,6 +59,14 @@ service cloud.firestore {
         && (
           !(get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.expiresAt is timestamp) ||
           get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.expiresAt > request.time
+        )
+        && (
+          // Si la invitación tiene inviteEmail, solo el destinatario puede usarla
+          get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.inviteEmail == null ||
+          (
+            request.auth.token.email != null &&
+            get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.inviteEmail == request.auth.token.email
+          )
         );
     }
 
@@ -81,7 +89,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && request.auth.token.email == 'mauriciogoitia@gmail.com';
+      return signedIn() && request.auth.token.email == 'mauri@pessy.app';
     }
 
     match /users/{userId} {

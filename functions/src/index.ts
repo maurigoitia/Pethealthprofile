@@ -2353,7 +2353,7 @@ export const approveAccessRequest = functions
     }
 
     const callerEmail = (context.auth.token.email || "").toLowerCase();
-    if (callerEmail !== "mauriciogoitia@gmail.com") {
+    if (callerEmail !== "mauri@pessy.app") {
       throw new functions.https.HttpsError("permission-denied", "Solo admin puede aprobar.");
     }
 

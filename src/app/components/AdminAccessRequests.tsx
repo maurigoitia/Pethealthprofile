@@ -22,7 +22,7 @@ export function AdminAccessRequests() {
   const [processing, setProcessing] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
 
-  const isAdmin = user?.email?.toLowerCase() === "mauriciogoitia@gmail.com";
+  const isAdmin = user?.email?.toLowerCase() === "mauri@pessy.app";
 
   // Redirect non-admins once auth is resolved
   useEffect(() => {
