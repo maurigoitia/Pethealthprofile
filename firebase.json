@@ -343,6 +343,10 @@
           "type": 301
         }
       ],
+      "headers": [
+        { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }] },
+        { "source": "/workbox-*.js", "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }] }
+      ],
       "rewrites": [
         {
           "source": "/api/data-deletion-request",
@@ -369,6 +373,10 @@
           "type": 301
         }
       ],
+      "headers": [
+        { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }] },
+        { "source": "/workbox-*.js", "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }] }
+      ],
       "rewrites": [
         {
           "source": "/api/data-deletion-request",
@@ -394,6 +402,10 @@
           "destination": "/data-deletion.html",
           "type": 301
         }
+      ],
+      "headers": [
+        { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }] },
+        { "source": "/workbox-*.js", "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }] }
       ],
       "rewrites": [
         {
