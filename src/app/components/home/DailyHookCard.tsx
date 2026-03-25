@@ -2,6 +2,7 @@
 
 import React from "react";
 import { MaterialIcon } from "../MaterialIcon";
+import { isDailyActivityDone, markDailyActivityDone } from "../../utils/gamification";
 
 interface DailyHookCardProps {
   category: string;
@@ -10,7 +11,7 @@ interface DailyHookCardProps {
   description: string;
   duration: string;
   points: number;
-  onStart?: () => void;
+  onStart?: (points: number) => void;
 }
 
 export default function DailyHookCard({
@@ -105,7 +106,12 @@ export default function DailyHookCard({
 
         {/* Start button */}
         <button
-          onClick={onStart}
+          onClick={() => {
+            if (onStart && !isDailyActivityDone()) {
+              markDailyActivityDone();
+              onStart(points);
+            }
+          }}
           className="px-4 py-2 bg-white text-[13px] active:scale-95 transition-transform"
           style={{
             color: "#074738",

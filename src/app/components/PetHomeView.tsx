@@ -80,6 +80,19 @@ const BRACHY_BREEDS = [
   "persa",
 ];
 
+const ACTIVE_WORKING_BREEDS = [
+  "border collie", "pastor aleman", "pastor alemán", "husky", "malinois",
+  "australian shepherd", "pastor australiano", "labrador", "golden retriever",
+  "weimaraner", "vizsla", "pointer", "setter", "dalmata", "dálmata",
+  "jack russell", "beagle", "cocker spaniel", "springer spaniel",
+];
+
+const COMPANION_BREEDS = [
+  "chihuahua", "pomeranian", "pomerania", "maltés", "maltes", "bichon",
+  "cavalier", "papillon", "havanese", "lhasa apso", "shih tzu",
+  "yorkshire", "yorkie", "caniche", "poodle", "coton",
+];
+
 function normalizeText(value?: string | null) {
   return (value || "")
     .toLowerCase()
@@ -98,13 +111,25 @@ function resolveSpecies(rawSpecies?: string, breed?: string): PetSpecies {
 
 function resolveGroupIds(species: PetSpecies, breed: string): WellbeingSpeciesGroupId[] {
   const normalizedBreed = normalizeText(breed);
-  const isBrachy = BRACHY_BREEDS.some((item) => normalizedBreed.includes(normalizeText(item)));
+  const matchesList = (list: string[]) => list.some((item) => normalizedBreed.includes(normalizeText(item)));
 
   if (species === "cat") {
-    return [isBrachy ? "cat.brachycephalic" : "cat.general"];
+    const ids: WellbeingSpeciesGroupId[] = ["cat.general"];
+    if (matchesList(BRACHY_BREEDS)) ids.unshift("cat.brachycephalic");
+    return ids;
   }
 
-  return [isBrachy ? "dog.brachycephalic" : "dog.general"];
+  // Dogs: collect all matching groups, always include "dog.general" as fallback
+  const ids: WellbeingSpeciesGroupId[] = [];
+
+  if (matchesList(BRACHY_BREEDS)) ids.push("dog.brachycephalic");
+  if (matchesList(ACTIVE_WORKING_BREEDS)) ids.push("dog.active_working");
+  if (matchesList(COMPANION_BREEDS)) ids.push("dog.companion");
+
+  // Always include dog.general as fallback
+  ids.push("dog.general");
+
+  return ids;
 }
 
 function resolveThermalProfile(species: PetSpecies, groupIds: WellbeingSpeciesGroupId[]): ThermalSafetyProfile | null {
@@ -247,6 +272,7 @@ export function PetHomeView({
   });
   const [nudgedBreed, setNudgedBreed] = useState(false);
   const [checkedRoutineItems, setCheckedRoutineItems] = useState<string[]>([]);
+  const [points, setPoints] = useState(() => getPoints());
   const { getEventsByPetId, getActiveMedicationsByPetId, getAppointmentsByPetId } = useMedical();
 
   const currentIndex = pets.findIndex((pet) => pet.id === activePetId);
@@ -329,46 +355,55 @@ export function PetHomeView({
     return { status: "safe", badge: "OK" };
   }, [activePet?.breed, thermalProfile, weather]);
 
-  // ─── Daily suggestion (deterministic by day-of-year) ────────────────────────
-  const dailySuggestion = useMemo(() => {
-    const routineGroup = resolveRoutineGroupId(groupIds, species);
+  // ─── Daily suggestions (deterministic by day-of-year, up to 3) ─────────────
+  const dailySuggestions = useMemo(() => {
     const weatherCondition = walkSafety.status === "blocked" ? "blocked" : walkSafety.status === "safe" ? "safe" : "any";
 
+    // Collect candidates from ALL matching groupIds (breed-aware)
     const candidates = WELLBEING_MASTER_BOOK.daily_suggestions.filter(
-      (s) => s.groupId === routineGroup && (s.weatherCondition === weatherCondition || s.weatherCondition === "any")
+      (s) => groupIds.includes(s.groupId) && (s.weatherCondition === weatherCondition || s.weatherCondition === "any")
     );
 
-    // If no candidates for the exact group, try all suggestions for weather condition
+    // If no candidates for the matched groups, try all suggestions for weather condition
     const pool = candidates.length > 0
       ? candidates
       : WELLBEING_MASTER_BOOK.daily_suggestions.filter(
           (s) => s.weatherCondition === weatherCondition || s.weatherCondition === "any"
         );
 
+    const fallback = {
+      category: "Actividad",
+      icon: "park",
+      title: `Tiempo de calidad con ${activePet?.name || "tu mascota"}`,
+      detail: "Un buen momento para compartir tiempo con tu mascota.",
+      duration: "15 min",
+      points: 10,
+    };
+
     if (pool.length === 0) {
-      return {
-        category: "Actividad",
-        icon: "park",
-        title: `Tiempo de calidad con ${activePet?.name || "tu mascota"}`,
-        detail: "Un buen momento para compartir tiempo con tu mascota.",
-        duration: "15 min",
-        points: 10,
-      };
+      return [fallback];
     }
 
     const dayOfYear = Math.floor(
       (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86_400_000
     );
-    const pick = pool[dayOfYear % pool.length];
 
-    return {
-      category: pick.category,
-      icon: CATEGORY_ICONS[pick.category] || "star",
-      title: pick.title,
-      detail: pick.detail,
-      duration: pick.duration,
-      points: pick.gamificationPoints,
-    };
+    // Pick up to 3 unique suggestions, rotating deterministically by day-of-year
+    const count = Math.min(3, pool.length);
+    const results: Array<{ category: string; icon: string; title: string; detail: string; duration: string; points: number }> = [];
+    for (let i = 0; i < count; i++) {
+      const pick = pool[(dayOfYear + i) % pool.length];
+      results.push({
+        category: pick.category,
+        icon: CATEGORY_ICONS[pick.category] || "star",
+        title: pick.title,
+        detail: pick.detail,
+        duration: pick.duration,
+        points: pick.gamificationPoints,
+      });
+    }
+
+    return results;
   }, [groupIds, species, walkSafety.status, activePet?.name]);
 
   // ─── Routine items ──────────────────────────────────────────────────────────
@@ -409,8 +444,14 @@ export function PetHomeView({
   const handleRoutineToggle = useCallback(
     (item: string) => {
       setCheckedRoutineItems((prev) => {
-        const next = prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item];
+        const wasChecked = prev.includes(item);
+        const next = wasChecked ? prev.filter((i) => i !== item) : [...prev, item];
         if (activePetId) saveCheckedItems(activePetId, next);
+        // Award points only when checking an item (not unchecking)
+        if (!wasChecked) {
+          const earned = addPoints(5);
+          setPoints(earned);
+        }
         return next;
       });
     },
@@ -570,7 +611,7 @@ export function PetHomeView({
           </div>
           {/* Gamification points badge top-right */}
           <div className="absolute top-3 right-3 bg-[rgba(7,71,56,0.85)] text-white text-xs font-[800] px-3 py-1.5 rounded-full flex items-center gap-1 backdrop-blur-sm">
-            <MaterialIcon name="star" className="!text-sm" /> 0 pts
+            <MaterialIcon name="star" className="!text-sm" /> {points} pts
           </div>
         </div>
 
@@ -619,17 +660,39 @@ export function PetHomeView({
           </div>
         )}
 
-        {/* 4. DAILY HOOK - suggestion from intelligence engine */}
+        {/* 4. DAILY HOOK - swipeable suggestion carousel */}
         <SectionTitle>Hoy con {activePet.name}</SectionTitle>
         <div className="mx-3">
-          <DailyHookCard
-            category={CATEGORY_LABELS[dailySuggestion.category] || dailySuggestion.category}
-            categoryIcon={dailySuggestion.icon}
-            title={dailySuggestion.title}
-            description={dailySuggestion.detail}
-            duration={dailySuggestion.duration}
-            points={dailySuggestion.points}
-          />
+          {dailySuggestions.length === 1 ? (
+            <DailyHookCard
+              category={CATEGORY_LABELS[dailySuggestions[0].category] || dailySuggestions[0].category}
+              categoryIcon={dailySuggestions[0].icon}
+              title={dailySuggestions[0].title}
+              description={dailySuggestions[0].detail}
+              duration={dailySuggestions[0].duration}
+              points={dailySuggestions[0].points}
+              onStart={(pts) => { const total = addPoints(pts); setPoints(total); }}
+            />
+          ) : (
+            <div
+              className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
+            >
+              {dailySuggestions.map((s, i) => (
+                <div key={i} className="min-w-[85%] snap-center flex-shrink-0">
+                  <DailyHookCard
+                    category={CATEGORY_LABELS[s.category] || s.category}
+                    categoryIcon={s.icon}
+                    title={s.title}
+                    description={s.detail}
+                    duration={s.duration}
+                    points={s.points}
+                    onStart={(pts) => { const total = addPoints(pts); setPoints(total); }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 5. ROUTINE CHECKLIST - morning, evening, or sleep based on time */}

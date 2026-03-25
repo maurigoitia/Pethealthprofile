@@ -72,6 +72,13 @@ const clearStalePwaCacheOnBuildChange = async () => {
   return true;
 };
 
+// Force SW update check on every page load (helps iOS Safari pick up new deploys)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistration().then(reg => {
+    if (reg) reg.update();
+  });
+}
+
 const bootstrap = async () => {
   const shouldReload = await clearStalePwaCacheOnBuildChange();
   if (shouldReload) return;
