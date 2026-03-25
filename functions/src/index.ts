@@ -35,69 +35,82 @@ async function sendEmailReminder(args: {
   });
 
   const isNow = args.minutesBefore === 0;
+  const safePetNameSubject = (args.petName || "").replace(/[<>&"']/g, (c: string) =>
+    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
   const subject = isNow
-    ? `Hora de la medicación de ${args.petName} — Pessy`
-    : `En ${args.minutesBefore} min: medicación de ${args.petName} — Pessy`;
+    ? `Hora de la medicación de ${safePetNameSubject} — Pessy`
+    : `En ${args.minutesBefore} min: medicación de ${safePetNameSubject} — Pessy`;
 
   // Logo SVG de Pessy (P + forma orgánica) — inline para máxima compatibilidad con clientes de email
   const pessynLogoSvg = `<svg width="32" height="36" viewBox="0 0 214.848 240.928" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.8826 0.101688L12.0892 0.0939362C19.3159 -0.118314 27.2282 0.0891794 34.4962 0.133929L70.1119 0.193927L108.921 0.183429C117.756 0.209429 127.246 0.0274282 135.998 0.538928C139.448 0.740678 147.088 2.34518 150.461 3.17818C164.121 6.47343 176.683 13.2814 186.901 22.9272C205.723 40.6399 213.993 61.1484 214.803 86.8074C215.503 109.009 208.096 132.621 192.371 148.569C186.658 153.824 179.556 162.934 171.653 164.326C167.318 164.204 163.026 153.514 162.396 150.046C162.286 148.271 165.603 145.811 166.798 144.891C184.343 131.381 194.678 112.523 195.101 90.1144C195.633 71.1989 188.423 52.8852 175.136 39.4112C169.043 33.1554 158.048 25.9717 149.678 23.2562C138.481 19.6232 128.223 19.8317 116.658 19.8712L97.1804 19.9189L39.5581 19.9119C36.3306 19.8867 32.4451 20.1522 29.3126 20.0337C19.4289 19.6604 19.9614 24.0957 19.9886 32.3012L19.9444 154.071L19.9459 188.229C19.9379 196.381 19.3009 206.164 20.7399 214.041C21.9614 220.729 30.8409 223.971 36.9424 221.449C46.2629 217.519 44.9236 206.946 44.8254 197.696C44.6046 176.944 60.7044 161.226 80.4254 157.371C85.5081 156.376 94.6234 156.574 99.6301 157.461C100.969 157.699 100.658 160.934 100.816 161.931C100.278 165.041 104.758 172.956 103.398 175.101C101.471 176.344 90.2986 175.824 87.1954 176.009C75.8424 176.689 66.2094 183.471 64.8956 195.361C64.1791 201.849 65.1986 208.461 64.1264 214.901C63.1911 220.524 60.6926 226.066 56.8961 230.329C51.3921 236.509 43.9576 240.349 35.6996 240.824C26.2839 241.364 18.0029 239.931 10.7711 233.414C3.56614 226.921 0.771647 218.699 0.330897 209.176C0.119647 204.614 0.274392 200.006 0.284892 195.439L0.262889 173.299L0.215144 98.6262L0.118403 38.9669C0.136403 33.4217 0.121148 27.8762 0.072398 22.3312C0.040898 18.7044 -0.0823572 14.6782 0.0888928 11.0789C0.221893 8.28294 0.476153 5.63918 2.3834 3.52918C5.66515 -0.101572 7.35389 0.236938 11.8826 0.101688Z" fill="white"/><path d="M131.773 134.566C138.826 134.309 140.791 140.514 144.906 144.904C146.801 146.926 149.096 148.784 150.978 150.839C154.043 154.184 155.326 157.091 155.018 161.631C154.883 164.701 153.236 168.364 150.826 170.261C144.251 175.431 140.008 172.509 133.576 172.089L133.181 172.064C125.998 172.209 121.768 175.736 115.543 170.686C104.318 161.579 111.396 151.521 119.671 144.241C124.311 140.161 124.341 135.374 131.773 134.566Z" fill="white"/></svg>`;
 
+  const safeMedName = (args.medicationName || "").replace(/[<>&"']/g, (c: string) =>
+    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
+  const safeDosage = (args.dosage || "").replace(/[<>&"']/g, (c: string) =>
+    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
+  const safePetName = (args.petName || "").replace(/[<>&"']/g, (c: string) =>
+    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
+
   const html = `
 <!DOCTYPE html>
 <html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:32px 16px;">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background:#E8E8E8;font-family:'Manrope',sans-serif;">
+  <div style="display:none!important;font-size:1px;color:#ffffff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+    ${isNow ? `Es hora de la medicación de ${safePetName}` : `En ${args.minutesBefore} min: medicación de ${safePetName}`}
+  </div>
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#E8E8E8;padding:32px 16px;">
     <tr><td align="center">
-      <table width="100%" style="max-width:480px;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);" cellpadding="0" cellspacing="0">
+      <table width="100%" style="max-width:600px;background:#ffffff;" cellpadding="0" cellspacing="0">
 
         <!-- HEADER -->
         <tr>
-          <td style="background:#074738;padding:24px 28px;">
-            <table cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="vertical-align:middle;padding-right:12px;">${pessynLogoSvg}</td>
-                <td style="vertical-align:middle;">
-                  <div style="color:#ffffff;font-size:22px;font-weight:900;letter-spacing:-0.5px;line-height:1;">Pessy</div>
-                  <div style="color:rgba(255,255,255,0.65);font-size:12px;margin-top:2px;">Recordatorio de medicación</div>
-                </td>
-              </tr>
-            </table>
+          <td style="background:#074738;padding:20px 28px;">
+            <table cellpadding="0" cellspacing="0"><tr>
+              <td style="vertical-align:middle;padding-right:14px;">
+                <img src="https://pessy.app/pessy-logo.svg" alt="Pessy" style="height:52px;filter:brightness(0) invert(1);">
+              </td>
+              <td style="vertical-align:middle;">
+                <span style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:22px;color:#ffffff;letter-spacing:0.06em;line-height:1;">PESSY</span><br>
+                <span style="font-family:'Manrope',sans-serif;font-size:11px;color:rgba(255,255,255,0.5);font-weight:500;">Recordatorio de medicación</span>
+              </td>
+            </tr></table>
           </td>
         </tr>
 
-        <!-- ALERTA BADGE -->
+        <!-- HERO -->
         <tr>
-          <td style="background:${isNow ? '#074738' : '#155848'};padding:12px 28px;">
-            <span style="display:inline-block;background:${isNow ? '#ffffff' : 'rgba(255,255,255,0.15)'};color:${isNow ? '#074738' : '#ffffff'};font-size:12px;font-weight:700;padding:4px 12px;border-radius:100px;letter-spacing:0.05em;text-transform:uppercase;">
-              ${isNow ? 'Hora de la toma' : `En ${args.minutesBefore} minutos`}
+          <td style="background:linear-gradient(135deg,#074738 0%,#1A9B7D 100%);padding:32px;text-align:center;position:relative;">
+            <div style="font-size:40px;margin-bottom:12px;">${isNow ? '💊' : '⏰'}</div>
+            <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;color:#ffffff;line-height:1.2;margin:0 0 8px;">
+              ${isNow ? `Toca darle la medicación a ${safePetName}` : `En ${args.minutesBefore} min toca la medicación de ${safePetName}`}
+            </h1>
+            <span style="display:inline-block;background:${isNow ? '#ffffff' : 'rgba(255,255,255,0.15)'};color:${isNow ? '#074738' : '#ffffff'};font-size:12px;font-weight:700;padding:6px 16px;border-radius:100px;letter-spacing:0.05em;text-transform:uppercase;">
+              ${isNow ? 'Ahora' : `En ${args.minutesBefore} min`}
             </span>
           </td>
         </tr>
 
-        <!-- BODY -->
+        <!-- PHOTO BANNER -->
         <tr>
-          <td style="padding:28px 28px 8px;">
-            <h2 style="margin:0 0 6px;font-size:20px;font-weight:800;color:#0f1f1c;line-height:1.2;">
-              ${isNow ? `Hora de darle la medicación a ${args.petName}` : `Preparate, en ${args.minutesBefore} min toca la medicación de ${args.petName}`}
-            </h2>
+          <td style="height:100px;overflow:hidden;">
+            <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=600&h=100&fit=crop" alt="" style="width:100%;height:100px;object-fit:cover;display:block;">
           </td>
         </tr>
 
         <!-- MEDICAMENTO CARD -->
         <tr>
-          <td style="padding:8px 28px;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f7f4;border-radius:14px;overflow:hidden;">
+          <td style="padding:28px 32px 16px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#F0FAF9;border-radius:14px;border:2px solid #E0F2F1;overflow:hidden;">
+              <tr><td style="padding:4px 0 0;"><div style="height:3px;background:#074738;border-radius:3px 3px 0 0;"></div></td></tr>
               <tr>
-                <td style="padding:4px 0 0 0;">
-                  <div style="height:3px;background:#074738;border-radius:3px 3px 0 0;"></div>
-                </td>
-              </tr>
-              <tr>
-                <td style="padding:16px 20px;">
-                  <div style="font-size:11px;font-weight:700;color:#074738;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Medicamento</div>
-                  <div style="font-size:20px;font-weight:900;color:#0f1f1c;line-height:1.1;">${args.medicationName}</div>
-                  ${args.dosage ? `<div style="font-size:14px;color:#4a6b62;margin-top:4px;">${args.dosage}</div>` : ''}
+                <td style="padding:20px 24px;">
+                  <div style="font-size:11px;font-weight:700;color:#074738;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">Medicamento</div>
+                  <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#0f1f1c;line-height:1.1;">${safeMedName}</div>
+                  ${safeDosage ? `<div style="font-size:14px;color:#4a6b62;margin-top:6px;font-weight:500;">${safeDosage}</div>` : ''}
                 </td>
               </tr>
             </table>
@@ -106,12 +119,12 @@ async function sendEmailReminder(args: {
 
         <!-- HORA -->
         <tr>
-          <td style="padding:12px 28px;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9f9fb;border-radius:12px;border:1px solid #e8eae8;">
+          <td style="padding:0 32px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9f9fb;border-radius:14px;border:1px solid #e8eae8;">
               <tr>
-                <td style="padding:14px 18px;">
-                  <div style="font-size:12px;color:#888;margin-bottom:3px;">Hora de la toma</div>
-                  <div style="font-size:16px;font-weight:700;color:#0f1f1c;">${dateStr} · ${timeStr}</div>
+                <td style="padding:16px 24px;">
+                  <div style="font-size:12px;color:#888;margin-bottom:4px;font-weight:500;">Hora de la toma</div>
+                  <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:17px;font-weight:700;color:#0f1f1c;">${dateStr} · ${timeStr}</div>
                 </td>
               </tr>
             </table>
@@ -120,8 +133,8 @@ async function sendEmailReminder(args: {
 
         <!-- CTA -->
         <tr>
-          <td style="padding:12px 28px 28px;">
-            <a href="https://pessy.app" style="display:block;background:#074738;color:#ffffff;text-align:center;padding:15px 24px;border-radius:12px;text-decoration:none;font-size:15px;font-weight:700;letter-spacing:-0.2px;">
+          <td style="padding:0 32px 32px;text-align:center;">
+            <a href="https://pessy.app/inicio" style="display:inline-block;background:#1A9B7D;color:#ffffff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;padding:16px 48px;border-radius:14px;text-decoration:none;letter-spacing:0.02em;">
               Abrir Pessy
             </a>
           </td>
@@ -129,10 +142,12 @@ async function sendEmailReminder(args: {
 
         <!-- FOOTER -->
         <tr>
-          <td style="padding:16px 28px 24px;border-top:1px solid #f0f0f0;">
-            <p style="margin:0;font-size:11px;color:#aaa;text-align:center;line-height:1.5;">
-              Este recordatorio fue configurado en <a href="https://pessy.app" style="color:#074738;text-decoration:none;">pessy.app</a><br>
-              Tu mascota, sus cosas, todo en orden.
+          <td style="background:#074738;padding:28px 32px;text-align:center;">
+            <img src="https://pessy.app/pessy-logo.svg" alt="Pessy" style="height:36px;filter:brightness(0) invert(1);margin-bottom:8px;"><br>
+            <span style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:17px;letter-spacing:0.05em;color:#ffffff;">PESSY</span><br>
+            <p style="font-size:12px;color:rgba(255,255,255,0.6);line-height:1.6;margin:8px 0 0;">
+              Tu mascota, sus cosas, todo en orden.<br>
+              <a href="https://pessy.app" style="color:#1A9B7D;text-decoration:none;font-weight:600;">pessy.app</a>
             </p>
           </td>
         </tr>
