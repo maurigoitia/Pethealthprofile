@@ -34,16 +34,10 @@ async function sendEmailReminder(args: {
     timeZone: "America/Argentina/Buenos_Aires",
   });
 
-  const escHtml = (s: string) => s.replace(/[<>&"']/g, (c: string) =>
-    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
-  const safePetName = escHtml(args.petName);
-  const safeMedName = escHtml(args.medicationName);
-  const safeDosage = escHtml(args.dosage);
-
   const isNow = args.minutesBefore === 0;
   const subject = isNow
-    ? `Hora de la medicación de ${safePetName} — Pessy`
-    : `En ${args.minutesBefore} min: medicación de ${safePetName} — Pessy`;
+    ? `Hora de la medicación de ${args.petName} — Pessy`
+    : `En ${args.minutesBefore} min: medicación de ${args.petName} — Pessy`;
 
   // Logo SVG de Pessy (P + forma orgánica) — inline para máxima compatibilidad con clientes de email
   const pessynLogoSvg = `<svg width="32" height="36" viewBox="0 0 214.848 240.928" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.8826 0.101688L12.0892 0.0939362C19.3159 -0.118314 27.2282 0.0891794 34.4962 0.133929L70.1119 0.193927L108.921 0.183429C117.756 0.209429 127.246 0.0274282 135.998 0.538928C139.448 0.740678 147.088 2.34518 150.461 3.17818C164.121 6.47343 176.683 13.2814 186.901 22.9272C205.723 40.6399 213.993 61.1484 214.803 86.8074C215.503 109.009 208.096 132.621 192.371 148.569C186.658 153.824 179.556 162.934 171.653 164.326C167.318 164.204 163.026 153.514 162.396 150.046C162.286 148.271 165.603 145.811 166.798 144.891C184.343 131.381 194.678 112.523 195.101 90.1144C195.633 71.1989 188.423 52.8852 175.136 39.4112C169.043 33.1554 158.048 25.9717 149.678 23.2562C138.481 19.6232 128.223 19.8317 116.658 19.8712L97.1804 19.9189L39.5581 19.9119C36.3306 19.8867 32.4451 20.1522 29.3126 20.0337C19.4289 19.6604 19.9614 24.0957 19.9886 32.3012L19.9444 154.071L19.9459 188.229C19.9379 196.381 19.3009 206.164 20.7399 214.041C21.9614 220.729 30.8409 223.971 36.9424 221.449C46.2629 217.519 44.9236 206.946 44.8254 197.696C44.6046 176.944 60.7044 161.226 80.4254 157.371C85.5081 156.376 94.6234 156.574 99.6301 157.461C100.969 157.699 100.658 160.934 100.816 161.931C100.278 165.041 104.758 172.956 103.398 175.101C101.471 176.344 90.2986 175.824 87.1954 176.009C75.8424 176.689 66.2094 183.471 64.8956 195.361C64.1791 201.849 65.1986 208.461 64.1264 214.901C63.1911 220.524 60.6926 226.066 56.8961 230.329C51.3921 236.509 43.9576 240.349 35.6996 240.824C26.2839 241.364 18.0029 239.931 10.7711 233.414C3.56614 226.921 0.771647 218.699 0.330897 209.176C0.119647 204.614 0.274392 200.006 0.284892 195.439L0.262889 173.299L0.215144 98.6262L0.118403 38.9669C0.136403 33.4217 0.121148 27.8762 0.072398 22.3312C0.040898 18.7044 -0.0823572 14.6782 0.0888928 11.0789C0.221893 8.28294 0.476153 5.63918 2.3834 3.52918C5.66515 -0.101572 7.35389 0.236938 11.8826 0.101688Z" fill="white"/><path d="M131.773 134.566C138.826 134.309 140.791 140.514 144.906 144.904C146.801 146.926 149.096 148.784 150.978 150.839C154.043 154.184 155.326 157.091 155.018 161.631C154.883 164.701 153.236 168.364 150.826 170.261C144.251 175.431 140.008 172.509 133.576 172.089L133.181 172.064C125.998 172.209 121.768 175.736 115.543 170.686C104.318 161.579 111.396 151.521 119.671 144.241C124.311 140.161 124.341 135.374 131.773 134.566Z" fill="white"/></svg>`;
@@ -76,7 +70,7 @@ async function sendEmailReminder(args: {
         <tr>
           <td style="background:${isNow ? '#074738' : '#155848'};padding:12px 28px;">
             <span style="display:inline-block;background:${isNow ? '#ffffff' : 'rgba(255,255,255,0.15)'};color:${isNow ? '#074738' : '#ffffff'};font-size:12px;font-weight:700;padding:4px 12px;border-radius:100px;letter-spacing:0.05em;text-transform:uppercase;">
-              ${isNow ? 'Es hora' : `En ${args.minutesBefore} min`}
+              ${isNow ? 'Hora de la toma' : `En ${args.minutesBefore} minutos`}
             </span>
           </td>
         </tr>
@@ -85,7 +79,7 @@ async function sendEmailReminder(args: {
         <tr>
           <td style="padding:28px 28px 8px;">
             <h2 style="margin:0 0 6px;font-size:20px;font-weight:800;color:#0f1f1c;line-height:1.2;">
-              ${isNow ? `Toca darle la medicación a ${safePetName}` : `En ${args.minutesBefore} min toca la medicación de ${safePetName}`}
+              ${isNow ? `Hora de darle la medicación a ${args.petName}` : `Preparate, en ${args.minutesBefore} min toca la medicación de ${args.petName}`}
             </h2>
           </td>
         </tr>
@@ -102,8 +96,8 @@ async function sendEmailReminder(args: {
               <tr>
                 <td style="padding:16px 20px;">
                   <div style="font-size:11px;font-weight:700;color:#074738;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Medicamento</div>
-                  <div style="font-size:20px;font-weight:900;color:#0f1f1c;line-height:1.1;">${safeMedName}</div>
-                  ${safeDosage ? `<div style="font-size:14px;color:#4a6b62;margin-top:4px;">${safeDosage}</div>` : ''}
+                  <div style="font-size:20px;font-weight:900;color:#0f1f1c;line-height:1.1;">${args.medicationName}</div>
+                  ${args.dosage ? `<div style="font-size:14px;color:#4a6b62;margin-top:4px;">${args.dosage}</div>` : ''}
                 </td>
               </tr>
             </table>
@@ -2143,9 +2137,7 @@ export const sendCoTutorInvite = functions
 
     const toEmail = (data.email || "").trim().toLowerCase();
     const inviteCode = (data.inviteCode || "").trim().toUpperCase();
-    const rawPetName = (data.petName || "tu mascota").trim();
-    const petName = rawPetName.replace(/[<>&"']/g, (c: string) =>
-      ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
+    const petName = (data.petName || "tu mascota").trim();
     const ownerUid = context.auth.uid;
 
     if (!toEmail || !toEmail.includes("@")) {
@@ -2178,25 +2170,35 @@ export const sendCoTutorInvite = functions
     // Link directo a la app con el código — no usamos Firebase Auth magic link
     // porque manda un email genérico feo desde @firebaseapp.com
     const appUrl = "https://pessy.app";
-    const magicLink = `${appUrl}/login?invite=${inviteCode}`;
+    const magicLink = `${appUrl}/inicio?invite=${inviteCode}`;
 
     // Enviar por Resend (único email, branded)
     const resendKey = process.env.RESEND_API_KEY || "";
     if (!resendKey) {
-      console.warn("[COTUTORES] RESEND_API_KEY no configurada — email omitido para", toEmail);
-      return { ok: true, emailSent: false, reason: "email_not_configured" };
+      throw new functions.https.HttpsError("internal", "Servicio de email no configurado.");
     }
     const resend = new Resend(resendKey);
 
-    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#E8E8E8;font-family:'Manrope',sans-serif}.email-wrapper{max-width:600px;margin:0 auto;background:#fff}.header{background:#074738;padding:20px 28px;display:flex;align-items:center;gap:14px}.header img{height:52px;filter:brightness(0) invert(1)}.header-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:22px;color:#fff;letter-spacing:.06em;line-height:1}.header-tagline{font-size:11px;color:rgba(255,255,255,.5);font-weight:500;margin-top:3px}.hero{position:relative;overflow:hidden}.hero img{width:100%;height:280px;object-fit:cover;display:block}.hero-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(7,71,56,.9) 0%,rgba(7,71,56,.5) 50%,transparent 100%);padding:48px 32px 28px}.hero-overlay h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;color:#fff;line-height:1.25}.hero-overlay p{font-size:14px;color:rgba(255,255,255,.8);margin-top:6px}.body-content{padding:32px}.body-content p{font-size:15px;color:#333;line-height:1.65;margin-bottom:16px}.body-content p strong{color:#074738}.pet-card{background:#F0FAF9;border-radius:18px;padding:20px;margin:0 32px 24px;display:flex;gap:16px;align-items:center;border:1px solid #E0F2F1}.pet-card-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:18px;color:#074738;display:block}.pet-card-detail{font-size:13px;color:#666;margin-top:2px}.pet-card-badge{display:inline-block;background:#E0F2F1;color:#1A9B7D;font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;margin-top:6px}.cta-container{text-align:center;padding:8px 32px 32px}.cta-btn{display:inline-block;background:#5048CA;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;padding:16px 48px;border-radius:14px;text-decoration:none;letter-spacing:.02em}.cta-secondary{display:block;margin-top:12px;font-size:13px;color:#666}.cta-secondary a{color:#1A9B7D;text-decoration:none;font-weight:600}.footer{background:#F0FAF9;padding:28px 32px;text-align:center}.footer p{font-size:12px;color:#666;line-height:1.6;margin-bottom:4px}.footer a{color:#1A9B7D;text-decoration:none;font-weight:600}.footer .logo-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:17px;letter-spacing:.05em;color:#074738}.footer .logo-tagline{font-size:10px;font-weight:500;color:rgba(7,71,56,.5)}</style></head><body>
-<div class="email-wrapper">
-  <div class="header"><img src="https://pessy.app/pessy-logo.svg" alt="Pessy"><div><span class="header-name">PESSY</span><span class="header-tagline">Tu mascota, todo en orden</span></div></div>
-  <div class="hero"><img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=500&fit=crop" alt="Perros juntos"><div class="hero-overlay"><h1>Te invitaron a ser<br>co-tutor</h1><p>Alguien quiere que compartan el cuidado de su mascota</p></div></div>
-  <div class="body-content"><p>Te invitaron a ser co-tutor de <strong>${petName}</strong> en <strong>Pessy</strong>.</p><p>Esto significa que vas a poder ver toda la información, recibir recordatorios y colaborar en el cuidado. Sin perder nada, sin preguntar "¿cuándo fue la última vacuna?".</p></div>
-  <div class="pet-card"><div><span class="pet-card-name">${petName}</span><span class="pet-card-badge">Co-tutor invitado</span></div></div>
-  <div class="cta-container"><a href="${magicLink}" class="cta-btn">Aceptar invitación</a><span class="cta-secondary">¿No conocés a esta persona? Podés ignorar este email.</span></div>
-  <div class="footer"><div style="margin-bottom:12px"><img src="https://pessy.app/pessy-logo.svg" alt="Pessy" style="height:36px"><div><span class="logo-name">PESSY</span><span class="logo-tagline">Tu mascota, todo en orden</span></div></div><p>© 2026 Pessy. Todos los derechos reservados.</p></div>
-</div></body></html>`;
+    const html = `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#ffffff;">
+        <div style="background:#074738;border-radius:16px;padding:20px 24px;margin-bottom:24px;">
+          <h1 style="color:white;margin:0;font-size:24px;font-weight:900;">🐾 PESSY</h1>
+          <p style="color:rgba(255,255,255,0.8);margin:4px 0 0;font-size:13px;">Invitación a co-tutor</p>
+        </div>
+        <h2 style="color:#1a1a2e;font-size:18px;margin:0 0 12px;">Te invitaron a cuidar a <strong>${petName}</strong></h2>
+        <p style="color:#555;font-size:15px;line-height:1.6;margin:0 0 24px;">
+          Hacé clic en el botón para unirte al equipo de <strong>${petName}</strong>. El enlace expira en 48 horas.
+        </p>
+        <a href="${magicLink}"
+           style="display:inline-block;background:#074738;color:white;font-weight:900;font-size:15px;padding:14px 28px;border-radius:12px;text-decoration:none;">
+          Ser guardián de ${petName}
+        </a>
+        <p style="color:#aaa;font-size:12px;margin-top:24px;line-height:1.5;">
+          Si no esperabas esta invitación, podés ignorar este mensaje.<br/>
+          Este email fue enviado desde <a href="https://pessy.app" style="color:#074738;">pessy.app</a>
+        </p>
+      </div>
+    `;
 
     const MAX_RETRIES = 3;
     let lastErr: any = null;
@@ -2205,7 +2207,7 @@ export const sendCoTutorInvite = functions
         await resend.emails.send({
           from: "PESSY <noreply@pessy.app>",
           to: toEmail,
-          subject: `Te invitaron a ser co-tutor de ${petName} en Pessy`,
+          subject: `Te invitaron a ser guardián de ${petName} en PESSY`,
           html,
         });
         console.log(`[COTUTORES] ✅ Invitación enviada a ${toEmail} (código ${inviteCode}, intento ${attempt})`);
@@ -2219,80 +2221,10 @@ export const sendCoTutorInvite = functions
     }
     if (lastErr) {
       console.error("[COTUTORES] Error enviando email después de reintentos:", lastErr);
-      // No tiramos error: el código ya se generó. Devolvemos estado para que el frontend avise.
-      return { ok: true, emailSent: false, reason: "send_failed" };
+      throw new functions.https.HttpsError("internal", "No se pudo enviar el correo de invitación.");
     }
 
-    return { ok: true, emailSent: true };
-  });
-
-// ── Firestore trigger: send co-tutor invite email on invitation creation ──
-export const onInvitationCreated = functions
-  .region("us-central1")
-  .runWith({ secrets: ["RESEND_API_KEY"] })
-  .firestore.document("invitations/{code}")
-  .onCreate(async (snap, context) => {
-    const data = snap.data();
-    const inviteEmail = (data.inviteEmail || "").trim().toLowerCase();
-
-    // Only send email if inviteEmail is present
-    if (!inviteEmail || !inviteEmail.includes("@")) {
-      console.log(`[COTUTORES-TRIGGER] No inviteEmail on invitation ${context.params.code}, skipping email.`);
-      return;
-    }
-
-    const code = context.params.code;
-    const rawPetName = data.petName || "tu mascota";
-    const petName = rawPetName.replace(/[<>&"']/g, (c: string) =>
-      ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
-    const appUrl = "https://pessy.app";
-    const magicLink = `${appUrl}/login?invite=${code}`;
-
-    const resendKey = process.env.RESEND_API_KEY || "";
-    if (!resendKey) {
-      console.warn("[COTUTORES-TRIGGER] RESEND_API_KEY no configurada — email omitido para", inviteEmail);
-      await snap.ref.update({ emailSent: false, emailReason: "email_not_configured" });
-      return;
-    }
-
-    const resend = new Resend(resendKey);
-
-    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#E8E8E8;font-family:'Manrope',sans-serif}.email-wrapper{max-width:600px;margin:0 auto;background:#fff}.header{background:#074738;padding:20px 28px;display:flex;align-items:center;gap:14px}.header img{height:52px;filter:brightness(0) invert(1)}.header-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:22px;color:#fff;letter-spacing:.06em;line-height:1}.header-tagline{font-size:11px;color:rgba(255,255,255,.5);font-weight:500;margin-top:3px}.hero{position:relative;overflow:hidden}.hero img{width:100%;height:280px;object-fit:cover;display:block}.hero-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(7,71,56,.9) 0%,rgba(7,71,56,.5) 50%,transparent 100%);padding:48px 32px 28px}.hero-overlay h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;color:#fff;line-height:1.25}.hero-overlay p{font-size:14px;color:rgba(255,255,255,.8);margin-top:6px}.body-content{padding:32px}.body-content p{font-size:15px;color:#333;line-height:1.65;margin-bottom:16px}.body-content p strong{color:#074738}.pet-card{background:#F0FAF9;border-radius:18px;padding:20px;margin:0 32px 24px;display:flex;gap:16px;align-items:center;border:1px solid #E0F2F1}.pet-card-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:18px;color:#074738;display:block}.pet-card-badge{display:inline-block;background:#E0F2F1;color:#1A9B7D;font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;margin-top:6px}.cta-container{text-align:center;padding:8px 32px 32px}.cta-btn{display:inline-block;background:#5048CA;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;padding:16px 48px;border-radius:14px;text-decoration:none;letter-spacing:.02em}.cta-secondary{display:block;margin-top:12px;font-size:13px;color:#666}.footer{background:#F0FAF9;padding:28px 32px;text-align:center}.footer p{font-size:12px;color:#666;line-height:1.6;margin-bottom:4px}.footer a{color:#1A9B7D;text-decoration:none;font-weight:600}.footer .logo-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:17px;letter-spacing:.05em;color:#074738}.footer .logo-tagline{font-size:10px;font-weight:500;color:rgba(7,71,56,.5)}</style></head><body>
-<div class="email-wrapper">
-  <div class="header"><img src="https://pessy.app/pessy-logo.svg" alt="Pessy"><div><span class="header-name">PESSY</span><span class="header-tagline">Tu mascota, todo en orden</span></div></div>
-  <div class="hero"><img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=500&fit=crop" alt="Perros juntos"><div class="hero-overlay"><h1>Te invitaron a ser<br>co-tutor</h1><p>Alguien quiere que compartan el cuidado de su mascota</p></div></div>
-  <div class="body-content"><p>Te invitaron a ser co-tutor de <strong>${petName}</strong> en <strong>Pessy</strong>.</p><p>Esto significa que vas a poder ver toda la información, recibir recordatorios y colaborar en el cuidado. Sin perder nada, sin preguntar "¿cuándo fue la última vacuna?".</p></div>
-  <div class="pet-card"><div><span class="pet-card-name">${petName}</span><span class="pet-card-badge">Co-tutor invitado</span></div></div>
-  <div class="cta-container"><a href="${magicLink}" class="cta-btn">Aceptar invitación</a><span class="cta-secondary">¿No conocés a esta persona? Podés ignorar este email.</span></div>
-  <div class="footer"><div style="margin-bottom:12px"><img src="https://pessy.app/pessy-logo.svg" alt="Pessy" style="height:36px"><div><span class="logo-name">PESSY</span><span class="logo-tagline">Tu mascota, todo en orden</span></div></div><p>© 2026 Pessy. Todos los derechos reservados.</p></div>
-</div></body></html>`;
-
-    const MAX_RETRIES = 3;
-    let lastErr: any = null;
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        await resend.emails.send({
-          from: "PESSY <noreply@pessy.app>",
-          to: inviteEmail,
-          subject: `Te invitaron a ser co-tutor de ${petName} en Pessy`,
-          html,
-        });
-        console.log(`[COTUTORES-TRIGGER] ✅ Email enviado a ${inviteEmail} (código ${code}, intento ${attempt})`);
-        lastErr = null;
-        break;
-      } catch (err: any) {
-        lastErr = err;
-        console.warn(`[COTUTORES-TRIGGER] Intento ${attempt}/${MAX_RETRIES} falló para ${inviteEmail}:`, err?.message || err);
-        if (attempt < MAX_RETRIES) await new Promise((r) => setTimeout(r, 1000 * attempt));
-      }
-    }
-
-    if (lastErr) {
-      console.error("[COTUTORES-TRIGGER] Error enviando email después de reintentos:", lastErr);
-      await snap.ref.update({ emailSent: false, emailReason: "send_failed" });
-    } else {
-      await snap.ref.update({ emailSent: true, emailSentAt: admin.firestore.FieldValue.serverTimestamp() });
-    }
+    return { ok: true };
   });
 
 export {
@@ -2341,7 +2273,7 @@ export const approveAccessRequest = functions
     }
 
     const callerEmail = (context.auth.token.email || "").toLowerCase();
-    if (callerEmail !== "mauri@pessy.app") {
+    if (callerEmail !== "mauriciogoitia@gmail.com") {
       throw new functions.https.HttpsError("permission-denied", "Solo admin puede aprobar.");
     }
 
@@ -2386,24 +2318,28 @@ export const approveAccessRequest = functions
     if (RESEND_API_KEY_SECRET) {
       const resend = new Resend(RESEND_API_KEY_SECRET);
 
-      const inviteLink = `https://pessy.app/register-user?access=${accessToken}`;
+      const inviteLink = `https://app.pessy.app/register-user?access=${accessToken}`;
       const safeName = (reqData.name || "").replace(/[<>&"']/g, (c: string) =>
         ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
 
       await resend.emails.send({
         from: "PESSY <noreply@pessy.app>",
         to: reqData.email,
-        subject: "¡Bienvenido a Pessy!",
-        html: `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#E8E8E8;font-family:'Manrope',sans-serif}.email-wrapper{max-width:600px;margin:0 auto;background:#fff}.header{background:#074738;padding:20px 28px;display:flex;align-items:center;gap:14px}.header img{height:52px;filter:brightness(0) invert(1)}.header-name{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:22px;color:#fff;letter-spacing:.06em;line-height:1}.header-tagline{font-size:11px;color:rgba(255,255,255,.5);font-weight:500;margin-top:3px}.hero-welcome{background:linear-gradient(135deg,#074738 0%,#1A9B7D 100%);padding:40px 32px;text-align:center;position:relative;overflow:hidden}.hero-welcome h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:8px;position:relative;z-index:1}.hero-welcome p{font-size:15px;color:rgba(255,255,255,.8);position:relative;z-index:1}.photo-banner{display:flex;gap:0;height:160px;overflow:hidden}.photo-banner img{flex:1;object-fit:cover;min-width:0}.body-content{padding:32px}.body-content p{font-size:15px;color:#333;line-height:1.65;margin-bottom:16px}.body-content p strong{color:#074738}.steps{padding:0 32px 24px}.step{display:flex;gap:16px;align-items:flex-start;margin-bottom:20px}.step-photo{width:64px;height:64px;border-radius:14px;object-fit:cover;flex-shrink:0}.step-num{display:inline-block;background:#E0F2F1;color:#074738;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:12px;width:24px;height:24px;border-radius:8px;text-align:center;line-height:24px;margin-bottom:6px}.step-title{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;color:#074738;display:block;margin-bottom:2px}.step-desc{font-size:13px;color:#666;line-height:1.5}.cta-container{text-align:center;padding:8px 32px 32px}.cta-btn{display:inline-block;background:#1A9B7D;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;padding:16px 48px;border-radius:14px;text-decoration:none;letter-spacing:.02em}.footer{background:#074738;padding:28px 32px;text-align:center}.footer p{font-size:12px;color:rgba(255,255,255,.6);line-height:1.6;margin-bottom:4px}.footer a{color:#1A9B7D;text-decoration:none;font-weight:600}</style></head><body>
-<div class="email-wrapper">
-  <div class="header"><img src="https://pessy.app/pessy-logo.svg" alt="Pessy"><div><span class="header-name">PESSY</span><span class="header-tagline">Tu mascota, todo en orden</span></div></div>
-  <div class="hero-welcome"><h1>¡Bienvenido a Pessy!</h1><p>Ya sos parte. Ahora, a organizar todo.</p></div>
-  <div class="photo-banner"><img src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=400&h=300&fit=crop" alt="Perro"><img src="https://images.unsplash.com/photo-1574158622682-e40e69881006?w=400&h=300&fit=crop" alt="Gato"><img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=300&fit=crop" alt="Perro feliz"></div>
-  <div class="body-content"><p>Hola ${safeName}, gracias por sumarte. <strong>Pessy</strong> está pensada para que la vida con tu mascota sea más simple, más clara y un poco más linda.</p><p>Te dejamos tres pasos rápidos para arrancar:</p></div>
-  <div class="steps"><div class="step"><img class="step-photo" src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=200&h=200&fit=crop" alt="Cachorro"><div><span class="step-num">1</span><span class="step-title">Creá el perfil de tu mascota</span><span class="step-desc">Nombre, raza, fecha de nacimiento y una foto.</span></div></div><div class="step"><img class="step-photo" src="https://images.unsplash.com/photo-1586671267731-da2cf3ceeb80?w=200&h=200&fit=crop" alt="Perro"><div><span class="step-num">2</span><span class="step-title">Agregá lo importante</span><span class="step-desc">Vacunas, controles, rutinas. Lo que necesites tener a mano.</span></div></div><div class="step"><img class="step-photo" src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=200&h=200&fit=crop" alt="Perros"><div><span class="step-num">3</span><span class="step-title">Invitá a un co-tutor</span><span class="step-desc">Tu pareja, un familiar, quien también cuide a tu mascota.</span></div></div></div>
-  <div class="cta-container"><a href="${inviteLink}" class="cta-btn">Crear mi cuenta</a></div>
-  <div class="footer"><p>© 2026 Pessy. Todos los derechos reservados.</p><p>Este link expira en 24 horas.</p></div>
-</div></body></html>`,
+        subject: "Ya tenés acceso a Pessy",
+        html: `
+          <div style="font-family: 'Manrope', sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
+            <h1 style="color: #074738; font-size: 24px;">Hola ${safeName}</h1>
+            <p style="color: #5e716b; font-size: 15px; line-height: 1.6;">
+              Tu solicitud de acceso a Pessy fue aprobada. Tenés 24 horas para crear tu cuenta.
+            </p>
+            <a href="${inviteLink}" style="display: block; background: #074738; color: white; text-align: center; padding: 16px; border-radius: 999px; font-weight: bold; text-decoration: none; margin-top: 24px;">
+              Crear mi cuenta
+            </a>
+            <p style="color: #9ca8a2; font-size: 12px; margin-top: 24px;">
+              Este link expira en 24 horas. Si no lo pediste, ignorá este email.
+            </p>
+          </div>
+        `,
       });
     }
 
