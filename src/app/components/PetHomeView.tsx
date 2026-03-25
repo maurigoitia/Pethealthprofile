@@ -60,6 +60,7 @@ interface PetHomeViewProps {
     species?: string;
     age?: string;
     weight?: string;
+    preferences?: PetPreferences;
   }>;
   activePetId: string;
   onPetChange: (petId: string) => void;
@@ -161,7 +162,7 @@ function WeatherPill({
 }) {
   return (
     <div
-      className={`flex-1 flex items-center gap-1.5 rounded-[12px] px-2.5 py-2 border ${
+      className={`flex-1 flex items-center gap-1.5 rounded-[14px] px-2.5 py-2 border ${
         highlight
           ? "border-[#1A9B7D] bg-[#eef8f3]"
           : "border-[#eef0ee] bg-white"
@@ -523,7 +524,7 @@ export function PetHomeView({
   // ═══════════════════════════════════════════════════════════════════════════
 
   return (
-    <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen font-['Manrope',sans-serif]">
+    <div className="bg-[#F0FAF9] dark:bg-[#0D1B16] min-h-screen font-['Manrope',sans-serif]">
       <div className="max-w-md mx-auto pb-24">
 
         {/* 1. HERO - Pet photo with name overlay */}
@@ -622,7 +623,9 @@ export function PetHomeView({
         )}
 
         {/* 6. QUICK ACTIONS - only if pet has medical data */}
-        <SectionTitle>Servicios</SectionTitle>
+        {(appointmentCount > 0 || medicationCount > 0 || historyCount > 0) && (
+          <SectionTitle>Servicios</SectionTitle>
+        )}
         <QuickActions
           appointments={appointmentCount}
           medications={medicationCount}
