@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { MaterialIcon } from "../MaterialIcon";
 
 interface QuickActionsProps {
   appointments: number;
@@ -60,14 +61,8 @@ export default function QuickActions({
               : 'border-[#eef0ee] bg-white'
           }`}
         >
-          <span
-            className="material-symbols-outlined text-[22px] block"
-            style={{
-              color: card.hasAlert ? '#E65100' : '#074738',
-              fontSize: '22px',
-            }}
-          >
-            {card.icon}
+          <span style={{ color: card.hasAlert ? '#E65100' : '#074738' }}>
+            <MaterialIcon name={card.icon} className={`!text-[22px] block`} />
           </span>
           <span
             className="block text-[10px] font-bold mt-1"

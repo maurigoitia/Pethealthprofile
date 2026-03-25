@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { MaterialIcon } from "../MaterialIcon";
 
 interface RoutineChecklistProps {
   title: string;
@@ -28,11 +29,8 @@ export default function RoutineChecklist({
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
-          <span
-            className="material-symbols-rounded text-[#002f24]"
-            style={{ fontSize: 18 }}
-          >
-            {icon}
+          <span className="text-[#002f24]">
+            <MaterialIcon name={icon} className="!text-[18px]" />
           </span>
           <span
             className="text-[13px] font-[800] text-[#002f24]"

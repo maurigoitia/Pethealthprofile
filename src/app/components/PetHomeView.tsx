@@ -147,6 +147,14 @@ const CATEGORY_ICONS: Record<string, string> = {
   social: "groups",
 };
 
+const CATEGORY_LABELS: Record<string, string> = {
+  outdoor: "Aire libre",
+  indoor: "En casa",
+  grooming: "Cuidado",
+  training: "Entrenamiento",
+  social: "Social",
+};
+
 // ─── Inline WeatherPill ───────────────────────────────────────────────────────
 
 function WeatherPill({
@@ -372,9 +380,28 @@ export function PetHomeView({
   const currentRoutineItems = useMemo(() => {
     const routineGroup = resolveRoutineGroupId(groupIds, species);
     const routine = WELLBEING_MASTER_BOOK.routines.find((r) => r.groupId === routineGroup);
-    if (!routine) return [];
-    return currentHour < 14 ? routine.morningRoutine : routine.eveningRoutine;
+    if (!routine) return null;
+    // Before 14:00 → morning routine
+    // 14:00-21:00 → evening routine
+    // After 21:00 → sleep message (no checklist)
+    return currentHour < 14
+      ? routine.morningRoutine
+      : currentHour < 21
+        ? routine.eveningRoutine
+        : null; // Sleep time - no routine
   }, [groupIds, species, currentHour]);
+
+  const routineTitle = currentHour < 14
+    ? "Rutina de la mañana"
+    : currentHour < 21
+      ? "Rutina de la tarde"
+      : "Descanso";
+
+  const routineIcon = currentHour < 14
+    ? "wb_sunny"
+    : currentHour < 21
+      ? "wb_twilight"
+      : "bedtime";
 
   // ─── Load checked routine items from localStorage ───────────────────────────
   useEffect(() => {
@@ -600,7 +627,7 @@ export function PetHomeView({
         <SectionTitle>Hoy con {activePet.name}</SectionTitle>
         <div className="mx-3">
           <DailyHookCard
-            category={dailySuggestion.category}
+            category={CATEGORY_LABELS[dailySuggestion.category] || dailySuggestion.category}
             categoryIcon={dailySuggestion.icon}
             title={dailySuggestion.title}
             description={dailySuggestion.detail}
@@ -609,18 +636,29 @@ export function PetHomeView({
           />
         </div>
 
-        {/* 5. ROUTINE CHECKLIST - morning or evening based on time */}
-        {currentRoutineItems.length > 0 && (
+        {/* 5. ROUTINE CHECKLIST - morning, evening, or sleep based on time */}
+        {currentRoutineItems && currentRoutineItems.length > 0 ? (
           <div className="mx-3 mt-2">
             <RoutineChecklist
-              title={currentHour < 14 ? "Rutina de la mañana" : "Rutina de la noche"}
-              icon={currentHour < 14 ? "wb_sunny" : "nightlight"}
+              title={routineTitle}
+              icon={routineIcon}
               items={currentRoutineItems}
               checkedItems={checkedRoutineItems}
               onToggle={handleRoutineToggle}
             />
           </div>
-        )}
+        ) : currentRoutineItems === null ? (
+          <div className="mx-3 mt-2">
+            <div className="rounded-[16px] border border-[#eef0ee] bg-white flex items-center gap-3" style={{ padding: "14px 16px" }}>
+              <span className="text-[#002f24]">
+                <MaterialIcon name="bedtime" className="!text-[22px]" />
+              </span>
+              <span className="text-[13px] font-[800] text-[#002f24]">
+                {activePet.name} ya descansa. Mañana seguimos.
+              </span>
+            </div>
+          </div>
+        ) : null}
 
         {/* 6. QUICK ACTIONS - only if pet has medical data */}
         {(appointmentCount > 0 || medicationCount > 0 || historyCount > 0) && (
