@@ -144,7 +144,7 @@ export default function LandingEcosystemPreviewPage() {
         {/* ── Header ── */}
         <header className="sticky top-0 z-40 border-b border-gray-100 bg-white/95 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
-            <Logo className="h-8" />
+            <Logo className="size-8" />
             <button
               onClick={handleCTA}
               className="rounded-full bg-[#1A9B7D] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#168a6e]"
@@ -338,7 +338,7 @@ export default function LandingEcosystemPreviewPage() {
         {/* ── Footer ── */}
         <footer className="border-t border-gray-100 bg-white py-10">
           <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-5">
-            <Logo className="h-7" />
+            <Logo className="size-7" />
             <div className="flex gap-4 text-sm text-gray-500">
               <Link to="/legal/terms" className="hover:text-[#074738]">
                 Términos
