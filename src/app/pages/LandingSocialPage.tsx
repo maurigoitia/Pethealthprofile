@@ -176,7 +176,7 @@ export default function LandingEcosystemPreviewPage() {
                 Quiero probar Pessy
               </button>
               <p className="mt-3 text-sm text-gray-400">
-                Gratis. Sin compromisos.
+                Sin compromisos.
               </p>
             </div>
             <div className="mt-12 overflow-hidden rounded-3xl md:mt-16">
@@ -324,7 +324,7 @@ export default function LandingEcosystemPreviewPage() {
               ¿Querés organizar la vida con tu mascota?
             </h2>
             <p className="mx-auto mt-4 max-w-md text-lg text-white/80">
-              Sumate al acceso anticipado. Gratis, sin compromisos.
+              Sumate al acceso anticipado. Sin compromisos.
             </p>
             <button
               onClick={handleCTA}
