@@ -1,9 +1,8 @@
 import { MaterialIcon } from "./MaterialIcon";
-import { motion, PanInfo, AnimatePresence } from "motion/react";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useMedical } from "../contexts/MedicalContext";
 import { usePet, type PetPreferences } from "../contexts/PetContext";
-import { formatDateSafe, toTimestampSafe } from "../utils/dateUtils";
+import { toTimestampSafe } from "../utils/dateUtils";
 import { PetPhoto } from "./PetPhoto";
 
 const PetPreferencesEditor = lazy(() =>
@@ -19,7 +18,14 @@ import {
   type PessyIntelligenceRecommendation,
 } from "../../domain/intelligence/pessyIntelligenceEngine";
 
-type DietPreference = "balanced" | "barf" | "mixed";
+import DailyHookCard from "./home/DailyHookCard";
+import RoutineChecklist from "./home/RoutineChecklist";
+import ProfileNudge from "./home/ProfileNudge";
+import QuickActions from "./home/QuickActions";
+import PessyTip, { SectionTitle } from "./home/PessyTip";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 type PetSpecies = "dog" | "cat";
 type WalkSafetyStatus = "missing_data" | "unavailable" | "safe" | "caution" | "blocked";
 
@@ -35,15 +41,6 @@ interface LiveWeatherSnapshot {
 interface WalkSafetyState {
   status: WalkSafetyStatus;
   badge: string;
-  title: string;
-  detail: string;
-  helper: string;
-  primaryLabel: string;
-  primaryAction: "profile" | "appointments" | "medications";
-  secondaryLabel: string;
-  secondaryAction: "profile" | "appointments" | "medications" | "history";
-  toneClassName: string;
-  icon: string;
 }
 
 const WEATHER_CACHE_KEY = "pessy_home_weather_v1";
@@ -68,11 +65,7 @@ interface PetHomeViewProps {
   onPetChange: (petId: string) => void;
 }
 
-const DIET_OPTIONS: Array<{ value: DietPreference; label: string }> = [
-  { value: "balanced", label: "Balanceado" },
-  { value: "barf", label: "BARF" },
-  { value: "mixed", label: "Mixto" },
-];
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const BRACHY_BREEDS = [
   "bulldog frances",
@@ -123,10 +116,6 @@ function resolveThermalProfile(species: PetSpecies, groupIds: WellbeingSpeciesGr
   return WELLBEING_MASTER_BOOK.thermal_safety.groups.find((group) => group.id === fallbackId) ?? null;
 }
 
-function getReplacementTime(groupIds: WellbeingSpeciesGroupId[]) {
-  return groupIds.includes("dog.brachycephalic") ? "19:00" : "18:30";
-}
-
 const WMO_RAIN_CODES = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82];
 
 function computeFoodDaysLeft(prefs: PetPreferences | undefined): number | null {
@@ -136,6 +125,100 @@ function computeFoodDaysLeft(prefs: PetPreferences | undefined): number | null {
   const gramsLeft = Math.max(0, totalGrams - daysSince * prefs.foodDailyGrams);
   return Math.max(0, Math.floor(gramsLeft / prefs.foodDailyGrams));
 }
+
+/** Map generic groupIds to the closest match in daily_suggestions/routines */
+function resolveRoutineGroupId(groupIds: WellbeingSpeciesGroupId[], species: PetSpecies): WellbeingSpeciesGroupId {
+  // If the groupId exists in routines, use it directly
+  const routineGroupIds = WELLBEING_MASTER_BOOK.routines.map((r) => r.groupId);
+  const direct = groupIds.find((id) => routineGroupIds.includes(id));
+  if (direct) return direct;
+
+  // Fallback mapping
+  if (species === "cat") return "cat.general";
+  return "dog.companion"; // dog.general -> dog.companion
+}
+
+const CATEGORY_ICONS: Record<string, string> = {
+  outdoor: "park",
+  indoor: "home",
+  grooming: "content_cut",
+  training: "school",
+  social: "groups",
+};
+
+// ─── Inline WeatherPill ───────────────────────────────────────────────────────
+
+function WeatherPill({
+  icon,
+  value,
+  label,
+  highlight,
+}: {
+  icon: string;
+  value: string;
+  label: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`flex-1 flex items-center gap-1.5 rounded-[12px] px-2.5 py-2 border ${
+        highlight
+          ? "border-[#1A9B7D] bg-[#eef8f3]"
+          : "border-[#eef0ee] bg-white"
+      }`}
+    >
+      <span
+        className="material-symbols-rounded text-[#074738]"
+        style={{ fontSize: 16 }}
+      >
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-[12px] font-[800] text-[#002f24] leading-none">{value}</p>
+        <p className="text-[10px] text-[#9ca8a2] leading-none mt-0.5">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── ROUTINE STORAGE HELPERS ──────────────────────────────────────────────────
+
+function getRoutineStorageKey(petId: string): string {
+  const today = new Date().toISOString().slice(0, 10);
+  return `pessy_routine_${petId}_${today}`;
+}
+
+function loadCheckedItems(petId: string): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(getRoutineStorageKey(petId));
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCheckedItems(petId: string, items: string[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(getRoutineStorageKey(petId), JSON.stringify(items));
+}
+
+// ─── RECOMMENDATION COLOR MAPPING ────────────────────────────────────────────
+
+function mapRecToTipColor(rec: PessyIntelligenceRecommendation): "green" | "blue" | "orange" {
+  const segment = rec.slot?.toLowerCase() || "";
+  if (segment.includes("block") || segment.includes("alert") || rec.kind === "block" || rec.kind === "alert") {
+    return "orange";
+  }
+  if (segment.includes("training") || segment.includes("routine")) {
+    return "green";
+  }
+  return "blue";
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export function PetHomeView({
   onViewHistory,
@@ -148,11 +231,7 @@ export function PetHomeView({
   onPetChange,
 }: PetHomeViewProps) {
   const { updatePet } = usePet();
-  const [isDragging, setIsDragging] = useState(false);
-  const [dietPreference, setDietPreference] = useState<DietPreference | null>(null);
   const [showPreferences, setShowPreferences] = useState(false);
-  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [discoveryCard, setDiscoveryCard] = useState<{ type: string; data?: any; text?: string; detail?: string } | null>(null);
   const [weather, setWeather] = useState<LiveWeatherSnapshot>({
     status: "loading",
     temperatureC: null,
@@ -162,6 +241,7 @@ export function PetHomeView({
     uvIndex: null,
   });
   const [nudgedBreed, setNudgedBreed] = useState(false);
+  const [checkedRoutineItems, setCheckedRoutineItems] = useState<string[]>([]);
   const { getEventsByPetId, getActiveMedicationsByPetId, getAppointmentsByPetId } = useMedical();
 
   const currentIndex = pets.findIndex((pet) => pet.id === activePetId);
@@ -178,29 +258,19 @@ export function PetHomeView({
     return toTimestampSafe(dateValue, 0) >= Date.now();
   });
 
-  const nextAppointment =
-    [...upcomingAppointments].sort(
-      (a, b) =>
-        toTimestampSafe(a.dateTime || `${a.date || ""}T${a.time || "00:00"}:00`, Date.now()) -
-        toTimestampSafe(b.dateTime || `${b.date || ""}T${b.time || "00:00"}:00`, Date.now())
-    )[0] || null;
-
-  const identityItems = [
-    { label: "Perfil", ready: Boolean(activePet?.name && activePet?.breed) },
-    { label: "Foto", ready: Boolean(activePet?.photo) },
-    { label: "Peso", ready: Boolean(activePet?.weight) },
-    { label: "Papeles", ready: petEvents.length > 0 },
-  ];
-  const identityReadyCount = identityItems.filter((item) => item.ready).length;
-  const identityProgress = Math.round((identityReadyCount / identityItems.length) * 100);
-
-  const servicesCount = upcomingAppointments.length + activeMedications.length;
-  const dietStorageKey = activePetId ? `pessy_supply_diet_${activePetId}` : null;
   const species = resolveSpecies(activePet?.species, activePet?.breed);
   const groupIds = resolveGroupIds(species, activePet?.breed || "");
   const thermalProfile = resolveThermalProfile(species, groupIds);
   const foodDaysLeft = computeFoodDaysLeft(activePet?.preferences);
 
+  // ─── Profile completeness ───────────────────────────────────────────────────
+  const missingItems: string[] = [];
+  if (!activePet?.photo) missingItems.push("foto");
+  if (!activePet?.weight) missingItems.push("peso");
+  if (!activePet?.breed) missingItems.push("raza");
+  const profileIncomplete = missingItems.length > 0;
+
+  // ─── Intelligence engine ────────────────────────────────────────────────────
   const intelligenceResult = useMemo(() => {
     if (!activePet?.breed) return null;
     const wc = weather.weatherCode;
@@ -231,22 +301,99 @@ export function PetHomeView({
     return [...intelligenceResult.recommendations].sort((a, b) => (order[a.kind] ?? 2) - (order[b.kind] ?? 2));
   }, [intelligenceResult]);
 
+  // ─── Walk safety (simplified for badge) ─────────────────────────────────────
+  const walkSafety: WalkSafetyState = useMemo(() => {
+    const breed = (activePet?.breed || "").trim();
+    if (!breed || !thermalProfile) return { status: "missing_data", badge: "Falta dato" };
+    if (weather.status !== "ready" || weather.temperatureC === null) return { status: "unavailable", badge: "Sin clima" };
+
+    const humidityPenalty = thermalProfile.humiditySensitive && (weather.humidityPct ?? 0) >= 70;
+    const severeRisk = thermalProfile.severeRiskAboveC ?? Number.POSITIVE_INFINITY;
+    const avoidExercise = thermalProfile.avoidExerciseAboveC ?? Number.POSITIVE_INFINITY;
+    const cautionThreshold =
+      typeof avoidExercise === "number" && Number.isFinite(avoidExercise)
+        ? Math.max((thermalProfile.comfortableMaxC ?? avoidExercise) + 1, avoidExercise - 3)
+        : thermalProfile.comfortableMaxC ?? 26;
+
+    if (weather.temperatureC >= severeRisk || weather.temperatureC > avoidExercise || humidityPenalty) {
+      return { status: "blocked", badge: "STOP" };
+    }
+    if (weather.temperatureC >= cautionThreshold) {
+      return { status: "caution", badge: "Precaución" };
+    }
+    return { status: "safe", badge: "Seguro" };
+  }, [activePet?.breed, thermalProfile, weather]);
+
+  // ─── Daily suggestion (deterministic by day-of-year) ────────────────────────
+  const dailySuggestion = useMemo(() => {
+    const routineGroup = resolveRoutineGroupId(groupIds, species);
+    const weatherCondition = walkSafety.status === "blocked" ? "blocked" : walkSafety.status === "safe" ? "safe" : "any";
+
+    const candidates = WELLBEING_MASTER_BOOK.daily_suggestions.filter(
+      (s) => s.groupId === routineGroup && (s.weatherCondition === weatherCondition || s.weatherCondition === "any")
+    );
+
+    // If no candidates for the exact group, try all suggestions for weather condition
+    const pool = candidates.length > 0
+      ? candidates
+      : WELLBEING_MASTER_BOOK.daily_suggestions.filter(
+          (s) => s.weatherCondition === weatherCondition || s.weatherCondition === "any"
+        );
+
+    if (pool.length === 0) {
+      return {
+        category: "Actividad",
+        icon: "park",
+        title: `Tiempo de calidad con ${activePet?.name || "tu mascota"}`,
+        detail: "Un buen momento para compartir tiempo con tu mascota.",
+        duration: "15 min",
+        points: 10,
+      };
+    }
+
+    const dayOfYear = Math.floor(
+      (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86_400_000
+    );
+    const pick = pool[dayOfYear % pool.length];
+
+    return {
+      category: pick.category,
+      icon: CATEGORY_ICONS[pick.category] || "star",
+      title: pick.title,
+      detail: pick.detail,
+      duration: pick.duration,
+      points: pick.gamificationPoints,
+    };
+  }, [groupIds, species, walkSafety.status, activePet?.name]);
+
+  // ─── Routine items ──────────────────────────────────────────────────────────
+  const currentHour = new Date().getHours();
+  const currentRoutineItems = useMemo(() => {
+    const routineGroup = resolveRoutineGroupId(groupIds, species);
+    const routine = WELLBEING_MASTER_BOOK.routines.find((r) => r.groupId === routineGroup);
+    if (!routine) return [];
+    return currentHour < 14 ? routine.morningRoutine : routine.eveningRoutine;
+  }, [groupIds, species, currentHour]);
+
+  // ─── Load checked routine items from localStorage ───────────────────────────
   useEffect(() => {
-    if (!dietStorageKey || typeof window === "undefined") {
-      setDietPreference(null);
-      return;
+    if (activePetId) {
+      setCheckedRoutineItems(loadCheckedItems(activePetId));
     }
+  }, [activePetId]);
 
-    const stored = window.localStorage.getItem(dietStorageKey);
-    if (stored === "balanced" || stored === "barf" || stored === "mixed") {
-      setDietPreference(stored);
-      return;
-    }
+  const handleRoutineToggle = useCallback(
+    (item: string) => {
+      setCheckedRoutineItems((prev) => {
+        const next = prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item];
+        if (activePetId) saveCheckedItems(activePetId, next);
+        return next;
+      });
+    },
+    [activePetId]
+  );
 
-    setDietPreference(null);
-  }, [dietStorageKey]);
-
-  // Nudge automático para usuario nuevo sin raza cargada
+  // ─── Nudge for new user without breed ───────────────────────────────────────
   useEffect(() => {
     if (nudgedBreed) return;
     const breed = (activePet?.breed || "").trim();
@@ -259,6 +406,7 @@ export function PetHomeView({
     }
   }, [activePet?.id, nudgedBreed]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── Weather fetching ───────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
@@ -346,7 +494,6 @@ export function PetHomeView({
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setUserCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
         void loadWeather(position.coords.latitude, position.coords.longitude);
       },
       () => {
@@ -364,710 +511,145 @@ export function PetHomeView({
     };
   }, []);
 
-  const saveDietPreference = (value: DietPreference) => {
-    setDietPreference(value);
-    if (!dietStorageKey || typeof window === "undefined") return;
-    window.localStorage.setItem(dietStorageKey, value);
-  };
-
-  const serviceSummary = nextAppointment
-    ? {
-        title: "Se viene algo agendado",
-        detail: [
-          formatDateSafe(
-            nextAppointment.date || nextAppointment.dateTime,
-            "es-AR",
-            { day: "numeric", month: "short" },
-            "Sin fecha"
-          ),
-          nextAppointment.time ? `${nextAppointment.time} hs` : null,
-        ]
-          .filter(Boolean)
-          .join(" · "),
-      }
-    : activeMedications.length > 0
-      ? {
-          title: `${activeMedications.length} cuidado${activeMedications.length !== 1 ? "s" : ""} en curso`,
-          detail: "Todo lo que está siguiendo ahora vive en un solo lugar.",
-        }
-      : {
-        title: `Todo en orden con ${activePet?.name || "tu mascota"}`,
-        detail: "No hay nada próximo para resolver ahora.",
-      };
-
-  // ─── Discovery Feed — rotación diaria ───────────────────────────────────────
-  useEffect(() => {
-    const loadDiscovery = async () => {
-      if (!activePet) return;
-
-      const today = new Date().toDateString();
-      const lastDate = localStorage.getItem("pessy_discovery_date");
-      let idx = Number(localStorage.getItem("pessy_discovery_index") || 0);
-
-      if (lastDate !== today) {
-        idx = (idx + 1) % 3;
-        localStorage.setItem("pessy_discovery_date", today);
-        localStorage.setItem("pessy_discovery_index", idx.toString());
-      }
-
-      if (idx === 0 && userCoords) {
-        try {
-          const apiKey = (import.meta as any).env.VITE_GOOGLE_PLACES_KEY;
-          if (!apiKey) {
-            setDiscoveryCard({ type: "ACTIVITY", text: "Día de exploración", detail: "Salí a descubrir un lugar nuevo con tu mascota." });
-            return;
-          }
-          const placeTypes = ["park", "cafe", "pet_store", "restaurant"];
-          const randomType = placeTypes[Math.floor(Math.random() * placeTypes.length)];
-          const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${userCoords.lat},${userCoords.lng}&radius=3000&type=${randomType}&keyword=pet+friendly&language=es&key=${apiKey}`;
-          const res = await fetch(url);
-          const data = await res.json();
-          const place = (data.results || [])
-            .filter((p: any) => p.business_status === "OPERATIONAL")
-            .sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0))[0];
-          if (place) setDiscoveryCard({ type: "PLACE", data: place });
-          else setDiscoveryCard({ type: "ACTIVITY", text: "Día de exploración", detail: "Salí a descubrir un lugar nuevo con tu mascota." });
-        } catch {
-          setDiscoveryCard({ type: "GAMIFICATION" });
-        }
-      } else if (idx === 1) {
-        const safetyStatus = localStorage.getItem(`pessy_walk_status_${activePet.id}`) || "safe";
-        const condition = safetyStatus === "blocked" ? "blocked" : "safe";
-        const petGroupIds = resolveGroupIds(resolveSpecies(activePet?.species, activePet?.breed), activePet?.breed || "");
-        const groupId = petGroupIds[0] || "dog.companion";
-        const suggestions = WELLBEING_MASTER_BOOK.daily_suggestions.filter(
-          (s) => s.groupId === groupId && (s.weatherCondition === condition || s.weatherCondition === "any")
-        );
-        const pick = suggestions.length > 0
-          ? suggestions[Math.floor(Math.random() * suggestions.length)]
-          : { title: "Día de actividad", detail: "Un buen momento para compartir tiempo con tu mascota." };
-        setDiscoveryCard({ type: "ACTIVITY", text: pick.title, detail: pick.detail });
-      } else {
-        setDiscoveryCard({ type: "GAMIFICATION" });
-      }
-    };
-    loadDiscovery();
-  }, [activePetId, userCoords]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const walkSafety: WalkSafetyState = (() => {
-    const breed = (activePet?.breed || "").trim();
-
-    if (!breed || !thermalProfile) {
-      return {
-        status: "missing_data",
-        badge: "Falta dato",
-        title: `No puedo calcular la salida de ${activePet.name}`,
-        detail: `Sin la raza de ${activePet.name} no puedo decirte si hoy conviene salir o esperar.`,
-        helper: "Cargá la raza y Pessy activa el semáforo de seguridad.",
-        primaryLabel: "Completar perfil",
-        primaryAction: "profile",
-        secondaryLabel: "Actividad",
-        secondaryAction: "history",
-        toneClassName: "border-slate-300 bg-slate-100 text-slate-900 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white",
-        icon: "help",
-      };
-    }
-
-    if (weather.status !== "ready" || weather.temperatureC === null) {
-      return {
-        status: "unavailable",
-        badge: "Sin clima",
-        title: "Activá ubicación para ver el clima de hoy",
-        detail: `Con tu ubicación, Pessy te dice si hoy es un buen momento para salir con ${activePet.name}.`,
-        helper: serviceSummary.detail,
-        primaryLabel: "Ver turnos",
-        primaryAction: "appointments",
-        secondaryLabel: "Ver tratamientos",
-        secondaryAction: "medications",
-        toneClassName: "border-slate-300 bg-slate-50 text-slate-900 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white",
-        icon: "location_off",
-      };
-    }
-
-    const humidityPenalty = thermalProfile.humiditySensitive && (weather.humidityPct ?? 0) >= 70;
-    const severeRisk = thermalProfile.severeRiskAboveC ?? Number.POSITIVE_INFINITY;
-    const avoidExercise = thermalProfile.avoidExerciseAboveC ?? Number.POSITIVE_INFINITY;
-    const cautionThreshold =
-      typeof avoidExercise === "number" && Number.isFinite(avoidExercise)
-        ? Math.max((thermalProfile.comfortableMaxC ?? avoidExercise) + 1, avoidExercise - 3)
-        : thermalProfile.comfortableMaxC ?? 26;
-    const replacementTime = getReplacementTime(groupIds);
-
-    if (weather.temperatureC >= severeRisk || weather.temperatureC > avoidExercise || humidityPenalty) {
-      return {
-        status: "blocked",
-        badge: "STOP",
-        title: species === "dog" ? "PASEO NO RECOMENDADO" : "CALOR NO RECOMENDADO",
-        detail:
-          species === "dog"
-            ? `Hoy hace ${weather.temperatureC} C. Para ${breed}, salir ahora cruza el limite de ${thermalProfile.avoidExerciseAboveC} C.`
-            : `Hoy hace ${weather.temperatureC} C${humidityPenalty ? " con humedad alta" : ""}. Para ${activePet.name}, mejor interior fresco y nada de calor sostenido.`,
-        helper:
-          species === "dog"
-            ? `Mejor esperar hasta las ${replacementTime} y hacer una actividad tranquila en casa.`
-            : "Agua fresca, ventilacion y un lugar fresco dentro de casa.",
-        primaryLabel: "Ver tratamientos",
-        primaryAction: "medications",
-        secondaryLabel: "Ver turnos",
-        secondaryAction: "appointments",
-        toneClassName: "border-red-300 bg-red-50 text-red-950 dark:border-red-500/40 dark:bg-red-950/30 dark:text-red-100",
-        icon: "thermostat",
-      };
-    }
-
-    if (weather.temperatureC >= cautionThreshold) {
-      return {
-        status: "caution",
-        badge: "Precaucion",
-        title: species === "dog" ? "Paseo corto y con cuidado" : "Cuidado con el calor",
-        detail:
-          species === "dog"
-            ? `Hace ${weather.temperatureC} C. Si salis con ${activePet.name}, que sea corto, con agua y buscando sombra.`
-            : `Hace ${weather.temperatureC} C. Conviene vigilar a ${activePet.name} y evitar calor sostenido.`,
-        helper: serviceSummary.detail,
-        primaryLabel: "Ver turnos",
-        primaryAction: "appointments",
-        secondaryLabel: "Ver tratamientos",
-        secondaryAction: "medications",
-        toneClassName: "border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-500/40 dark:bg-amber-950/20 dark:text-amber-100",
-        icon: "warning",
-      };
-    }
-
-    return {
-      status: "safe",
-      badge: "Seguro",
-      title: species === "dog" ? `Dia ideal para salir con ${activePet.name}` : `Clima tranquilo para ${activePet.name}`,
-      detail:
-        species === "dog"
-          ? `Hace ${weather.temperatureC} C ahora. No veo riesgo termico para ${breed}.`
-          : `Hace ${weather.temperatureC} C ahora. El ambiente se ve tranquilo para hoy.`,
-      helper: serviceSummary.detail,
-      primaryLabel: "Ver turnos",
-      primaryAction: "appointments",
-      secondaryLabel: "Ver tratamientos",
-      secondaryAction: "medications",
-      toneClassName: "border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-500/40 dark:bg-emerald-950/20 dark:text-emerald-100",
-      icon: "check_circle",
-    };
-  })();
-
-  // Persistir status del semáforo para Discovery Feed
-  if (typeof window !== "undefined" && activePetId) {
-    localStorage.setItem(`pessy_walk_status_${activePetId}`, walkSafety.status);
-  }
-
-  const supplySummary = (() => {
-    if (!activePet) {
-      return {
-        title: "Suministros",
-        detail: "Cuando elijas cómo come, Pessy te ayuda a ordenar compras y recordatorios.",
-      };
-    }
-
-    if (!dietPreference) {
-      return {
-        title: `¿Cómo viene ${activePet.name} de comida?`,
-        detail: "Elegí una opción y desde acá organizamos compras, stock y reabastecimiento.",
-      };
-    }
-
-    const labels: Record<DietPreference, string> = {
-      balanced: "balanceado",
-      barf: "BARF",
-      mixed: "mixto",
-    };
-
-    return {
-      title: `${activePet.name} viene con ${labels[dietPreference]}`,
-      detail: "Cuando toque reponer o aparezcan ofertas útiles, lo vas a ver acá.",
-    };
-  })();
-
-  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    setIsDragging(false);
-
-    const threshold = 100;
-    const velocity = info.velocity.x;
-
-    if (info.offset.x < -threshold || velocity < -500) {
-      const nextIndex = (safeCurrentIndex + 1) % pets.length;
-      onPetChange(pets[nextIndex].id);
-      return;
-    }
-
-    if (info.offset.x > threshold || velocity > 500) {
-      const prevIndex = safeCurrentIndex === 0 ? pets.length - 1 : safeCurrentIndex - 1;
-      onPetChange(pets[prevIndex].id);
-    }
-  };
-
-  const handleTap = (event: MouseEvent | TouchEvent | PointerEvent) => {
-    const target = event.target as HTMLElement | null;
-    if (!isDragging && !target?.closest("button")) {
-      onProfileClick();
-    }
-  };
-
-  const handleServicePrimaryAction = () => {
-    if (walkSafety.primaryAction === "profile") {
-      onProfileClick();
-      return;
-    }
-
-    if (walkSafety.primaryAction === "medications") {
-      onMedicationsClick();
-      return;
-    }
-
-    onAppointmentsClick();
-  };
-
-  const handleServiceSecondaryAction = () => {
-    if (walkSafety.secondaryAction === "history") {
-      onViewHistory();
-      return;
-    }
-
-    if (walkSafety.secondaryAction === "profile") {
-      onProfileClick();
-      return;
-    }
-
-    if (walkSafety.secondaryAction === "medications") {
-      onMedicationsClick();
-      return;
-    }
-
-    onAppointmentsClick();
-  };
+  // ─── Medical counts ─────────────────────────────────────────────────────────
+  const appointmentCount = upcomingAppointments.length;
+  const medicationCount = activeMedications.length;
+  const historyCount = petEvents.length;
 
   if (!activePet) return null;
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════════════════════
+
   return (
-    <div className="px-4 pt-8 pb-8 space-y-5">
-      <motion.div
-        initial={{ opacity: 0, y: -16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-        className="space-y-2"
-      >
-        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-[#074738]">
-          Pessy
-        </p>
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white leading-tight">
-          Todo en orden con {activePet.name}
-        </h1>
-        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-          Identidad, servicios y sus cosas en un solo lugar.
-        </p>
-      </motion.div>
+    <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen font-['Manrope',sans-serif]">
+      <div className="max-w-md mx-auto pb-24">
 
-      <motion.div
-        key={activePetId}
-        initial={{ opacity: 0, scale: 0.96 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.45, delay: 0.05 }}
-        className="space-y-3"
-      >
-        <motion.div
-          drag={hasMultiplePets ? "x" : false}
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.16}
-          onDragStart={() => setIsDragging(true)}
-          onDragEnd={handleDragEnd}
-          onTap={handleTap}
-          className="overflow-hidden rounded-[28px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-[0_20px_60px_-20px_rgba(15,23,42,0.28)]"
-        >
-          <div className="relative h-64 bg-gradient-to-br from-[#d5efe8] via-[#eef7f4] to-white dark:from-slate-800 dark:via-slate-900 dark:to-slate-950">
-            <PetPhoto
-              src={activePet.photo}
-              alt={activePet.name}
-              className="h-full w-full object-cover"
-              fallbackClassName="rounded-none"
-            />
-            <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-white dark:from-slate-900 to-transparent" />
-            <div className="absolute right-4 top-4 rounded-full bg-[#074738] px-4 py-2 text-[11px] font-black uppercase tracking-wide text-white shadow-lg">
-              Activo
-            </div>
-          </div>
-
-          <div className="space-y-5 p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-3xl font-black text-slate-900 dark:text-white">
-                  {activePet.name}
-                </h2>
-                <p className="mt-1 text-sm font-medium text-slate-500 dark:text-slate-400">
-                  {[activePet.age, activePet.breed].filter(Boolean).join(" · ") || "Su perfil ya está en marcha"}
-                </p>
-              </div>
-              <div className="flex size-12 items-center justify-center rounded-full bg-[#074738]/10 text-[#074738]">
-                <MaterialIcon name="pets" className="text-2xl" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/80">
-                <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Identidad
-                </p>
-                <p className="mt-2 text-2xl font-black text-slate-900 dark:text-white">
-                  {identityProgress}%
-                </p>
-                <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {identityReadyCount} de {identityItems.length} cosas listas
-                </p>
-              </div>
-              <div className="rounded-2xl bg-slate-50 p-4 dark:bg-slate-800/80">
-                <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Servicios
-                </p>
-                <p className="mt-2 text-2xl font-black text-slate-900 dark:text-white">
-                  {servicesCount}
-                </p>
-                <p className="mt-1 text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {servicesCount === 0 ? "Nada próximo" : "Cosas activas o agendadas"}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onProfileClick();
-                }}
-                className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-900 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
-              >
-                Ver perfil
-              </button>
-              <button
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onViewHistory();
-                }}
-                className="rounded-2xl bg-[#074738] px-4 py-3 text-sm font-bold text-white shadow-lg shadow-[#074738]/25 transition-colors hover:bg-[#0c5d4a]"
-              >
-                Actividad
-              </button>
-            </div>
-          </div>
-        </motion.div>
-
-        {hasMultiplePets && (
-          <div className="rounded-2xl border border-slate-200 bg-white/90 px-3 py-3 dark:border-slate-800 dark:bg-slate-900/90">
-            <div className="flex items-center justify-between px-1">
-              <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                Mascota {safeCurrentIndex + 1} de {pets.length}
-              </p>
-              <button
-                onClick={onPetClick}
-                className="text-[11px] font-bold text-[#074738] hover:underline"
-              >
-                Ver todas
-              </button>
-            </div>
-            <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1">
-              {pets.map((pet) => (
-                <button
-                  key={pet.id}
-                  onClick={() => onPetChange(pet.id)}
-                  className={`shrink-0 rounded-full px-3 py-2 text-xs font-bold transition-colors ${
-                    pet.id === activePetId
-                      ? "bg-[#074738] text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                  }`}
-                >
-                  {pet.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </motion.div>
-
-      <motion.section
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.1 }}
-        className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#074738]">
-              Identidad
-            </p>
-            <h3 className="mt-2 text-2xl font-black text-slate-900 dark:text-white">
-              Identidad al {identityProgress}%
-            </h3>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              Perfil, peso, foto y papeles organizados en un solo lugar.
-            </p>
-          </div>
-          <div className="flex size-12 items-center justify-center rounded-full bg-[#074738]/10 text-[#074738]">
-            <MaterialIcon name="badge" className="text-2xl" />
-          </div>
-        </div>
-
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-          <div
-            className="h-full rounded-full bg-[#074738] transition-all"
-            style={{ width: `${identityProgress}%` }}
+        {/* 1. HERO - Pet photo with name overlay */}
+        <div className="relative h-[200px] overflow-hidden">
+          <PetPhoto
+            src={activePet.photo}
+            alt={activePet.name}
+            className="w-full h-full object-cover"
+            fallbackClassName="rounded-none"
           />
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {identityItems.map((item) => (
-            <div
-              key={item.label}
-              className={`inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-bold ${
-                item.ready
-                  ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300"
-                  : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300"
-              }`}
+          <div className="absolute bottom-0 left-0 right-0 h-[100px] bg-gradient-to-t from-[rgba(7,71,56,0.85)] to-transparent" />
+          <div className="absolute bottom-3.5 left-4 text-white">
+            <h1
+              className="text-[26px] font-[900] leading-none"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             >
-              <MaterialIcon name={item.ready ? "check_circle" : "radio_button_unchecked"} className="text-sm" />
-              {item.label}
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <button
-            onClick={onProfileClick}
-            className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-900 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
-          >
-            Ver perfil
-          </button>
-          <button
-            onClick={onViewHistory}
-            className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-900 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-white dark:hover:bg-slate-700"
-          >
-            Actividad
-          </button>
-        </div>
-      </motion.section>
-
-      <motion.section
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.16 }}
-        className={`rounded-[26px] border p-5 shadow-sm ${walkSafety.toneClassName}`}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-current/70">
-              Servicios
-            </p>
-            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-current dark:bg-black/10">
-              <MaterialIcon name={walkSafety.icon} className="text-sm" />
-              {walkSafety.badge}
-            </div>
-            <h3 className="mt-3 text-2xl font-black text-current">
-              {walkSafety.title}
-            </h3>
-            <p className="mt-1 text-sm text-current/80">
-              {walkSafety.detail}
-            </p>
-            <p className="mt-3 text-sm font-semibold text-current/75">
-              {walkSafety.helper}
-            </p>
+              {activePet.name}
+            </h1>
+            <p className="text-xs opacity-80 mt-0.5">{activePet.breed}</p>
           </div>
-          <div className="flex size-12 items-center justify-center rounded-full bg-white/70 text-current dark:bg-black/10">
-            <MaterialIcon name={walkSafety.icon} className="text-2xl" />
+          {/* Gamification points badge top-right */}
+          <div className="absolute top-3 right-3 bg-[rgba(7,71,56,0.85)] text-white text-xs font-[800] px-3 py-1.5 rounded-full flex items-center gap-1 backdrop-blur-sm">
+            <MaterialIcon name="star" className="!text-sm" /> 0 pts
           </div>
         </div>
 
-        {weather.status === "ready" && weather.temperatureC !== null && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-current dark:bg-black/10">
-              <MaterialIcon name="thermostat" className="text-sm" />
-              {weather.temperatureC} C
-            </span>
-            {weather.humidityPct !== null && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-current dark:bg-black/10">
-                <MaterialIcon name="water_drop" className="text-sm" />
-                {weather.humidityPct}% humedad
-              </span>
-            )}
-          </div>
-        )}
-
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <button
-            onClick={handleServicePrimaryAction}
-            className="rounded-2xl bg-[#074738] px-4 py-3 text-sm font-bold text-white shadow-lg shadow-[#074738]/25 transition-colors hover:bg-[#0c5d4a]"
-          >
-            {walkSafety.primaryLabel}
-          </button>
-          <button
-            onClick={handleServiceSecondaryAction}
-            className="rounded-2xl border border-current/15 bg-white/60 px-4 py-3 text-sm font-bold text-current transition-colors hover:bg-white/80 dark:bg-black/5 dark:hover:bg-black/10"
-          >
-            {walkSafety.secondaryLabel}
-          </button>
-        </div>
-      </motion.section>
-
-      {/* ─── Pessy Intelligence Cards ─────────────────────────────────────── */}
-      {sortedRecommendations.length > 0 && (
-        <motion.section
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.18 }}
-          className="space-y-3"
-        >
-          <p className="px-1 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
-            Pessy te dice
-          </p>
-          {sortedRecommendations.map((rec) => (
-            <RecommendationCard key={rec.id} rec={rec} />
-          ))}
-        </motion.section>
-      )}
-
-      <motion.section
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.22 }}
-        className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#074738]">
-              Suministros
-            </p>
-            <h3 className="mt-2 text-2xl font-black text-slate-900 dark:text-white">
-              {supplySummary.title}
-            </h3>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              {supplySummary.detail}
-            </p>
-          </div>
-          <div className="flex size-12 items-center justify-center rounded-full bg-[#074738]/10 text-[#074738]">
-            <MaterialIcon name="inventory_2" className="text-2xl" />
-          </div>
-        </div>
-
-        <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {DIET_OPTIONS.map((option) => {
-            const selected = dietPreference === option.value;
-            return (
+        {/* Pet selector for multiple pets */}
+        {hasMultiplePets && (
+          <div className="mx-3 mt-2 flex items-center gap-2 overflow-x-auto pb-1">
+            {pets.map((pet) => (
               <button
-                key={option.value}
-                onClick={() => saveDietPreference(option.value)}
-                className={`rounded-2xl px-4 py-3 text-sm font-bold transition-colors ${
-                  selected
-                    ? "bg-[#074738] text-white shadow-lg shadow-[#074738]/25"
-                    : "border border-slate-200 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                key={pet.id}
+                onClick={() => onPetChange(pet.id)}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+                  pet.id === activePetId
+                    ? "bg-[#074738] text-white"
+                    : "bg-white text-[#5e716b] border border-[#eef0ee]"
                 }`}
               >
-                {option.label}
+                {pet.name}
               </button>
-            );
-          })}
-        </div>
-
-        {/* Supply Forecast or fallback hint */}
-        {activePet?.preferences?.foodBagKg && activePet?.preferences?.foodDailyGrams && activePet?.preferences?.foodLastPurchase ? (
-          <SupplyForecastInline
-            bagKg={activePet.preferences.foodBagKg}
-            dailyGrams={activePet.preferences.foodDailyGrams}
-            lastPurchase={activePet.preferences.foodLastPurchase}
-            foodBrand={activePet.preferences.foodBrand}
-          />
-        ) : (
-          <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:bg-slate-800/80 dark:text-slate-300">
-            Esto arranca simple: qué come, cómo viene y cuándo conviene reponer.
+            ))}
           </div>
         )}
 
-        {/* Gustos Button */}
-        <button
-          onClick={() => setShowPreferences(true)}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[#074738]/30 py-3 text-sm font-bold text-[#074738] transition-colors hover:bg-[#074738]/5 dark:border-emerald-400/30 dark:text-emerald-400 dark:hover:bg-emerald-400/5"
-        >
-          <MaterialIcon name="tune" className="text-lg" />
-          {activePet?.preferences ? "Editar gustos y stock" : "Configurar gustos y stock"}
-        </button>
-      </motion.section>
+        {/* 2. WEATHER STRIP - 3 pills */}
+        {weather.status === "ready" && (
+          <div className="flex gap-1.5 mx-3 mt-2.5">
+            <WeatherPill icon="thermostat" value={`${weather.temperatureC}°C`} label="Ahora" />
+            <WeatherPill icon="water_drop" value={`${weather.humidityPct}%`} label="Humedad" />
+            <WeatherPill
+              icon="verified_user"
+              value={walkSafety.badge}
+              label="Paseo"
+              highlight={walkSafety.status === "safe"}
+            />
+          </div>
+        )}
 
-      {/* ─── Discovery Feed ─────────────────────────────────────────────────── */}
-      {discoveryCard && (
-        <motion.section
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-          className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800/80"
-        >
-          <AnimatePresence mode="wait">
-            {discoveryCard.type === "PLACE" && discoveryCard.data && (
-              <motion.div key="place" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <span className="mb-3 inline-block rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white" style={{ backgroundColor: "#074738" }}>
-                  Cerca tuyo
-                </span>
-                <h3 className="mt-2 text-lg font-black text-slate-900 dark:text-white">{discoveryCard.data.name}</h3>
-                <p className="mt-1 text-sm text-slate-500">{discoveryCard.data.vicinity}</p>
-                {discoveryCard.data.rating && (
-                  <p className="mt-1 text-xs text-slate-400">&#11088; {discoveryCard.data.rating}</p>
-                )}
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${discoveryCard.data.geometry?.location?.lat},${discoveryCard.data.geometry?.location?.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 block w-full rounded-xl py-3 text-center text-sm font-bold text-white"
-                  style={{ backgroundColor: "#074738" }}
-                >
-                  Ver en Maps
-                </a>
-              </motion.div>
-            )}
+        {/* 3. PROFILE NUDGE - only if incomplete */}
+        {profileIncomplete && (
+          <div className="mx-3 mt-2">
+            <ProfileNudge
+              petName={activePet.name}
+              species={species}
+              missingItems={missingItems}
+              onComplete={onProfileClick}
+            />
+          </div>
+        )}
 
-            {discoveryCard.type === "ACTIVITY" && (
-              <motion.div key="activity" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <span className="mb-3 inline-block rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white" style={{ backgroundColor: "#074738" }}>
-                  Plan del día
-                </span>
-                <h3 className="mt-2 text-lg font-black text-slate-900 dark:text-white">{discoveryCard.text}</h3>
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{discoveryCard.detail}</p>
-              </motion.div>
-            )}
+        {/* 4. DAILY HOOK - suggestion from intelligence engine */}
+        <SectionTitle>Hoy con {activePet.name}</SectionTitle>
+        <div className="mx-3">
+          <DailyHookCard
+            category={dailySuggestion.category}
+            categoryIcon={dailySuggestion.icon}
+            title={dailySuggestion.title}
+            description={dailySuggestion.detail}
+            duration={dailySuggestion.duration}
+            points={dailySuggestion.points}
+          />
+        </div>
 
-            {discoveryCard.type === "GAMIFICATION" && (
-              <motion.div key="gamification" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <span className="mb-3 inline-block rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white" style={{ backgroundColor: "#074738" }}>
-                  Tu progreso
-                </span>
-                <div className="mt-2 mb-2 flex items-center justify-between">
-                  <span className="text-sm font-bold text-slate-900 dark:text-white">Perfil de {activePet.name}</span>
-                  <span className="text-sm font-bold" style={{ color: "#074738" }}>{identityProgress}%</span>
-                </div>
-                <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${identityProgress}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                    className="h-full rounded-full"
-                    style={{ backgroundColor: "#074738" }}
-                  />
-                </div>
-                {identityProgress < 100 && (
-                  <p className="mt-2 text-xs text-slate-500">
-                    Falta completar:{" "}
-                    <span className="font-bold" style={{ color: "#074738" }}>
-                      {identityItems.find((i) => !i.ready)?.label || "datos adicionales"}
-                    </span>
-                  </p>
-                )}
-                {identityProgress === 100 && (
-                  <p className="mt-2 text-sm font-bold" style={{ color: "#074738" }}>&#10003; Perfil completo</p>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.section>
-      )}
+        {/* 5. ROUTINE CHECKLIST - morning or evening based on time */}
+        {currentRoutineItems.length > 0 && (
+          <div className="mx-3 mt-2">
+            <RoutineChecklist
+              title={currentHour < 14 ? "Rutina de la mañana" : "Rutina de la noche"}
+              icon={currentHour < 14 ? "wb_sunny" : "nightlight"}
+              items={currentRoutineItems}
+              checkedItems={checkedRoutineItems}
+              onToggle={handleRoutineToggle}
+            />
+          </div>
+        )}
+
+        {/* 6. QUICK ACTIONS - only if pet has medical data */}
+        <SectionTitle>Servicios</SectionTitle>
+        <QuickActions
+          appointments={appointmentCount}
+          medications={medicationCount}
+          historyCount={historyCount}
+          onAppointmentsClick={onAppointmentsClick}
+          onMedicationsClick={onMedicationsClick}
+          onHistoryClick={onViewHistory}
+        />
+
+        {/* 7. PESSY TE DICE - tips from intelligence engine */}
+        {sortedRecommendations.length > 0 && (
+          <>
+            <SectionTitle>Pessy te dice</SectionTitle>
+            <div className="mx-3 space-y-1.5">
+              {sortedRecommendations.map((rec) => (
+                <PessyTip
+                  key={rec.id}
+                  icon={rec.icon}
+                  color={mapRecToTipColor(rec)}
+                  title={rec.title}
+                  description={rec.detail}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
 
       {/* ─── Preferences Editor Modal ─────────────────────────────────────── */}
       {showPreferences && activePet && (
@@ -1077,106 +659,12 @@ export function PetHomeView({
             preferences={activePet.preferences || {}}
             onSave={async (prefs) => {
               await updatePet(activePetId, { preferences: prefs } as any);
-              // Also sync diet preference locally
-              if (prefs.foodType) {
-                setDietPreference(prefs.foodType);
-                localStorage.setItem(`pessy_supply_diet_${activePetId}`, prefs.foodType);
-              }
               setShowPreferences(false);
             }}
             onClose={() => setShowPreferences(false)}
           />
         </Suspense>
       )}
-    </div>
-  );
-}
-
-// ─── Inline Supply Forecast (Home View) ──────────────────────────────────────
-
-function SupplyForecastInline({ bagKg, dailyGrams, lastPurchase, foodBrand }: {
-  bagKg: number;
-  dailyGrams: number;
-  lastPurchase: string;
-  foodBrand?: string;
-}) {
-  const totalGrams = bagKg * 1000;
-  const purchaseDate = new Date(lastPurchase);
-  const today = new Date();
-  const daysSincePurchase = Math.max(0, Math.floor((today.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24)));
-  const gramsConsumed = daysSincePurchase * dailyGrams;
-  const gramsLeft = Math.max(0, totalGrams - gramsConsumed);
-  const daysLeft = Math.max(0, Math.floor(gramsLeft / dailyGrams));
-  const percentLeft = Math.round((gramsLeft / totalGrams) * 100);
-  const runOutDate = new Date(today.getTime() + daysLeft * 24 * 60 * 60 * 1000);
-
-  const urgency = daysLeft <= 3 ? "red" : daysLeft <= 7 ? "amber" : "emerald";
-  const barColor = urgency === "red" ? "bg-red-500" : urgency === "amber" ? "bg-amber-500" : "bg-emerald-500";
-  const textColor = urgency === "red" ? "text-red-700 dark:text-red-400" : urgency === "amber" ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400";
-  const bgColor = urgency === "red" ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800" : urgency === "amber" ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800" : "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800";
-
-  return (
-    <div className={`mt-4 rounded-2xl border p-4 ${bgColor}`}>
-      <div className="flex items-center justify-between">
-        <span className={`text-sm font-bold ${textColor}`}>
-          {daysLeft === 0 ? "Sin stock" : `${daysLeft} días de comida`}
-          {foodBrand ? ` (${foodBrand})` : ""}
-        </span>
-        <span className={`text-xs font-semibold ${textColor}`}>{percentLeft}%</span>
-      </div>
-      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-        <div className={`h-full rounded-full ${barColor} transition-all`} style={{ width: `${percentLeft}%` }} />
-      </div>
-      <p className="mt-2 text-xs text-slate-500">
-        {daysLeft <= 3
-          ? `Comprá ya. Se termina el ${runOutDate.toLocaleDateString("es-AR")}.`
-          : daysLeft <= 7
-            ? `Conviene reponer. Queda hasta el ${runOutDate.toLocaleDateString("es-AR")}.`
-            : `Próxima compra: ${runOutDate.toLocaleDateString("es-AR")}`}
-      </p>
-    </div>
-  );
-}
-
-// ─── Intelligence Recommendation Card ───────────────────────────────────────
-
-const REC_STYLES = {
-  block: {
-    bg: "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800",
-    text: "text-red-800 dark:text-red-300",
-    badge: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
-  },
-  alert: {
-    bg: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800",
-    text: "text-amber-800 dark:text-amber-300",
-    badge: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
-  },
-  recommendation: {
-    bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800",
-    text: "text-emerald-800 dark:text-emerald-300",
-    badge: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
-  },
-} as const;
-
-function RecommendationCard({ rec }: { rec: PessyIntelligenceRecommendation }) {
-  const styles = REC_STYLES[rec.kind];
-
-  return (
-    <div className={`rounded-2xl border p-4 ${styles.bg}`}>
-      <div className="flex items-start gap-3">
-        <MaterialIcon name={rec.icon} className={`text-xl ${styles.text}`} />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h4 className={`text-sm font-bold ${styles.text}`}>{rec.title}</h4>
-            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${styles.badge}`}>
-              {rec.slot}
-            </span>
-          </div>
-          <p className="mt-1 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-            {rec.detail}
-          </p>
-        </div>
-      </div>
     </div>
   );
 }
