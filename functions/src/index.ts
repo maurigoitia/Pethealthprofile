@@ -34,6 +34,12 @@ async function sendEmailReminder(args: {
     timeZone: "America/Argentina/Buenos_Aires",
   });
 
+  const escHtml = (s: string) => s.replace(/[<>&"']/g, (c: string) =>
+    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
+  const safePetName = escHtml(args.petName);
+  const safeMedName = escHtml(args.medicationName);
+  const safeDosage = escHtml(args.dosage);
+
   const isNow = args.minutesBefore === 0;
   const subject = isNow
     ? `Hora de la medicación de ${args.petName} — Pessy`
@@ -79,7 +85,7 @@ async function sendEmailReminder(args: {
         <tr>
           <td style="padding:28px 28px 8px;">
             <h2 style="margin:0 0 6px;font-size:20px;font-weight:800;color:#0f1f1c;line-height:1.2;">
-              ${isNow ? `Toca darle la medicación a ${args.petName}` : `En ${args.minutesBefore} min toca la medicación de ${args.petName}`}
+              ${isNow ? `Toca darle la medicación a ${safePetName}` : `En ${args.minutesBefore} min toca la medicación de ${safePetName}`}
             </h2>
           </td>
         </tr>
@@ -96,8 +102,8 @@ async function sendEmailReminder(args: {
               <tr>
                 <td style="padding:16px 20px;">
                   <div style="font-size:11px;font-weight:700;color:#074738;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Medicamento</div>
-                  <div style="font-size:20px;font-weight:900;color:#0f1f1c;line-height:1.1;">${args.medicationName}</div>
-                  ${args.dosage ? `<div style="font-size:14px;color:#4a6b62;margin-top:4px;">${args.dosage}</div>` : ''}
+                  <div style="font-size:20px;font-weight:900;color:#0f1f1c;line-height:1.1;">${safeMedName}</div>
+                  ${safeDosage ? `<div style="font-size:14px;color:#4a6b62;margin-top:4px;">${safeDosage}</div>` : ''}
                 </td>
               </tr>
             </table>
@@ -2137,7 +2143,9 @@ export const sendCoTutorInvite = functions
 
     const toEmail = (data.email || "").trim().toLowerCase();
     const inviteCode = (data.inviteCode || "").trim().toUpperCase();
-    const petName = (data.petName || "tu mascota").trim();
+    const rawPetName = (data.petName || "tu mascota").trim();
+    const petName = rawPetName.replace(/[<>&"']/g, (c: string) =>
+      ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
     const ownerUid = context.auth.uid;
 
     if (!toEmail || !toEmail.includes("@")) {
@@ -2234,7 +2242,9 @@ export const onInvitationCreated = functions
     }
 
     const code = context.params.code;
-    const petName = data.petName || "tu mascota";
+    const rawPetName = data.petName || "tu mascota";
+    const petName = rawPetName.replace(/[<>&"']/g, (c: string) =>
+      ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
     const appUrl = "https://pessy.app";
     const magicLink = `${appUrl}/login?invite=${code}`;
 

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { auth, db } from "../../lib/firebase";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { COUNTRIES } from "../data/countries";
 import { normalizeCoTutorInviteCode, rememberPendingCoTutorInvite } from "../utils/coTutorInvite";
 import { persistAcquisitionSource, resolveAcquisitionSource, trackAcquisitionEvent } from "../utils/acquisitionTracking";
@@ -103,7 +103,21 @@ export function RegisterUserScreen() {
         return;
       }
       if (inviteCode) {
-        setGateStatus("allowed");
+        // Validar que el código de co-tutor exista en Firestore
+        try {
+          const invSnap = await getDoc(doc(db, "invitations", inviteCode));
+          if (invSnap.exists() && !invSnap.data().used) {
+            setGateStatus("allowed");
+          } else {
+            if (!cancelled) {
+              setGateMessage("Este link de invitación ya fue usado o no existe.");
+              setGateStatus("invalid");
+            }
+          }
+        } catch {
+          // Si no puede leer (rules deniegan a no-auth), permitir — se valida después del login
+          setGateStatus("allowed");
+        }
         return;
       }
       setGateStatus("blocked");
