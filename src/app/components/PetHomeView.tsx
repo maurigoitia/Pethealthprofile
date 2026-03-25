@@ -322,7 +322,7 @@ export function PetHomeView({
     if (weather.temperatureC >= cautionThreshold) {
       return { status: "caution", badge: "Precaución" };
     }
-    return { status: "safe", badge: "Seguro" };
+    return { status: "safe", badge: "OK" };
   }, [activePet?.breed, thermalProfile, weather]);
 
   // ─── Daily suggestion (deterministic by day-of-year) ────────────────────────
@@ -576,7 +576,7 @@ export function PetHomeView({
             <WeatherPill icon="thermostat" value={`${weather.temperatureC}°C`} label="Ahora" />
             <WeatherPill icon="water_drop" value={`${weather.humidityPct}%`} label="Humedad" />
             <WeatherPill
-              icon="verified_user"
+              icon="check_circle"
               value={walkSafety.badge}
               label="Paseo"
               highlight={walkSafety.status === "safe"}
