@@ -130,9 +130,19 @@ export default function HomeScreen() {
       message: "Vinculando la invitación de co-tutor...",
     });
 
+    // Timeout: if joinWithCode takes >10s, clear and let user through
+    const timeout = window.setTimeout(() => {
+      if (cancelled) return;
+      clearPendingCoTutorInvite();
+      setInviteResolvedCode(pendingInviteCode);
+      setInviteJoiningCode("");
+      setInviteNotice(null);
+    }, 10_000);
+
     void joinWithCode(pendingInviteCode)
       .then(({ petName }) => {
         if (cancelled) return;
+        window.clearTimeout(timeout);
         clearPendingCoTutorInvite();
         setInviteResolvedCode(pendingInviteCode);
         setInviteNotice({
@@ -145,6 +155,7 @@ export default function HomeScreen() {
       })
       .catch((error: any) => {
         if (cancelled) return;
+        window.clearTimeout(timeout);
         clearPendingCoTutorInvite();
         setInviteResolvedCode(pendingInviteCode);
         // Errores que no requieren mostrar nada al usuario (código propio, ya unido, etc.)
@@ -164,12 +175,14 @@ export default function HomeScreen() {
       })
       .finally(() => {
         if (!cancelled) {
+          window.clearTimeout(timeout);
           setInviteJoiningCode("");
         }
       });
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timeout);
     };
   }, [user, inviteJoiningCode, inviteResolvedCode, joinWithCode]);
 
