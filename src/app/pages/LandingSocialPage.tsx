@@ -176,7 +176,7 @@ export default function LandingEcosystemPreviewPage() {
                 Quiero probar Pessy
               </button>
               <p className="mt-3 text-sm text-gray-400">
-                Gratis. Sin tarjeta de crédito.
+                Gratis. Sin compromisos.
               </p>
             </div>
             <div className="mt-12 overflow-hidden rounded-3xl md:mt-16">
