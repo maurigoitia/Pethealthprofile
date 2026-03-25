@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "842879609097",
+    "project_id": "polar-scene-488615-i0",
+    "storage_bucket": "polar-scene-488615-i0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:842879609097:android:363465a4ca5afe6db68bd8",
+        "android_client_info": {
+          "package_name": "app.pessy.pessy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "842879609097-qin0oq3o8q7mum5tgtmcl6ftg28oc2ft.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD95pvWX46P9nimudDNHt6mCjZn2wPbvV4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "842879609097-qin0oq3o8q7mum5tgtmcl6ftg28oc2ft.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "842879609097-sh6a02pvftj9h9fv7dt5op8u40onnf68.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "app.pessy.pessy"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

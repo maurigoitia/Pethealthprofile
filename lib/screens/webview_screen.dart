@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../config.dart';
+import '../services/push_service.dart';
 
 class WebViewScreen extends StatefulWidget {
   final String? initialUrl;
@@ -26,7 +27,16 @@ class WebViewScreenState extends State<WebViewScreen> {
           setState(() => _progress = progress / 100);
         },
         onPageStarted: (_) => setState(() => _isLoading = true),
-        onPageFinished: (_) => setState(() => _isLoading = false),
+        onPageFinished: (_) {
+          setState(() => _isLoading = false);
+          // Forward FCM token to React app
+          final token = PushService.fcmToken;
+          if (token != null) {
+            _controller.runJavaScript(
+              'window.__PESSY_NATIVE_FCM_TOKEN__ = "$token";'
+            );
+          }
+        },
         onNavigationRequest: (request) {
           // Allow pessy.app, Google Auth, Firebase
           if (request.url.contains('pessy.app') ||
