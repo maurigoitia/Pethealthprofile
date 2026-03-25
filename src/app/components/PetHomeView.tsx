@@ -176,12 +176,7 @@ function WeatherPill({
           : "border-[#eef0ee] bg-white"
       }`}
     >
-      <span
-        className="material-symbols-rounded text-[#074738]"
-        style={{ fontSize: 16 }}
-      >
-        {icon}
-      </span>
+      <MaterialIcon name={icon} className="!text-[16px] text-[#074738]" />
       <div className="min-w-0">
         <p className="text-[12px] font-[800] text-[#002f24] leading-none">{value}</p>
         <p className="text-[10px] text-[#9ca8a2] leading-none mt-0.5">{label}</p>
