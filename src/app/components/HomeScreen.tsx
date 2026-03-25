@@ -49,6 +49,9 @@ const ExportReportModal = lazy(() =>
 const NearbyVetsScreen = lazy(() =>
   import("./NearbyVetsScreen").then((module) => ({ default: module.NearbyVetsScreen }))
 );
+const InviteFriendsModal = lazy(() =>
+  import("./InviteFriendsModal")
+);
 
 function ScreenLoader({ label = "Cargando..." }: { label?: string }) {
   return (
@@ -69,12 +72,13 @@ export default function HomeScreen() {
   const [showScanner, setShowScanner] = useState(false);
   const [showPetSelector, setShowPetSelector] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [showInviteFriends, setShowInviteFriends] = useState(false);
   const [currentTab, setCurrentTab] = useState<"home" | "settings">("home");
   const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications" | "nearby-vets">("card");
   const [inviteNotice, setInviteNotice] = useState<{ type: "info" | "success" | "error"; message: string } | null>(null);
   const [inviteJoiningCode, setInviteJoiningCode] = useState("");
   const [inviteResolvedCode, setInviteResolvedCode] = useState("");
-  const { activePetId, setActivePetId, pets, activePet, loading: petsLoading, loadingSlow, joinWithCode } = usePet();
+  const { activePetId, setActivePetId, pets, activePet, loading: petsLoading, joinWithCode } = usePet();
   const { user, loading: authLoading, userName, logout } = useAuth();
   const focusExperienceEnabled = isFocusExperienceHost();
 
@@ -126,12 +130,7 @@ export default function HomeScreen() {
       message: "Vinculando la invitación de co-tutor...",
     });
 
-    const joinWithTimeout = Promise.race([
-      joinWithCode(pendingInviteCode),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("La vinculación tardó demasiado. Intentá de nuevo.")), 15000)),
-    ]);
-
-    void joinWithTimeout
+    void joinWithCode(pendingInviteCode)
       .then(({ petName }) => {
         if (cancelled) return;
         clearPendingCoTutorInvite();
@@ -201,11 +200,9 @@ export default function HomeScreen() {
     );
   }
 
-  // Guard de autenticación — preservar invite code en redirect para co-tutores nuevos
+  // Guard de autenticación para evitar navegación en bucle hacia pantallas internas
   if (!user) {
-    const pendingInvite = readPendingCoTutorInvite();
-    const loginPath = pendingInvite ? `/login?invite=${pendingInvite}` : "/login";
-    return <Navigate to={loginPath} replace />;
+    return <Navigate to="/login" replace />;
   }
 
   // Handle tab change and reset viewMode to "card" when going to home tab
@@ -267,11 +264,6 @@ export default function HomeScreen() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             {inviteJoiningCode ? "Estamos sumando esta mascota compartida a tu cuenta." : "Un momento, por favor."}
           </p>
-          {loadingSlow && !inviteJoiningCode && (
-            <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 font-medium">
-              Está tardando más de lo usual. Revisá tu conexión o recargá la app.
-            </p>
-          )}
         </div>
       </div>
     );
@@ -445,6 +437,7 @@ export default function HomeScreen() {
         activePetId={activePetId}
         onPetChange={handlePetChange}
         onAddPet={handleAddNewPet}
+        onInviteFriends={() => setShowInviteFriends(true)}
         onNavigate={handleSidebarNavigate}
         onLogout={logout}
       />
@@ -586,6 +579,12 @@ export default function HomeScreen() {
           onPetChange={handlePetChange}
           onViewProfile={() => setShowPetProfile(true)}
           onAddNewPet={handleAddNewPet}
+        />
+      </Suspense>
+      <Suspense fallback={null}>
+        <InviteFriendsModal
+          open={showInviteFriends}
+          onClose={() => setShowInviteFriends(false)}
         />
       </Suspense>
     </div>

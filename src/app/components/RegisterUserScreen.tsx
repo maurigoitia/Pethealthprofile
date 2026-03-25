@@ -70,57 +70,63 @@ export function RegisterUserScreen() {
   useEffect(() => {
     let cancelled = false;
     async function checkGate() {
-      if (refCode) {
-        const result = await validatePlatformInviteCode(refCode);
-        if (cancelled) return;
-        if (result.valid) {
-          setPlatformInviteCreatedBy(result.doc.createdBy);
-          setGateStatus("allowed");
-        } else {
-          setGateMessage(
-            result.reason === "expired" ? "Este link expiró. Pedile uno nuevo a quien te invitó." :
-            result.reason === "already_used" ? "Este link ya fue usado." :
-            "Este link no es válido."
-          );
-          setGateStatus("invalid");
-        }
-        return;
-      }
-      if (accessToken) {
-        const result = await validateAccessToken(accessToken);
-        if (cancelled) return;
-        if (result.valid) {
-          setAccessTokenDocId(result.doc.token);
-          if (result.doc.email) setEmail((c) => c || result.doc.email);
-          setGateStatus("allowed");
-        } else {
-          setGateMessage(
-            result.reason === "expired" ? "Este acceso expiró. Solicitá uno nuevo." :
-            "Este acceso no es válido."
-          );
-          setGateStatus("invalid");
-        }
-        return;
-      }
-      if (inviteCode) {
-        // Validar que el código de co-tutor exista en Firestore
-        try {
-          const invSnap = await getDoc(doc(db, "invitations", inviteCode));
-          if (invSnap.exists() && !invSnap.data().used) {
+      try {
+        if (refCode) {
+          const result = await validatePlatformInviteCode(refCode);
+          if (cancelled) return;
+          if (result.valid) {
+            setPlatformInviteCreatedBy(result.doc.createdBy);
             setGateStatus("allowed");
           } else {
-            if (!cancelled) {
-              setGateMessage("Este link de invitación ya fue usado o no existe.");
-              setGateStatus("invalid");
-            }
+            setGateMessage(
+              result.reason === "expired" ? "Este link expiró. Pedile uno nuevo a quien te invitó." :
+              result.reason === "already_used" ? "Este link ya fue usado." :
+              "Este link no es válido."
+            );
+            setGateStatus("invalid");
           }
-        } catch {
-          // Si no puede leer (rules deniegan a no-auth), permitir — se valida después del login
-          setGateStatus("allowed");
+          return;
         }
-        return;
+        if (accessToken) {
+          const result = await validateAccessToken(accessToken);
+          if (cancelled) return;
+          if (result.valid) {
+            setAccessTokenDocId(result.doc.token);
+            if (result.doc.email) setEmail((c) => c || result.doc.email);
+            setGateStatus("allowed");
+          } else {
+            setGateMessage(
+              result.reason === "expired" ? "Este acceso expiró. Solicitá uno nuevo." :
+              "Este acceso no es válido."
+            );
+            setGateStatus("invalid");
+          }
+          return;
+        }
+        if (inviteCode) {
+          try {
+            const invRef = doc(db, "invitations", inviteCode);
+            const invSnap = await getDoc(invRef);
+            if (cancelled) return;
+            if (invSnap.exists() && !invSnap.data().used) {
+              setGateStatus("allowed");
+            } else {
+              setGateStatus("invalid");
+              setGateMessage("Este código de invitación no es válido o ya fue usado.");
+            }
+          } catch {
+            // Allow on network error - validation happens later in joinWithCode
+            if (!cancelled) setGateStatus("allowed");
+          }
+          return;
+        }
+        setGateStatus("blocked");
+      } catch {
+        if (!cancelled) {
+          setGateMessage("No pudimos verificar tu acceso. Revisá tu conexión e intentá de nuevo.");
+          setGateStatus("invalid");
+        }
       }
-      setGateStatus("blocked");
     }
     void checkGate();
     return () => { cancelled = true; };
@@ -220,7 +226,7 @@ export function RegisterUserScreen() {
     return (
       <AuthPageShell
         eyebrow="Tu cuenta"
-        title="Su historia comienza aqui."
+        title="Su historia comienza aquí."
         description="Pessy lo maneja. Vos lo disfrutás. Empezá gratis."
         highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
       >
@@ -236,7 +242,7 @@ export function RegisterUserScreen() {
     return (
       <AuthPageShell
         eyebrow="Tu cuenta"
-        title="Su historia comienza aqui."
+        title="Su historia comienza aquí."
         description="Pessy lo maneja. Vos lo disfrutás. Empezá gratis."
         highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
       >
@@ -268,7 +274,7 @@ export function RegisterUserScreen() {
     return (
       <AuthPageShell
         eyebrow="Tu cuenta"
-        title="Su historia comienza aqui."
+        title="Su historia comienza aquí."
         description="Pessy lo maneja. Vos lo disfrutás. Empezá gratis."
         highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
       >
@@ -297,7 +303,7 @@ export function RegisterUserScreen() {
   return (
     <AuthPageShell
       eyebrow="Tu cuenta"
-      title="Su historia comienza aqui."
+      title="Su historia comienza aquí."
       description="Pessy lo maneja. Vos lo disfrutás. Empezá gratis."
       highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
     >
@@ -309,14 +315,14 @@ export function RegisterUserScreen() {
           Crear cuenta
         </h2>
         <p className="mt-2 text-sm font-medium leading-6 text-[#5e716b]">
-          Empeza con tus datos. Pessy hace el resto — en serio.
+          Empezá con tus datos. Pessy hace el resto — en serio.
         </p>
       </div>
 
       <form onSubmit={handleCreateAccount} className="space-y-4">
           {inviteCode && (
             <div className="rounded-[1.5rem] border border-[#b5efd9] bg-[#eef8f3] px-4 py-4 text-left">
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]">Invitacion de co-tutor</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]">Invitación de co-tutor</p>
               <p className="mt-1 text-sm leading-5 text-[#002f24]">
                 Esta cuenta se va a vincular con una mascota compartida apenas termines el registro.
               </p>

@@ -149,7 +149,7 @@ export const WELLBEING_MASTER_BOOK: WellbeingMasterBook = {
         avoidExerciseAboveC: 27,
         severeRiskAboveC: 28,
         collapseBodyTempC: 41,
-        humiditySensitive: false,
+        humiditySensitive: true,
         earlySigns: [
           "Jadeo intenso y desesperado",
           "Lengua en forma de pala o corazon con saliva espesa",

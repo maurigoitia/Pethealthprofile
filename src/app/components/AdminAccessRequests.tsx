@@ -70,7 +70,7 @@ export function AdminAccessRequests() {
       setRequests((prev) => prev.filter((r) => r.id !== req.id));
     } catch (err) {
       console.error("Error aprobando:", err);
-      alert("Error al aprobar la solicitud. Revisá los logs.");
+      alert("Error al procesar la solicitud. Intentá de nuevo.");
     } finally {
       setProcessing((prev) => ({ ...prev, [req.id]: false }));
     }
@@ -81,13 +81,13 @@ export function AdminAccessRequests() {
     try {
       await updateDoc(doc(db, "access_requests", req.id), {
         status: "rejected",
-        approvedBy: user!.uid,
-        approvedAt: Timestamp.now(),
+        reviewedBy: user!.uid,
+        reviewedAt: Timestamp.now(),
       });
       setRequests((prev) => prev.filter((r) => r.id !== req.id));
     } catch (err) {
       console.error("Error rechazando:", err);
-      alert("Error al rechazar la solicitud. Revisá los logs.");
+      alert("Error al procesar la solicitud. Intentá de nuevo.");
     } finally {
       setProcessing((prev) => ({ ...prev, [req.id]: false }));
     }

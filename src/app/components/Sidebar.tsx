@@ -18,6 +18,7 @@ interface SidebarProps {
   onPetChange: (petId: string) => void;
   onAddPet: () => void;
   onNavigate: (screen: "home" | "appointments" | "medications" | "feed" | "settings" | "nearby-vets") => void;
+  onInviteFriends: () => void;
   onLogout: () => void;
 }
 
@@ -30,6 +31,7 @@ export function Sidebar({
   activePetId,
   onPetChange,
   onAddPet,
+  onInviteFriends,
   onNavigate,
   onLogout,
 }: SidebarProps) {
@@ -142,6 +144,20 @@ export function Sidebar({
             </nav>
 
             <div className="mx-5 border-t border-slate-700/50" />
+
+            {/* Invite Friends */}
+            <div className="px-3 py-1">
+              <button
+                onClick={() => {
+                  onInviteFriends();
+                  onClose();
+                }}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-emerald-400 transition-colors hover:bg-white/10"
+              >
+                <MaterialIcon name="person_add" className="text-xl" />
+                Invitar amigos
+              </button>
+            </div>
 
             {/* Bottom Nav */}
             <div className="px-3 py-3 space-y-1">

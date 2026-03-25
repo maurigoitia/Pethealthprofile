@@ -7,6 +7,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
+  fetchSignInMethodsForEmail,
   getRedirectResult,
 } from "firebase/auth";
 import { auth } from "../../lib/firebase";
@@ -72,27 +73,24 @@ export function LoginScreen() {
   };
 
   const getGoogleAuthErrorMessage = (code?: string): string => {
-    const domain = window.location.hostname;
-    const suffix = code ? ` [${code}]` : "";
     switch (code) {
       case "auth/unauthorized-domain":
-        return `Google no está autorizado para este dominio (${domain}). Falta agregarlo en Firebase Auth > Settings > Authorized domains.${suffix}`;
-      case "auth/operation-not-allowed":
-      case "auth/configuration-not-found":
-        return `El proveedor Google no está habilitado en Firebase Authentication.${suffix}`;
-      case "auth/network-request-failed":
-        return `No hay conexión con Google/Firebase. Revisá internet e intentá nuevamente.${suffix}`;
-      case "auth/popup-blocked":
-        return `El navegador bloqueó la ventana de Google. Permití popups o reintentá.${suffix}`;
-      case "auth/popup-closed-by-user":
-        return `Cerraste la ventana de Google antes de completar el acceso.${suffix}`;
-      case "auth/cancelled-popup-request":
-        return `Se canceló el intento anterior de popup. Reintentá una sola vez.${suffix}`;
       case "auth/invalid-api-key":
       case "auth/app-not-authorized":
-        return `Configuración Firebase inválida para este entorno (API key / dominio).${suffix}`;
+      case "auth/configuration-not-found":
+        return "Hubo un problema al conectar. Intentá de nuevo o usá correo y contraseña.";
+      case "auth/operation-not-allowed":
+        return "Este método de inicio de sesión no está disponible en este momento.";
+      case "auth/network-request-failed":
+        return "Sin conexión a internet. Revisá tu conexión e intentá de nuevo.";
+      case "auth/popup-blocked":
+        return "El navegador bloqueó la ventana de Google. Permití ventanas emergentes e intentá de nuevo.";
+      case "auth/popup-closed-by-user":
+        return "Cerraste la ventana de Google antes de completar el acceso.";
+      case "auth/cancelled-popup-request":
+        return "Se canceló el intento anterior. Intentá de nuevo.";
       default:
-        return `No se pudo iniciar con Google. Revisá configuración de Auth en Firebase.${suffix}`;
+        return "No se pudo iniciar con Google. Intentá de nuevo o usá correo y contraseña.";
     }
   };
 
@@ -149,7 +147,18 @@ export function LoginScreen() {
       navigate("/home", { replace: true });
     } catch (err: any) {
       if (err?.code === "auth/user-not-found" || err?.code === "auth/wrong-password" || err?.code === "auth/invalid-credential") {
-        setError("Correo o contraseña incorrectos. Si te registraste con Google, ingresá con Google o usá recuperación de contraseña.");
+        const genericCredentialError =
+          "Correo o contraseña incorrectos. Si te registraste con Google, ingresá con Google o usá recuperación de contraseña.";
+        try {
+          const methods = await fetchSignInMethodsForEmail(auth, cleanEmail);
+          if (methods.includes("google.com") && !methods.includes("password")) {
+            setError("Este correo está registrado con Google. Ingresá con el botón Google.");
+          } else {
+            setError(genericCredentialError);
+          }
+        } catch {
+          setError(genericCredentialError);
+        }
       } else if (err?.code === "auth/too-many-requests") {
         setError("Demasiados intentos. Esperá unos minutos o recuperá tu contraseña.");
       } else if (err?.code === "auth/network-request-failed") {
@@ -180,9 +189,11 @@ export function LoginScreen() {
       } else if (err?.code === "auth/invalid-email") {
         setResetError("El correo ingresado no es válido.");
       } else if (err?.code === "auth/operation-not-allowed") {
-        setResetError("En Firebase Auth falta habilitar Email/Password para recuperar contraseña.");
+        console.warn("Password reset blocked: Email/Password provider not enabled in Firebase Auth.", err);
+        setResetError("La recuperación de contraseña no está disponible en este momento. Intentá más tarde.");
       } else if (err?.code === "auth/unauthorized-continue-uri" || err?.code === "auth/invalid-continue-uri") {
-        setResetError("El dominio actual no está autorizado en Firebase Authentication.");
+        console.warn("Password reset blocked: continue URI not authorized in Firebase Auth.", err);
+        setResetError("Hubo un problema al enviar el correo. Intentá de nuevo más tarde.");
       } else {
         setResetError("No se pudo enviar el correo. Intentá nuevamente.");
       }
@@ -208,11 +219,17 @@ export function LoginScreen() {
       const signInPromise = signInWithPopup(auth, provider);
       setLoadingGoogle(true);
       await signInPromise;
-      // useEffect handles navigate to /home when user is set
+
+      navigate("/home");
     } catch (err: any) {
       if (err?.code === "auth/popup-blocked" || err?.code === "auth/popup-closed-by-user") {
         setError("La ventana de Google fue bloqueada o cerrada. Por favor, permití las ventanas emergentes (pop-ups) e intentá de nuevo.");
       } else {
+        console.error("Google sign-in error:", {
+          code: err?.code,
+          message: err?.message,
+          domain: window.location.hostname,
+        });
         setError(getGoogleAuthErrorMessage(err?.code));
       }
     } finally {
