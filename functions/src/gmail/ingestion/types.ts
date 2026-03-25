@@ -330,6 +330,8 @@ export interface ClinicalExtractionOutput {
   narrative_summary: string;
   requires_human_review: boolean;
   reason_if_review_needed: string | null;
+  /** "ai" (default) o "heuristic" cuando Claude API no estaba disponible */
+  extractionMethod?: "ai" | "heuristic";
 }
 
 export interface SessionCounters {
@@ -436,6 +438,8 @@ export interface NarrativeHistoryBackfillResult {
 export interface ClinicalClassificationOutput {
   is_clinical: boolean;
   confidence: number;
+  /** "ai" (default) o "heuristic" cuando Claude API no estaba disponible */
+  classificationMethod?: "ai" | "heuristic";
 }
 
 export interface ClinicalClassificationInput {

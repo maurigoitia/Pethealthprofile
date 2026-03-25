@@ -36,17 +36,29 @@ class NotificationServiceClass {
   private messaging: Messaging | null = null;
   private initialized = false;
 
+  /**
+   * Estado observable: indica si push notifications están disponibles.
+   * - "unknown": no se intentó aún
+   * - "available": token obtenido con éxito
+   * - "denied": usuario denegó permiso
+   * - "unsupported": browser no soporta FCM/Web Push
+   * - "error": falló la inicialización o el registro
+   */
+  pushStatus: "unknown" | "available" | "denied" | "unsupported" | "error" = "unknown";
+
   async init(): Promise<boolean> {
     if (this.initialized) return true;
     if (!("Notification" in window)) {
-      console.warn("Este browser no soporta notificaciones");
+      console.warn("[PUSH] Este browser no soporta notificaciones");
+      this.pushStatus = "unsupported";
       return false;
     }
 
     try {
       const supported = await isSupported();
       if (!supported) {
-        console.warn("FCM no está soportado en este navegador");
+        console.warn("[PUSH] FCM no está soportado en este navegador");
+        this.pushStatus = "unsupported";
         return false;
       }
 
@@ -54,7 +66,8 @@ class NotificationServiceClass {
       this.initialized = true;
       return true;
     } catch (err) {
-      console.error("Error inicializando FCM:", err);
+      console.error("[PUSH] Error inicializando FCM:", err);
+      this.pushStatus = "error";
       return false;
     }
   }
@@ -73,12 +86,16 @@ class NotificationServiceClass {
   }
 
   async requestPermissionAndGetToken(): Promise<string | null> {
-    if (!("Notification" in window)) return null;
+    if (!("Notification" in window)) {
+      this.pushStatus = "unsupported";
+      return null;
+    }
 
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        console.warn("Permiso de notificaciones denegado");
+        console.warn("[PUSH] Permiso de notificaciones denegado");
+        this.pushStatus = "denied";
         return null;
       }
 
@@ -98,7 +115,8 @@ class NotificationServiceClass {
       }
 
       if (!VAPID_KEY) {
-        console.warn("VAPID_KEY no configurada");
+        console.warn("[PUSH] VAPID_KEY no configurada");
+        this.pushStatus = "error";
         return null;
       }
 
@@ -134,19 +152,22 @@ class NotificationServiceClass {
       });
       if (token) {
         await this.saveTokenToFirestore(token);
+        this.pushStatus = "available";
         return token;
       }
+      this.pushStatus = "error";
       return null;
     } catch (err) {
-      console.error("Error obteniendo token:", err);
+      console.error("[PUSH] Error obteniendo token:", err);
       // Último fallback: Web Push nativo
       try {
         if (this.supportsNativePush()) {
           return await this.registerNativeWebPush();
         }
       } catch (fallbackErr) {
-        console.error("Fallback Web Push también falló:", fallbackErr);
+        console.error("[PUSH] Fallback Web Push también falló:", fallbackErr);
       }
+      if (this.pushStatus !== "available") this.pushStatus = "error";
       return null;
     }
   }
@@ -162,9 +183,11 @@ class NotificationServiceClass {
       // Guardamos la subscription como "token" en Firestore para que el backend la use
       const subJson = JSON.stringify(sub.toJSON());
       await this.saveTokenToFirestore(subJson, "web_push_subscription");
+      this.pushStatus = "available";
       return subJson;
     } catch (err) {
-      console.error("Error registrando Web Push nativo:", err);
+      console.error("[PUSH] Error registrando Web Push nativo:", err);
+      this.pushStatus = "error";
       return null;
     }
   }

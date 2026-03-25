@@ -286,7 +286,10 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
 
     if (input.isRaining) {
       // Find indoor activities for current breed group
-      const groupId = input.groupIds[0] || "dog.companion";
+      let groupId = input.groupIds[0] || "dog.companion";
+      // Fallback: no master book entries exist for these generic groupIds
+      if (groupId === "dog.general") groupId = "dog.companion";
+      if (groupId === "cat.brachycephalic") groupId = "cat.general";
       const indoorSuggestions = WELLBEING_MASTER_BOOK.daily_suggestions.filter(
         (s) => s.groupId === groupId && s.category === "indoor"
       );
@@ -411,7 +414,10 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
 
   // ─── MODULE: Daily activity suggestion (personalized) ─────────────────────
   {
-    const groupId = input.groupIds[0] || "dog.companion";
+    let groupId = input.groupIds[0] || "dog.companion";
+    // Fallback: no master book entries exist for these generic groupIds
+    if (groupId === "dog.general") groupId = "dog.companion";
+    if (groupId === "cat.brachycephalic") groupId = "cat.general";
     const weatherCondition = (input.isRaining || (input.temperatureC !== null && thermalProfile && input.temperatureC > (thermalProfile.avoidExerciseAboveC ?? 999)))
       ? "blocked"
       : "safe";

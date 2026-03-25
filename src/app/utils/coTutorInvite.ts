@@ -6,7 +6,7 @@ export const normalizeCoTutorInviteCode = (value?: string | null): string =>
   (value || "").trim().toUpperCase();
 
 export const buildCoTutorReferralUrl = (inviteCode: string): string =>
-  buildAuthActionUrl("/login", { invite: normalizeCoTutorInviteCode(inviteCode) });
+  buildAuthActionUrl("/inicio", { invite: normalizeCoTutorInviteCode(inviteCode) });
 
 export const rememberPendingCoTutorInvite = (inviteCode?: string | null) => {
   const normalizedCode = normalizeCoTutorInviteCode(inviteCode);

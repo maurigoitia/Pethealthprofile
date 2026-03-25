@@ -306,6 +306,7 @@ export function DocumentScannerModal({
       // ── Registrar bytes usados ─────────────────────────────────────────
       trackUpload(file.size).catch(() => {});
       const aiData = extractionResponse.extractedData;
+      const analysisModel = extractionResponse.model || "unknown";
       const reviewDecision = evaluateDocumentForReview(aiData);
 
       setProcessingStatus("Guardando en tu historial...");
@@ -345,6 +346,7 @@ export function DocumentScannerModal({
         overallConfidence: reviewDecision.overallConfidence,
         ocrProcessed: true,
         aiProcessed: true,
+        analysisModel,
         extractedData: aiData,
         fileHash,
         dedupKey: "",

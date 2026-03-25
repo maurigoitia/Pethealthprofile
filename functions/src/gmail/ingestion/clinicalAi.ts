@@ -727,7 +727,8 @@ export async function classifyClinicalContentWithAi(
     };
   } catch (error) {
     console.warn("[gmail-ingestion] AI classification fallback:", error);
-    return heuristicClinicalClassification(input);
+    const result = heuristicClinicalClassification(input);
+    return { ...result, classificationMethod: "heuristic" as const };
   }
 }
 
@@ -863,6 +864,7 @@ export async function extractClinicalEventsWithAi(args: {
     };
   } catch (error) {
     console.warn("[gmail-ingestion] AI extraction fallback:", error);
-    return heuristicClinicalExtraction(args.extractedText, args.emailDate);
+    const result = heuristicClinicalExtraction(args.extractedText, args.emailDate);
+    return { ...result, extractionMethod: "heuristic" };
   }
 }

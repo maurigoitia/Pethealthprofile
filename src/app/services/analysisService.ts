@@ -1972,9 +1972,13 @@ const safeParseExtractedData = (rawText: string): ExtractedData | null => {
 // MOCK - Reemplazar con API real
 // ============================================================================
 
+/** @deprecated Solo para desarrollo local. No usar en producción. */
 export async function mockProcessDocument(
   file: File
 ): Promise<DocumentExtractionResponse> {
+  if (import.meta.env.PROD) {
+    throw new Error("mockProcessDocument no disponible en producción");
+  }
   // Simular delay de procesamiento
   await new Promise((resolve) => setTimeout(resolve, 2500));
 
@@ -2329,6 +2333,10 @@ async function callAnalysisAPIFromBackend(file: File): Promise<DocumentExtractio
 
   const rawText = typeof result?.rawText === "string" ? result.rawText : "";
   const extractedData = safeParseExtractedData(rawText) || buildSafeFallbackExtraction(rawText);
+  const warnings: string[] = [];
+  if ((optimizedFile as any)._heicConversionFailed) {
+    warnings.push("No se pudo convertir la imagen HEIC. Los resultados pueden ser menos precisos.");
+  }
 
   return {
     extractedData,
@@ -2338,6 +2346,7 @@ async function callAnalysisAPIFromBackend(file: File): Promise<DocumentExtractio
         : Date.now() - startedAt,
     model: typeof result?.model === "string" ? result.model : "servicio-analisis-backend",
     tokensUsed: typeof result?.tokensUsed === "number" ? result.tokensUsed : 0,
+    ...(warnings.length > 0 ? { warnings } : {}),
   };
 }
 
@@ -2904,14 +2913,15 @@ async function fileToBase64(file: File): Promise<string> {
   });
 }
 
-async function prepareFileForAnalysis(file: File): Promise<File> {
-  let normalizedFile = file;
+async function prepareFileForAnalysis(file: File): Promise<File & { _heicConversionFailed?: boolean }> {
+  let normalizedFile: File & { _heicConversionFailed?: boolean } = file;
   if (isHeicLike(file)) {
     try {
       normalizedFile = await convertHeicToJpeg(file);
     } catch (error) {
-      console.warn("No se pudo convertir HEIC/HEIF, se usa archivo original:", error);
+      console.warn("[ANALYSIS] No se pudo convertir HEIC/HEIF, se usa archivo original:", error);
       normalizedFile = file;
+      (normalizedFile as any)._heicConversionFailed = true;
     }
   }
 

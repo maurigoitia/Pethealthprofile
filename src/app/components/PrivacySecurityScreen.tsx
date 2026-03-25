@@ -9,7 +9,11 @@ import {
 } from "../services/gmailSyncService";
 import { deleteUserAccount, deleteAllUserClinicalData } from "../services/accountDeletionService";
 import { auth } from "../../lib/firebase";
-import { sendPasswordResetEmail } from "firebase/auth";
+import {
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+} from "firebase/auth";
 import { toast } from "sonner";
 import { GmailConsentScreen } from "./GmailConsentScreen";
 
@@ -42,6 +46,8 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
     new: "",
     confirm: "",
   });
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   useEffect(() => {
     if (!user?.uid) {
@@ -67,18 +73,56 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
   }, [user?.uid]);
 
   const handleChangePassword = async () => {
-    const email = user?.email;
-    if (!email) {
+    setPasswordError("");
+
+    // BUG-02 fix: client-side validations
+    if (!passwords.current || !passwords.new || !passwords.confirm) {
+      setPasswordError("Completá todos los campos.");
+      return;
+    }
+    if (passwords.new !== passwords.confirm) {
+      setPasswordError("Las contraseñas nuevas no coinciden.");
+      return;
+    }
+    if (passwords.new.length < 8) {
+      setPasswordError("La contraseña debe tener al menos 8 caracteres.");
+      return;
+    }
+
+    const currentUser = auth.currentUser;
+    if (!currentUser || !currentUser.email) {
       toast.error("No se pudo obtener tu email. Intentá cerrar sesión y volver a entrar.");
       return;
     }
+
+    // BUG-08 fix: loading state
+    setPasswordLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email);
-      toast.success("Te enviamos un correo para restablecer tu contraseña.");
+      // BUG-01 fix: reauthenticate + updatePassword instead of sendPasswordResetEmail
+      const credential = EmailAuthProvider.credential(
+        currentUser.email,
+        passwords.current
+      );
+      await reauthenticateWithCredential(currentUser, credential);
+      await updatePassword(currentUser, passwords.new);
+
+      toast.success("Contraseña actualizada correctamente.");
+      // BUG-07 fix: only close accordion on success
       setShowChangePassword(false);
       setPasswords({ current: "", new: "", confirm: "" });
-    } catch {
-      toast.error("Error al enviar el correo. Intentá de nuevo en unos minutos.");
+      setPasswordError("");
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code;
+      if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
+        setPasswordError("La contraseña actual es incorrecta.");
+      } else if (code === "auth/weak-password") {
+        setPasswordError("La contraseña nueva es demasiado débil.");
+      } else {
+        setPasswordError("No se pudo actualizar la contraseña. Intentá de nuevo.");
+      }
+      // BUG-07 fix: keep accordion open on error so the user sees the message
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -169,10 +213,11 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
         <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
           <div className="px-4 py-4 flex items-center gap-3">
             <button
+              type="button"
               onClick={onBack}
               className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
             >
-              <MaterialIcon name="arrow_back" className="text-xl" />
+              <MaterialIcon name="arrow_back" className="text-xl" aria-hidden />
             </button>
             <h1 className="text-xl font-black text-slate-900 dark:text-white">
               Privacidad y Seguridad
@@ -185,6 +230,7 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
           {/* Change Password */}
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
             <button
+              type="button"
               onClick={() => setShowChangePassword(!showChangePassword)}
               className="w-full p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
             >
@@ -209,32 +255,51 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
 
             {showChangePassword && (
               <div className="px-4 pb-4 space-y-3 border-t border-slate-100 dark:border-slate-800 pt-3">
-                <input
-                  type="password"
+                {/* BUG-03 fix: autocomplete attributes / BUG-04 fix: PasswordFieldWithToggle */}
+                <PasswordFieldWithToggle
                   placeholder="Contraseña actual"
+                  autoComplete="current-password"
                   value={passwords.current}
-                  onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#074738]"
+                  onChange={(v) => setPasswords({ ...passwords, current: v })}
                 />
-                <input
-                  type="password"
+                <PasswordFieldWithToggle
                   placeholder="Nueva contraseña"
+                  autoComplete="new-password"
                   value={passwords.new}
-                  onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#074738]"
+                  onChange={(v) => setPasswords({ ...passwords, new: v })}
                 />
-                <input
-                  type="password"
+                {/* BUG-05 fix: password strength hints */}
+                {passwords.new.length > 0 && (
+                  <div className="flex flex-wrap gap-2 text-xs" aria-live="polite">
+                    <span className={passwords.new.length >= 8 ? "text-emerald-600" : "text-slate-400"}>
+                      {passwords.new.length >= 8 ? "✓" : "○"} 8+ caracteres
+                    </span>
+                    <span className={/[A-Z]/.test(passwords.new) ? "text-emerald-600" : "text-slate-400"}>
+                      {/[A-Z]/.test(passwords.new) ? "✓" : "○"} Mayúscula
+                    </span>
+                    <span className={/[0-9]/.test(passwords.new) ? "text-emerald-600" : "text-slate-400"}>
+                      {/[0-9]/.test(passwords.new) ? "✓" : "○"} Número
+                    </span>
+                  </div>
+                )}
+                <PasswordFieldWithToggle
                   placeholder="Confirmar nueva contraseña"
+                  autoComplete="new-password"
                   value={passwords.confirm}
-                  onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#074738]"
+                  onChange={(v) => setPasswords({ ...passwords, confirm: v })}
                 />
+                {/* Show inline error */}
+                {passwordError && (
+                  <p role="alert" className="text-sm text-red-500 font-medium">{passwordError}</p>
+                )}
+                {/* BUG-06 fix: type="button" since no <form>; BUG-08 fix: disabled during loading */}
                 <button
-                  onClick={handleChangePassword}
-                  className="w-full py-3 rounded-xl bg-[#074738] text-white font-bold hover:bg-[#1a9b7d] transition-colors"
+                  type="button"
+                  onClick={() => void handleChangePassword()}
+                  disabled={passwordLoading}
+                  className="w-full py-3 rounded-xl bg-[#074738] text-white font-bold hover:bg-[#1a9b7d] transition-colors disabled:opacity-60"
                 >
-                  Cambiar contraseña
+                  {passwordLoading ? "Guardando..." : "Cambiar contraseña"}
                 </button>
               </div>
             )}
@@ -242,6 +307,7 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
 
           {/* Logout Other Devices */}
           <button
+            type="button"
             onClick={handleLogoutOtherDevices}
             className="w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
           >
@@ -295,6 +361,7 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
                 <div className="mt-3">
                   {gmailStatus.connected ? (
                     <button
+                      type="button"
                       onClick={() => void handleDisconnectGmail()}
                       disabled={gmailActionLoading}
                       className="px-3 py-2 rounded-lg bg-red-50 text-red-600 text-xs font-bold hover:bg-red-100 transition-colors disabled:opacity-60"
@@ -303,6 +370,7 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
                     </button>
                   ) : (
                     <button
+                      type="button"
                       onClick={() => void handleConnectGmail()}
                       disabled={gmailActionLoading || gmailLoading || !gmailStatus.inviteEnabled}
                       className="px-3 py-2 rounded-lg bg-[#074738] text-white text-xs font-bold hover:bg-[#074738] transition-colors disabled:opacity-60"
@@ -344,6 +412,7 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
 
           {/* GDPR: Delete Clinical Data Only */}
           <button
+            type="button"
             onClick={() => void handleDeleteClinicalData()}
             disabled={clinicalDeleteLoading}
             className="w-full bg-white dark:bg-slate-900 rounded-xl border border-amber-200 dark:border-amber-900/30 p-4 flex items-center justify-between hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors disabled:opacity-60"
@@ -366,6 +435,7 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
 
           {/* Delete Account */}
           <button
+            type="button"
             onClick={() => setShowDeleteConfirm(true)}
             className="w-full bg-white dark:bg-slate-900 rounded-xl border border-red-200 dark:border-red-900/30 p-4 flex items-center justify-between hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors"
           >
@@ -412,12 +482,14 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
             </p>
             <div className="flex gap-3">
               <button
+                type="button"
                 onClick={() => setShowDeleteConfirm(false)}
                 className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={() => void handleDeleteAccount()}
                 disabled={deleteLoading}
                 className="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition-colors disabled:opacity-60"
@@ -433,6 +505,42 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** BUG-04 fix: Reusable password input with show/hide toggle */
+function PasswordFieldWithToggle({
+  placeholder,
+  autoComplete,
+  value,
+  onChange,
+}: {
+  placeholder: string;
+  autoComplete: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <div className="relative">
+      <input
+        type={visible ? "text" : "password"}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        required
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-4 py-3 pr-12 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#074738]"
+      />
+      <button
+        type="button"
+        aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
+        onClick={() => setVisible((v) => !v)}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+      >
+        <MaterialIcon name={visible ? "visibility_off" : "visibility"} className="text-xl" aria-hidden />
+      </button>
     </div>
   );
 }

@@ -50,7 +50,9 @@ function triggerDownload(blob: Blob, fileName: string): boolean {
   } catch {
     return false;
   } finally {
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    // Delay necesario: en iOS Mobile el download puede no terminar si se revoca inmediatamente.
+    // 5s es suficiente para la mayoría de PDFs clínicos (<2MB).
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 }
 
@@ -58,7 +60,8 @@ function openPdfInNewTab(blob: Blob): boolean {
   if (typeof window === "undefined") return false;
   const url = URL.createObjectURL(blob);
   const popup = window.open(url, "_blank", "noopener,noreferrer");
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  // El tab necesita más tiempo para renderizar. 15s cubre PDFs grandes.
+  setTimeout(() => URL.revokeObjectURL(url), 15000);
   return Boolean(popup);
 }
 

@@ -75,6 +75,7 @@ export async function uploadWithAuthFallback({
   }
 
   await currentUser.getIdToken(true);
+  // Backoff breve: Firebase Storage puede tardar en propagar el token refrescado.
   await new Promise((resolve) => setTimeout(resolve, 300));
 
   try {

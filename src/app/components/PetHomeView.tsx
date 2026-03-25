@@ -4,6 +4,7 @@ import { useMedical } from "../contexts/MedicalContext";
 import { usePet, type PetPreferences } from "../contexts/PetContext";
 import { toTimestampSafe } from "../utils/dateUtils";
 import { PetPhoto } from "./PetPhoto";
+import { getPoints, addPoints, isDailyActivityDone, markDailyActivityDone } from "../utils/gamification";
 
 const PetPreferencesEditor = lazy(() =>
   import("./PetPreferencesEditor").then((m) => ({ default: m.PetPreferencesEditor }))
@@ -158,12 +159,12 @@ const CATEGORY_LABELS: Record<string, string> = {
 // ─── Inline WeatherPill ───────────────────────────────────────────────────────
 
 function WeatherPill({
-  icon,
+  emoji,
   value,
   label,
   highlight,
 }: {
-  icon: string;
+  emoji: string;
   value: string;
   label: string;
   highlight?: boolean;
@@ -176,7 +177,7 @@ function WeatherPill({
           : "border-[#eef0ee] bg-white"
       }`}
     >
-      <MaterialIcon name={icon} className="!text-[16px] text-[#074738]" />
+      <span className="text-[16px] leading-none" role="img">{emoji}</span>
       <div className="min-w-0">
         <p className="text-[12px] font-[800] text-[#002f24] leading-none">{value}</p>
         <p className="text-[10px] text-[#9ca8a2] leading-none mt-0.5">{label}</p>
@@ -595,10 +596,10 @@ export function PetHomeView({
         {/* 2. WEATHER STRIP - 3 pills */}
         {weather.status === "ready" && (
           <div className="flex gap-1.5 mx-3 mt-2.5">
-            <WeatherPill icon="thermostat" value={`${weather.temperatureC}°C`} label="Ahora" />
-            <WeatherPill icon="water_drop" value={`${weather.humidityPct}%`} label="Humedad" />
+            <WeatherPill emoji="🌡️" value={`${weather.temperatureC}°C`} label="Ahora" />
+            <WeatherPill emoji="💧" value={`${weather.humidityPct}%`} label="Humedad" />
             <WeatherPill
-              icon="check_circle"
+              emoji={walkSafety.status === "safe" ? "✅" : walkSafety.status === "caution" ? "⚠️" : "🚫"}
               value={walkSafety.badge}
               label="Paseo"
               highlight={walkSafety.status === "safe"}
@@ -657,16 +658,18 @@ export function PetHomeView({
 
         {/* 6. QUICK ACTIONS - only if pet has medical data */}
         {(appointmentCount > 0 || medicationCount > 0 || historyCount > 0) && (
-          <SectionTitle>Servicios</SectionTitle>
+          <>
+            <SectionTitle>Servicios</SectionTitle>
+            <QuickActions
+              appointments={appointmentCount}
+              medications={medicationCount}
+              historyCount={historyCount}
+              onAppointmentsClick={onAppointmentsClick}
+              onMedicationsClick={onMedicationsClick}
+              onHistoryClick={onViewHistory}
+            />
+          </>
         )}
-        <QuickActions
-          appointments={appointmentCount}
-          medications={medicationCount}
-          historyCount={historyCount}
-          onAppointmentsClick={onAppointmentsClick}
-          onMedicationsClick={onMedicationsClick}
-          onHistoryClick={onViewHistory}
-        />
 
         {/* 7. PESSY TE DICE - tips from intelligence engine */}
         {sortedRecommendations.length > 0 && (

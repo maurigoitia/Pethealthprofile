@@ -613,6 +613,8 @@ export interface DocumentExtractionResponse {
   processingTimeMs: number;
   model: string;
   tokensUsed: number;
+  /** Advertencias no bloqueantes (ej. conversión HEIC falló, fallback activo) */
+  warnings?: string[];
 }
 
 // ============================================================================

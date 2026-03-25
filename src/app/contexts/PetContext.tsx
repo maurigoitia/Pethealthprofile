@@ -1,9 +1,9 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { auth, db, functions } from "../../lib/firebase";
+import { auth, db } from "../../lib/firebase";
 import {
   collection, query, where, onSnapshot, doc, updateDoc, addDoc, arrayUnion, setDoc, getDoc,
 } from "firebase/firestore";
-import { httpsCallable } from "firebase/functions";
+// httpsCallable no longer needed — email sent via Firestore trigger
 import { useAuth } from "./AuthContext";
 import { buildCoTutorReferralUrl } from "../utils/coTutorInvite";
 import { isFocusHistoryExperimentHost } from "../utils/runtimeFlags";
@@ -65,8 +65,10 @@ interface PetContextType {
   addPet: (pet: Omit<Pet, "id" | "ownerId">) => Promise<string>;
   updatePet: (id: string, updates: Partial<Pet> & { newWeightEntry?: WeightEntry }) => Promise<void>;
   loading: boolean;
+  /** true si el loading lleva más de 4s — la UI puede mostrar un aviso */
+  loadingSlow: boolean;
   generateInviteCode: (petId: string, inviteEmail?: string) => Promise<string>;
-  sendCoTutorInviteEmail: (petId: string, email: string) => Promise<{ code: string; inviteLink: string }>;
+  sendCoTutorInviteEmail: (petId: string, email: string) => Promise<{ code: string; inviteLink: string; emailSent?: boolean }>;
   joinWithCode: (code: string) => Promise<{ petName: string }>;
   removeCoTutor: (petId: string, coTutorUid: string) => Promise<void>;
   leaveAsTutor: (petId: string) => Promise<void>;
@@ -79,9 +81,17 @@ export function PetProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingSlow, setLoadingSlow] = useState(false);
   const [activePetId, setActivePetIdState] = useState<string>(() => {
     return localStorage.getItem("activePetId") || "";
   });
+
+  // Si loading lleva más de 4s, marcar como lento para que la UI pueda avisarle al usuario
+  useEffect(() => {
+    if (!loading) { setLoadingSlow(false); return; }
+    const t = setTimeout(() => setLoadingSlow(true), 4000);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -138,7 +148,9 @@ export function PetProvider({ children }: { children: ReactNode }) {
           const data = change.doc.data();
           // Auto-migrar mascotas viejas que no tienen coTutorUids
           if (!data.coTutorUids) {
-            updateDoc(doc(db, "pets", change.doc.id), { coTutors: [], coTutorUids: [] }).catch(() => {});
+            updateDoc(doc(db, "pets", change.doc.id), { coTutors: [], coTutorUids: [] }).catch((err) => {
+              console.warn(`[PETS] No se pudo auto-migrar coTutorUids para pet ${change.doc.id}:`, err?.message || err);
+            });
           }
           allPetsMap.set(change.doc.id, { id: change.doc.id, ...data } as Pet);
         }
@@ -183,6 +195,12 @@ export function PetProvider({ children }: { children: ReactNode }) {
 
     // Safety timeout: si algo falla, desbloquear UI igual
     const safetyTimer = setTimeout(() => {
+      if (!resolved.owner || !resolved.cotutor) {
+        console.warn("[PETS] Safety timeout disparado — queries no respondieron en 6s", {
+          ownerResolved: resolved.owner,
+          cotutorResolved: resolved.cotutor,
+        });
+      }
       resolved.owner = true;
       resolved.cotutor = true;
       merge();
@@ -250,7 +268,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
     return code;
   };
 
-  const sendCoTutorInviteEmail = async (petId: string, email: string): Promise<{ code: string; inviteLink: string }> => {
+  const sendCoTutorInviteEmail = async (petId: string, email: string): Promise<{ code: string; inviteLink: string; emailSent?: boolean }> => {
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !normalizedEmail.includes("@")) {
       throw new Error("Ingresá un email válido.");
@@ -266,19 +284,29 @@ export function PetProvider({ children }: { children: ReactNode }) {
     const code = await generateInviteCode(petId, normalizedEmail);
     const inviteLink = buildCoTutorReferralUrl(code);
 
-    // Envío vía Cloud Function (Resend) — timeout 30s para evitar spinner infinito
-    const callSendInvite = httpsCallable(functions, "sendCoTutorInvite", { timeout: 30000 });
+    // El email se envía automáticamente via Firestore trigger (onInvitationCreated)
+    // Esperamos brevemente para detectar si el email fue enviado
+    let emailSent: boolean | undefined;
     try {
-      await callSendInvite({ email: normalizedEmail, inviteCode: code, petName });
-    } catch (err: any) {
-      // Firebase HttpsError: el mensaje real puede estar en err.details
-      const detail = err?.details?.message || err?.details || "";
-      const msg = (typeof detail === "string" && detail.length > 3) ? detail : err?.message || "";
-      const fallback = "No se pudo enviar el correo de invitación. Intentá de nuevo.";
-      throw new Error((msg && msg !== "internal" && msg !== "INTERNAL") ? msg : fallback);
+      const invRef = doc(db, "invitations", code);
+      // Poll up to 8 seconds for the trigger to update the emailSent field
+      emailSent = await new Promise<boolean | undefined>((resolve) => {
+        const unsub = onSnapshot(invRef, (snap) => {
+          const d = snap.data();
+          if (d && typeof d.emailSent === "boolean") {
+            unsub();
+            resolve(d.emailSent);
+          }
+        });
+        setTimeout(() => { unsub(); resolve(undefined); }, 8000);
+      });
+    } catch {
+      // Si falla el polling, asumimos que se está enviando
+      emailSent = undefined;
     }
 
-    return { code, inviteLink };
+    // Si no obtuvimos respuesta del trigger, asumimos éxito (el código y link ya sirven)
+    return { code, inviteLink, emailSent: emailSent !== false };
   };
 
   const joinWithCode = async (code: string): Promise<{ petName: string }> => {
@@ -393,7 +421,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
 
   return (
     <PetContext.Provider value={{
-      activePetId, setActivePetId, pets, activePet, addPet, updatePet, loading,
+      activePetId, setActivePetId, pets, activePet, addPet, updatePet, loading, loadingSlow,
       generateInviteCode, sendCoTutorInviteEmail, joinWithCode, removeCoTutor, leaveAsTutor, isOwner,
     }}>
       {children}

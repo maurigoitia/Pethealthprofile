@@ -314,15 +314,22 @@ export async function markJobFailed(
   const now = Date.now();
   const retryDelayMs = JOB_RETRY_DELAYS_MS[Math.min(attempts, JOB_RETRY_DELAYS_MS.length - 1)] || 24 * 60 * 60 * 1000;
   const nextAvailableAt = new Date(now + retryDelayMs).toISOString();
+  const errorStr = String(error).slice(0, 1500);
+  const nowIso = getNowIso();
   await docRef.set(
     {
       status: retryable ? "pending" : "failed",
-      updated_at: getNowIso(),
-      available_at: retryable ? nextAvailableAt : getNowIso(),
-      error: String(error).slice(0, 1500),
+      updated_at: nowIso,
+      available_at: retryable ? nextAvailableAt : nowIso,
+      error: errorStr,
+      lastErrorAt: nowIso,
+      attemptsFailed: attempts + 1,
     },
     { merge: true }
   );
+  if (!retryable) {
+    console.error(`[INGESTION] Job ${docRef.id} permanently failed after ${attempts + 1} attempts:`, errorStr.slice(0, 300));
+  }
 }
 
 // ─── Session counters & metrics ─────────────────────────────────

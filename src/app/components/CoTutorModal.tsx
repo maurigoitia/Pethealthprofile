@@ -78,9 +78,13 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
     setError("");
     setSuccess("");
     try {
-      const { code } = await sendCoTutorInviteEmail(activePetId, inviteEmail);
+      const { code, emailSent } = await sendCoTutorInviteEmail(activePetId, inviteEmail);
       setGeneratedCode(code);
-      setSuccess(`Invitación enviada a ${inviteEmail.trim().toLowerCase()}. Revisá el correo del co-tutor.`);
+      if (emailSent === false) {
+        setSuccess(`Código generado pero no se pudo enviar el email. Compartí el código o link manualmente.`);
+      } else {
+        setSuccess(`Invitación enviada a ${inviteEmail.trim().toLowerCase()}. Revisá el correo del co-tutor.`);
+      }
       setInviteEmail("");
     } catch (e: any) {
       setError(e.message || "No se pudo enviar la invitación por correo.");

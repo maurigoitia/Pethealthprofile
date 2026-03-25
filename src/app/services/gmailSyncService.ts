@@ -122,13 +122,25 @@ export async function getGmailConnectUrl(
 }
 
 export async function startGmailConnectFlow(params?: { returnPath?: string; petId?: string; includeCalendar?: boolean }): Promise<void> {
-  const url = await getGmailConnectUrl({
-    returnOrigin: window.location.origin,
-    returnPath: params?.returnPath || "/home",
-    petId: params?.petId,
-    includeCalendar: params?.includeCalendar,
-  });
-  window.location.assign(url);
+  try {
+    const url = await getGmailConnectUrl({
+      returnOrigin: window.location.origin,
+      returnPath: params?.returnPath || "/home",
+      petId: params?.petId,
+      includeCalendar: params?.includeCalendar,
+    });
+    window.location.assign(url);
+  } catch (err: any) {
+    // Traducir errores de rate-limit/bloqueo del backend a mensajes legibles
+    const msg = err?.message || "";
+    if (msg.includes("oauth_temporarily_blocked")) {
+      throw new Error("Demasiados intentos fallidos. Esperá una hora antes de volver a intentar.");
+    }
+    if (msg.includes("oauth_rate_limit_exceeded")) {
+      throw new Error("Demasiados intentos en poco tiempo. Esperá unos minutos antes de reintentar.");
+    }
+    throw err;
+  }
 }
 
 export async function disconnectGmailSync(): Promise<void> {
