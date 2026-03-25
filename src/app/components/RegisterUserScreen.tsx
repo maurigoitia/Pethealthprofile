@@ -4,12 +4,10 @@ import { auth, db } from "../../lib/firebase";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { COUNTRIES } from "../data/countries";
-import { startGmailConnectFlow } from "../services/gmailSyncService";
 import { normalizeCoTutorInviteCode, rememberPendingCoTutorInvite } from "../utils/coTutorInvite";
 import { persistAcquisitionSource, resolveAcquisitionSource, trackAcquisitionEvent } from "../utils/acquisitionTracking";
 import { validatePlatformInviteCode, validateAccessToken, markPlatformInviteUsed, markAccessTokenUsed } from "../utils/platformInvite";
 import { AuthPageShell } from "./AuthPageShell";
-import { GmailConsentScreen } from "./GmailConsentScreen";
 
 export function RegisterUserScreen() {
   const navigate = useNavigate();
@@ -22,8 +20,8 @@ export function RegisterUserScreen() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showGmailStep, setShowGmailStep] = useState(false);
-  const [gmailStepLoading, setGmailStepLoading] = useState(false);
+  const [showTermsStep, setShowTermsStep] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [gateStatus, setGateStatus] = useState<"loading" | "allowed" | "blocked" | "invalid">("loading");
   const [gateMessage, setGateMessage] = useState("");
   const [platformInviteCreatedBy, setPlatformInviteCreatedBy] = useState<string | null>(null);
@@ -180,14 +178,8 @@ export function RegisterUserScreen() {
         }
       }
 
-      // BUG-005 FIX: usuarios con invite también pasan por el step de Gmail (flujo consistente).
-      // Después del step de Gmail, se redirigen a /home (donde se procesa el invite code)
-      // en lugar de /register-pet (que no aplica para co-tutores).
-      if (inviteEnabled) {
-        setShowGmailStep(true);
-      } else {
-        navigate(inviteCode ? "/home" : "/register-pet", { replace: true });
-      }
+      // Mostrar paso de aceptación de términos antes de continuar
+      setShowTermsStep(true);
     } catch (err: any) {
       if (err?.code === "auth/email-already-in-use") {
         setError("Ese correo ya está registrado.");
@@ -205,22 +197,8 @@ export function RegisterUserScreen() {
     }
   };
 
-  const handleConnectGmailNow = async () => {
-    if (gmailStepLoading) return;
-    setGmailStepLoading(true);
-    // BUG-005 FIX: si viene con invite code, volver a /home después de Gmail OAuth
-    const afterGmailPath = inviteCode ? "/home" : "/register-pet";
-    try {
-      await startGmailConnectFlow({ returnPath: afterGmailPath });
-    } catch (error) {
-      console.error("No se pudo iniciar OAuth Gmail en registro:", error);
-      alert("No se pudo iniciar la conexión con Gmail. Podés continuar y conectarlo después.");
-      setGmailStepLoading(false);
-    }
-  };
-
-  const handleContinueWithoutGmail = () => {
-    // BUG-005 FIX: co-tutores van a /home (donde se procesa el invite), otros a /register-pet
+  const handleAcceptTerms = () => {
+    // Co-tutores van a /home (donde se procesa el invite), otros a /register-pet
     navigate(inviteCode ? "/home" : "/register-pet", { replace: true });
   };
 
@@ -404,12 +382,79 @@ export function RegisterUserScreen() {
           </button>
       </form>
 
-      {showGmailStep && (
-        <GmailConsentScreen
-          onAccept={() => void handleConnectGmailNow()}
-          onDecline={handleContinueWithoutGmail}
-          loading={gmailStepLoading}
-        />
+      {showTermsStep && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
+            {/* Header */}
+            <div className="px-6 pt-8 pb-2">
+              <span className="inline-block rounded-full bg-[#eef8f3] px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]">
+                Último paso
+              </span>
+              <h2
+                className="mt-4 text-[28px] font-[900] leading-tight tracking-tight text-[#002f24]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                Ya casi estás.
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-[#5e716b]">
+                Solo necesitamos que aceptes los términos para activar tu cuenta.
+              </p>
+            </div>
+
+            <div className="px-6 py-6 space-y-5">
+              {/* Success card */}
+              <div className="rounded-[1.5rem] border border-[#b5efd9] bg-[#eef8f3] px-6 py-5 text-center">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#074738]">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                </div>
+                <p className="text-lg font-[800] text-[#002f24]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  Cuenta creada
+                </p>
+                <p className="mt-1 text-[13px] text-[#5e716b]">
+                  Tu cuenta está lista. Aceptá los términos para empezar.
+                </p>
+              </div>
+
+              {/* Terms checkbox */}
+              <div className="rounded-2xl border border-slate-200 px-4 py-4">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="mt-0.5 h-5 w-5 flex-shrink-0 rounded border-slate-300 accent-[#074738]"
+                  />
+                  <span className="text-sm leading-relaxed text-slate-700">
+                    Leí y acepto los{" "}
+                    <a href="/terminos" target="_blank" className="font-bold text-[#074738] underline">
+                      Términos y condiciones
+                    </a>{" "}
+                    y la{" "}
+                    <a href="/privacidad" target="_blank" className="font-bold text-[#074738] underline">
+                      Política de privacidad
+                    </a>{" "}
+                    de Pessy.
+                  </span>
+                </label>
+              </div>
+
+              {/* CTA */}
+              <button
+                type="button"
+                onClick={acceptedTerms ? handleAcceptTerms : undefined}
+                disabled={!acceptedTerms}
+                className="w-full rounded-full bg-[#074738] py-4 text-sm font-bold uppercase tracking-[0.16em] text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Aceptar y empezar
+              </button>
+
+              <p className="text-center text-[11px] leading-relaxed text-[#9ca8a2]">
+                Incluye el uso de inteligencia artificial para procesar
+                información clínica de tus mascotas.
+              </p>
+            </div>
+          </div>
+        </div>
       )}
     </AuthPageShell>
   );
