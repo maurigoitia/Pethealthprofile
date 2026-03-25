@@ -1,0 +1,14 @@
+flutter_native_splash:
+  color: "#F0FAF9"
+  image: "assets/pessy-logo.png"
+  color_dark: "#074738"
+  image_dark: "assets/pessy-logo.png"
+  android_12:
+    color: "#F0FAF9"
+    icon_background_color: "#F0FAF9"
+    image: "assets/pessy-logo.png"
+    color_dark: "#074738"
+    icon_background_color_dark: "#074738"
+    image_dark: "assets/pessy-logo.png"
+  ios: true
+  android: true
