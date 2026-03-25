@@ -10,6 +10,7 @@ import { EmailLinkSignInScreen } from "./components/EmailLinkSignInScreen";
 import { RouteErrorFallback } from "./components/RouteErrorFallback";
 import { ClinicalReviewScreen } from "./components/ClinicalReviewScreen";
 import LandingEcosystemPreviewPage from "./pages/LandingEcosystemPreviewPage";
+import LandingSocialPage from "./pages/LandingSocialPage";
 import LegalPage from "./pages/LegalPage";
 import { RequestAccessScreen } from "./components/RequestAccessScreen";
 import { isProductionAppHost } from "./utils/runtimeFlags";
@@ -112,7 +113,7 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/admin/access-requests", lazy: AdminAccessRequests }),
   withErrorBoundary({ path: "/app", element: <Navigate to="/inicio" replace /> }),
   withErrorBoundary({ path: "/inicio", Component: HomeScreen }),
-  withErrorBoundary({ path: "/empezar", Component: LandingEcosystemPreviewPage }),
+  withErrorBoundary({ path: "/empezar", Component: LandingSocialPage }),
   withErrorBoundary({ path: "/inicio/vacunas", element: <Navigate to="/inicio" replace /> }),
   withErrorBoundary({ path: "/inicio/medicacion", element: <Navigate to="/inicio" replace /> }),
   withErrorBoundary({ path: "/inicio/historial-medico", element: <Navigate to="/inicio" replace /> }),

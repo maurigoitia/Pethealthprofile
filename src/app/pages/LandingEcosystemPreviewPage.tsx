@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Check } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { Camera, Check, ExternalLink, Linkedin, Mail, Shield } from "lucide-react";
 import { SEO } from "../components/SEO";
 import { Logo } from "../components/Logo";
-import { detectInAppBrowser, openInSystemBrowser } from "../utils/inAppBrowser";
+import { MaterialIcon } from "../components/MaterialIcon";
+import { ImageWithFallback } from "../components/ImageWithFallback";
+import { HistoryMockup, MedicationMockup, VaccinesMockup } from "../components/AppMockups";
+import { detectInAppBrowser, getInAppBrowserLabel, openInSystemBrowser } from "../utils/inAppBrowser";
 import {
   persistAcquisitionSource,
   resolveAcquisitionSource,
@@ -11,58 +15,183 @@ import {
   withAcquisitionParams,
 } from "../utils/acquisitionTracking";
 
-const features = [
+const howItWorks = [
   {
-    title: "Perfil completo de tu mascota",
-    body: "Toda la info en un solo lugar: vacunas, controles, alergias, medicamentos. Siempre actualizado y accesible.",
-    image:
-      "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=600&h=400&fit=crop&q=80",
+    step: "01",
+    title: "Le contas a Pessy una vez",
+    body: "Su perfil, sus papeles y las cosas importantes quedan en un solo lugar, claras y faciles de encontrar.",
+    mockup: <HistoryMockup />,
   },
   {
-    title: "Recordatorios inteligentes",
-    body: "Vacunas, desparasitaciones, turnos veterinarios. Pessy te avisa antes de que te lo pierdas.",
-    image:
-      "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=600&h=400&fit=crop&q=80",
+    step: "02",
+    title: "Pessy va siguiendo el dia",
+    body: "Paseos, cuidados, compras y pendientes aparecen claros, para que sepas que ya esta y que falta.",
+    mockup: <MedicationMockup />,
   },
   {
-    title: "Rutinas claras",
-    body: "Alimentación, paseos, medicación. Todo organizado para que la rutina de tu mascota sea predecible y constante.",
-    image:
-      "https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=600&h=400&fit=crop&q=80",
+    step: "03",
+    title: "Si falta algo, Pessy te lo dice",
+    body: "Papeles, visitas y proximos pasos siempre visibles para que no se te pase nada.",
+    mockup: <VaccinesMockup />,
   },
 ];
 
-const stats = [
-  { value: "67%", label: "olvidan algún control veterinario" },
-  { value: "3+", label: "personas cuidan una mascota en promedio" },
-  { value: "12", label: "controles al año" },
-  { value: "1", label: "app para tener todo en orden" },
+const trustPoints = [
+  "Ves que ya esta, que falta y que se viene.",
+  "Si se acerca algo, Pessy te avisa.",
+  "Si se termino algo o falta algo, tambien te lo marca.",
 ];
 
-const coTutorBullets = [
-  "Ambos ven el mismo historial y datos",
-  "Los dos reciben recordatorios",
-  "Cualquiera puede agregar información",
+const pricingPlans = [
+  {
+    name: "BASE",
+    price: "$0",
+    period: "para siempre",
+    features: ["1 mascota", "perfil digital", "documentos", "carnet digital"],
+    cta: "Elegir base",
+    tone: "bg-white border border-[#dfe6e2] text-[#002f24]",
+  },
+  {
+    name: "PREMIUM",
+    price: "Consultar",
+    period: "mensual",
+    features: ["compras desde Pessy", "envios premium", "alertas instantaneas", "co-tutores"],
+    cta: "Quiero premium",
+    tone: "bg-[#074738] border border-[#074738] text-white shadow-[0_28px_56px_-24px_rgba(7,71,56,0.45)]",
+  },
+  {
+    name: "FAMILIAR",
+    price: "Consultar",
+    period: "mensual",
+    features: ["hasta 4 mascotas", "todo de Premium", "compras compartidas"],
+    cta: "Quiero familiar",
+    tone: "bg-white border border-[#dfe6e2] text-[#002f24]",
+  },
+];
+
+const team = [
+  {
+    name: "Mauri",
+    role: "Cofundador",
+    image: "/team/mauri-real.jpeg",
+    linkedin: "https://www.linkedin.com/in/mauriciogoitia/",
+  },
+  {
+    name: "Ronald",
+    role: "Cofundador",
+    image: "/team/ronald.jpg",
+    linkedin: "https://www.linkedin.com/in/ronaldacarvajal/",
+  },
+  {
+    name: "Ary",
+    role: "Marketing",
+    image: "/team/founder-2.jpg",
+    linkedin: "https://www.linkedin.com/in/ariannysbermudez/",
+  },
+  {
+    name: "Thor",
+    role: "CEO",
+    image: "/team/founder-3.jpg",
+    linkedin: "https://www.linkedin.com/company/pessy-app",
+  },
+];
+
+const notifications = [
+  { title: "Thor va al 50% del dia", body: "Ya hizo el paseo. Falta una compra y un cuidado.", time: "AHORA" },
+  { title: "A Thor se le acaba algo", body: "Las bolsas vienen justas para esta semana.", time: "AHORA" },
+  { title: "Se viene algo de Thor", body: "Hay una visita agendada para el jueves.", time: "AHORA" },
+];
+
+const ecosystemChips = [
+  "Identidad digital",
+  "Rutinas",
+  "Compras",
+  "Cuidados",
+  "Papeles",
+  "Co-tutores",
+  "Recordatorios",
+  "Servicios",
+];
+
+const faqItems = [
+  {
+    question: "¿Que guarda Pessy?",
+    answer:
+      "Pessy junta rutinas, compras, papeles, recordatorios y lo que va pasando con tu mascota en un solo lugar.",
+  },
+  {
+    question: "¿Pessy sirve para perros y gatos?",
+    answer:
+      "Si. Pessy esta pensado para acompanar la vida diaria de perros y gatos, con una experiencia simple para quien cuida.",
+  },
+  {
+    question: "¿Que tipo de avisos da Pessy?",
+    answer:
+      "Pessy te avisa cuando se acerca algo, cuando falta algo o cuando hay algo importante para seguir durante el dia.",
+  },
+  {
+    question: "¿Puedo compartir la informacion con otra persona?",
+    answer:
+      "Si. Podes compartir lo importante con familia, guarderia o con quien acompane a tu mascota, para que todos vean lo mismo.",
+  },
+  {
+    question: "¿Que veo cuando entro a Pessy?",
+    answer:
+      "Ves lo que ya esta, lo que falta y lo que se viene para tu mascota, sin tener que ordenar todo por tu cuenta.",
+  },
+];
+
+const landingStructuredData = [
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqItems.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+  },
 ];
 
 export default function LandingEcosystemPreviewPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const isPreview = useMemo(
-    () => location.pathname.startsWith("/preview/"),
-    [location.pathname]
-  );
+  const [time, setTime] = useState(new Date());
+  const [activeNotification, setActiveNotification] = useState(0);
+  const [leadName, setLeadName] = useState("");
+  const [leadEmail, setLeadEmail] = useState("");
+  const [leadPetName, setLeadPetName] = useState("");
+  const isPreview = useMemo(() => location.pathname.startsWith("/preview/"), [location.pathname]);
   const acquisitionSource = useMemo(
     () => resolveAcquisitionSource(location.search, location.pathname),
     [location.pathname, location.search]
   );
   const inAppInfo = useMemo(() => detectInAppBrowser(), []);
   const [showInAppWarning, setShowInAppWarning] = useState(false);
-
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const entryHref = useMemo(
+    () => withAcquisitionParams("/inicio", acquisitionSource),
+    [acquisitionSource]
+  );
   const registerHref = useMemo(
     () => withAcquisitionParams("/register-user", acquisitionSource),
     [acquisitionSource]
   );
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    const notifTimer = setInterval(() => {
+      setActiveNotification((current) => (current + 1) % notifications.length);
+    }, 3500);
+
+    return () => {
+      clearInterval(timer);
+      clearInterval(notifTimer);
+    };
+  }, []);
 
   useEffect(() => {
     if (isPreview) return;
@@ -73,15 +202,54 @@ export default function LandingEcosystemPreviewPage() {
       in_app_browser: inAppInfo.isInApp,
       in_app_source: inAppInfo.source,
     });
-  }, [
-    acquisitionSource,
-    inAppInfo.isInApp,
-    inAppInfo.source,
-    isPreview,
-    location.pathname,
-  ]);
+  }, [acquisitionSource, inAppInfo.isInApp, inAppInfo.source, isPreview, location.pathname]);
 
-  const handleCTA = () => {
+  const formatTime = (date: Date) =>
+    date.toLocaleTimeString("es-AR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+
+  const formatDate = (date: Date) =>
+    date
+      .toLocaleDateString("es-AR", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      })
+      .replace(/^./, (char) => char.toUpperCase())
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+  const handleLeadSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const payload = {
+      name: leadName.trim(),
+      email: leadEmail.trim().toLowerCase(),
+      petName: leadPetName.trim(),
+    };
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("pessy_landing_prefill", JSON.stringify(payload));
+    }
+
+    void trackAcquisitionEvent("pessy_acquisition_lead_submit", {
+      source: acquisitionSource,
+      has_pet_name: Boolean(payload.petName),
+      path: location.pathname,
+    });
+
+    const params = new URLSearchParams();
+    if (acquisitionSource) params.set("src", acquisitionSource);
+    if (payload.name) params.set("lead_name", payload.name);
+    if (payload.email) params.set("lead_email", payload.email);
+    if (payload.petName) params.set("lead_pet", payload.petName);
+    navigate(`/register-user${params.toString() ? `?${params.toString()}` : ""}`);
+  };
+
+  const handlePrimaryEntry = () => {
     void trackAcquisitionEvent("pessy_acquisition_primary_click", {
       source: acquisitionSource,
       path: location.pathname,
@@ -94,7 +262,7 @@ export default function LandingEcosystemPreviewPage() {
       return;
     }
 
-    navigate(registerHref);
+    navigate(entryHref);
   };
 
   const handleOpenInBrowser = () => {
@@ -106,261 +274,719 @@ export default function LandingEcosystemPreviewPage() {
     openInSystemBrowser("https://pessy.app/empezar");
   };
 
+  const handleHowItWorksClick = () => {
+    void trackAcquisitionEvent("pessy_acquisition_secondary_click", {
+      source: acquisitionSource,
+      target: "como_funciona",
+      path: location.pathname,
+    });
+  };
+
+  const handlePricingClick = (planName: string) => {
+    void trackAcquisitionEvent("pessy_acquisition_plan_click", {
+      source: acquisitionSource,
+      plan: planName.toLowerCase(),
+      path: location.pathname,
+    });
+
+    if (planName === "BASE") {
+      navigate(entryHref);
+      return;
+    }
+
+    const target = document.getElementById("sumate");
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
-    <>
+    <div className="min-h-screen bg-[#faf9ff] text-[#1a1b20]">
       <SEO
-        title="Pessy — Tu mascota, sus cosas, todo en un solo lugar"
-        description="La app que centraliza la salud, las rutinas y los recordatorios de tu mascota en un solo lugar."
-        path={location.pathname}
+        title="Pessy - Tu mascota, sus cosas, todo en orden"
+        description="Paseos, cuidados, compras, papeles y servicios. Pessy te va diciendo que ya esta, que falta y que se viene."
+        keywords="mascota, pet care, perros y gatos, rutinas, compras, papeles, recordatorios, servicios para mascotas"
+        canonical={
+          isPreview
+            ? "https://pessy.app/preview/landing-ecosistema"
+            : location.pathname === "/empezar"
+              ? "https://pessy.app/empezar"
+              : "https://pessy.app/"
+        }
+        robots={isPreview ? "noindex,nofollow" : "index,follow"}
+        structuredData={landingStructuredData}
       />
 
-      <div className="min-h-screen bg-white font-['Plus_Jakarta_Sans',system-ui,sans-serif] text-[#1a1a1a]">
-        {/* In-app browser warning */}
-        {showInAppWarning && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
-              <p className="mb-2 text-lg font-semibold text-[#074738]">
-                Abrí en tu navegador
-              </p>
-              <p className="mb-4 text-sm text-gray-600">
-                Para registrarte, necesitás abrir Pessy en Safari o Chrome.
-              </p>
-              <button
-                onClick={handleOpenInBrowser}
-                className="mb-2 w-full rounded-xl bg-[#1A9B7D] px-4 py-3 text-sm font-semibold text-white"
-              >
-                Abrir en navegador
-              </button>
-              <button
-                onClick={() => setShowInAppWarning(false)}
-                className="w-full rounded-xl px-4 py-3 text-sm text-gray-500"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── Header ── */}
-        <header className="sticky top-0 z-40 border-b border-gray-100 bg-white/95 backdrop-blur">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
-            <Logo className="h-8" />
-            <button
-              onClick={handleCTA}
-              className="rounded-full bg-[#1A9B7D] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#168a6e]"
+      <nav className="fixed inset-x-0 top-0 z-50 border-b border-[#d8e4de] bg-white/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <Link to="/" className="flex items-center gap-3">
+            <Logo className="size-8" color="#074738" />
+            <span
+              className="text-2xl font-extrabold tracking-tight text-[#074738]"
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
             >
-              Probar gratis
-            </button>
-          </div>
-        </header>
-
-        {/* ── Hero ── */}
-        <section className="relative overflow-hidden bg-white">
-          <div className="mx-auto max-w-6xl px-5 pb-16 pt-16 md:pb-24 md:pt-20">
-            <div className="flex flex-col items-center text-center">
-              <span className="mb-5 inline-block rounded-full bg-[#e6f7f2] px-4 py-1.5 text-xs font-semibold tracking-wide text-[#1A9B7D]">
-                Acceso anticipado
-              </span>
-              <h1 className="mx-auto max-w-3xl text-4xl font-extrabold leading-tight tracking-tight text-[#074738] md:text-5xl lg:text-6xl">
-                Tu mascota, sus cosas, todo en{" "}
-                <span className="text-[#1A9B7D]">un solo lugar</span>
-              </h1>
-              <p className="mx-auto mt-5 max-w-xl text-lg text-gray-600 md:text-xl">
-                La app que centraliza la salud, las rutinas y los recordatorios
-                de tu mascota en un solo lugar.
-              </p>
-              <button
-                onClick={handleCTA}
-                className="mt-8 rounded-full bg-[#1A9B7D] px-8 py-4 text-base font-bold text-white shadow-lg shadow-[#1A9B7D]/25 transition hover:bg-[#168a6e] md:text-lg"
-              >
-                Quiero probar Pessy
-              </button>
-              <p className="mt-3 text-sm text-gray-400">
-                Gratis. Sin tarjeta de crédito.
-              </p>
-            </div>
-            <div className="mt-12 overflow-hidden rounded-3xl md:mt-16">
-              <img
-                src="https://images.unsplash.com/photo-1623387641168-d9803ddd3f35?w=1200&h=600&fit=crop&q=80"
-                alt="Gato y perro juntos"
-                className="h-64 w-full object-cover md:h-[420px]"
-                loading="eager"
-              />
-            </div>
-          </div>
-        </section>
-
-        {/* ── Problem ── */}
-        <section className="bg-[#fafbfa] py-20 md:py-28">
-          <div className="mx-auto max-w-3xl px-5 text-center">
-            <span className="mb-4 inline-block rounded-full bg-[#e6f7f2] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#1A9B7D]">
-              El problema
+              Pessy
             </span>
-            <h2 className="text-3xl font-extrabold text-[#074738] md:text-4xl">
-              ¿Te pasó alguna vez?
-            </h2>
-            <p className="mt-6 text-lg leading-relaxed text-gray-600">
-              No te acordabas cuándo fue su última vacuna. No sabías si tu
-              pareja iba a comprar el alimento. El turno del veterinario quedó
-              en un chat perdido.
-            </p>
-            <p className="mt-4 text-lg font-semibold text-[#074738]">
-              La vida con mascotas tiene muchas partes móviles. Pessy las pone
-              en orden.
-            </p>
+          </Link>
+
+          <div
+            className="hidden items-center gap-8 text-sm font-bold tracking-tight text-[#36584e] md:flex"
+            style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+          >
+            <a href="#identidad" className="transition-colors hover:text-[#074738]">Identidad</a>
+            <a href="#como-funciona" className="transition-colors hover:text-[#074738]">Como funciona</a>
+            <a href="#planes" className="transition-colors hover:text-[#074738]">Planes</a>
+            <a href="#equipo" className="transition-colors hover:text-[#074738]">Equipo</a>
+            <Link to={entryHref} className="rounded-full bg-[#074738] px-6 py-2.5 text-white transition-transform hover:scale-[0.98]">
+              Entrar
+            </Link>
+          </div>
+
+          <button type="button" className="md:hidden" onClick={() => setMobileMenuOpen((v) => !v)}>
+            <MaterialIcon name={mobileMenuOpen ? "close" : "menu"} className="text-3xl text-[#074738]" />
+          </button>
+        </div>
+
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden border-t border-[#d8e4de] bg-white/95 backdrop-blur-xl md:hidden"
+            >
+              <div
+                className="flex flex-col gap-4 px-6 py-5 text-base font-bold tracking-tight text-[#36584e]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                <a href="#identidad" onClick={() => setMobileMenuOpen(false)} className="transition-colors hover:text-[#074738]">Identidad</a>
+                <a href="#como-funciona" onClick={() => setMobileMenuOpen(false)} className="transition-colors hover:text-[#074738]">Como funciona</a>
+                <a href="#planes" onClick={() => setMobileMenuOpen(false)} className="transition-colors hover:text-[#074738]">Planes</a>
+                <a href="#equipo" onClick={() => setMobileMenuOpen(false)} className="transition-colors hover:text-[#074738]">Equipo</a>
+                <Link to={entryHref} onClick={() => setMobileMenuOpen(false)} className="rounded-full bg-[#074738] px-6 py-3 text-center text-white transition-transform hover:scale-[0.98]">
+                  Entrar
+                </Link>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </nav>
+
+      <main className="pt-28">
+        <section className="overflow-hidden px-6 pb-20 pt-6">
+          <div className="mx-auto grid max-w-7xl items-center gap-14 md:grid-cols-12">
+            <div className="md:col-span-7">
+              <motion.span
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-6 inline-block rounded-full bg-[#e3dfff] px-4 py-1.5 text-xs font-bold tracking-[0.24em] text-[#100069]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                ECOSISTEMA DIGITAL
+              </motion.span>
+
+              <motion.h1
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+                className="mb-6 text-5xl font-extrabold leading-[1.06] tracking-tight text-[#002f24] md:text-7xl"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                Tu mascota, sus cosas,
+                <br />
+                <span className="text-[#5048ca]">todo en orden.</span>
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="mb-10 max-w-2xl text-xl font-medium leading-relaxed text-[#404945]"
+              >
+                Paseos, cuidados, compras, visitas y papeles. Pessy te va diciendo que ya esta,
+                que falta y que se viene.
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 18 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="mb-10 flex flex-col gap-4 sm:flex-row"
+              >
+                <button
+                  type="button"
+                  onClick={handlePrimaryEntry}
+                  className="rounded-full bg-[#074738] px-8 py-4 text-center text-lg font-bold text-white transition-transform hover:scale-[1.02]"
+                  style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+                >
+                  Probar ahora
+                </button>
+                <a
+                  href="#como-funciona"
+                  onClick={handleHowItWorksClick}
+                  className="flex items-center justify-center gap-2 rounded-full bg-[#f4f3f9] px-8 py-4 text-lg font-bold text-[#074738] transition-colors hover:bg-[#e8e7ed]"
+                  style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+                >
+                  Ver como funciona
+                  <MaterialIcon name="play_circle" className="text-xl" />
+                </a>
+              </motion.div>
+
+              {showInAppWarning && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-8 max-w-xl rounded-[2rem] border border-[#f2d08c] bg-[#fff7e8] p-5 text-left shadow-[0_24px_48px_-24px_rgba(0,47,36,0.12)]"
+                >
+                  <p
+                    className="text-sm font-bold uppercase tracking-[0.18em] text-[#8b5e00]"
+                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+                  >
+                    Abrilo en tu navegador
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-[#5a4a24]">
+                    El navegador de {getInAppBrowserLabel(inAppInfo.source)} puede bloquear el acceso seguro con Google.
+                    Abrí Pessy en Chrome o Safari para seguir sin fricción.
+                  </p>
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                    <button
+                      type="button"
+                      onClick={handleOpenInBrowser}
+                      className="rounded-full bg-[#074738] px-5 py-3 text-sm font-bold uppercase tracking-[0.16em] text-white"
+                    >
+                      Abrir en navegador
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowInAppWarning(false)}
+                      className="rounded-full border border-[#d7c7a0] px-5 py-3 text-sm font-bold uppercase tracking-[0.16em] text-[#8b5e00]"
+                    >
+                      Seguir aca
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              <span
+                className="text-[11px] font-bold uppercase tracking-[0.28em] text-[#707975]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                PESSY TE VA DICIENDO QUE TOCA.
+              </span>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.12 }}
+              className="relative md:col-span-5"
+            >
+              <div className="absolute inset-0 scale-150 rounded-full bg-[#074738]/6 blur-[100px]" />
+
+              <div className="relative mx-auto aspect-[9/19.5] w-full max-w-[280px] rounded-[3.5rem] bg-[#0c0c0c] p-1 shadow-2xl ring-1 ring-white/10">
+                <div className="h-full w-full overflow-hidden rounded-[3.3rem] bg-black p-1.5">
+                  <div className="relative h-full w-full overflow-hidden rounded-[3rem] bg-black">
+                    <ImageWithFallback
+                      src="https://images.unsplash.com/photo-1686419682443-5050ca21098d?auto=format&fit=crop&q=80&w=800"
+                      alt="Vista previa de Pessy"
+                      className="absolute inset-0 h-full w-full object-cover brightness-[0.85]"
+                    />
+
+                    <div className="absolute left-1/2 top-2 z-[100] h-6 w-24 -translate-x-1/2 rounded-full bg-black" />
+
+                    <div className="absolute inset-0 z-30 flex flex-col items-center px-6 pt-16">
+                      <div className="space-y-0.5 text-center text-white">
+                        <p className="text-[10px] font-bold opacity-80">{formatDate(time)}</p>
+                        <h3
+                          className="text-5xl font-black tracking-tighter leading-none md:text-6xl"
+                          style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+                        >
+                          {formatTime(time)}
+                        </h3>
+                      </div>
+
+                      <div className="relative mt-auto mb-10 h-20 w-full">
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={activeNotification}
+                            initial={{ y: 30, opacity: 0, scale: 0.95 }}
+                            animate={{ y: 0, opacity: 1, scale: 1 }}
+                            exit={{ y: -5, opacity: 0 }}
+                            className="absolute inset-0 rounded-[1.8rem] border border-white/15 bg-white/[0.12] p-3 backdrop-blur-xl"
+                          >
+                            <div className="mb-1 flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <div className="flex size-4 items-center justify-center rounded bg-white p-0.5">
+                                  <Logo className="size-full" color="#074738" />
+                                </div>
+                                <span className="text-[8px] font-black uppercase tracking-widest text-white/60">PESSY</span>
+                              </div>
+                              <span className="text-[8px] font-bold text-white/40">{notifications[activeNotification].time}</span>
+                            </div>
+                            <div className="space-y-0.5">
+                              <div className="text-[10px] font-bold leading-tight text-white">
+                                {notifications[activeNotification].title}
+                              </div>
+                              <div className="line-clamp-2 text-[9px] leading-tight text-white/80">
+                                {notifications[activeNotification].body}
+                              </div>
+                            </div>
+                          </motion.div>
+                        </AnimatePresence>
+                      </div>
+
+                      <div className="mb-6 flex w-full justify-between px-2 opacity-60">
+                        <Camera size={16} className="text-white" />
+                        <Shield size={16} className="text-white" />
+                      </div>
+                    </div>
+
+                    <div className="absolute bottom-1.5 left-1/2 z-[100] h-1 w-24 -translate-x-1/2 rounded-full bg-white/20" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="absolute -bottom-10 -left-8 size-40 rounded-full bg-[#ffdad3] opacity-40 blur-3xl" />
+              <div className="absolute -right-10 -top-10 size-52 rounded-full bg-[#e3dfff] opacity-25 blur-3xl" />
+            </motion.div>
           </div>
         </section>
 
-        {/* ── Features ── */}
-        <section className="py-20 md:py-28">
-          <div className="mx-auto max-w-6xl px-5">
-            <div className="space-y-16 md:space-y-24">
-              {features.map((f, i) => (
-                <div
-                  key={f.title}
-                  className={`flex flex-col items-center gap-8 md:flex-row md:gap-12 ${
-                    i % 2 === 1 ? "md:flex-row-reverse" : ""
-                  }`}
+        <section id="identidad" className="bg-[#f4f3f9] py-24">
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="mb-14 max-w-3xl">
+              <h2
+                className="mb-4 text-4xl font-extrabold tracking-tight text-[#002f24]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                Su historia comienza aqui.
+              </h2>
+              <p className="text-xl font-medium text-[#404945]">
+                Un solo lugar para su identidad digital, sus papeles, sus rutinas, sus compras y todo lo que queres tener a mano.
+              </p>
+            </div>
+
+            <div className="grid items-center gap-10 md:grid-cols-[1.1fr_0.9fr]">
+              <div className="overflow-hidden rounded-[2rem] border border-[#dfe6e2] bg-white shadow-[0_28px_56px_-24px_rgba(0,47,36,0.12)]">
+                <HistoryMockup />
+              </div>
+
+              <div className="space-y-6">
+                <div className="rounded-[2rem] bg-white p-8 shadow-[0_24px_48px_-20px_rgba(0,47,36,0.1)]">
+                  <h3
+                    className="mb-3 text-2xl font-bold text-[#002f24]"
+                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+                  >
+                    Todo organizado
+                  </h3>
+                  <p className="leading-relaxed text-[#404945]">
+                    Fechas, documentos y momentos importantes siempre claros, sin depender de fotos perdidas o chats viejos.
+                  </p>
+                </div>
+                <div className="rounded-[2rem] bg-white p-8 shadow-[0_24px_48px_-20px_rgba(0,47,36,0.1)]">
+                  <h3
+                    className="mb-3 text-2xl font-bold text-[#002f24]"
+                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+                  >
+                    Lista para compartir
+                  </h3>
+                  <p className="leading-relaxed text-[#404945]">
+                    Con familia, guarderia o quien la acompane. Todos ven lo mismo y nadie arranca de cero.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="como-funciona" className="py-24">
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="mb-14 max-w-3xl">
+              <h2
+                className="mb-4 text-4xl font-extrabold tracking-tight text-[#002f24]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                Ver como funciona
+              </h2>
+              <p className="text-xl font-medium text-[#404945]">
+                Le contas algo a Pessy una vez. Despues ves que ya esta, que falta y que se viene.
+              </p>
+            </div>
+
+            <div className="grid gap-8 lg:grid-cols-3">
+              {howItWorks.map((item, index) => (
+                <motion.article
+                  key={item.title}
+                  initial={{ opacity: 0, y: 18 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.25 }}
+                  transition={{ delay: index * 0.08 }}
+                  className="rounded-[2rem] border border-[#dfe6e2] bg-white p-6 shadow-[0_24px_48px_-24px_rgba(0,47,36,0.1)]"
                 >
-                  <div className="flex-1">
-                    <h3 className="text-2xl font-bold text-[#074738] md:text-3xl">
-                      {f.title}
-                    </h3>
-                    <p className="mt-3 text-lg leading-relaxed text-gray-600">
-                      {f.body}
-                    </p>
+                  <div className="mb-5 flex items-center justify-between">
+                    <span
+                      className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#707975]"
+                      style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+                    >
+                      Paso {item.step}
+                    </span>
+                    <MaterialIcon name="arrow_outward" className="text-[#074738]" />
                   </div>
-                  <div className="w-full flex-1">
-                    <img
-                      src={f.image}
-                      alt={f.title}
-                      className="h-64 w-full rounded-2xl object-cover shadow-lg md:h-80"
-                      loading="lazy"
+                  <div className="mb-6 overflow-hidden rounded-[1.5rem] bg-[#f4f3f9]">{item.mockup}</div>
+                  <h3
+                    className="mb-3 text-2xl font-bold text-[#002f24]"
+                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+                  >
+                    {item.title}
+                  </h3>
+                  <p className="leading-relaxed text-[#404945]">{item.body}</p>
+                </motion.article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-6 rounded-[2.5rem] bg-[#074738] py-24 text-white">
+          <div className="mx-auto grid max-w-7xl items-center gap-16 px-8 md:grid-cols-2 md:px-12">
+            <div>
+              <h2
+                className="mb-8 text-4xl font-extrabold leading-tight md:text-5xl"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                Un lugar para sus rutinas, sus compras y sus cuidados.
+              </h2>
+              <p className="mb-10 text-lg leading-relaxed text-[#cfe7dd]">
+                Pessy te va marcando lo que ya esta, lo que falta y lo que viene, sin llenarte de tecnicismos.
+              </p>
+
+              <div className="space-y-5">
+                {trustPoints.map((item) => (
+                  <div key={item} className="flex gap-4">
+                    <Check size={20} className="mt-1 shrink-0 text-[#b5efd9]" />
+                    <p className="leading-relaxed text-[#dceee8]">{item}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-5">
+              <div className="rounded-[2rem] bg-[#f7fff9] p-7 text-[#002f24] shadow-[0_28px_56px_-20px_rgba(0,0,0,0.35)]">
+                <div className="mb-4 flex items-center justify-between">
+                  <span
+                    className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#5a6d67]"
+                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+                  >
+                    Rutinas activas
+                  </span>
+                  <MaterialIcon name="pets" className="text-[#074738]" />
+                </div>
+                <div className="space-y-3">
+                  <div className="rounded-[1.25rem] bg-[#eef5f2] p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold">Paseo de la tarde</span>
+                      <span className="rounded-full bg-[#b5efd9] px-2 py-0.5 text-xs font-bold text-[#002018]">En orden</span>
+                    </div>
+                  </div>
+                  <div className="rounded-[1.25rem] bg-[#eef5f2] p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold">Compra sugerida</span>
+                      <span className="text-xs font-bold text-[#074738]">En 15 dias</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-[2rem] border border-[#1f4d43] bg-[#0d3f35] p-7">
+                <span
+                  className="mb-3 block text-[11px] font-bold uppercase tracking-[0.25em] text-[#99d2be]"
+                  style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+                >
+                  Ecosistema digital
+                </span>
+                <div className="flex flex-wrap gap-3">
+                  {ecosystemChips.map((chip) => (
+                    <span key={chip} className="rounded-full border border-[#2b5b50] bg-[#134c40] px-4 py-2 text-sm font-semibold text-[#e2f4ed]">
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="equipo" className="py-24">
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="mb-14">
+              <span
+                className="mb-4 inline-block text-[11px] font-bold uppercase tracking-[0.25em] text-[#707975]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                El equipo
+              </span>
+              <h2
+                className="mb-4 text-4xl font-extrabold tracking-tight text-[#002f24]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                Las personas detras de Pessy
+              </h2>
+              <p className="max-w-2xl text-xl font-medium text-[#404945]">
+                Estamos construyendo un sistema que se acuerda de lo importante para que cuidar sea mas simple todos los dias.
+              </p>
+            </div>
+
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {team.map((member, index) => (
+                <motion.article
+                  key={member.name}
+                  initial={{ opacity: 0, y: 18 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{ delay: index * 0.08 }}
+                  className="group"
+                >
+                  <div className="overflow-hidden rounded-[2rem] border border-[#dfe6e2] bg-white shadow-[0_24px_48px_-24px_rgba(0,47,36,0.1)]">
+                    <div className="relative aspect-[4/5] overflow-hidden bg-[#eef4f1]">
+                      <ImageWithFallback
+                        src={member.image}
+                        alt={member.name}
+                        className="h-full w-full object-cover grayscale transition-all duration-700 group-hover:scale-[1.03] group-hover:grayscale-0"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-5">
+                        <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white backdrop-blur-md">
+                          {member.role}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between p-5">
+                      <div>
+                        <h3
+                          className="text-xl font-bold text-[#002f24]"
+                          style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+                        >
+                          {member.name}
+                        </h3>
+                        <p className="text-sm font-medium text-[#5e716b]">{member.role}</p>
+                      </div>
+                      <a
+                        href={member.linkedin}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex size-10 items-center justify-center rounded-full bg-[#f4f3f9] text-[#074738] transition-transform hover:scale-105"
+                      >
+                        <Linkedin size={16} />
+                      </a>
+                    </div>
+                  </div>
+                </motion.article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="planes" className="bg-[#f4f3f9] py-24">
+          <div className="mx-auto max-w-7xl px-6">
+            <div className="mx-auto mb-14 max-w-3xl text-center">
+              <span
+                className="mb-4 inline-block text-[11px] font-bold uppercase tracking-[0.25em] text-[#707975]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                Suscripciones
+              </span>
+              <h2
+                className="mb-4 text-4xl font-extrabold tracking-tight text-[#002f24]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                Nuestras suscripciones
+              </h2>
+              <p className="text-xl font-medium text-[#404945]">
+                Pensadas para resolver compras, envios y beneficios sin salir del ecosistema Pessy.
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-3">
+              {pricingPlans.map((plan) => (
+                <article key={plan.name} className={`relative rounded-[2rem] p-8 ${plan.tone}`}>
+                  <div className="mb-6">
+                    <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.24em] opacity-70">{plan.name}</p>
+                    <div className="flex items-end gap-2">
+                      <span
+                        className="text-4xl font-extrabold tracking-tight"
+                        style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+                      >
+                        {plan.price}
+                      </span>
+                      <span className="pb-1 text-sm font-semibold opacity-70">/ {plan.period}</span>
+                    </div>
+                  </div>
+                  <ul className="space-y-3">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-center gap-3 text-sm font-medium">
+                        <Check size={16} className="shrink-0" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="pt-8">
+                    <button
+                      type="button"
+                      onClick={() => handlePricingClick(plan.name)}
+                      className={`block rounded-full px-5 py-3 text-center text-sm font-bold uppercase tracking-[0.18em] ${
+                        plan.name === "PREMIUM"
+                          ? "bg-white text-[#074738]"
+                          : "bg-[#074738] text-white"
+                      }`}
+                    >
+                      {plan.cta}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="sumate" className="bg-[#f4f3f9] py-24">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="rounded-[2.5rem] bg-white p-8 shadow-[0_32px_64px_-24px_rgba(0,47,36,0.14)] md:p-12">
+              <div className="grid items-center gap-10 lg:grid-cols-[0.95fr_1.05fr]">
+                <div>
+                  <span
+                    className="mb-4 inline-block text-[11px] font-bold uppercase tracking-[0.25em] text-[#707975]"
+                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+                  >
+                    Creciendo con Pessy
+                  </span>
+                  <h2
+                    className="mb-4 text-4xl font-extrabold tracking-tight text-[#002f24]"
+                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+                  >
+                    Sumate a los más de 100 usuarios que ya están ordenando la vida de sus mascotas.
+                  </h2>
+                  <p className="text-lg font-medium leading-relaxed text-[#5e716b]">
+                    Dejanos tus datos y te llevamos directo al alta con tu cuenta precompletada para arrancar mas rapido.
+                  </p>
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <span className="rounded-full bg-[#eef5f2] px-4 py-2 text-sm font-semibold text-[#074738]">
+                      +100 usuarios
+                    </span>
+                    <span className="rounded-full bg-[#eef5f2] px-4 py-2 text-sm font-semibold text-[#074738]">
+                      comunidad creciendo
+                    </span>
+                  </div>
+                </div>
+
+                <form onSubmit={handleLeadSubmit} className="grid gap-4 rounded-[2rem] border border-[#dfe6e2] bg-[#f8fafc] p-6">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <input
+                      type="text"
+                      value={leadName}
+                      onChange={(event) => setLeadName(event.target.value)}
+                      placeholder="Tu nombre"
+                      className="w-full rounded-2xl border border-[#dfe6e2] bg-white px-4 py-4 text-sm text-[#002f24] outline-none transition focus:border-[#074738] focus:ring-2 focus:ring-[#074738]/15"
+                      required
+                    />
+                    <input
+                      type="email"
+                      value={leadEmail}
+                      onChange={(event) => setLeadEmail(event.target.value)}
+                      placeholder="Tu email"
+                      className="w-full rounded-2xl border border-[#dfe6e2] bg-white px-4 py-4 text-sm text-[#002f24] outline-none transition focus:border-[#074738] focus:ring-2 focus:ring-[#074738]/15"
+                      required
                     />
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── Stats ── */}
-        <section className="bg-[#074738] py-20 md:py-28">
-          <div className="mx-auto max-w-4xl px-5 text-center">
-            <h2 className="mb-12 text-3xl font-extrabold text-white md:text-4xl">
-              Números que importan
-            </h2>
-            <div className="grid grid-cols-2 gap-8 md:gap-12">
-              {stats.map((s) => (
-                <div key={s.value}>
-                  <p className="text-4xl font-extrabold text-[#1A9B7D] md:text-5xl">
-                    {s.value}
+                  <input
+                    type="text"
+                    value={leadPetName}
+                    onChange={(event) => setLeadPetName(event.target.value)}
+                    placeholder="Nombre de tu mascota"
+                    className="w-full rounded-2xl border border-[#dfe6e2] bg-white px-4 py-4 text-sm text-[#002f24] outline-none transition focus:border-[#074738] focus:ring-2 focus:ring-[#074738]/15"
+                  />
+                  <button
+                    type="submit"
+                    className="rounded-full bg-[#074738] px-6 py-4 text-center text-sm font-bold uppercase tracking-[0.18em] text-white transition-transform hover:scale-[1.01]"
+                  >
+                    Quiero sumarme
+                  </button>
+                  <p className="text-sm text-[#5e716b]">
+                    Este formulario te lleva directo a crear tu cuenta con tus datos ya cargados.
                   </p>
-                  <p className="mt-2 text-sm text-gray-300 md:text-base">
-                    {s.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── Co-tutor ── */}
-        <section className="py-20 md:py-28">
-          <div className="mx-auto max-w-6xl px-5">
-            <div className="flex flex-col items-center gap-10 md:flex-row md:gap-16">
-              <div className="flex-1">
-                <span className="mb-4 inline-block rounded-full bg-[#e6f7f2] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#1A9B7D]">
-                  Compartí el cuidado
-                </span>
-                <h2 className="mt-2 text-3xl font-extrabold text-[#074738] md:text-4xl">
-                  Invitá un co-tutor
-                </h2>
-                <p className="mt-4 text-lg leading-relaxed text-gray-600">
-                  Tu pareja, tu roommate, un familiar. Quien también cuide a tu
-                  mascota puede tener acceso a toda la información y recibir
-                  recordatorios.
-                </p>
-                <ul className="mt-6 space-y-3">
-                  {coTutorBullets.map((b) => (
-                    <li key={b} className="flex items-center gap-3">
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1A9B7D] text-white">
-                        <Check className="h-3.5 w-3.5" />
-                      </span>
-                      <span className="text-gray-700">{b}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="w-full flex-1">
-                <img
-                  src="https://images.unsplash.com/photo-1544568100-847a948585b9?w=600&h=500&fit=crop&q=80"
-                  alt="Persona con perro"
-                  className="h-80 w-full rounded-2xl object-cover shadow-lg md:h-96"
-                  loading="lazy"
-                />
+                </form>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ── Quote ── */}
-        <section className="bg-[#fafbfa] py-16 md:py-24">
-          <div className="mx-auto max-w-3xl px-5 text-center">
-            <blockquote className="text-2xl font-medium italic leading-relaxed text-[#074738] md:text-3xl">
-              &ldquo;La idea es simple: que no se te pase nada importante de tu
-              mascota, nunca más.&rdquo;
-            </blockquote>
-            <p className="mt-6 text-base font-semibold text-gray-500">
-              — Equipo Pessy
-            </p>
-          </div>
-        </section>
-
-        {/* ── Final CTA ── */}
-        <section className="bg-[#1A9B7D] py-20 md:py-28">
-          <div className="mx-auto max-w-3xl px-5 text-center">
-            <h2 className="text-3xl font-extrabold text-white md:text-4xl">
-              ¿Querés organizar la vida con tu mascota?
-            </h2>
-            <p className="mx-auto mt-4 max-w-md text-lg text-white/80">
-              Sumate al acceso anticipado. Gratis, sin compromisos.
-            </p>
-            <button
-              onClick={handleCTA}
-              className="mt-8 rounded-full bg-white px-8 py-4 text-base font-bold text-[#074738] shadow-lg transition hover:bg-gray-50 md:text-lg"
+        <section className="px-6 py-24 text-center">
+          <div className="mx-auto max-w-4xl rounded-[2.5rem] bg-white p-12 shadow-[0_32px_64px_-24px_rgba(0,47,36,0.14)] md:p-16">
+            <h2
+              className="mb-6 text-4xl font-extrabold tracking-tight text-[#002f24]"
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
             >
-              Crear mi cuenta gratis
-            </button>
-          </div>
-        </section>
-
-        {/* ── Footer ── */}
-        <footer className="border-t border-gray-100 bg-white py-10">
-          <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-5">
-            <Logo className="h-7" />
-            <div className="flex gap-4 text-sm text-gray-500">
-              <Link to="/legal/terms" className="hover:text-[#074738]">
-                Términos
-              </Link>
-              <span>·</span>
-              <Link to="/legal/privacy" className="hover:text-[#074738]">
-                Privacidad
-              </Link>
-              <span>·</span>
-              <a
-                href="mailto:hola@pessy.app"
-                className="hover:text-[#074738]"
+              Empeza a ordenar la vida de tu mascota
+            </h2>
+            <p className="mb-10 text-xl font-medium text-[#404945]">
+              Contanos de tu mascota. Nosotros nos encargamos de ayudarte a seguirle el ritmo.
+            </p>
+            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <Link
+                to={registerHref}
+                onClick={() =>
+                  void trackAcquisitionEvent("pessy_acquisition_final_cta_click", {
+                    source: acquisitionSource,
+                    target: "register_user",
+                    path: location.pathname,
+                  })
+                }
+                className="inline-flex rounded-full bg-[#074738] px-10 py-4 text-lg font-extrabold text-white transition-transform hover:scale-[1.02]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
               >
-                Contacto
+                Crear cuenta
+              </Link>
+              <a
+                href="#como-funciona"
+                onClick={handleHowItWorksClick}
+                className="inline-flex items-center gap-2 rounded-full bg-[#f4f3f9] px-8 py-4 text-lg font-bold text-[#074738]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                Ver como funciona
+                <ExternalLink size={18} />
               </a>
             </div>
-            <p className="text-xs text-gray-400">
-              &copy; 2025 Pessy. Todos los derechos reservados.
+          </div>
+        </section>
+      </main>
+
+      <footer className="mt-16 rounded-t-[2rem] bg-[#052f27]">
+        <div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div
+              className="text-lg font-bold text-[#f1f7f4]"
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+            >
+              Pessy
+            </div>
+            <p className="mt-1 text-xs text-[#cfe0da]">
+              Tu mascota, sus cosas, todo en orden.
             </p>
           </div>
-        </footer>
-      </div>
-    </>
+
+          <div className="flex flex-wrap gap-x-5 gap-y-3 text-xs text-[#cfe0da]">
+            <a href="#identidad">Identidad digital</a>
+            <a href="#como-funciona">Cómo funciona</a>
+            <a href="#planes">Suscripciones</a>
+            <Link to="/privacidad">Privacidad</Link>
+            <Link to="/terminos">Términos</Link>
+            <a href="/data-deletion">Eliminación de datos</a>
+            <a href="mailto:it@pessy.app">it@pessy.app</a>
+          </div>
+        </div>
+
+        <div className="mx-auto max-w-7xl border-t border-[#1f4d43] px-6 pb-6 pt-4">
+          <p className="text-center text-[10px] uppercase tracking-[0.16em] text-[#9ab5ad]">
+            Pessy organiza informacion y acompana el cuidado diario.
+          </p>
+        </div>
+      </footer>
+    </div>
   );
 }
