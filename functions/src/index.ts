@@ -9,6 +9,66 @@ export { ingestHistory } from "./clinical/ingestHistory";
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const resendClient = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
+// ─── PESSY LOGO SVG (inline para máxima compatibilidad email) ───
+const pessyLogoSvgWhite = `<svg width="32" height="36" viewBox="0 0 214.848 240.928" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.8826 0.101688L12.0892 0.0939362C19.3159 -0.118314 27.2282 0.0891794 34.4962 0.133929L70.1119 0.193927L108.921 0.183429C117.756 0.209429 127.246 0.0274282 135.998 0.538928C139.448 0.740678 147.088 2.34518 150.461 3.17818C164.121 6.47343 176.683 13.2814 186.901 22.9272C205.723 40.6399 213.993 61.1484 214.803 86.8074C215.503 109.009 208.096 132.621 192.371 148.569C186.658 153.824 179.556 162.934 171.653 164.326C167.318 164.204 163.026 153.514 162.396 150.046C162.286 148.271 165.603 145.811 166.798 144.891C184.343 131.381 194.678 112.523 195.101 90.1144C195.633 71.1989 188.423 52.8852 175.136 39.4112C169.043 33.1554 158.048 25.9717 149.678 23.2562C138.481 19.6232 128.223 19.8317 116.658 19.8712L97.1804 19.9189L39.5581 19.9119C36.3306 19.8867 32.4451 20.1522 29.3126 20.0337C19.4289 19.6604 19.9614 24.0957 19.9886 32.3012L19.9444 154.071L19.9459 188.229C19.9379 196.381 19.3009 206.164 20.7399 214.041C21.9614 220.729 30.8409 223.971 36.9424 221.449C46.2629 217.519 44.9236 206.946 44.8254 197.696C44.6046 176.944 60.7044 161.226 80.4254 157.371C85.5081 156.376 94.6234 156.574 99.6301 157.461C100.969 157.699 100.658 160.934 100.816 161.931C100.278 165.041 104.758 172.956 103.398 175.101C101.471 176.344 90.2986 175.824 87.1954 176.009C75.8424 176.689 66.2094 183.471 64.8956 195.361C64.1791 201.849 65.1986 208.461 64.1264 214.901C63.1911 220.524 60.6926 226.066 56.8961 230.329C51.3921 236.509 43.9576 240.349 35.6996 240.824C26.2839 241.364 18.0029 239.931 10.7711 233.414C3.56614 226.921 0.771647 218.699 0.330897 209.176C0.119647 204.614 0.274392 200.006 0.284892 195.439L0.262889 173.299L0.215144 98.6262L0.118403 38.9669C0.136403 33.4217 0.121148 27.8762 0.072398 22.3312C0.040898 18.7044 -0.0823572 14.6782 0.0888928 11.0789C0.221893 8.28294 0.476153 5.63918 2.3834 3.52918C5.66515 -0.101572 7.35389 0.236938 11.8826 0.101688Z" fill="white"/><path d="M131.773 134.566C138.826 134.309 140.791 140.514 144.906 144.904C146.801 146.926 149.096 148.784 150.978 150.839C154.043 154.184 155.326 157.091 155.018 161.631C154.883 164.701 153.236 168.364 150.826 170.261C144.251 175.431 140.008 172.509 133.576 172.089L133.181 172.064C125.998 172.209 121.768 175.736 115.543 170.686C104.318 161.579 111.396 151.521 119.671 144.241C124.311 140.161 124.341 135.374 131.773 134.566Z" fill="white"/></svg>`;
+
+const pessyLogoSvgGreen = `<svg width="32" height="36" viewBox="0 0 214.848 240.928" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.8826 0.101688L12.0892 0.0939362C19.3159 -0.118314 27.2282 0.0891794 34.4962 0.133929L70.1119 0.193927L108.921 0.183429C117.756 0.209429 127.246 0.0274282 135.998 0.538928C139.448 0.740678 147.088 2.34518 150.461 3.17818C164.121 6.47343 176.683 13.2814 186.901 22.9272C205.723 40.6399 213.993 61.1484 214.803 86.8074C215.503 109.009 208.096 132.621 192.371 148.569C186.658 153.824 179.556 162.934 171.653 164.326C167.318 164.204 163.026 153.514 162.396 150.046C162.286 148.271 165.603 145.811 166.798 144.891C184.343 131.381 194.678 112.523 195.101 90.1144C195.633 71.1989 188.423 52.8852 175.136 39.4112C169.043 33.1554 158.048 25.9717 149.678 23.2562C138.481 19.6232 128.223 19.8317 116.658 19.8712L97.1804 19.9189L39.5581 19.9119C36.3306 19.8867 32.4451 20.1522 29.3126 20.0337C19.4289 19.6604 19.9614 24.0957 19.9886 32.3012L19.9444 154.071L19.9459 188.229C19.9379 196.381 19.3009 206.164 20.7399 214.041C21.9614 220.729 30.8409 223.971 36.9424 221.449C46.2629 217.519 44.9236 206.946 44.8254 197.696C44.6046 176.944 60.7044 161.226 80.4254 157.371C85.5081 156.376 94.6234 156.574 99.6301 157.461C100.969 157.699 100.658 160.934 100.816 161.931C100.278 165.041 104.758 172.956 103.398 175.101C101.471 176.344 90.2986 175.824 87.1954 176.009C75.8424 176.689 66.2094 183.471 64.8956 195.361C64.1791 201.849 65.1986 208.461 64.1264 214.901C63.1911 220.524 60.6926 226.066 56.8961 230.329C51.3921 236.509 43.9576 240.349 35.6996 240.824C26.2839 241.364 18.0029 239.931 10.7711 233.414C3.56614 226.921 0.771647 218.699 0.330897 209.176C0.119647 204.614 0.274392 200.006 0.284892 195.439L0.262889 173.299L0.215144 98.6262L0.118403 38.9669C0.136403 33.4217 0.121148 27.8762 0.072398 22.3312C0.040898 18.7044 -0.0823572 14.6782 0.0888928 11.0789C0.221893 8.28294 0.476153 5.63918 2.3834 3.52918C5.66515 -0.101572 7.35389 0.236938 11.8826 0.101688Z" fill="#074738"/><path d="M131.773 134.566C138.826 134.309 140.791 140.514 144.906 144.904C146.801 146.926 149.096 148.784 150.978 150.839C154.043 154.184 155.326 157.091 155.018 161.631C154.883 164.701 153.236 168.364 150.826 170.261C144.251 175.431 140.008 172.509 133.576 172.089L133.181 172.064C125.998 172.209 121.768 175.736 115.543 170.686C104.318 161.579 111.396 151.521 119.671 144.241C124.311 140.161 124.341 135.374 131.773 134.566Z" fill="#074738"/></svg>`;
+
+// ─── EMAIL WRAPPER (reutilizable para todos los emails) ───
+function pessyEmailWrap(opts: {
+  preheader: string;
+  headerSubtitle?: string;
+  bodyHtml: string;
+  footerDark?: boolean;
+}) {
+  const footerBg = opts.footerDark ? "#074738" : "#F0FAF9";
+  const footerTextColor = opts.footerDark ? "rgba(255,255,255,0.6)" : "#666666";
+  const footerNameColor = opts.footerDark ? "#ffffff" : "#074738";
+  const footerTagColor = opts.footerDark ? "rgba(255,255,255,0.5)" : "rgba(7,71,56,0.5)";
+  const footerLogo = opts.footerDark ? pessyLogoSvgWhite : pessyLogoSvgGreen;
+  const footerLinkColor = "#1A9B7D";
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;padding:0;background:#e8e8e8;font-family:'Manrope',sans-serif;">
+<div style="display:none!important;font-size:1px;color:#fff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">${opts.preheader}</div>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#e8e8e8;padding:0;">
+<tr><td align="center">
+<table width="100%" style="max-width:600px;background:#ffffff;" cellpadding="0" cellspacing="0">
+<!-- HEADER -->
+<tr><td style="background:#074738;padding:20px 28px;">
+<table cellpadding="0" cellspacing="0"><tr>
+<td style="vertical-align:middle;padding-right:14px;">${pessyLogoSvgWhite}</td>
+<td style="vertical-align:middle;">
+<div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:22px;color:#fff;letter-spacing:0.06em;line-height:1;">PESSY</div>
+<div style="font-family:'Manrope',sans-serif;font-size:11px;color:rgba(255,255,255,0.5);font-weight:500;margin-top:3px;">${opts.headerSubtitle || "Tu mascota, todo en orden"}</div>
+</td>
+</tr></table>
+</td></tr>
+<!-- BODY -->
+${opts.bodyHtml}
+<!-- FOOTER -->
+<tr><td style="background:${footerBg};padding:28px 32px;text-align:center;">
+<table cellpadding="0" cellspacing="0" style="margin:0 auto 12px;"><tr>
+<td style="vertical-align:middle;padding-right:10px;">${footerLogo}</td>
+<td style="vertical-align:middle;">
+<div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:17px;color:${footerNameColor};letter-spacing:0.05em;line-height:1.1;">PESSY</div>
+<div style="font-size:10px;font-weight:500;color:${footerTagColor};">Tu mascota, todo en orden</div>
+</td>
+</tr></table>
+<p style="margin:0;font-size:12px;color:${footerTextColor};line-height:1.6;">&copy; 2026 Pessy. Todos los derechos reservados.</p>
+<p style="margin:4px 0 0;font-size:12px;color:${footerTextColor};">¿No querés recibir más emails? <a href="https://pessy.app" style="color:${footerLinkColor};text-decoration:none;font-weight:600;">Desuscribirme</a></p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
 async function sendEmailReminder(args: {
   toEmail: string;
   petName: string;
@@ -22,7 +82,6 @@ async function sendEmailReminder(args: {
     return;
   }
   const doseTime = new Date(args.scheduledFor);
-  // Sumar los minutos para obtener la hora real de la toma
   const actualDoseTime = new Date(doseTime.getTime() + args.minutesBefore * 60 * 1000);
   const timeStr = actualDoseTime.toLocaleTimeString("es-AR", {
     hour: "2-digit",
@@ -35,129 +94,80 @@ async function sendEmailReminder(args: {
   });
 
   const isNow = args.minutesBefore === 0;
-  const safePetNameSubject = (args.petName || "").replace(/[<>&"']/g, (c: string) =>
+  const esc = (s: string) => (s || "").replace(/[<>&"']/g, (c: string) =>
     ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
+  const safePetName = esc(args.petName);
+  const safeMedName = esc(args.medicationName);
+  const safeDosage = esc(args.dosage);
+
   const subject = isNow
-    ? `Hora de la medicación de ${safePetNameSubject} — Pessy`
-    : `En ${args.minutesBefore} min: medicación de ${safePetNameSubject} — Pessy`;
+    ? `Hora de la medicación de ${safePetName} — Pessy`
+    : `En ${args.minutesBefore} min: medicación de ${safePetName} — Pessy`;
 
-  // Logo SVG de Pessy (P + forma orgánica) — inline para máxima compatibilidad con clientes de email
-  const pessynLogoSvg = `<svg width="32" height="36" viewBox="0 0 214.848 240.928" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.8826 0.101688L12.0892 0.0939362C19.3159 -0.118314 27.2282 0.0891794 34.4962 0.133929L70.1119 0.193927L108.921 0.183429C117.756 0.209429 127.246 0.0274282 135.998 0.538928C139.448 0.740678 147.088 2.34518 150.461 3.17818C164.121 6.47343 176.683 13.2814 186.901 22.9272C205.723 40.6399 213.993 61.1484 214.803 86.8074C215.503 109.009 208.096 132.621 192.371 148.569C186.658 153.824 179.556 162.934 171.653 164.326C167.318 164.204 163.026 153.514 162.396 150.046C162.286 148.271 165.603 145.811 166.798 144.891C184.343 131.381 194.678 112.523 195.101 90.1144C195.633 71.1989 188.423 52.8852 175.136 39.4112C169.043 33.1554 158.048 25.9717 149.678 23.2562C138.481 19.6232 128.223 19.8317 116.658 19.8712L97.1804 19.9189L39.5581 19.9119C36.3306 19.8867 32.4451 20.1522 29.3126 20.0337C19.4289 19.6604 19.9614 24.0957 19.9886 32.3012L19.9444 154.071L19.9459 188.229C19.9379 196.381 19.3009 206.164 20.7399 214.041C21.9614 220.729 30.8409 223.971 36.9424 221.449C46.2629 217.519 44.9236 206.946 44.8254 197.696C44.6046 176.944 60.7044 161.226 80.4254 157.371C85.5081 156.376 94.6234 156.574 99.6301 157.461C100.969 157.699 100.658 160.934 100.816 161.931C100.278 165.041 104.758 172.956 103.398 175.101C101.471 176.344 90.2986 175.824 87.1954 176.009C75.8424 176.689 66.2094 183.471 64.8956 195.361C64.1791 201.849 65.1986 208.461 64.1264 214.901C63.1911 220.524 60.6926 226.066 56.8961 230.329C51.3921 236.509 43.9576 240.349 35.6996 240.824C26.2839 241.364 18.0029 239.931 10.7711 233.414C3.56614 226.921 0.771647 218.699 0.330897 209.176C0.119647 204.614 0.274392 200.006 0.284892 195.439L0.262889 173.299L0.215144 98.6262L0.118403 38.9669C0.136403 33.4217 0.121148 27.8762 0.072398 22.3312C0.040898 18.7044 -0.0823572 14.6782 0.0888928 11.0789C0.221893 8.28294 0.476153 5.63918 2.3834 3.52918C5.66515 -0.101572 7.35389 0.236938 11.8826 0.101688Z" fill="white"/><path d="M131.773 134.566C138.826 134.309 140.791 140.514 144.906 144.904C146.801 146.926 149.096 148.784 150.978 150.839C154.043 154.184 155.326 157.091 155.018 161.631C154.883 164.701 153.236 168.364 150.826 170.261C144.251 175.431 140.008 172.509 133.576 172.089L133.181 172.064C125.998 172.209 121.768 175.736 115.543 170.686C104.318 161.579 111.396 151.521 119.671 144.241C124.311 140.161 124.341 135.374 131.773 134.566Z" fill="white"/></svg>`;
+  const body = `
+<!-- HERO -->
+<tr>
+  <td style="background:linear-gradient(135deg,#074738 0%,#1A9B7D 100%);padding:36px 32px;text-align:center;position:relative;overflow:hidden;">
+    <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;background:rgba(255,255,255,0.06);border-radius:50%;"></div>
+    <span style="display:inline-block;background:${isNow ? '#ffffff' : 'rgba(255,255,255,0.15)'};color:${isNow ? '#074738' : '#ffffff'};font-size:12px;font-weight:700;padding:6px 16px;border-radius:100px;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:16px;position:relative;z-index:1;">
+      ${isNow ? 'Hora de la toma' : `En ${args.minutesBefore} minutos`}
+    </span>
+    <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;color:#fff;line-height:1.2;margin:0;position:relative;z-index:1;">
+      ${isNow ? `Toca darle la medicación a ${safePetName}` : `Preparate, en ${args.minutesBefore} min toca la medicación de ${safePetName}`}
+    </h1>
+  </td>
+</tr>
+<!-- PHOTO BANNER -->
+<tr><td style="font-size:0;line-height:0;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr>
+<td width="33%"><img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=200&fit=crop" alt="" style="width:100%;height:100px;object-fit:cover;display:block;"></td>
+<td width="34%"><img src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=400&h=200&fit=crop" alt="" style="width:100%;height:100px;object-fit:cover;display:block;"></td>
+<td width="33%"><img src="https://images.unsplash.com/photo-1574158622682-e40e69881006?w=400&h=200&fit=crop" alt="" style="width:100%;height:100px;object-fit:cover;display:block;"></td>
+</tr></table>
+</td></tr>
+<!-- MEDICAMENTO CARD -->
+<tr>
+  <td style="padding:28px 32px 16px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#F0FAF9;border-radius:14px;border:1px solid #E0F2F1;overflow:hidden;">
+      <tr><td style="padding:4px 0 0;"><div style="height:3px;background:#074738;border-radius:3px 3px 0 0;"></div></td></tr>
+      <tr>
+        <td style="padding:20px 24px;">
+          <div style="font-size:11px;font-weight:700;color:#074738;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">Medicamento</div>
+          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#0f1f1c;line-height:1.1;">${safeMedName}</div>
+          ${safeDosage ? `<div style="font-size:14px;color:#4a6b62;margin-top:6px;font-weight:500;">${safeDosage}</div>` : ""}
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<!-- HORA -->
+<tr>
+  <td style="padding:0 32px 24px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9f9fb;border-radius:14px;border:1px solid #e8eae8;">
+      <tr>
+        <td style="padding:16px 24px;">
+          <div style="font-size:12px;color:#888;margin-bottom:4px;font-weight:500;">Hora de la toma</div>
+          <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:17px;font-weight:700;color:#0f1f1c;">${dateStr} · ${timeStr}</div>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+<!-- CTA -->
+<tr>
+  <td style="text-align:center;padding:0 32px 32px;">
+    <a href="https://pessy.app/inicio" style="display:inline-block;background:#1A9B7D;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;padding:16px 48px;border-radius:14px;text-decoration:none;letter-spacing:0.02em;">
+      Abrir Pessy
+    </a>
+  </td>
+</tr>`;
 
-  const safeMedName = (args.medicationName || "").replace(/[<>&"']/g, (c: string) =>
-    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
-  const safeDosage = (args.dosage || "").replace(/[<>&"']/g, (c: string) =>
-    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
-  const safePetName = (args.petName || "").replace(/[<>&"']/g, (c: string) =>
-    ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c] || c));
-
-  const html = `
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-</head>
-<body style="margin:0;padding:0;background:#E8E8E8;font-family:'Manrope',sans-serif;">
-  <div style="display:none!important;font-size:1px;color:#ffffff;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
-    ${isNow ? `Es hora de la medicación de ${safePetName}` : `En ${args.minutesBefore} min: medicación de ${safePetName}`}
-  </div>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#E8E8E8;padding:32px 16px;">
-    <tr><td align="center">
-      <table width="100%" style="max-width:600px;background:#ffffff;" cellpadding="0" cellspacing="0">
-
-        <!-- HEADER -->
-        <tr>
-          <td style="background:#074738;padding:20px 28px;">
-            <table cellpadding="0" cellspacing="0"><tr>
-              <td style="vertical-align:middle;padding-right:14px;">
-                <img src="https://pessy.app/pessy-logo.svg" alt="Pessy" style="height:52px;filter:brightness(0) invert(1);">
-              </td>
-              <td style="vertical-align:middle;">
-                <span style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:22px;color:#ffffff;letter-spacing:0.06em;line-height:1;">PESSY</span><br>
-                <span style="font-family:'Manrope',sans-serif;font-size:11px;color:rgba(255,255,255,0.5);font-weight:500;">Recordatorio de medicación</span>
-              </td>
-            </tr></table>
-          </td>
-        </tr>
-
-        <!-- HERO -->
-        <tr>
-          <td style="background:linear-gradient(135deg,#074738 0%,#1A9B7D 100%);padding:32px;text-align:center;position:relative;">
-            <div style="font-size:40px;margin-bottom:12px;">${isNow ? '💊' : '⏰'}</div>
-            <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;color:#ffffff;line-height:1.2;margin:0 0 8px;">
-              ${isNow ? `Toca darle la medicación a ${safePetName}` : `En ${args.minutesBefore} min toca la medicación de ${safePetName}`}
-            </h1>
-            <span style="display:inline-block;background:${isNow ? '#ffffff' : 'rgba(255,255,255,0.15)'};color:${isNow ? '#074738' : '#ffffff'};font-size:12px;font-weight:700;padding:6px 16px;border-radius:100px;letter-spacing:0.05em;text-transform:uppercase;">
-              ${isNow ? 'Ahora' : `En ${args.minutesBefore} min`}
-            </span>
-          </td>
-        </tr>
-
-        <!-- PHOTO BANNER -->
-        <tr>
-          <td style="height:100px;overflow:hidden;">
-            <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=600&h=100&fit=crop" alt="" style="width:100%;height:100px;object-fit:cover;display:block;">
-          </td>
-        </tr>
-
-        <!-- MEDICAMENTO CARD -->
-        <tr>
-          <td style="padding:28px 32px 16px;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#F0FAF9;border-radius:14px;border:2px solid #E0F2F1;overflow:hidden;">
-              <tr><td style="padding:4px 0 0;"><div style="height:3px;background:#074738;border-radius:3px 3px 0 0;"></div></td></tr>
-              <tr>
-                <td style="padding:20px 24px;">
-                  <div style="font-size:11px;font-weight:700;color:#074738;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">Medicamento</div>
-                  <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:800;color:#0f1f1c;line-height:1.1;">${safeMedName}</div>
-                  ${safeDosage ? `<div style="font-size:14px;color:#4a6b62;margin-top:6px;font-weight:500;">${safeDosage}</div>` : ''}
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- HORA -->
-        <tr>
-          <td style="padding:0 32px 24px;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9f9fb;border-radius:14px;border:1px solid #e8eae8;">
-              <tr>
-                <td style="padding:16px 24px;">
-                  <div style="font-size:12px;color:#888;margin-bottom:4px;font-weight:500;">Hora de la toma</div>
-                  <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:17px;font-weight:700;color:#0f1f1c;">${dateStr} · ${timeStr}</div>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-
-        <!-- CTA -->
-        <tr>
-          <td style="padding:0 32px 32px;text-align:center;">
-            <a href="https://pessy.app/inicio" style="display:inline-block;background:#1A9B7D;color:#ffffff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;padding:16px 48px;border-radius:14px;text-decoration:none;letter-spacing:0.02em;">
-              Abrir Pessy
-            </a>
-          </td>
-        </tr>
-
-        <!-- FOOTER -->
-        <tr>
-          <td style="background:#074738;padding:28px 32px;text-align:center;">
-            <img src="https://pessy.app/pessy-logo.svg" alt="Pessy" style="height:36px;filter:brightness(0) invert(1);margin-bottom:8px;"><br>
-            <span style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:17px;letter-spacing:0.05em;color:#ffffff;">PESSY</span><br>
-            <p style="font-size:12px;color:rgba(255,255,255,0.6);line-height:1.6;margin:8px 0 0;">
-              Tu mascota, sus cosas, todo en orden.<br>
-              <a href="https://pessy.app" style="color:#1A9B7D;text-decoration:none;font-weight:600;">pessy.app</a>
-            </p>
-          </td>
-        </tr>
-
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>
-  `;
+  const html = pessyEmailWrap({
+    preheader: isNow ? `Es hora de la medicación de ${safePetName}` : `En ${args.minutesBefore} min: medicación de ${safePetName}`,
+    headerSubtitle: "Recordatorio de medicación",
+    bodyHtml: body,
+    footerDark: true,
+  });
 
   try {
     await resendClient.emails.send({
@@ -171,6 +181,276 @@ async function sendEmailReminder(args: {
     console.error("[EMAIL] Error enviando:", err);
   }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// 1. EMAIL DE INVITACIÓN (pre-registro / acceso anticipado)
+// ═══════════════════════════════════════════════════════════════
+async function sendInvitationEmail(args: {
+  toEmail: string;
+  userName?: string;
+}) {
+  if (!resendClient) { console.warn("[EMAIL] RESEND_API_KEY no configurada — email omitido"); return; }
+
+  const greeting = args.userName ? `¡Hola ${args.userName}!` : "¡Hola!";
+  const body = `
+<tr><td style="position:relative;overflow:hidden;">
+<img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&h=500&fit=crop" alt="Perro feliz" style="width:100%;height:320px;object-fit:cover;display:block;">
+<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(7,71,56,0.85) 0%,rgba(7,71,56,0.4) 60%,transparent 100%);padding:40px 32px 28px;">
+<h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:800;color:#fff;line-height:1.2;margin:0;">Tu mascota, sus cosas,<br>todo en orden.</h1>
+<p style="font-size:14px;color:rgba(255,255,255,0.85);margin:6px 0 0;">La app que organiza la vida con tu mascota</p>
+</div>
+</td></tr>
+<tr><td style="padding:32px;">
+<div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:700;color:#074738;margin-bottom:16px;">${greeting}</div>
+<p style="font-size:15px;color:#333;line-height:1.65;margin:0 0 16px;">Sabemos lo que es querer a una mascota y, al mismo tiempo, perder de vista cuándo fue la última vacuna, si ya compré el alimento o quién lo lleva al veterinario esta vez.</p>
+<p style="font-size:15px;color:#333;line-height:1.65;margin:0 0 16px;"><strong style="color:#074738;">Pessy</strong> nació para resolver eso: una app simple que centraliza la información, las rutinas y los recordatorios de tu mascota en un solo lugar.</p>
+<p style="font-size:15px;color:#333;line-height:1.65;margin:0 0 16px;">Estamos armando una comunidad de personas que quieren probarla antes que nadie. Y nos encantaría que seas parte.</p>
+</td></tr>
+<tr><td style="padding:0;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr>
+<td width="33%" style="text-align:center;padding:20px 8px;"><img src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=300&h=300&fit=crop" alt="Perro" style="width:100%;height:80px;object-fit:cover;border-radius:10px;"><div style="font-size:12px;color:#074738;font-weight:600;margin-top:10px;">Salud al día</div></td>
+<td width="33%" style="text-align:center;padding:20px 8px;border-left:1px solid #E0F2F1;border-right:1px solid #E0F2F1;"><img src="https://images.unsplash.com/photo-1574158622682-e40e69881006?w=300&h=300&fit=crop" alt="Gato" style="width:100%;height:80px;object-fit:cover;border-radius:10px;"><div style="font-size:12px;color:#074738;font-weight:600;margin-top:10px;">Rutinas claras</div></td>
+<td width="33%" style="text-align:center;padding:20px 8px;"><img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=300&h=300&fit=crop" alt="Perros" style="width:100%;height:80px;object-fit:cover;border-radius:10px;"><div style="font-size:12px;color:#074738;font-weight:600;margin-top:10px;">Todo compartido</div></td>
+</tr></table>
+</td></tr>
+<tr><td style="text-align:center;padding:8px 0 24px;">
+<a href="https://pessy.app/empezar" style="display:inline-block;background:#1A9B7D;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;padding:16px 48px;border-radius:14px;text-decoration:none;">Quiero probar Pessy</a>
+</td></tr>
+<tr><td><img src="https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=800&h=500&fit=crop" alt="Gato" style="width:100%;height:180px;object-fit:cover;display:block;"></td></tr>`;
+
+  const html = pessyEmailWrap({
+    preheader: "Tu mascota, sus cosas, todo en orden. Pessy te invita a organizar la vida con tu mascota.",
+    bodyHtml: body,
+    footerDark: false,
+  });
+
+  try {
+    await resendClient.emails.send({
+      from: "PESSY <noreply@pessy.app>",
+      to: args.toEmail,
+      subject: "Te invitamos a probar Pessy",
+      html,
+    });
+    console.log(`[EMAIL] ✅ Invitación enviada a ${args.toEmail}`);
+  } catch (err) {
+    console.error("[EMAIL] Error enviando invitación:", err);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 2. EMAIL DE BIENVENIDA (post-registro)
+// ═══════════════════════════════════════════════════════════════
+async function sendWelcomeEmail(args: {
+  toEmail: string;
+  userName?: string;
+}) {
+  if (!resendClient) { console.warn("[EMAIL] RESEND_API_KEY no configurada — email omitido"); return; }
+
+  const body = `
+<tr><td style="background:linear-gradient(135deg,#074738 0%,#1A9B7D 100%);padding:40px 32px;text-align:center;position:relative;overflow:hidden;">
+<div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;background:rgba(255,255,255,0.06);border-radius:50%;"></div>
+<h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:28px;font-weight:800;color:#fff;line-height:1.2;margin:0 0 8px;position:relative;z-index:1;">¡Bienvenido a Pessy!</h1>
+<p style="font-size:15px;color:rgba(255,255,255,0.8);margin:0;position:relative;z-index:1;">Ya sos parte. Ahora, a organizar todo.</p>
+</td></tr>
+<tr><td style="font-size:0;line-height:0;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr>
+<td width="33%"><img src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=400&h=300&fit=crop" alt="Perro" style="width:100%;height:160px;object-fit:cover;display:block;"></td>
+<td width="34%"><img src="https://images.unsplash.com/photo-1574158622682-e40e69881006?w=400&h=300&fit=crop" alt="Gato" style="width:100%;height:160px;object-fit:cover;display:block;"></td>
+<td width="33%"><img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=300&fit=crop" alt="Perro" style="width:100%;height:160px;object-fit:cover;display:block;"></td>
+</tr></table>
+</td></tr>
+<tr><td style="padding:32px;">
+<p style="font-size:15px;color:#333;line-height:1.65;margin:0 0 16px;">Gracias por sumarte. <strong style="color:#074738;">Pessy</strong> está pensada para que la vida con tu mascota sea más simple, más clara y un poco más linda.</p>
+<p style="font-size:15px;color:#333;line-height:1.65;margin:0;">Te dejamos tres pasos rápidos para arrancar:</p>
+</td></tr>
+<tr><td style="padding:0 32px 24px;">
+<table cellpadding="0" cellspacing="0" width="100%">
+<tr><td style="padding-bottom:20px;">
+<table cellpadding="0" cellspacing="0"><tr>
+<td style="vertical-align:top;padding-right:16px;"><img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=200&h=200&fit=crop" alt="Cachorro" style="width:64px;height:64px;border-radius:14px;object-fit:cover;"></td>
+<td style="vertical-align:top;">
+<div style="display:inline-block;background:#E0F2F1;color:#074738;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:12px;width:24px;height:24px;border-radius:8px;text-align:center;line-height:24px;margin-bottom:6px;">1</div>
+<div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;color:#074738;">Creá el perfil de tu mascota</div>
+<div style="font-size:13px;color:#666;line-height:1.5;">Nombre, raza, fecha de nacimiento y una foto. Así queda todo listo.</div>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding-bottom:20px;">
+<table cellpadding="0" cellspacing="0"><tr>
+<td style="vertical-align:top;padding-right:16px;"><img src="https://images.unsplash.com/photo-1586671267731-da2cf3ceeb80?w=200&h=200&fit=crop" alt="Perro" style="width:64px;height:64px;border-radius:14px;object-fit:cover;"></td>
+<td style="vertical-align:top;">
+<div style="display:inline-block;background:#E0F2F1;color:#074738;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:12px;width:24px;height:24px;border-radius:8px;text-align:center;line-height:24px;margin-bottom:6px;">2</div>
+<div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;color:#074738;">Agregá lo importante</div>
+<div style="font-size:13px;color:#666;line-height:1.5;">Vacunas, controles, rutinas. Lo que necesites tener a mano.</div>
+</td></tr></table>
+</td></tr>
+<tr><td>
+<table cellpadding="0" cellspacing="0"><tr>
+<td style="vertical-align:top;padding-right:16px;"><img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=200&h=200&fit=crop" alt="Perros" style="width:64px;height:64px;border-radius:14px;object-fit:cover;"></td>
+<td style="vertical-align:top;">
+<div style="display:inline-block;background:#E0F2F1;color:#074738;font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:12px;width:24px;height:24px;border-radius:8px;text-align:center;line-height:24px;margin-bottom:6px;">3</div>
+<div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:15px;color:#074738;">Invitá a un co-tutor</div>
+<div style="font-size:13px;color:#666;line-height:1.5;">Tu pareja, un familiar, quien también cuide a tu mascota. Compartan todo.</div>
+</td></tr></table>
+</td></tr>
+</table>
+</td></tr>
+<tr><td style="text-align:center;padding:8px 32px 32px;">
+<a href="https://pessy.app/register-pet" style="display:inline-block;background:#1A9B7D;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;padding:16px 48px;border-radius:14px;text-decoration:none;">Crear perfil de mascota</a>
+</td></tr>
+<tr><td style="background:#F0FAF9;padding:28px 32px;text-align:center;border-top:3px solid #E0F2F1;">
+<img src="https://images.unsplash.com/photo-1544568100-847a948585b9?w=200&h=200&fit=crop" alt="Perro" style="width:80px;height:80px;border-radius:50%;object-fit:cover;margin-bottom:12px;border:3px solid #E0F2F1;">
+<p style="font-size:14px;color:#074738;font-style:italic;line-height:1.6;margin:0 0 8px;">"La idea es simple: que no se te pase nada importante de tu mascota, nunca más."</p>
+<span style="font-size:12px;color:#666;font-weight:600;">— Equipo Pessy</span>
+</td></tr>`;
+
+  const html = pessyEmailWrap({
+    preheader: "¡Ya estás dentro! Tu perfil de mascota te espera en Pessy.",
+    bodyHtml: body,
+    footerDark: true,
+  });
+
+  try {
+    await resendClient.emails.send({
+      from: "PESSY <noreply@pessy.app>",
+      to: args.toEmail,
+      subject: "¡Bienvenido a Pessy!",
+      html,
+    });
+    console.log(`[EMAIL] ✅ Bienvenida enviada a ${args.toEmail}`);
+  } catch (err) {
+    console.error("[EMAIL] Error enviando bienvenida:", err);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 3. EMAIL DE INVITACIÓN CO-TUTOR
+// ═══════════════════════════════════════════════════════════════
+async function sendCoTutorInvitationEmail(args: {
+  toEmail: string;
+  inviterName: string;
+  petName: string;
+  petBreed?: string;
+  petAge?: string;
+  acceptUrl: string;
+}) {
+  if (!resendClient) { console.warn("[EMAIL] RESEND_API_KEY no configurada — email omitido"); return; }
+
+  const petDetail = [args.petBreed, args.petAge].filter(Boolean).join(" · ");
+
+  const body = `
+<tr><td style="position:relative;overflow:hidden;">
+<img src="https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=800&h=500&fit=crop" alt="Perros juntos" style="width:100%;height:280px;object-fit:cover;display:block;">
+<div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(7,71,56,0.9) 0%,rgba(7,71,56,0.5) 50%,transparent 100%);padding:48px 32px 28px;">
+<h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:24px;font-weight:800;color:#fff;line-height:1.25;margin:0;">Te invitaron a ser<br>co-tutor</h1>
+<p style="font-size:14px;color:rgba(255,255,255,0.8);margin:6px 0 0;">Alguien quiere que compartan el cuidado de su mascota</p>
+</div>
+</td></tr>
+<tr><td style="padding:32px;">
+<p style="font-size:15px;color:#333;line-height:1.65;margin:0 0 16px;"><strong style="color:#074738;">${args.inviterName}</strong> te invitó a ser co-tutor de su mascota en <strong style="color:#074738;">Pessy</strong>.</p>
+<p style="font-size:15px;color:#333;line-height:1.65;margin:0;">Esto significa que vas a poder ver toda la información, recibir recordatorios y colaborar en el cuidado. Sin perder nada, sin preguntar "¿cuándo fue la última vacuna?".</p>
+</td></tr>
+<tr><td style="padding:0 32px 24px;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F0FAF9;border-radius:18px;border:1px solid #E0F2F1;"><tr>
+<td style="padding:20px;vertical-align:middle;width:72px;"><img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=200&h=200&fit=crop" alt="Mascota" style="width:72px;height:72px;border-radius:16px;object-fit:cover;"></td>
+<td style="padding:20px 20px 20px 0;vertical-align:middle;">
+<div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:18px;color:#074738;">${args.petName}</div>
+${petDetail ? `<div style="font-size:13px;color:#666;margin-top:2px;">${petDetail}</div>` : ""}
+<div style="display:inline-block;background:#E0F2F1;color:#1A9B7D;font-size:11px;font-weight:700;padding:4px 10px;border-radius:8px;margin-top:6px;">Perfil completo</div>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding:0 32px 24px;">
+<div style="font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;color:#074738;margin-bottom:16px;">Como co-tutor vas a poder:</div>
+<table cellpadding="0" cellspacing="0" width="100%">
+<tr><td style="padding-bottom:14px;">
+<table cellpadding="0" cellspacing="0"><tr>
+<td style="vertical-align:top;padding-right:14px;"><img src="https://images.unsplash.com/photo-1586671267731-da2cf3ceeb80?w=200&h=200&fit=crop" alt="" style="width:48px;height:48px;border-radius:12px;object-fit:cover;"></td>
+<td style="vertical-align:top;"><div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;color:#074738;font-weight:700;">Ver el historial completo</div><div style="font-size:13px;color:#666;line-height:1.5;">Vacunas, controles, tratamientos. Todo en un solo lugar.</div></td>
+</tr></table>
+</td></tr>
+<tr><td style="padding-bottom:14px;">
+<table cellpadding="0" cellspacing="0"><tr>
+<td style="vertical-align:top;padding-right:14px;"><img src="https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=200&h=200&fit=crop" alt="" style="width:48px;height:48px;border-radius:12px;object-fit:cover;"></td>
+<td style="vertical-align:top;"><div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;color:#074738;font-weight:700;">Recibir recordatorios</div><div style="font-size:13px;color:#666;line-height:1.5;">Para que entre los dos no se pase nada importante.</div></td>
+</tr></table>
+</td></tr>
+<tr><td>
+<table cellpadding="0" cellspacing="0"><tr>
+<td style="vertical-align:top;padding-right:14px;"><img src="https://images.unsplash.com/photo-1544568100-847a948585b9?w=200&h=200&fit=crop" alt="" style="width:48px;height:48px;border-radius:12px;object-fit:cover;"></td>
+<td style="vertical-align:top;"><div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;color:#074738;font-weight:700;">Agregar información</div><div style="font-size:13px;color:#666;line-height:1.5;">Si llevás a la mascota al veterinario, cargalo directo.</div></td>
+</tr></table>
+</td></tr>
+</table>
+</td></tr>
+<tr><td style="text-align:center;padding:8px 32px 12px;">
+<a href="${args.acceptUrl}" style="display:inline-block;background:#5048CA;color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:16px;padding:16px 48px;border-radius:14px;text-decoration:none;">Aceptar invitación</a>
+</td></tr>
+<tr><td style="text-align:center;padding:0 32px 32px;">
+<span style="font-size:13px;color:#666;">¿No conocés a esta persona? <a href="https://pessy.app" style="color:#1A9B7D;text-decoration:none;font-weight:600;">Ignorar invitación</a></span>
+</td></tr>
+<tr><td style="font-size:0;line-height:0;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr>
+<td width="33%"><img src="https://images.unsplash.com/photo-1574158622682-e40e69881006?w=300&h=300&fit=crop" alt="" style="width:100%;height:120px;object-fit:cover;display:block;"></td>
+<td width="34%"><img src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=300&h=300&fit=crop" alt="" style="width:100%;height:120px;object-fit:cover;display:block;"></td>
+<td width="33%"><img src="https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13?w=300&h=300&fit=crop" alt="" style="width:100%;height:120px;object-fit:cover;display:block;"></td>
+</tr></table>
+</td></tr>`;
+
+  const html = pessyEmailWrap({
+    preheader: `${args.inviterName} te invitó a ser co-tutor de ${args.petName} en Pessy.`,
+    bodyHtml: body,
+    footerDark: false,
+  });
+
+  try {
+    await resendClient.emails.send({
+      from: "PESSY <noreply@pessy.app>",
+      to: args.toEmail,
+      subject: `${args.inviterName} te invitó a ser co-tutor en Pessy`,
+      html,
+    });
+    console.log(`[EMAIL] ✅ Invitación co-tutor enviada a ${args.toEmail} (mascota: ${args.petName})`);
+  } catch (err) {
+    console.error("[EMAIL] Error enviando invitación co-tutor:", err);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CLOUD FUNCTIONS — exponer los emails como callable
+// ═══════════════════════════════════════════════════════════════
+export const pessySendInvitationEmail = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
+  await sendInvitationEmail({ toEmail: data.toEmail, userName: data.userName });
+  return { success: true };
+});
+
+export const pessySendWelcomeEmail = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
+  await sendWelcomeEmail({ toEmail: data.toEmail, userName: data.userName });
+  return { success: true };
+});
+
+export const pessySendCoTutorInvitation = functions.https.onCall(async (data, context) => {
+  if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
+  await sendCoTutorInvitationEmail({
+    toEmail: data.toEmail,
+    inviterName: data.inviterName,
+    petName: data.petName,
+    petBreed: data.petBreed,
+    petAge: data.petAge,
+    acceptUrl: data.acceptUrl || "https://pessy.app/login",
+  });
+  return { success: true };
+});
+
+// ─── AUTO-TRIGGER: enviar bienvenida al crear usuario ───
+export const onUserCreatedSendWelcome = functions.auth.user().onCreate(async (user) => {
+  if (!user.email) return;
+  await sendWelcomeEmail({
+    toEmail: user.email,
+    userName: user.displayName || undefined,
+  });
+});
+
 import {
   disconnectGmailSync,
   getGmailConnectUrl,
