@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { AnimatePresence, motion } from "motion/react";
 import { Camera, Check, ExternalLink, Linkedin, Mail, Shield } from "lucide-react";
-import { SEO } from "../components/SEO";
-import { Logo } from "../components/Logo";
-import { MaterialIcon } from "../components/MaterialIcon";
-import { ImageWithFallback } from "../components/ImageWithFallback";
-import { HistoryMockup, MedicationMockup, VaccinesMockup } from "../components/AppMockups";
+import { SEO } from "../components/shared/SEO";
+import { Logo } from "../components/shared/Logo";
+import { MaterialIcon } from "../components/shared/MaterialIcon";
+import { ImageWithFallback } from "../components/shared/ImageWithFallback";
+import { HistoryMockup, MedicationMockup, VaccinesMockup } from "../components/shared/AppMockups";
 import { detectInAppBrowser, getInAppBrowserLabel, openInSystemBrowser } from "../utils/inAppBrowser";
 import {
   persistAcquisitionSource,

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Check } from "lucide-react";
-import { SEO } from "../components/SEO";
-import { Logo } from "../components/Logo";
+import { SEO } from "../components/shared/SEO";
+import { Logo } from "../components/shared/Logo";
 import { detectInAppBrowser, openInSystemBrowser } from "../utils/inAppBrowser";
 import {
   persistAcquisitionSource,

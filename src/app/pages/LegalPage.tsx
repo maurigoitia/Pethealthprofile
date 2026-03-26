@@ -9,8 +9,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Link, useLocation } from "react-router";
-import { Logo } from "../components/Logo";
-import { SEO } from "../components/SEO";
+import { Logo } from "../components/shared/Logo";
+import { SEO } from "../components/shared/SEO";
 
 const sections = [
   { id: 'privacidad', label: 'PRIVACIDAD' },

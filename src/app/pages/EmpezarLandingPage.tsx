@@ -5,7 +5,7 @@
  * NO toca login, registro, ni backend. Solo es una landing estática con CTA.
  */
 import { useNavigate } from "react-router";
-import { SEO } from "../components/SEO";
+import { SEO } from "../components/shared/SEO";
 
 const unsplash = (id: string, w = 800, h = 500) =>
   `https://images.unsplash.com/${id}?w=${w}&h=${h}&fit=crop`;

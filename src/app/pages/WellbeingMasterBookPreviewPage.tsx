@@ -1,4 +1,4 @@
-import { WellbeingMasterBookPreviewScreen } from "../components/WellbeingMasterBookPreviewScreen";
+import { WellbeingMasterBookPreviewScreen } from "../components/wellbeing/WellbeingMasterBookPreviewScreen";
 
 export default function WellbeingMasterBookPreviewPage() {
   return <WellbeingMasterBookPreviewScreen />;

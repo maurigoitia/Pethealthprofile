@@ -1,4 +1,4 @@
-import { VaccinationCardModal } from "../components/VaccinationCardModal";
+import { VaccinationCardModal } from "../components/medical/VaccinationCardModal";
 
 const PREVIEW_PET = {
   name: "Thor",
