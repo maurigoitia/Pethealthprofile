@@ -72,10 +72,11 @@ export default defineConfig({
         // heic2any (1.35 MB) solo lo necesitan usuarios que suben fotos iPhone en formato HEIC.
         // Lo excluimos del precache y lo dejamos como runtime cache (descarga bajo demanda).
         globIgnores: ['**/vendor-heic*.js'],
-        // SPA fallback — serve index.html for all navigation requests
+        // SPA fallback — serve app.html for all navigation requests
         // so React Router handles client-side routing.
-        // offline.html is only shown by the SW when truly offline (no network).
-        navigateFallback: '/index.html',
+        // In our dual-page setup, app.html is the React SPA entry point
+        // while index.html is the static marketing landing page.
+        navigateFallback: '/app.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/offline\.html$/],
         runtimeCaching: [
           {
