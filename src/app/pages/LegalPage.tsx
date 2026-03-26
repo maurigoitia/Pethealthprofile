@@ -56,7 +56,7 @@ export default function LegalPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#faf9ff] text-[#1a1b20] selection:bg-emerald-100 selection:text-[#074738]">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#F0FAF9] text-[#0a2e23] selection:bg-[#1A9B7D] selection:text-white">
       <SEO 
         title="Legal - Pessy"
         description="Documentos legales de Pessy: Politica de Privacidad, Terminos y Condiciones y Acuerdo de Procesamiento de Datos."
@@ -64,9 +64,9 @@ export default function LegalPage() {
       />
 
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-[#b5efd9]/35 blur-[120px]" />
+        <div className="absolute -left-24 top-10 h-72 w-72 rounded-full bg-[#1A9B7D]/15 blur-[120px]" />
         <div className="absolute -right-24 top-0 h-80 w-80 rounded-full bg-[#e3dfff]/40 blur-[120px]" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-[#ffdad3]/25 blur-[120px]" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-[#E0F2F1]/50 blur-[120px]" />
       </div>
 
       <header className="fixed inset-x-0 top-0 z-50 border-b border-[#d8e4de] bg-white/80 backdrop-blur-xl">
@@ -183,7 +183,7 @@ export default function LegalPage() {
         <section className="py-32 px-6 bg-slate-50/50 border-y border-slate-100">
           <div className="max-w-4xl mx-auto space-y-12">
             <div className="text-center space-y-4">
-              <p className="text-[10px] font-black tracking-[0.4em] text-[#54BD95] uppercase">ESTANDARES GLOBALES</p>
+              <p className="text-[10px] font-black tracking-[0.4em] text-[#1A9B7D] uppercase">ESTANDARES GLOBALES</p>
               <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-[#191A15] uppercase">Jurisdicciones aplicables</h2>
             </div>
 
@@ -238,7 +238,7 @@ export default function LegalPage() {
               <ul className="space-y-3">
                 {['Nombre, especie, raza, edad, peso y fotografias.', 'Historia de cuidado, registros de vacunacion, tratamientos y rutinas.', 'Documentos procesados por inteligencia artificial.'].map((item, i) => (
                   <li key={i} className="flex gap-3 text-slate-600 font-medium">
-                    <Check className="size-5 text-[#54BD95] flex-shrink-0" /> {item}
+                    <Check className="size-5 text-[#1A9B7D] flex-shrink-0" /> {item}
                   </li>
                 ))}
               </ul>
@@ -248,7 +248,7 @@ export default function LegalPage() {
               <ul className="space-y-3">
                 {['Nombre y apellido.', 'Direccion de correo electronico.', 'Datos de contacto basicos.'].map((item, i) => (
                   <li key={i} className="flex gap-3 text-slate-600 font-medium">
-                    <Check className="size-5 text-[#54BD95] flex-shrink-0" /> {item}
+                    <Check className="size-5 text-[#1A9B7D] flex-shrink-0" /> {item}
                   </li>
                 ))}
               </ul>
@@ -266,7 +266,7 @@ export default function LegalPage() {
               'Mejorar la experiencia de usuario de forma agregada.'
             ].map((item, i) => (
               <li key={i} className="flex gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 font-medium text-slate-600">
-                <span className="flex-shrink-0 size-6 rounded-full bg-[#54BD95] text-white flex items-center justify-center text-[10px] font-black">{i + 1}</span>
+                <span className="flex-shrink-0 size-6 rounded-full bg-[#1A9B7D] text-white flex items-center justify-center text-[10px] font-black">{i + 1}</span>
                 {item}
               </li>
             ))}
@@ -332,7 +332,7 @@ export default function LegalPage() {
               'Eliminar o devolver datos al finalizar la relacion contractual.'
             ].map((item, i) => (
               <li key={i} className="flex gap-4 text-slate-600 font-medium">
-                <Check className="size-5 text-[#54BD95] flex-shrink-0" /> {item}
+                <Check className="size-5 text-[#1A9B7D] flex-shrink-0" /> {item}
               </li>
             ))}
           </ul>
@@ -381,7 +381,7 @@ export default function LegalPage() {
         </section>
       </main>
 
-      <footer className="mt-16 rounded-t-[2rem] bg-[#052f27]">
+      <footer className="mt-16 rounded-t-[2rem] bg-[#031f18]">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 px-6 py-8 md:flex-row md:items-center md:justify-between">
           <div>
             <div
@@ -418,16 +418,16 @@ function Card({ href, icon, title, desc }: { href: string; icon: React.ReactNode
   return (
     <a 
       href={href}
-      className="group bg-white p-10 rounded-[3rem] border border-slate-100 hover:border-[#54BD95] transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/10 flex flex-col gap-8"
+      className="group bg-white p-10 rounded-[3rem] border border-slate-100 hover:border-[#074738] transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/10 flex flex-col gap-8"
     >
-      <div className="size-14 rounded-2xl bg-emerald-50 text-[#54BD95] flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
+      <div className="size-14 rounded-2xl bg-emerald-50 text-[#1A9B7D] flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
         {icon}
       </div>
       <div className="space-y-3">
         <h3 className="text-xl font-black tracking-tight text-[#191A15] uppercase">{title}</h3>
         <p className="text-slate-500 leading-relaxed font-medium">{desc}</p>
       </div>
-      <div className="mt-auto flex items-center gap-2 text-[10px] font-black text-[#54BD95] uppercase tracking-[0.2em]">
+      <div className="mt-auto flex items-center gap-2 text-[10px] font-black text-[#1A9B7D] uppercase tracking-[0.2em]">
         Leer documento <ChevronRight className="size-4" />
       </div>
     </a>
@@ -443,7 +443,7 @@ function DocSection({ id, title, meta, onBackTop, children }: { id: string; titl
         </button>
         <div className="space-y-4 mb-16 border-b-4 border-slate-50 pb-12">
           <h2 className="text-4xl md:text-6xl font-black tracking-tighter text-[#191A15] uppercase leading-none">{title}</h2>
-          <p className="text-[10px] font-black uppercase tracking-widest text-[#54BD95]">{meta}</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-[#1A9B7D]">{meta}</p>
         </div>
         <div className="text-slate-600 leading-relaxed text-lg space-y-6 font-medium">
           {children}
@@ -456,7 +456,7 @@ function DocSection({ id, title, meta, onBackTop, children }: { id: string; titl
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h3 className="flex items-center gap-4 text-[#191A15] font-black tracking-tighter text-2xl mt-16 mb-6 uppercase">
-      <div className="w-2 h-8 bg-[#54BD95] rounded-full" />
+      <div className="w-2 h-8 bg-[#1A9B7D] rounded-full" />
       {children}
     </h3>
   );
@@ -464,7 +464,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function HighlightBox({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-emerald-50/50 border-l-8 border-[#54BD95] rounded-r-[2rem] p-10 my-12 text-slate-800 text-lg leading-relaxed shadow-sm">
+    <div className="bg-emerald-50/50 border-l-8 border-[#1A9B7D] rounded-r-[2rem] p-10 my-12 text-slate-800 text-lg leading-relaxed shadow-sm">
       {children}
     </div>
   );
