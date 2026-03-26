@@ -5,6 +5,20 @@ App híbrida (React + Vite + Capacitor) para gestión integral de mascotas.
 Firebase Hosting + Cloud Functions (Node 22) + Firestore.
 GCP project: `polar-scene-488615-i0` | Dominio: pessy.app
 
+## GUARDRAILS — Archivos protegidos (NO TOCAR sin instrucción explícita)
+
+### Login (ver `src/app/components/LOGIN_PROTECTED.md`)
+- `src/app/components/LoginScreen.tsx`
+- `src/app/contexts/AuthContext.tsx`
+- `src/app/components/AuthPageShell.tsx`
+- `src/app/utils/authActionLinks.ts`
+- Rutas de login en `src/app/routes.tsx` (`/login`, `/welcome`, `/onboarding`)
+
+**Regla**: Si la tarea NO menciona explícitamente "login" o "autenticación", NO tocar estos archivos.
+Si detectás un bug de seguridad en auth, REPORTAR al usuario, no arreglar solo.
+
+---
+
 ## Estado actual (23 marzo 2026)
 
 ### Completado
