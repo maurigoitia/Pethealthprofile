@@ -1,9 +1,10 @@
 flutter_launcher_icons:
-  android: true
-  ios: true
   image_path: "assets/pessy-logo.png"
-  min_sdk_android: 21
-  adaptive_icon_background: "#F0FAF9"
-  adaptive_icon_foreground: "assets/pessy-logo.png"
-  web:
-    generate: false
+  image_path_ios: "assets/pessy-logo.png"
+  image_path_android: "assets/pessy-logo.png"
+  android:
+    notification_icon: "ic_notification"
+    generate: true
+    min_sdk_android: 21
+  ios:
+    generate: true
