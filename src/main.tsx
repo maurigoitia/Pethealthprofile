@@ -72,6 +72,13 @@ const clearStalePwaCacheOnBuildChange = async () => {
   return true;
 };
 
+// Force SW update check on every page load (helps iOS Safari pick up new deploys)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistration().then(reg => {
+    if (reg) reg.update();
+  });
+}
+
 const bootstrap = async () => {
   const shouldReload = await clearStalePwaCacheOnBuildChange();
   if (shouldReload) return;
@@ -79,7 +86,26 @@ const bootstrap = async () => {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       registrations.forEach((registration) => {
-        registration.update().catch(() => undefined);
+        registration.update().then(() => {
+          // Si hay un SW esperando activarse, recargar la app para usar la versión nueva
+          if (registration.waiting) {
+            console.warn("[SW] Nueva versión disponible, recargando...");
+            registration.waiting.postMessage({ type: "SKIP_WAITING" });
+            window.location.reload();
+          }
+          // Escuchar si llega un update después del check inicial
+          registration.addEventListener("updatefound", () => {
+            const newWorker = registration.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener("statechange", () => {
+              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                console.warn("[SW] Update instalado, disponible en próxima recarga.");
+              }
+            });
+          });
+        }).catch((err) => {
+          console.warn("[SW] No se pudo chequear actualizaciones:", err);
+        });
       });
     });
   }

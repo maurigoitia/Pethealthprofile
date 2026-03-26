@@ -1,13 +1,55 @@
 import { MaterialIcon } from "./MaterialIcon";
-import { motion, PanInfo } from "motion/react";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useMedical } from "../contexts/MedicalContext";
-import { formatDateSafe, toTimestampSafe } from "../utils/dateUtils";
+import { usePet, type PetPreferences } from "../contexts/PetContext";
+import { toTimestampSafe } from "../utils/dateUtils";
 import { PetPhoto } from "./PetPhoto";
+import { getPoints, addPoints, isDailyActivityDone, markDailyActivityDone } from "../utils/gamification";
+
+const PetPreferencesEditor = lazy(() =>
+  import("./PetPreferencesEditor").then((m) => ({ default: m.PetPreferencesEditor }))
+);
+import {
+  WELLBEING_MASTER_BOOK,
+  type ThermalSafetyProfile,
+  type WellbeingSpeciesGroupId,
+} from "../../domain/wellbeing/wellbeingMasterBook";
+import {
+  runPessyIntelligence,
+  type PessyIntelligenceRecommendation,
+} from "../../domain/intelligence/pessyIntelligenceEngine";
+
+import DailyHookCard from "./home/DailyHookCard";
+import RoutineChecklist from "./home/RoutineChecklist";
+import ProfileNudge from "./home/ProfileNudge";
+import QuickActions from "./home/QuickActions";
+import PessyTip, { SectionTitle } from "./home/PessyTip";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type PetSpecies = "dog" | "cat";
+type WalkSafetyStatus = "missing_data" | "unavailable" | "safe" | "caution" | "blocked";
+
+interface LiveWeatherSnapshot {
+  status: "loading" | "ready" | "unavailable";
+  temperatureC: number | null;
+  humidityPct: number | null;
+  weatherCode: number | null;
+  windSpeedKmh: number | null;
+  uvIndex: number | null;
+}
+
+interface WalkSafetyState {
+  status: WalkSafetyStatus;
+  badge: string;
+}
+
+const WEATHER_CACHE_KEY = "pessy_home_weather_v1";
 
 interface PetHomeViewProps {
   userName: string;
   onViewHistory: () => void;
+  onProfileClick: () => void;
   onPetClick: () => void;
   onAppointmentsClick: () => void;
   onMedicationsClick: () => void;
@@ -16,410 +58,714 @@ interface PetHomeViewProps {
     name: string;
     breed: string;
     photo: string;
+    species?: string;
     age?: string;
     weight?: string;
+    preferences?: PetPreferences;
   }>;
   activePetId: string;
   onPetChange: (petId: string) => void;
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const BRACHY_BREEDS = [
+  "bulldog frances",
+  "bulldog inglés",
+  "bulldog ingles",
+  "pug",
+  "boxer",
+  "boston terrier",
+  "shih tzu",
+  "persa",
+];
+
+const ACTIVE_WORKING_BREEDS = [
+  "border collie", "pastor aleman", "pastor alemán", "husky", "malinois",
+  "australian shepherd", "pastor australiano", "labrador", "golden retriever",
+  "weimaraner", "vizsla", "pointer", "setter", "dalmata", "dálmata",
+  "jack russell", "beagle", "cocker spaniel", "springer spaniel",
+];
+
+const COMPANION_BREEDS = [
+  "chihuahua", "pomeranian", "pomerania", "maltés", "maltes", "bichon",
+  "cavalier", "papillon", "havanese", "lhasa apso", "shih tzu",
+  "yorkshire", "yorkie", "caniche", "poodle", "coton",
+];
+
+function normalizeText(value?: string | null) {
+  return (value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function resolveSpecies(rawSpecies?: string, breed?: string): PetSpecies {
+  const species = normalizeText(rawSpecies);
+  if (species.includes("cat") || species.includes("gato") || normalizeText(breed).includes("persa")) {
+    return "cat";
+  }
+  return "dog";
+}
+
+function resolveGroupIds(species: PetSpecies, breed: string): WellbeingSpeciesGroupId[] {
+  const normalizedBreed = normalizeText(breed);
+  const matchesList = (list: string[]) => list.some((item) => normalizedBreed.includes(normalizeText(item)));
+
+  if (species === "cat") {
+    const ids: WellbeingSpeciesGroupId[] = ["cat.general"];
+    if (matchesList(BRACHY_BREEDS)) ids.unshift("cat.brachycephalic");
+    return ids;
+  }
+
+  // Dogs: collect all matching groups, always include "dog.general" as fallback
+  const ids: WellbeingSpeciesGroupId[] = [];
+
+  if (matchesList(BRACHY_BREEDS)) ids.push("dog.brachycephalic");
+  if (matchesList(ACTIVE_WORKING_BREEDS)) ids.push("dog.active_working");
+  if (matchesList(COMPANION_BREEDS)) ids.push("dog.companion");
+
+  // Always include dog.general as fallback
+  ids.push("dog.general");
+
+  return ids;
+}
+
+function resolveThermalProfile(species: PetSpecies, groupIds: WellbeingSpeciesGroupId[]): ThermalSafetyProfile | null {
+  const priority = groupIds.find((id) => id === "dog.brachycephalic" || id === "cat.brachycephalic");
+
+  if (priority) {
+    return WELLBEING_MASTER_BOOK.thermal_safety.groups.find((group) => group.id === priority) ?? null;
+  }
+
+  const fallbackId = species === "cat" ? "cat.general" : "dog.general";
+  return WELLBEING_MASTER_BOOK.thermal_safety.groups.find((group) => group.id === fallbackId) ?? null;
+}
+
+const WMO_RAIN_CODES = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82];
+
+function computeFoodDaysLeft(prefs: PetPreferences | undefined): number | null {
+  if (!prefs?.foodBagKg || !prefs?.foodDailyGrams || !prefs?.foodLastPurchase) return null;
+  const totalGrams = prefs.foodBagKg * 1000;
+  const daysSince = Math.max(0, Math.floor((Date.now() - new Date(prefs.foodLastPurchase).getTime()) / 86_400_000));
+  const gramsLeft = Math.max(0, totalGrams - daysSince * prefs.foodDailyGrams);
+  return Math.max(0, Math.floor(gramsLeft / prefs.foodDailyGrams));
+}
+
+/** Map generic groupIds to the closest match in daily_suggestions/routines */
+function resolveRoutineGroupId(groupIds: WellbeingSpeciesGroupId[], species: PetSpecies): WellbeingSpeciesGroupId {
+  // If the groupId exists in routines, use it directly
+  const routineGroupIds = WELLBEING_MASTER_BOOK.routines.map((r) => r.groupId);
+  const direct = groupIds.find((id) => routineGroupIds.includes(id));
+  if (direct) return direct;
+
+  // Fallback mapping
+  if (species === "cat") return "cat.general";
+  return "dog.companion"; // dog.general -> dog.companion
+}
+
+const CATEGORY_ICONS: Record<string, string> = {
+  outdoor: "park",
+  indoor: "home",
+  grooming: "content_cut",
+  training: "school",
+  social: "groups",
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  outdoor: "Aire libre",
+  indoor: "En casa",
+  grooming: "Cuidado",
+  training: "Entrenamiento",
+  social: "Social",
+};
+
+// ─── Inline WeatherPill ───────────────────────────────────────────────────────
+
+function WeatherPill({
+  emoji,
+  value,
+  label,
+  highlight,
+}: {
+  emoji: string;
+  value: string;
+  label: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`flex-1 flex items-center gap-1.5 rounded-[14px] px-2.5 py-2 border ${
+        highlight
+          ? "border-[#1A9B7D] bg-[#eef8f3]"
+          : "border-[#eef0ee] bg-white"
+      }`}
+    >
+      <span className="text-[16px] leading-none" role="img">{emoji}</span>
+      <div className="min-w-0">
+        <p className="text-[12px] font-[800] text-[#002f24] leading-none">{value}</p>
+        <p className="text-[10px] text-[#9ca8a2] leading-none mt-0.5">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── ROUTINE STORAGE HELPERS ──────────────────────────────────────────────────
+
+function getRoutineStorageKey(petId: string): string {
+  const today = new Date().toISOString().slice(0, 10);
+  return `pessy_routine_${petId}_${today}`;
+}
+
+function loadCheckedItems(petId: string): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(getRoutineStorageKey(petId));
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCheckedItems(petId: string, items: string[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(getRoutineStorageKey(petId), JSON.stringify(items));
+}
+
+// ─── RECOMMENDATION COLOR MAPPING ────────────────────────────────────────────
+
+function mapRecToTipColor(rec: PessyIntelligenceRecommendation): "green" | "blue" | "orange" {
+  const segment = rec.slot?.toLowerCase() || "";
+  if (segment.includes("block") || segment.includes("alert") || rec.kind === "block" || rec.kind === "alert") {
+    return "orange";
+  }
+  if (segment.includes("training") || segment.includes("routine")) {
+    return "green";
+  }
+  return "blue";
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export function PetHomeView({
-  userName,
   onViewHistory,
+  onProfileClick,
   onPetClick,
   onAppointmentsClick,
   onMedicationsClick,
   pets,
   activePetId,
-  onPetChange
+  onPetChange,
 }: PetHomeViewProps) {
-  const [isDragging, setIsDragging] = useState(false);
-  const { getEventsByPetId, getActiveMedicationsByPetId } = useMedical();
-  const safeUserName = (userName || "").trim() || "Tutor";
+  const { updatePet } = usePet();
+  const [showPreferences, setShowPreferences] = useState(false);
+  const [weather, setWeather] = useState<LiveWeatherSnapshot>({
+    status: "loading",
+    temperatureC: null,
+    humidityPct: null,
+    weatherCode: null,
+    windSpeedKmh: null,
+    uvIndex: null,
+  });
+  const [nudgedBreed, setNudgedBreed] = useState(false);
+  const [checkedRoutineItems, setCheckedRoutineItems] = useState<string[]>([]);
+  const [points, setPoints] = useState(() => getPoints());
+  const { getEventsByPetId, getActiveMedicationsByPetId, getAppointmentsByPetId } = useMedical();
 
-  const currentIndex = pets.findIndex(p => p.id === activePetId);
-  const activePet = pets[currentIndex];
+  const currentIndex = pets.findIndex((pet) => pet.id === activePetId);
+  const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
+  const activePet = pets[safeCurrentIndex];
   const hasMultiplePets = pets.length > 1;
 
-  // Calcular estado real de vacunas
   const petEvents = activePetId ? getEventsByPetId(activePetId) : [];
-  const vaccineEvents = petEvents
-    .filter((e) => e.extractedData.documentType === "vaccine" && e.status === "completed")
-    .sort(
-      (a, b) =>
-        toTimestampSafe(b.extractedData.eventDate || b.createdAt) -
-        toTimestampSafe(a.extractedData.eventDate || a.createdAt)
+  const appointments = activePetId ? getAppointmentsByPetId(activePetId) : [];
+  const activeMedications = activePetId ? getActiveMedicationsByPetId(activePetId) : [];
+
+  const upcomingAppointments = appointments.filter((appointment) => {
+    const dateValue = appointment.dateTime || `${appointment.date || ""}T${appointment.time || "00:00"}:00`;
+    return toTimestampSafe(dateValue, 0) >= Date.now();
+  });
+
+  const species = resolveSpecies(activePet?.species, activePet?.breed);
+  const groupIds = resolveGroupIds(species, activePet?.breed || "");
+  const thermalProfile = resolveThermalProfile(species, groupIds);
+  const foodDaysLeft = computeFoodDaysLeft(activePet?.preferences);
+
+  // ─── Profile completeness ───────────────────────────────────────────────────
+  const missingItems: string[] = [];
+  if (!activePet?.photo) missingItems.push("foto");
+  if (!activePet?.weight) missingItems.push("peso");
+  if (!activePet?.breed) missingItems.push("raza");
+  const profileIncomplete = missingItems.length > 0;
+
+  // ─── Intelligence engine ────────────────────────────────────────────────────
+  const intelligenceResult = useMemo(() => {
+    if (!activePet?.breed) return null;
+    const wc = weather.weatherCode;
+    return runPessyIntelligence({
+      petName: activePet.name,
+      species,
+      breed: activePet.breed,
+      ageLabel: activePet.age || "",
+      groupIds,
+      temperatureC: weather.temperatureC,
+      humidityPct: weather.humidityPct,
+      isRaining: wc !== null && WMO_RAIN_CODES.includes(wc),
+      isStormy: wc !== null && wc >= 95,
+      windSpeedKmh: weather.windSpeedKmh,
+      uvIndex: weather.uvIndex,
+      currentHour: new Date().getHours(),
+      fears: activePet.preferences?.fears,
+      personality: activePet.preferences?.personality,
+      favoriteActivities: activePet.preferences?.favoriteActivities,
+      walkTimes: activePet.preferences?.walkTimes,
+      foodDaysLeft,
+    });
+  }, [activePet?.id, activePet?.breed, activePet?.name, activePet?.age, activePet?.preferences, species, groupIds, weather, foodDaysLeft]);
+
+  const sortedRecommendations = useMemo(() => {
+    if (!intelligenceResult) return [];
+    const order: Record<string, number> = { block: 0, alert: 1, recommendation: 2 };
+    return [...intelligenceResult.recommendations].sort((a, b) => (order[a.kind] ?? 2) - (order[b.kind] ?? 2));
+  }, [intelligenceResult]);
+
+  // ─── Walk safety (simplified for badge) ─────────────────────────────────────
+  const walkSafety: WalkSafetyState = useMemo(() => {
+    const breed = (activePet?.breed || "").trim();
+    if (!breed || !thermalProfile) return { status: "missing_data", badge: "Falta dato" };
+    if (weather.status !== "ready" || weather.temperatureC === null) return { status: "unavailable", badge: "Sin clima" };
+
+    const humidityPenalty = thermalProfile.humiditySensitive && (weather.humidityPct ?? 0) >= 70;
+    const severeRisk = thermalProfile.severeRiskAboveC ?? Number.POSITIVE_INFINITY;
+    const avoidExercise = thermalProfile.avoidExerciseAboveC ?? Number.POSITIVE_INFINITY;
+    const cautionThreshold =
+      typeof avoidExercise === "number" && Number.isFinite(avoidExercise)
+        ? Math.max((thermalProfile.comfortableMaxC ?? avoidExercise) + 1, avoidExercise - 3)
+        : thermalProfile.comfortableMaxC ?? 26;
+
+    if (weather.temperatureC >= severeRisk || weather.temperatureC > avoidExercise || humidityPenalty) {
+      return { status: "blocked", badge: "STOP" };
+    }
+    if (weather.temperatureC >= cautionThreshold) {
+      return { status: "caution", badge: "Precaución" };
+    }
+    return { status: "safe", badge: "OK" };
+  }, [activePet?.breed, thermalProfile, weather]);
+
+  // ─── Daily suggestions (deterministic by day-of-year, up to 3) ─────────────
+  const dailySuggestions = useMemo(() => {
+    const weatherCondition = walkSafety.status === "blocked" ? "blocked" : walkSafety.status === "safe" ? "safe" : "any";
+
+    // Collect candidates from ALL matching groupIds (breed-aware)
+    const candidates = WELLBEING_MASTER_BOOK.daily_suggestions.filter(
+      (s) => groupIds.includes(s.groupId) && (s.weatherCondition === weatherCondition || s.weatherCondition === "any")
     );
 
-  const lastVaccine = vaccineEvents[0];
-  const lastVaccineDate = lastVaccine
-    ? formatDateSafe(
-        lastVaccine.extractedData.eventDate || lastVaccine.createdAt,
-        "es-AR",
-        { day: "numeric", month: "short", year: "numeric" },
-        "Sin registro"
-      )
-    : "Sin registro";
+    // If no candidates for the matched groups, try all suggestions for weather condition
+    const pool = candidates.length > 0
+      ? candidates
+      : WELLBEING_MASTER_BOOK.daily_suggestions.filter(
+          (s) => s.weatherCondition === weatherCondition || s.weatherCondition === "any"
+        );
 
-  // Calcular si hay vacunas vencidas o próximas
-  const vaccineStatusLabel = (() => {
-    if (vaccineEvents.length === 0) return { text: "Sin registro", color: "text-slate-500" };
-    const now = Date.now();
-    let hasOverdue = false;
-    let hasSoon = false;
-    for (const e of vaccineEvents) {
-      if (!e.extractedData.nextAppointmentDate) continue;
-      const diff = (toTimestampSafe(e.extractedData.nextAppointmentDate, now) - now) / 86400000;
-      if (diff < 0) hasOverdue = true;
-      else if (diff < 30) hasSoon = true;
+    const fallback = {
+      category: "Actividad",
+      icon: "park",
+      title: `Tiempo de calidad con ${activePet?.name || "tu mascota"}`,
+      detail: "Un buen momento para compartir tiempo con tu mascota.",
+      duration: "15 min",
+      points: 10,
+    };
+
+    if (pool.length === 0) {
+      return [fallback];
     }
-    if (hasOverdue) return { text: "¡Vencida!", color: "text-red-500" };
-    if (hasSoon) return { text: "Próxima", color: "text-amber-500" };
-    return { text: lastVaccineDate, color: "text-slate-900 dark:text-white" };
-  })();
 
-  const petData = {
-    age: activePet?.age || "Edad no registrada",
-    isActive: true,
-    lastVaccineDate,
-    vaccineStatusLabel,
-    weight: activePet?.weight ? `${activePet.weight} kg` : "Sin peso",
-  };
+    const dayOfYear = Math.floor(
+      (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86_400_000
+    );
 
-  const parseFrequencyHours = (value: string | null | undefined): number | null => {
-    if (!value) return null;
-    const text = value.toLowerCase().replace(",", ".");
-    const everyMatch = text.match(/cada\s+(\d+(?:\.\d+)?)\s*h/);
-    if (everyMatch) {
-      const num = Number(everyMatch[1]);
-      return Number.isFinite(num) && num > 0 ? num : null;
+    // Pick up to 3 unique suggestions, rotating deterministically by day-of-year
+    const count = Math.min(3, pool.length);
+    const results: Array<{ category: string; icon: string; title: string; detail: string; duration: string; points: number }> = [];
+    for (let i = 0; i < count; i++) {
+      const pick = pool[(dayOfYear + i) % pool.length];
+      results.push({
+        category: pick.category,
+        icon: CATEGORY_ICONS[pick.category] || "star",
+        title: pick.title,
+        detail: pick.detail,
+        duration: pick.duration,
+        points: pick.gamificationPoints,
+      });
     }
-    const dailyMatch = text.match(/(\d+)\s*vez(?:es)?\s*al\s*d[ií]a/);
-    if (dailyMatch) {
-      const times = Number(dailyMatch[1]);
-      if (Number.isFinite(times) && times > 0) return Math.round(24 / times);
-    }
-    if (/diario|diaria|cada\s+24\s*h/.test(text)) return 24;
-    return null;
-  };
 
-  const getNextDoseTime = (startDate: string, frequencyHours: number | null): Date | null => {
-    if (!frequencyHours || frequencyHours <= 0) return null;
-    let nextTs = toTimestampSafe(startDate, Date.now());
-    if (!Number.isFinite(nextTs)) return null;
-    const step = Math.round(frequencyHours * 60 * 60 * 1000);
-    const now = Date.now();
-    let guard = 0;
-    while (nextTs <= now && guard < 2000) {
-      nextTs += step;
-      guard += 1;
-    }
-    return new Date(nextTs);
-  };
+    return results;
+  }, [groupIds, species, walkSafety.status, activePet?.name]);
 
-  const todayDateKey = new Date().toISOString().slice(0, 10);
-  const storagePrefix = activePetId ? `pessy_treatment_taken_${activePetId}_${todayDateKey}_` : "pessy_treatment_taken_";
+  // ─── Routine items ──────────────────────────────────────────────────────────
+  const currentHour = new Date().getHours();
+  const currentRoutineItems = useMemo(() => {
+    const routineGroup = resolveRoutineGroupId(groupIds, species);
+    const routine = WELLBEING_MASTER_BOOK.routines.find((r) => r.groupId === routineGroup);
+    if (!routine) return null;
+    // Before 14:00 → morning routine
+    // 14:00-21:00 → evening routine
+    // After 21:00 → sleep message (no checklist)
+    return currentHour < 14
+      ? routine.morningRoutine
+      : currentHour < 21
+        ? routine.eveningRoutine
+        : null; // Sleep time - no routine
+  }, [groupIds, species, currentHour]);
 
-  const [takenMap, setTakenMap] = useState<Record<string, boolean>>({});
+  const routineTitle = currentHour < 14
+    ? "Rutina de la mañana"
+    : currentHour < 21
+      ? "Rutina de la tarde"
+      : "Descanso";
 
+  const routineIcon = currentHour < 14
+    ? "wb_sunny"
+    : currentHour < 21
+      ? "wb_twilight"
+      : "bedtime";
+
+  // ─── Load checked routine items from localStorage ───────────────────────────
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const map: Record<string, boolean> = {};
-    for (let i = 0; i < localStorage.length; i += 1) {
-      const key = localStorage.key(i);
-      if (!key || !key.startsWith(storagePrefix)) continue;
-      map[key.replace(storagePrefix, "")] = localStorage.getItem(key) === "1";
+    if (activePetId) {
+      setCheckedRoutineItems(loadCheckedItems(activePetId));
     }
-    setTakenMap(map);
-  }, [storagePrefix]);
+  }, [activePetId]);
 
-  const toggleTaken = (medicationId: string) => {
-    const key = `${storagePrefix}${medicationId}`;
-    setTakenMap((prev) => {
-      const nextState = !prev[medicationId];
-      if (nextState) localStorage.setItem(key, "1");
-      else localStorage.removeItem(key);
-      return { ...prev, [medicationId]: nextState };
-    });
-  };
+  const handleRoutineToggle = useCallback(
+    (item: string) => {
+      setCheckedRoutineItems((prev) => {
+        const wasChecked = prev.includes(item);
+        const next = wasChecked ? prev.filter((i) => i !== item) : [...prev, item];
+        if (activePetId) saveCheckedItems(activePetId, next);
+        // Award points only when checking an item (not unchecking)
+        if (!wasChecked) {
+          const earned = addPoints(5);
+          setPoints(earned);
+        }
+        return next;
+      });
+    },
+    [activePetId]
+  );
 
-  const upcomingTreatments = activePetId
-    ? getActiveMedicationsByPetId(activePetId)
-        .slice(0, 6)
-        .map((med) => ({
-          id: med.id,
-          name: med.name,
-          dosage: med.dosage || "",
-          startDate: med.startDate,
-          frequency: (med.frequency || "")
-            .replace(/cada\s+/i, "c/")
-            .replace(/\s+horas?/i, "h")
-            .trim(),
-          rawFrequency: med.frequency || null,
-        }))
-    : [];
-
-  const handleDragEnd = (event: any, info: PanInfo) => {
-    setIsDragging(false);
-
-    const threshold = 100; // Minimum swipe distance
-    const velocity = info.velocity.x;
-
-    // Swipe left -> next pet
-    if (info.offset.x < -threshold || velocity < -500) {
-      const nextIndex = (currentIndex + 1) % pets.length;
-      onPetChange(pets[nextIndex].id);
+  // ─── Nudge for new user without breed ───────────────────────────────────────
+  useEffect(() => {
+    if (nudgedBreed) return;
+    const breed = (activePet?.breed || "").trim();
+    if (!breed) {
+      const timer = setTimeout(() => {
+        onProfileClick();
+        setNudgedBreed(true);
+      }, 1200);
+      return () => clearTimeout(timer);
     }
-    // Swipe right -> previous pet
-    else if (info.offset.x > threshold || velocity > 500) {
-      const prevIndex = currentIndex === 0 ? pets.length - 1 : currentIndex - 1;
-      onPetChange(pets[prevIndex].id);
-    }
-  };
+  }, [activePet?.id, nudgedBreed]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleTap = (event: any) => {
-    // Don't trigger onPetClick if clicking on a button or interactive element
-    if (!isDragging && !event.target.closest('button')) {
-      onPetClick();
+  // ─── Weather fetching ───────────────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+
+    const setUnavailable = () => {
+      if (!cancelled) {
+        setWeather({
+          status: "unavailable",
+          temperatureC: null,
+          humidityPct: null,
+          weatherCode: null,
+          windSpeedKmh: null,
+          uvIndex: null,
+        });
+      }
+    };
+
+    const loadWeather = async (lat: number, lng: number) => {
+      try {
+        const response = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&hourly=uv_index&forecast_days=1&timezone=auto`
+        );
+        if (!response.ok) throw new Error(`weather_http_${response.status}`);
+        const payload = await response.json();
+        const currentHourIndex = new Date().getHours();
+        const uvArray = payload?.hourly?.uv_index;
+        const snapshot: LiveWeatherSnapshot = {
+          status: "ready",
+          temperatureC: typeof payload?.current?.temperature_2m === "number" ? Math.round(payload.current.temperature_2m) : null,
+          humidityPct:
+            typeof payload?.current?.relative_humidity_2m === "number"
+              ? Math.round(payload.current.relative_humidity_2m)
+              : null,
+          weatherCode: typeof payload?.current?.weather_code === "number" ? payload.current.weather_code : null,
+          windSpeedKmh: typeof payload?.current?.wind_speed_10m === "number" ? Math.round(payload.current.wind_speed_10m) : null,
+          uvIndex: Array.isArray(uvArray) && typeof uvArray[currentHourIndex] === "number" ? Math.round(uvArray[currentHourIndex]) : null,
+        };
+        if (!cancelled) {
+          setWeather(snapshot);
+        }
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(
+            WEATHER_CACHE_KEY,
+            JSON.stringify({ ...snapshot, cachedAt: Date.now() })
+          );
+        }
+      } catch (_error) {
+        setUnavailable();
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      const rawCache = window.localStorage.getItem(WEATHER_CACHE_KEY);
+      if (rawCache) {
+        try {
+          const parsed = JSON.parse(rawCache) as LiveWeatherSnapshot & { cachedAt?: number };
+          if (
+            parsed.status === "ready" &&
+            typeof parsed.cachedAt === "number" &&
+            Date.now() - parsed.cachedAt < 30 * 60 * 1000
+          ) {
+            setWeather({
+              status: "ready",
+              temperatureC: parsed.temperatureC,
+              humidityPct: parsed.humidityPct,
+              weatherCode: parsed.weatherCode ?? null,
+              windSpeedKmh: parsed.windSpeedKmh ?? null,
+              uvIndex: parsed.uvIndex ?? null,
+            });
+            return () => {
+              cancelled = true;
+            };
+          }
+        } catch (_error) {
+          window.localStorage.removeItem(WEATHER_CACHE_KEY);
+        }
+      }
     }
-  };
+
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setUnavailable();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        void loadWeather(position.coords.latitude, position.coords.longitude);
+      },
+      () => {
+        setUnavailable();
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 7000,
+        maximumAge: 15 * 60 * 1000,
+      }
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // ─── Medical counts ─────────────────────────────────────────────────────────
+  const appointmentCount = upcomingAppointments.length;
+  const medicationCount = activeMedications.length;
+  const historyCount = petEvents.length;
+
+  if (!activePet) return null;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════════════════════════
 
   return (
-    <div className="px-4 pt-8 pb-6">
-      {/* Greeting Section */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-6"
-      >
-        <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2">
-          ¡Hola, {safeUserName}!
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-          Tu mejor amigo está en buenas manos.
-        </p>
-      </motion.div>
+    <div className="bg-[#F0FAF9] dark:bg-[#0D1B16] min-h-screen font-['Manrope',sans-serif]">
+      <div className="max-w-md mx-auto pb-24">
 
-      {/* Pet Card - Main Feature with Swipe */}
-      <motion.div
-        key={activePetId}
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="relative"
-      >
-        <motion.div
-          drag={hasMultiplePets ? "x" : false}
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.2}
-          onDragStart={() => setIsDragging(true)}
-          onDragEnd={handleDragEnd}
-          onTap={handleTap}
-          className="bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl shadow-slate-300/50 dark:shadow-slate-950/50 border border-slate-200 dark:border-slate-800 cursor-pointer"
-        >
-          {/* Pet Photo Section */}
-          <div className="relative h-72 bg-gradient-to-b from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900">
-            <PetPhoto
-              src={activePet.photo}
-              alt={activePet.name}
-              className="w-full h-full object-cover"
-              fallbackClassName="rounded-none"
-            />
-
-            {/* Status Badge */}
-            {petData.isActive && (
-              <div className="absolute top-4 right-4">
-                <div className="bg-[#2b6fee] text-white px-4 py-2 rounded-full text-xs font-black uppercase tracking-wide shadow-lg backdrop-blur-sm">
-                  ACTIVO
-                </div>
-              </div>
-            )}
-
-            {/* Gradient Overlay at bottom */}
-            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white dark:from-slate-900 to-transparent" />
-          </div>
-
-          {/* Pet Info Section */}
-          <div className="p-6">
-            {/* Name and Icon */}
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-1">
-                  {activePet.name}
-                </h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-                  {petData.age} • {activePet.breed}
-                </p>
-              </div>
-              <div className="size-12 rounded-full bg-[#2b6fee]/10 flex items-center justify-center">
-                <MaterialIcon name="ecg_heart" className="text-[#2b6fee] text-2xl" />
-              </div>
-            </div>
-
-            {/* Quick Stats Row */}
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              {/* Vaccine Stat */}
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <MaterialIcon name="vaccines" className="text-[#2b6fee] text-lg" />
-                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                    Vacuna
-                  </span>
-                </div>
-                <p className={`text-lg font-black ${petData.vaccineStatusLabel.color}`}>
-                  {petData.vaccineStatusLabel.text}
-                </p>
-              </div>
-
-              {/* Weight Stat */}
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <MaterialIcon name="monitor_weight" className="text-[#2b6fee] text-lg" />
-                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                    Peso
-                  </span>
-                </div>
-                <p className="text-lg font-black text-slate-900 dark:text-white">
-                  {petData.weight}
-                </p>
-              </div>
-            </div>
-
-            {/* Action Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onViewHistory();
-              }}
-              className="w-full py-4 rounded-2xl bg-[#2b6fee] text-white font-bold text-base hover:bg-[#5a8aff] transition-all shadow-lg shadow-[#2b6fee]/30 hover:shadow-xl hover:shadow-[#2b6fee]/40 active:scale-[0.98]"
+        {/* 1. HERO - Pet photo with name overlay */}
+        <div className="relative h-[200px] overflow-hidden">
+          <PetPhoto
+            src={activePet.photo}
+            alt={activePet.name}
+            className="w-full h-full object-cover"
+            fallbackClassName="rounded-none"
+          />
+          <div className="absolute bottom-0 left-0 right-0 h-[100px] bg-gradient-to-t from-[rgba(7,71,56,0.85)] to-transparent" />
+          <div className="absolute bottom-3.5 left-4 text-white">
+            <h1
+              className="text-[26px] font-[900] leading-none"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             >
-              Ver Historial Médico
-            </button>
+              {activePet.name}
+            </h1>
+            <p className="text-xs opacity-80 mt-0.5">{activePet.breed}</p>
           </div>
-        </motion.div>
+          {/* Gamification points badge top-right */}
+          <div className="absolute top-3 right-3 bg-[rgba(7,71,56,0.85)] text-white text-xs font-[800] px-3 py-1.5 rounded-full flex items-center gap-1 backdrop-blur-sm">
+            <MaterialIcon name="star" className="!text-sm" /> {points} pts
+          </div>
+        </div>
 
-        {/* Dots Indicator - Only if multiple pets */}
+        {/* Pet selector for multiple pets */}
         {hasMultiplePets && (
-          <div className="flex items-center justify-center gap-2 mt-4">
-            {pets.map((pet, idx) => (
+          <div className="mx-3 mt-2 flex items-center gap-2 overflow-x-auto pb-1">
+            {pets.map((pet) => (
               <button
                 key={pet.id}
                 onClick={() => onPetChange(pet.id)}
-                className={`h-2 rounded-full transition-all ${pet.id === activePetId
-                  ? "w-8 bg-[#2b6fee]"
-                  : "w-2 bg-slate-300 dark:bg-slate-700 hover:bg-slate-400"
-                  }`}
-              />
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+                  pet.id === activePetId
+                    ? "bg-[#074738] text-white"
+                    : "bg-white text-[#5e716b] border border-[#eef0ee]"
+                }`}
+              >
+                {pet.name}
+              </button>
             ))}
           </div>
         )}
-      </motion.div>
 
-      {/* Additional Quick Actions */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
-        className="grid grid-cols-2 gap-3 mt-6"
-      >
-        <button
-          onClick={onAppointmentsClick}
-          className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm active:scale-[0.98]"
-        >
-          <div className="flex flex-col items-center gap-2">
-            <div className="size-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
-              <MaterialIcon name="event" className="text-emerald-500 text-2xl" />
-            </div>
-            <span className="text-sm font-bold text-slate-900 dark:text-white">
-              Turnos
-            </span>
+        {/* 2. WEATHER STRIP - 3 pills */}
+        {weather.status === "ready" && (
+          <div className="flex gap-1.5 mx-3 mt-2.5">
+            <WeatherPill emoji="🌡️" value={`${weather.temperatureC}°C`} label="Ahora" />
+            <WeatherPill emoji="💧" value={`${weather.humidityPct}%`} label="Humedad" />
+            <WeatherPill
+              emoji={walkSafety.status === "safe" ? "✅" : walkSafety.status === "caution" ? "⚠️" : "🚫"}
+              value={walkSafety.badge}
+              label="Paseo"
+              highlight={walkSafety.status === "safe"}
+            />
           </div>
-        </button>
+        )}
 
-        <button
-          onClick={onMedicationsClick}
-          className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-sm active:scale-[0.98]"
-        >
-          <div className="flex flex-col items-center gap-2">
-            <div className="size-12 rounded-full bg-purple-500/10 flex items-center justify-center">
-              <MaterialIcon name="medication" className="text-purple-500 text-2xl" />
-            </div>
-            <span className="text-sm font-bold text-slate-900 dark:text-white">
-              Tratamientos
-            </span>
+        {/* 3. PROFILE NUDGE - only if incomplete */}
+        {profileIncomplete && (
+          <div className="mx-3 mt-2">
+            <ProfileNudge
+              petName={activePet.name}
+              species={species}
+              missingItems={missingItems}
+              onComplete={onProfileClick}
+            />
           </div>
-        </button>
-      </motion.div>
+        )}
 
-      {upcomingTreatments.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.25 }}
-          className="mt-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-3"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">
-              Próximas tomas
-            </p>
-            <button
-              onClick={onMedicationsClick}
-              className="text-[11px] font-bold text-[#2b6fee] hover:underline"
+        {/* 4. DAILY HOOK - swipeable suggestion carousel */}
+        <SectionTitle>Hoy con {activePet.name}</SectionTitle>
+        <div className="mx-3">
+          {dailySuggestions.length === 1 ? (
+            <DailyHookCard
+              category={CATEGORY_LABELS[dailySuggestions[0].category] || dailySuggestions[0].category}
+              categoryIcon={dailySuggestions[0].icon}
+              title={dailySuggestions[0].title}
+              description={dailySuggestions[0].detail}
+              duration={dailySuggestions[0].duration}
+              points={dailySuggestions[0].points}
+              onStart={(pts) => { const total = addPoints(pts); setPoints(total); }}
+            />
+          ) : (
+            <div
+              className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
             >
-              Ver tratamientos
-            </button>
-          </div>
-
-          <div className="flex gap-2 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-1">
-            {upcomingTreatments.map((treatment) => (
-              <div
-                key={treatment.id}
-                className={`snap-start shrink-0 w-[180px] rounded-2xl border p-2.5 transition-all ${
-                  takenMap[treatment.id]
-                    ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-900/20"
-                    : "border-[#2b6fee]/20 bg-[#2b6fee]/5 dark:border-[#2b6fee]/40 dark:bg-[#2b6fee]/10"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
-                    takenMap[treatment.id]
-                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                      : "bg-white/90 text-[#2b6fee] dark:bg-slate-900 dark:text-[#7da8ff]"
-                  }`}>
-                    {(() => {
-                      const hours = parseFrequencyHours(treatment.rawFrequency);
-                      const nextDose = getNextDoseTime(treatment.startDate, hours);
-                      if (!nextDose) return "según receta";
-                      return `hoy ${nextDose.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`;
-                    })()}
-                  </span>
-                  <button
-                    onClick={() => toggleTaken(treatment.id)}
-                    className={`size-7 rounded-full flex items-center justify-center border transition-colors ${
-                      takenMap[treatment.id]
-                        ? "border-emerald-300 bg-emerald-500 text-white"
-                        : "border-slate-200 bg-white text-slate-400"
-                    }`}
-                    title={takenMap[treatment.id] ? "Marcar pendiente" : "Marcar tomada"}
-                  >
-                    <MaterialIcon name="check" className="text-sm" />
-                  </button>
+              {dailySuggestions.map((s, i) => (
+                <div key={i} className="min-w-[85%] snap-center flex-shrink-0">
+                  <DailyHookCard
+                    category={CATEGORY_LABELS[s.category] || s.category}
+                    categoryIcon={s.icon}
+                    title={s.title}
+                    description={s.detail}
+                    duration={s.duration}
+                    points={s.points}
+                    onStart={(pts) => { const total = addPoints(pts); setPoints(total); }}
+                  />
                 </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-                <p className="text-xs font-black text-slate-900 dark:text-white leading-tight line-clamp-2">
-                  {treatment.name}
-                </p>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">
-                  {treatment.dosage || "Dosis según receta"}
-                </p>
-                <p className="text-[10px] font-semibold text-[#2b6fee] dark:text-[#7da8ff] mt-1">
-                  {treatment.frequency || "Frecuencia no especificada"}
-                </p>
-              </div>
-            ))}
+        {/* 5. ROUTINE CHECKLIST - morning, evening, or sleep based on time */}
+        {currentRoutineItems && currentRoutineItems.length > 0 ? (
+          <div className="mx-3 mt-2">
+            <RoutineChecklist
+              title={routineTitle}
+              icon={routineIcon}
+              items={currentRoutineItems}
+              checkedItems={checkedRoutineItems}
+              onToggle={handleRoutineToggle}
+            />
           </div>
-        </motion.div>
+        ) : currentRoutineItems === null ? (
+          <div className="mx-3 mt-2">
+            <div className="rounded-[16px] border border-[#eef0ee] bg-white flex items-center gap-3" style={{ padding: "14px 16px" }}>
+              <span className="text-[#002f24]">
+                <MaterialIcon name="bedtime" className="!text-[22px]" />
+              </span>
+              <span className="text-[13px] font-[800] text-[#002f24]">
+                {activePet.name} ya descansa. Mañana seguimos.
+              </span>
+            </div>
+          </div>
+        ) : null}
+
+        {/* 6. QUICK ACTIONS - only if pet has medical data */}
+        {(appointmentCount > 0 || medicationCount > 0 || historyCount > 0) && (
+          <>
+            <SectionTitle>Servicios</SectionTitle>
+            <QuickActions
+              appointments={appointmentCount}
+              medications={medicationCount}
+              historyCount={historyCount}
+              onAppointmentsClick={onAppointmentsClick}
+              onMedicationsClick={onMedicationsClick}
+              onHistoryClick={onViewHistory}
+            />
+          </>
+        )}
+
+        {/* 7. PESSY TE DICE - tips from intelligence engine */}
+        {sortedRecommendations.length > 0 && (
+          <>
+            <SectionTitle>Pessy te dice</SectionTitle>
+            <div className="mx-3 space-y-1.5">
+              {sortedRecommendations.map((rec) => (
+                <PessyTip
+                  key={rec.id}
+                  icon={rec.icon}
+                  color={mapRecToTipColor(rec)}
+                  title={rec.title}
+                  description={rec.detail}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ─── Preferences Editor Modal ─────────────────────────────────────── */}
+      {showPreferences && activePet && (
+        <Suspense fallback={null}>
+          <PetPreferencesEditor
+            petName={activePet.name}
+            preferences={activePet.preferences || {}}
+            onSave={async (prefs) => {
+              await updatePet(activePetId, { preferences: prefs } as any);
+              setShowPreferences(false);
+            }}
+            onClose={() => setShowPreferences(false)}
+          />
+        </Suspense>
       )}
     </div>
   );

@@ -42,6 +42,16 @@ const formatDate = (iso?: string | null) => {
   }, "Sin fecha");
 };
 
+const buildTimelineSubtitle = (event: any) => {
+  const diagnosis = cleanText(event.extractedData?.diagnosis || "");
+  const observations = cleanText(event.extractedData?.observations || "");
+  const aiSummary = cleanText(event.extractedData?.aiGeneratedSummary || "");
+  if (diagnosis) return diagnosis;
+  if (observations) return observations;
+  if (aiSummary) return `Resumen IA pendiente de validación: ${aiSummary}`;
+  return "Sin observaciones cargadas";
+};
+
 export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
   const { activePet } = usePet();
   const { getEventsByPetId, getActiveMedicationsByPetId, getPendingActionsByPetId } = useMedical();
@@ -64,11 +74,7 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
         id: event.id,
         dateIso,
         title: event.title,
-        subtitle:
-          cleanText(event.extractedData.aiGeneratedSummary ||
-          event.extractedData.observations ||
-          event.extractedData.diagnosis) ||
-          "Sin observaciones cargadas",
+        subtitle: buildTimelineSubtitle(event),
         typeLabel: typeLabelMap[event.extractedData.documentType] || "Documento",
         documentUrl: event.documentUrl,
       };
@@ -246,7 +252,7 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                                   href={row.documentUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-[11px] font-bold text-[#2b6fee]"
+                                  className="text-[11px] font-bold text-[#074738]"
                                 >
                                   Ver
                                 </a>

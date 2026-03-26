@@ -1,5 +1,28 @@
 {
   "projects": {
-    "default": "polar-scene-488615-i0"
-  }
+    "default": "polar-scene-488615-i0",
+    "pessy": "polar-scene-488615-i0"
+  },
+  "targets": {
+    "polar-scene-488615-i0": {
+      "hosting": {
+        "app": [
+          "polar-scene-488615-i0"
+        ],
+        "appqa": [
+          "pessy-qa-app"
+        ],
+        "appit": [
+          "itpessy"
+        ],
+        "appfocusqa": [
+          "pessy-focus-qa"
+        ],
+        "appsubdomain": [
+          "pessy-app-subdomain"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }

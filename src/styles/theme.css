@@ -2,8 +2,20 @@
 
 :root {
   --font-size: 16px;
-  --pessy-blue: #2b7cee;
-  --pessy-blue-light: #5d9fff;
+  --pessy-primary-deep: #074738;
+  --pessy-primary-action: #1a9b7d;
+  --pessy-primary-soft: #e0f2f1;
+  --pessy-primary-bg: #f0faf9;
+  --pessy-neutral-900: #1a1a1a;
+  --pessy-neutral-700: #404040;
+  --pessy-neutral-400: #b0b0b0;
+  --pessy-white: #ffffff;
+  --pessy-success: #4caf50;
+  --pessy-warning: #ffc107;
+  --pessy-error: #f44336;
+  --pessy-info: #2196f3;
+  --pessy-gradient-main: linear-gradient(135deg, #074738 0%, #1a9b7d 100%);
+  --pessy-gradient-soft: linear-gradient(180deg, #f0faf9 0%, #e0f2f1 100%);
   --background: #ffffff;
   --foreground: oklch(0.145 0 0);
   --card: #ffffff;
@@ -126,8 +138,24 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    /* Fix 1: dvh — el viewport real sin barra de direcciones / teclado */
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
+
   body {
     @apply bg-background text-foreground;
+    /* Safe area padding for notch devices (iPhone X+, Dynamic Island) */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    /* Fix 2: eliminar "efecto rebote" en iOS/Android — se siente nativa */
+    overscroll-behavior-y: none;
+    /* Fix 1 cont: dvh en body también */
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
   }
 
   /**
@@ -179,5 +207,35 @@
     font-size: var(--text-base);
     font-weight: var(--font-weight-normal);
     line-height: 1.5;
+  }
+}
+
+/*
+ * Fix 1 cont: override min-h-screen de Tailwind para usar dvh
+ * Esto afecta a todos los componentes que usan min-h-screen sin tocar sus archivos.
+ * Fallback a 100vh para navegadores viejos.
+ */
+@layer utilities {
+  .min-h-screen {
+    min-height: 100vh; /* fallback */
+    min-height: 100dvh;
+  }
+
+  .h-screen {
+    height: 100vh; /* fallback */
+    height: 100dvh;
+  }
+}
+
+/*
+ * Fix 3: Visual Viewport — evitar que el teclado desplace elementos fixed.
+ * Los contenedores con position:fixed usan inset:0, que respeta el viewport visual.
+ * Este estilo previene el zoom involuntario en inputs en iOS (font-size < 16px).
+ */
+@supports (height: 100dvh) {
+  .fixed-safe {
+    position: fixed;
+    inset: 0;
+    height: 100dvh;
   }
 }

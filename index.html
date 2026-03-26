@@ -3,10 +3,143 @@
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/png" href="/pessy-logo.png" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <link rel="icon" type="image/svg+xml" href="/pessy-favicon.svg" media="(prefers-color-scheme: light)" />
+  <link rel="icon" type="image/svg+xml" href="/pessy-favicon-dark.svg" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" type="image/svg+xml" href="/pessy-favicon.svg" />
+  <link rel="shortcut icon" href="/pessy-favicon.svg" />
+  <meta name="theme-color" content="#074738" />
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PESSY</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <!-- iOS PWA meta tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pessy" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <title>Pessy — Porque quererlo ya es suficiente trabajo</title>
+  <meta name="description" content="Pessy lo maneja. Vos lo disfrutás. La app con IA que tiene todo lo de tu mascota en un solo lugar." />
+  <meta name="keywords" content="mascota, app con inteligencia artificial, pet care, recordatorios automaticos, salud mascota, AI powered, identidad digital mascota, veterinaria digital" />
+  <meta name="robots" content="index,follow" />
+  <link rel="canonical" href="https://pessy.app/" />
+  <meta name="googlebot" content="index,follow" />
+  <meta property="og:title" content="Pessy — Porque quererlo ya es suficiente trabajo" />
+  <meta property="og:description" content="Pessy lo maneja. Vos lo disfrutás. La app con IA que tiene todo lo de tu mascota en un solo lugar." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://pessy.app/" />
+  <meta property="og:image" content="https://pessy.app/pessy-logo.svg" />
+  <meta property="og:site_name" content="Pessy" />
+  <meta property="og:locale" content="es_419" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Pessy — Porque quererlo ya es suficiente trabajo" />
+  <meta name="twitter:description" content="Pessy lo maneja. Vos lo disfrutás. La app con IA que tiene todo lo de tu mascota en un solo lugar." />
+  <meta name="twitter:image" content="https://pessy.app/pessy-logo.svg" />
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Pessy",
+      "url": "https://pessy.app",
+      "logo": "https://pessy.app/pessy-logo.svg",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "email": "mauri@pessy.app"
+      }
+    }
+  </script>
+  <script>
+    (function () {
+      var path = window.location.pathname;
+      var isAppRoute =
+        path === "/inicio" ||
+        path === "/login" ||
+        path === "/home" ||
+        path === "/register" ||
+        path === "/register-user" ||
+        path === "/register-pet" ||
+        path.indexOf("/register-pet/") === 0 ||
+        path.indexOf("/review/") === 0 ||
+        path === "/email-link" ||
+        path.indexOf("/verify/") === 0;
+
+      var defaults = {
+        title: "Pessy - Tu mascota, sus cosas, todo en orden",
+        description: "Pessy organiza la identidad, los servicios, las compras, los papeles y los recordatorios de tu mascota en un solo lugar.",
+        canonical: "https://pessy.app/",
+        robots: "index,follow",
+        lang: "es"
+      };
+
+      var byPath = {
+        "/": defaults,
+        "/privacidad": {
+          title: "Politica de Privacidad - Pessy",
+          description: "Conocé cómo protegemos los datos de tu mascota en Pessy.",
+          canonical: "https://pessy.app/privacidad",
+          robots: "index,follow",
+          lang: "es"
+        },
+        "/terminos": {
+          title: "Terminos y Condiciones - Pessy",
+          description: "Consultá los términos de uso del ecosistema de identidad digital Pessy.",
+          canonical: "https://pessy.app/terminos",
+          robots: "index,follow",
+          lang: "es"
+        },
+        "/login": {
+          title: "Login | Pessy",
+          description: "Accede a tu cuenta de Pessy.",
+          canonical: "https://pessy.app/login",
+          robots: "noindex,nofollow",
+          lang: "es"
+        }
+      };
+
+      var current = isAppRoute
+        ? {
+            title: byPath[path] ? byPath[path].title : "Pessy",
+            description: byPath[path] ? byPath[path].description : "Accede a tu cuenta de Pessy.",
+            canonical: "https://pessy.app" + path,
+            robots: "noindex,nofollow",
+            lang: "es"
+          }
+        : (byPath[path] || defaults);
+
+      function upsertMeta(attr, key, value) {
+        var el = document.head.querySelector('meta[' + attr + '="' + key + '"]');
+        if (!el) {
+          el = document.createElement("meta");
+          el.setAttribute(attr, key);
+          document.head.appendChild(el);
+        }
+        el.setAttribute("content", value);
+      }
+
+      function upsertLink(rel, href) {
+        var el = document.head.querySelector('link[rel="' + rel + '"]');
+        if (!el) {
+          el = document.createElement("link");
+          el.setAttribute("rel", rel);
+          document.head.appendChild(el);
+        }
+        el.setAttribute("href", href);
+      }
+
+      document.title = current.title;
+      document.documentElement.lang = current.lang;
+      upsertMeta("name", "description", current.description);
+      upsertMeta("name", "robots", current.robots);
+      upsertMeta("name", "googlebot", current.robots);
+      upsertMeta("property", "og:title", current.title);
+      upsertMeta("property", "og:description", current.description);
+      upsertMeta("property", "og:url", current.canonical);
+      upsertMeta("name", "twitter:title", current.title);
+      upsertMeta("name", "twitter:description", current.description);
+      upsertLink("canonical", current.canonical);
+    })();
+  </script>
 </head>
 
 <body>

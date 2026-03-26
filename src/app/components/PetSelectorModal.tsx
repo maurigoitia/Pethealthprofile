@@ -97,7 +97,7 @@ export function PetSelectorModal({
                         whileTap={{ scale: 0.98 }}
                         className={`w-full p-4 rounded-2xl flex items-center gap-4 transition-all ${
                           isActive
-                            ? "bg-[#2b6fee] shadow-lg shadow-[#2b6fee]/30"
+                            ? "bg-[#074738] shadow-lg shadow-[#074738]/30"
                             : "bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700"
                         }`}
                       >
@@ -115,7 +115,7 @@ export function PetSelectorModal({
                             <div className="absolute -bottom-1 -right-1 size-6 rounded-full bg-white flex items-center justify-center shadow-md">
                               <MaterialIcon
                                 name="check_circle"
-                                className="text-[#2b6fee] text-xl fill-current"
+                                className="text-[#074738] text-xl fill-current"
                               />
                             </div>
                           )}
@@ -128,7 +128,7 @@ export function PetSelectorModal({
                               {pet.name}
                             </p>
                             {pet.ownerId !== user?.uid && (
-                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-purple-100 text-purple-600"}`}>
+                              <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-600"}`}>
                                 CO-TUTOR
                               </span>
                             )}
@@ -159,9 +159,9 @@ export function PetSelectorModal({
 
               {/* Single Pet Display */}
               {!hasMultiplePets && activePet && (
-                <div className="mb-6 p-5 rounded-2xl bg-gradient-to-br from-[#2b6fee]/10 to-purple-500/10 border border-[#2b6fee]/20">
+                <div className="mb-6 p-5 rounded-2xl bg-gradient-to-br from-[#074738]/10 to-emerald-500/10 border border-[#074738]/20">
                   <div className="flex items-center gap-4">
-                    <div className="size-20 rounded-2xl overflow-hidden ring-4 ring-[#2b6fee]/20">
+                    <div className="size-20 rounded-2xl overflow-hidden ring-4 ring-[#074738]/20">
                       <PetPhoto
                         src={activePet.photo}
                         alt={activePet.name}
@@ -176,7 +176,7 @@ export function PetSelectorModal({
                       <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
                         {activePet.breed}
                       </p>
-                      <div className="flex items-center gap-2 bg-[#2b6fee] text-white px-3 py-1 rounded-full w-fit">
+                      <div className="flex items-center gap-2 bg-[#074738] text-white px-3 py-1 rounded-full w-fit">
                         <MaterialIcon name="check_circle" className="text-sm fill-current" />
                         <span className="text-xs font-bold">TU MASCOTA</span>
                       </div>
@@ -198,10 +198,10 @@ export function PetSelectorModal({
                   }}
                   className="w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 transition-all flex items-center gap-3 border border-slate-200 dark:border-slate-700"
                 >
-                  <div className="size-11 rounded-xl bg-[#2b6fee]/10 flex items-center justify-center">
+                  <div className="size-11 rounded-xl bg-[#074738]/10 flex items-center justify-center">
                     <MaterialIcon
                       name="info"
-                      className="text-[#2b6fee] text-xl"
+                      className="text-[#074738] text-xl"
                     />
                   </div>
                   <div className="flex-1 text-left">
@@ -224,7 +224,7 @@ export function PetSelectorModal({
                     onAddNewPet();
                     onClose();
                   }}
-                  className="w-full p-4 rounded-xl bg-[#2b6fee] text-white hover:bg-[#5a8aff] transition-all flex items-center gap-3 shadow-lg shadow-[#2b6fee]/30"
+                  className="w-full p-4 rounded-xl bg-[#074738] text-white hover:bg-[#1a9b7d] transition-all flex items-center gap-3 shadow-lg shadow-[#074738]/30"
                 >
                   <div className="size-11 rounded-xl bg-white/20 flex items-center justify-center">
                     <MaterialIcon name="add" className="text-white text-xl" />

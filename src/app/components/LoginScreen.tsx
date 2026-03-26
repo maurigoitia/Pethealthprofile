@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import {
   signInWithEmailAndPassword,
@@ -8,13 +8,19 @@ import {
   signInWithPopup,
   signInWithRedirect,
   fetchSignInMethodsForEmail,
+  getRedirectResult,
 } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { createPasswordResetActionCodeSettings } from "../utils/authActionLinks";
+import { normalizeCoTutorInviteCode, rememberPendingCoTutorInvite } from "../utils/coTutorInvite";
+import { persistAcquisitionSource, resolveAcquisitionSource, trackAcquisitionEvent } from "../utils/acquisitionTracking";
+import { SEO } from "./SEO";
+import { AuthPageShell } from "./AuthPageShell";
 
 export function LoginScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,6 +35,71 @@ export function LoginScreen() {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState("");
   const [resetError, setResetError] = useState("");
+  // BUG-009 FIX: guardar el invite code sincrónicamente durante el render, no en un useEffect.
+  // Si el usuario ya está logueado, el useEffect de redirect puede dispararse antes de que el
+  // useEffect de inviteCode corra (aunque en teoría corren en orden, hay edge cases con
+  // Firebase Auth que resuelve en el primer render). Guardar en useMemo es seguro e idempotente.
+  const inviteCode = useMemo(() => {
+    const code = normalizeCoTutorInviteCode(new URLSearchParams(location.search).get("invite"));
+    if (code) rememberPendingCoTutorInvite(code);
+    return code;
+  }, [location.search]);
+
+  // Platform invite code (?ref=CODE) — enables register button
+  const refCode = useMemo(
+    () => new URLSearchParams(location.search).get("ref")?.trim() || "",
+    [location.search]
+  );
+  const hasValidCode = !!(inviteCode || refCode);
+  const acquisitionSource = useMemo(
+    () => resolveAcquisitionSource(location.search, location.pathname),
+    [location.pathname, location.search]
+  );
+
+  useEffect(() => {
+    if (!acquisitionSource) return;
+    persistAcquisitionSource(acquisitionSource);
+    void trackAcquisitionEvent("pessy_acquisition_login_view", {
+      source: acquisitionSource,
+      path: location.pathname,
+    });
+  }, [acquisitionSource, location.pathname]);
+
+  const isStandalonePwa = () => {
+    if (typeof window === "undefined") return false;
+    const iosStandalone = (window.navigator as any)?.standalone === true;
+    const mediaStandalone = window.matchMedia?.("(display-mode: standalone)")?.matches === true;
+    return iosStandalone || mediaStandalone;
+  };
+
+  const getGoogleAuthErrorMessage = (code?: string): string => {
+    switch (code) {
+      case "auth/unauthorized-domain":
+      case "auth/invalid-api-key":
+      case "auth/app-not-authorized":
+      case "auth/configuration-not-found":
+        return "Hubo un problema al conectar. Intentá de nuevo o usá correo y contraseña.";
+      case "auth/operation-not-allowed":
+        return "Este método de inicio de sesión no está disponible en este momento.";
+      case "auth/network-request-failed":
+        return "Sin conexión a internet. Revisá tu conexión e intentá de nuevo.";
+      case "auth/popup-blocked":
+        return "El navegador bloqueó la ventana de Google. Permití ventanas emergentes e intentá de nuevo.";
+      case "auth/popup-closed-by-user":
+        return "Cerraste la ventana de Google antes de completar el acceso.";
+      case "auth/cancelled-popup-request":
+        return "Se canceló el intento anterior. Intentá de nuevo.";
+      default:
+        return "No se pudo iniciar con Google. Intentá de nuevo o usá correo y contraseña.";
+    }
+  };
+
+  // Handle redirect result from signInWithRedirect (PWA standalone mode)
+  useEffect(() => {
+    getRedirectResult(auth).catch(() => {
+      // Redirect result errors (e.g. user closed Google) are non-fatal
+    });
+  }, []);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -118,9 +189,11 @@ export function LoginScreen() {
       } else if (err?.code === "auth/invalid-email") {
         setResetError("El correo ingresado no es válido.");
       } else if (err?.code === "auth/operation-not-allowed") {
-        setResetError("En Firebase Auth falta habilitar Email/Password para recuperar contraseña.");
+        console.warn("Password reset blocked: Email/Password provider not enabled in Firebase Auth.", err);
+        setResetError("La recuperación de contraseña no está disponible en este momento. Intentá más tarde.");
       } else if (err?.code === "auth/unauthorized-continue-uri" || err?.code === "auth/invalid-continue-uri") {
-        setResetError("El dominio actual no está autorizado en Firebase Authentication.");
+        console.warn("Password reset blocked: continue URI not authorized in Firebase Auth.", err);
+        setResetError("Hubo un problema al enviar el correo. Intentá de nuevo más tarde.");
       } else {
         setResetError("No se pudo enviar el correo. Intentá nuevamente.");
       }
@@ -132,57 +205,79 @@ export function LoginScreen() {
   const handleGoogleSignIn = async () => {
     if (loadingGoogle) return;
     setError("");
-    setLoadingGoogle(true);
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    
     try {
-      await signInWithPopup(auth, provider);
+      if (isStandalonePwa()) {
+        setLoadingGoogle(true);
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+      
+      // Keep popup initialization strictly synchronous to avoid Safari blocking it
+      const signInPromise = signInWithPopup(auth, provider);
+      setLoadingGoogle(true);
+      await signInPromise;
+
       navigate("/home");
     } catch (err: any) {
       if (err?.code === "auth/popup-blocked" || err?.code === "auth/popup-closed-by-user") {
-        try {
-          await signInWithRedirect(auth, provider);
-          return;
-        } catch {}
+        setError("La ventana de Google fue bloqueada o cerrada. Por favor, permití las ventanas emergentes (pop-ups) e intentá de nuevo.");
+      } else {
+        console.error("Google sign-in error:", {
+          code: err?.code,
+          message: err?.message,
+          domain: window.location.hostname,
+        });
+        setError(getGoogleAuthErrorMessage(err?.code));
       }
-      setError("No se pudo iniciar con Google. Revisá que el proveedor esté habilitado.");
     } finally {
       setLoadingGoogle(false);
     }
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-between px-8 py-12 relative overflow-hidden"
-      style={{
-        backgroundImage: "linear-gradient(rgb(43, 124, 238) 0%, rgb(61, 139, 255) 50%, rgb(93, 163, 255) 100%)",
-      }}
-    >
-      {/* Fondo decorativo */}
-      <div className="absolute left-0 top-0 h-[853px] w-full flex items-center justify-center overflow-hidden pointer-events-none">
-        <div className="relative rotate-6 opacity-25" style={{ width: "670px", height: "1228px", filter: "brightness(0) invert(1)" }}>
-          <img src="/pessy-logo.png" alt="" className="w-full h-full object-contain" />
-        </div>
-      </div>
-      <div className="absolute left-[120px] top-[-128px] size-[400px] bg-white/10 rounded-full blur-[64px] pointer-events-none" />
-      <div className="absolute left-[-80px] top-[473px] size-[300px] bg-white/5 rounded-full blur-[64px] pointer-events-none" />
+    <>
+      <SEO
+        title="Login | Pessy"
+        description="Accede a Pessy — la app con IA que tiene todo lo de tu mascota en un solo lugar."
+        canonical="https://pessy.app/login"
+        robots="noindex,nofollow"
+      />
 
-      <div className="flex flex-col items-center relative z-10 w-full max-w-md flex-1 justify-center">
-        {/* Logo */}
+      <AuthPageShell
+        eyebrow="Acceso"
+        title="Pessy — Porque quererlo ya es suficiente trabajo"
+        description="Porque quererlo ya es suficiente trabajo. Con IA."
+        highlights={["Identidad digital", "Recordatorios", "Co-tutores"]}
+      >
+        <div className="mb-8">
+          <h2
+            className="text-3xl font-extrabold tracking-tight text-[#002f24]"
+            style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+          >
+            Bienvenido de nuevo
+          </h2>
+          <p className="mt-2 text-sm font-medium leading-6 text-[#5e716b]">
+            Entrá para seguir desde donde quedaste.
+          </p>
+        </div>
+
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
-          className="flex flex-col items-center mb-10"
+          className="mb-8 w-full"
         >
-          <h1 className="text-[72px] font-black text-white tracking-[-3.6px] leading-[72px] mb-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-            Pessy
-          </h1>
-          <p className="text-white/85 text-[16px] font-medium text-center tracking-[0.4px] leading-[24px]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-            tu mascota sus cosas todo en orden
-          </p>
+          <div className="w-full rounded-[1.75rem] border border-[#dfe6e2] bg-[#f4f3f9] p-5">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]">Tu mascota, sus cosas</p>
+            <p className="mt-2 text-sm font-medium leading-6 text-[#36584e]">
+              Porque quererlo ya es suficiente trabajo.
+            </p>
+          </div>
         </motion.div>
 
-        {/* Formulario login */}
         <motion.form
           onSubmit={handleLogin}
           initial={{ y: 20, opacity: 0 }}
@@ -190,12 +285,21 @@ export function LoginScreen() {
           transition={{ duration: 0.5, delay: 0.15 }}
           className="w-full space-y-4"
         >
+          {inviteCode && (
+            <div className="rounded-[1.5rem] border border-[#b5efd9] bg-[#eef8f3] px-5 py-4 text-slate-900">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]">Invitacion de co-tutor</p>
+              <p className="text-sm font-medium leading-5 mt-1">
+                Al completar el acceso, vamos a vincular esta cuenta con la mascota compartida.
+              </p>
+            </div>
+          )}
           <input
             type="email"
             placeholder="Correo electrónico"
+            aria-label="Correo electrónico"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-5 py-4 rounded-[24px] bg-white/92 text-slate-900 placeholder:text-slate-500 focus:ring-2 focus:ring-white/70 outline-none"
+            className="w-full rounded-[1.5rem] border border-[#dfe6e2] bg-white px-5 py-4 text-slate-900 outline-none focus:ring-2 focus:ring-[#074738]/20"
             required
           />
 
@@ -203,53 +307,54 @@ export function LoginScreen() {
             <input
               type={showPassword ? "text" : "password"}
               placeholder="Contraseña"
+              aria-label="Contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-5 py-4 pr-28 rounded-[24px] bg-white/92 text-slate-900 placeholder:text-slate-500 focus:ring-2 focus:ring-white/70 outline-none"
+              className="w-full rounded-[1.5rem] border border-[#dfe6e2] bg-white px-5 py-4 pr-28 text-slate-900 outline-none focus:ring-2 focus:ring-[#074738]/20"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#2b7cee] bg-white/80 border border-white rounded-full px-3 py-1"
+              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-[#dfe6e2] bg-[#f4f3f9] px-3 py-1 text-xs font-bold text-[#074738]"
             >
               {showPassword ? "Ocultar" : "Mostrar"}
             </button>
           </div>
 
-          {/* Link olvidé contraseña */}
           <div className="flex justify-end">
             <button
               type="button"
               onClick={() => { setShowReset(true); setResetEmail(email); setResetError(""); setResetSuccess(""); }}
-              className="text-white/80 text-sm font-semibold hover:text-white transition-colors"
+              className="text-sm font-semibold text-[#5e716b] transition-colors hover:text-[#074738]"
             >
               ¿Olvidaste tu contraseña?
             </button>
           </div>
 
-          {error && <p className="text-red-100 text-sm font-semibold text-center bg-red-500/20 rounded-xl px-4 py-2">{error}</p>}
+          {error && <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-2 text-center text-sm font-semibold text-red-700">{error}</p>}
 
           <button
             type="submit"
             disabled={loading || authLoading}
-            className="w-full py-5 rounded-[40px] bg-white text-[#2b7cee] font-bold text-[16px] shadow-[0px_25px_50px_0px_rgba(0,0,0,0.25)] disabled:opacity-60 tracking-[1.2px] uppercase"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
+            className="w-full rounded-full bg-[#074738] py-4 font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60"
+            style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
           >
             {authLoading ? "Validando sesión..." : loading ? "Ingresando..." : "Ingresar"}
           </button>
 
           <div className="flex items-center gap-3 pt-1">
-            <div className="flex-1 h-px bg-white/30" />
-            <span className="text-[11px] font-semibold text-white/75 uppercase tracking-[0.12em]">o continuar con</span>
-            <div className="flex-1 h-px bg-white/30" />
+            <div className="h-px flex-1 bg-[#dfe6e2]" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">o continuar con</span>
+            <div className="h-px flex-1 bg-[#dfe6e2]" />
           </div>
 
           <button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loadingGoogle}
-            className="w-full py-4 rounded-[40px] bg-white/12 border border-white/35 text-white font-bold text-[15px] flex items-center justify-center gap-3 hover:bg-white/20 active:scale-[0.99] transition-all disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-3 rounded-full border border-[#dfe6e2] bg-[#f4f3f9] py-4 text-[15px] font-bold text-slate-900 transition-all active:scale-[0.99] disabled:opacity-60 hover:bg-[#edf2f1]"
           >
             <span className="size-7 rounded-full bg-white flex items-center justify-center shadow-sm">
               <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
@@ -262,18 +367,41 @@ export function LoginScreen() {
             {loadingGoogle ? "Conectando con Google..." : "Google"}
           </button>
 
-          <button
-            type="button"
-            onClick={() => navigate("/register-user")}
-            className="w-full py-5 rounded-[40px] bg-white/20 backdrop-blur-sm text-white font-bold text-[16px] border-[1.5px] border-white/30 hover:bg-white/30 transition-all tracking-[1.2px] uppercase"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
-          >
-            Registrarse gratis
-          </button>
+          {hasValidCode ? (
+            <button
+              type="button"
+              onClick={() => {
+                const params = new URLSearchParams();
+                if (inviteCode) params.set("invite", inviteCode);
+                if (refCode) params.set("ref", refCode);
+                navigate(`/register-user?${params.toString()}`);
+              }}
+              className="w-full rounded-full border border-[#dfe6e2] bg-white py-4 font-bold uppercase tracking-[0.16em] text-[#074738] transition-all hover:bg-[#f4f3f9]"
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+            >
+              Registrarse
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled
+                className="w-full rounded-full border border-[#dfe6e2] bg-white py-4 font-bold uppercase tracking-[0.16em] text-[#9ca8a2] cursor-not-allowed"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+              >
+                Solo por invitación
+              </button>
+              <a
+                href="/solicitar-acceso"
+                className="block text-center text-sm font-semibold text-[#1A9B7D] hover:underline mt-2"
+              >
+                ¿Querés acceso? Solicitalo acá
+              </a>
+            </>
+          )}
         </motion.form>
-      </div>
+      </AuthPageShell>
 
-      {/* Modal recuperar contraseña */}
       <AnimatePresence>
         {showReset && (
           <>
@@ -300,9 +428,10 @@ export function LoginScreen() {
                 <input
                   type="email"
                   placeholder="Tu correo electrónico"
+                  aria-label="Correo electrónico para recuperar contraseña"
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#2b7cee]"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#074738]"
                   required
                 />
 
@@ -318,7 +447,7 @@ export function LoginScreen() {
                   <button
                     type="submit"
                     disabled={resetLoading}
-                    className="w-full py-3 rounded-xl bg-[#2b7cee] text-white font-bold disabled:opacity-60 flex items-center justify-center gap-2"
+                    className="w-full py-3 rounded-xl bg-[#074738] text-white font-bold disabled:opacity-60 flex items-center justify-center gap-2"
                   >
                     {resetLoading
                       ? <><span className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Enviando...</>
@@ -338,6 +467,6 @@ export function LoginScreen() {
           </>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }

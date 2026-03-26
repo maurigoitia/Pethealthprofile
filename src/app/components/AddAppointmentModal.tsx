@@ -27,6 +27,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
     const [clinic, setClinic] = useState("");
     const [notes, setNotes] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState("");
 
     useEffect(() => {
         if (!isOpen) return;
@@ -37,11 +38,20 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
         setVeterinarian(initialValues?.veterinarian || "");
         setClinic(initialValues?.clinic || "");
         setNotes(initialValues?.notes || "");
+        setSubmitError("");
     }, [isOpen, initialValues]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!activePet) return;
+        setSubmitError("");
+        if (!activePet) {
+            setSubmitError("No hay mascota activa seleccionada.");
+            return;
+        }
+        if (!user?.uid) {
+            setSubmitError("Tu sesión no está lista. Cerrá y abrí sesión nuevamente.");
+            return;
+        }
 
         setIsSubmitting(true);
         try {
@@ -77,14 +87,15 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
             setNotes("");
         } catch (error) {
             console.error("Error adding appointment:", error);
+            setSubmitError("No se pudo guardar la cita. Revisá los campos e intentá nuevamente.");
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const typeOptions: { id: Appointment["type"]; label: string; icon: string; color: string }[] = [
-        { id: "checkup", label: "Control", icon: "medical_services", color: "bg-blue-500" },
-        { id: "vaccine", label: "Vacuna", icon: "vaccines", color: "bg-purple-500" },
+        { id: "checkup", label: "Control", icon: "medical_services", color: "bg-emerald-500" },
+        { id: "vaccine", label: "Vacuna", icon: "vaccines", color: "bg-emerald-500" },
         { id: "surgery", label: "Cirugía", icon: "healing", color: "bg-red-500" },
         { id: "emergency", label: "Urgencia", icon: "emergency", color: "bg-orange-500" },
         { id: "other", label: "Otro", icon: "more_horiz", color: "bg-slate-500" },
@@ -127,7 +138,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-5 pb-8">
+                            <form onSubmit={handleSubmit} className="space-y-4 pb-4">
                                 {/* Type Selection */}
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Tipo de Cita</label>
@@ -138,7 +149,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                                 type="button"
                                                 onClick={() => setType(opt.id)}
                                                 className={`px-4 py-2.5 rounded-xl border-2 transition-all flex items-center gap-2 ${type === opt.id
-                                                        ? "border-[#2b6fee] bg-[#2b6fee]/5 text-[#2b6fee] font-bold"
+                                                        ? "border-[#074738] bg-[#074738]/5 text-[#074738] font-bold"
                                                         : "border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-500"
                                                     }`}
                                             >
@@ -157,7 +168,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                         value={title}
                                         onChange={(e) => setTitle(e.target.value)}
                                         placeholder="Ej: Control anual, Vacuna rabia..."
-                                        className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#2b6fee] outline-none"
+                                        className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#074738] outline-none"
                                         required
                                     />
                                 </div>
@@ -170,7 +181,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                             type="date"
                                             value={date}
                                             onChange={(e) => setDate(e.target.value)}
-                                            className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#2b6fee] outline-none"
+                                            className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#074738] outline-none"
                                             required
                                         />
                                     </div>
@@ -180,7 +191,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                             type="time"
                                             value={time}
                                             onChange={(e) => setTime(e.target.value)}
-                                            className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#2b6fee] outline-none"
+                                            className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#074738] outline-none"
                                             required
                                         />
                                     </div>
@@ -195,7 +206,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                         value={veterinarian}
                                         onChange={(e) => setVeterinarian(e.target.value)}
                                         placeholder="Ej: Dra. Pérez"
-                                        className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#2b6fee] outline-none"
+                                        className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#074738] outline-none"
                                     />
                                 </div>
                                 <div>
@@ -205,7 +216,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                         value={clinic}
                                         onChange={(e) => setClinic(e.target.value)}
                                         placeholder="Ej: Clínica Veterinaria Central"
-                                        className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#2b6fee] outline-none"
+                                        className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#074738] outline-none"
                                     />
                                 </div>
                                 </div>
@@ -218,15 +229,20 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                         onChange={(e) => setNotes(e.target.value)}
                                         placeholder="Llevar estudios previos, en ayunas, etc..."
                                         rows={3}
-                                        className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#2b6fee] outline-none resize-none"
+                                        className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#074738] outline-none resize-none"
                                     />
                                 </div>
 
                                 {/* Submit */}
+                                {submitError && (
+                                    <p className="text-sm font-semibold text-red-600 dark:text-red-400">
+                                        {submitError}
+                                    </p>
+                                )}
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="w-full py-4 rounded-xl bg-[#2b6fee] text-white font-bold text-lg shadow-lg shadow-[#2b6fee]/30 hover:bg-[#5a8aff] active:scale-[0.98] transition-all disabled:opacity-50 mt-4"
+                                    className="w-full py-4 rounded-xl bg-[#074738] text-white font-bold text-lg shadow-lg shadow-[#074738]/30 hover:bg-[#1a9b7d] active:scale-[0.98] transition-all disabled:opacity-50"
                                 >
                                     {isSubmitting ? "Agendando..." : "Confirmar Cita"}
                                 </button>

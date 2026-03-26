@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router";
 import { MaterialIcon } from "./MaterialIcon";
 import { motion, AnimatePresence } from "motion/react";
 import { usePet } from "../contexts/PetContext";
@@ -9,6 +10,7 @@ import { cleanText } from "../utils/cleanText";
 import { formatDateSafe, parseDateSafe, toDateKeySafe, toTimestampSafe } from "../utils/dateUtils";
 import { downloadIcsEvent } from "../utils/calendarExport";
 import { NotificationService } from "../services/notificationService";
+import { isFocusExperienceHost } from "../utils/runtimeFlags";
 
 interface MedicationsScreenProps {
   onBack: () => void;
@@ -29,6 +31,7 @@ type MedicationCardItem = {
   provider: string;
   sourceLabel: "document" | "scan";
   status: MedicationStatus;
+  isExpired: boolean;
   daysLeft: number | null;       // null si crónico o vencido
   linkedMedicationId: string | null;
   lastDoseAt: string | null;
@@ -174,7 +177,7 @@ function formatDoseMoment(value: string | null): string {
 }
 
 const STATUS_CONFIG: Record<MedicationStatus, { label: string; color: string; bg: string; accent: string }> = {
-  active:    { label: "Activo",   color: "text-[#2b6fee]",   bg: "bg-[#2b6fee]/10",  accent: "#2b6fee" },
+  active:    { label: "Activo",   color: "text-[#074738]",   bg: "bg-[#074738]/10",  accent: "#074738" },
   chronic:   { label: "Crónico",  color: "text-violet-600",  bg: "bg-violet-100",     accent: "#7c3aed" },
   completed: { label: "Finalizado", color: "text-slate-500", bg: "bg-slate-100",      accent: "#94a3b8" },
 };
@@ -182,25 +185,6 @@ const STATUS_CONFIG: Record<MedicationStatus, { label: string; color: string; bg
 const HARD_MEDICATION_SIGNAL_REGEX = /(comprimid|capsul|tableta|pastilla|jarabe|gotas|ampolla|inyecci[oó]n|\b\d+\/\d+\s*comprimido|\b\d+\s*(mg|mcg)\b|pimobendan|ursomax|predni|furosemida|omeprazol|enroflox|amoxic|metronidazol|gabapentin|carprofeno)/i;
 const SCHEDULE_MEDICATION_SIGNAL_REGEX = /(cada\s+\d+\s*(h|hs|hora|horas)|\b\d+\s*veces?\s*al\s*d[ií]a\b|(tomar|administrar|dar)[^\n]{0,32}\b\d+(?:[.,]\d+)?\s*ml\b)/i;
 const NON_MEDICATION_SIGNAL_REGEX = /(pr[oó]stata|diametr|volumen|vol:|ecograf|radiograf|ultrason|hallazgo|medida|eje|cm\b|mm\b|sin\s+fractura|sin\s+luxaci[oó]n)/i;
-
-function hasMedicationLikeSignal(event: MedicalEvent): boolean {
-  const text = [
-    event.title,
-    event.extractedData.diagnosis,
-    event.extractedData.observations,
-    event.extractedData.aiGeneratedSummary,
-    event.extractedData.suggestedTitle,
-  ]
-    .map((value) => cleanText(value))
-    .filter(Boolean)
-    .join(" ");
-
-  const hasHardMedicationSignal = HARD_MEDICATION_SIGNAL_REGEX.test(text);
-  const hasScheduleSignal = SCHEDULE_MEDICATION_SIGNAL_REGEX.test(text);
-  const hasStudySignal = NON_MEDICATION_SIGNAL_REGEX.test(text);
-  if (hasStudySignal && !hasHardMedicationSignal) return false;
-  return hasHardMedicationSignal || hasScheduleSignal;
-}
 
 function isPlausibleMedicationEntry(
   event: MedicalEvent,
@@ -231,6 +215,7 @@ function isPlausibleMedicationEntry(
 
 export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
+  const [showExpiredInActive, setShowExpiredInActive] = useState(false);
   const [expandedNotesByEvent, setExpandedNotesByEvent] = useState<Record<string, boolean>>({});
   const [draftNoteByEvent, setDraftNoteByEvent] = useState<Record<string, string>>({});
   const [savingNoteByEvent, setSavingNoteByEvent] = useState<Record<string, boolean>>({});
@@ -251,9 +236,19 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   const [deleteStage, setDeleteStage] = useState<DeleteStage>("confirm");
   const [deletingInProgress, setDeletingInProgress] = useState(false);
 
+  const location = useLocation();
+  const highlightEventId = new URLSearchParams(location.search).get("eventId") || "";
+  const highlightRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (highlightEventId && highlightRef.current) {
+      setTimeout(() => highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 300);
+    }
+  }, [highlightEventId]);
+
   const { activePetId, activePet } = usePet();
-  const { getEventsByPetId, updateEvent, confirmEvent, deleteEvent, activeMedications, updateMedication } = useMedical();
+  const { getEventsByPetId, updateEvent, confirmEvent, deleteEvent, activeMedications, updateMedication, addMedication } = useMedical();
   const { addReminder } = useReminders();
+  const focusExperienceEnabled = isFocusExperienceHost();
 
   const extractTimeHHmm = (isoDate: string): string => {
     const parsed = parseDateSafe(isoDate);
@@ -305,24 +300,12 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
     return getEventsByPetId(activePetId)
       .flatMap((event) => {
         const hasMeds = Boolean(event.extractedData.medications?.length);
-        const isMedDoc = event.extractedData.documentType === "medication";
-        const hasSignal = hasMedicationLikeSignal(event);
-        if (!hasMeds && (!isMedDoc || !hasSignal)) return [];
+        if (!hasMeds) return [];
 
         const startDate = event.extractedData.eventDate || event.createdAt;
         const sourceLabel: "document" | "scan" = event.extractedData.eventDate ? "document" : "scan";
 
-        const meds = hasMeds
-          ? event.extractedData.medications.filter((med) => isPlausibleMedicationEntry(event, med))
-          : hasSignal
-            ? [{
-                name: cleanText(event.extractedData.diagnosis || event.title || event.fileName),
-                dosage: null,
-                frequency: null,
-                duration: null,
-                confidence: "not_detected" as const,
-              }]
-            : [];
+        const meds = event.extractedData.medications.filter((med) => isPlausibleMedicationEntry(event, med));
 
         if (meds.length === 0) return [];
 
@@ -347,8 +330,10 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
           const parsed = parseDuration(med.duration);
           const { status: calcedStatus, endDate, daysLeft, durationDays } = calcStatus(startDate, parsed);
 
-          // Si el usuario marcó en notas que ya no lo toma → forzar completed
-          const status: MedicationStatus = isInterruptedByNotes(event) ? "completed" : calcedStatus;
+          // Si el usuario marcó en notas que ya no lo toma → forzar completed (pero no "vencido")
+          const interruptedByNotes = isInterruptedByNotes(event);
+          const status: MedicationStatus = interruptedByNotes ? "completed" : calcedStatus;
+          const isExpired = !interruptedByNotes && status === "completed";
 
           return [{
             id: `${event.id}-${idx}`,
@@ -363,6 +348,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
             provider: cleanText(event.extractedData.provider) || "Profesional no especificado",
             sourceLabel,
             status,
+            isExpired,
             daysLeft,
             linkedMedicationId: linkedMedication?.id || null,
             lastDoseAt: linkedMedication?.lastDoseAt || null,
@@ -372,14 +358,26 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
       .sort((a, b) => toTimestampSafe(b.startDate) - toTimestampSafe(a.startDate));
   }, [activeMedications, activePetId, getEventsByPetId]);
 
-  const activeItems = medicationItems.filter((i) => i.status === "active" || i.status === "chronic");
-  const completedItems = medicationItems.filter((i) => i.status === "completed");
+  const activeBaseItems = medicationItems.filter((i) => i.status === "active" || i.status === "chronic");
+  const expiredItems = medicationItems.filter((i) => i.isExpired);
+  const completedItems = medicationItems.filter((i) => i.status === "completed" && !i.isExpired);
+  const activeItems = (showExpiredInActive ? [...activeBaseItems, ...expiredItems] : activeBaseItems)
+    .sort((a, b) => toTimestampSafe(b.startDate) - toTimestampSafe(a.startDate));
   const shownItems = activeTab === "active" ? activeItems : completedItems;
-  const reminderPills = activeItems.slice(0, 6).map((item) => ({
-    id: item.id,
-    name: item.medicationName,
-    when: nextDoseLabel(item.lastDoseAt || item.startDate, item.frequency),
-  }));
+  const todayKey = toDateKeySafe(new Date().toISOString());
+  const reminderPills = activeBaseItems
+    .map((item) => {
+      const next = computeNextDoseDate(item.lastDoseAt || item.startDate, item.frequency);
+      if (!next) return null;
+      if (toDateKeySafe(next.toISOString()) !== todayKey) return null;
+      return {
+        id: item.id,
+        name: item.medicationName,
+        when: `hoy ${next.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}`,
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 6) as { id: string; name: string; when: string }[];
 
   const saveNote = async (event: MedicalEvent) => {
     const text = (draftNoteByEvent[event.id] || "").trim();
@@ -547,25 +545,61 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
           (medication) => medication.active && medication.generatedFromEventId === item.event.id
         );
 
-    for (const medication of fallbackLinked) {
-      await updateMedication(medication.id, {
+    if (fallbackLinked.length === 0) {
+      const newMedicationId = `med_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      const newMedication = {
+        id: newMedicationId,
+        petId: item.event.petId,
+        userId: item.event.userId || "",
+        name: item.medicationName,
+        dosage: item.dosage,
+        frequency: item.frequency,
+        type: "Receta",
+        startDate: item.startDate,
+        endDate: item.endDate || null,
+        prescribedBy: item.provider || null,
+        generatedFromEventId: item.event.id,
+        active: true,
         lastDoseAt: nowIso,
         nextDoseAt: nextDoseIso,
-      });
+      };
+      await addMedication(newMedication);
 
       if (parseFrequencyHours(item.frequency)) {
         await NotificationService.scheduleMedicationReminders({
-          petId: medication.petId,
+          petId: newMedication.petId,
           petName: activePet.name,
-          medicationName: medication.name,
-          dosage: item.dosage || medication.dosage || "Según receta",
+          medicationName: newMedication.name,
+          dosage: item.dosage || "Según receta",
           frequency: item.frequency,
-          startDate: medication.startDate,
-          endDate: medication.endDate,
+          startDate: newMedication.startDate,
+          endDate: newMedication.endDate,
           sourceEventId: item.event.id,
-          sourceMedicationId: medication.id,
+          sourceMedicationId: newMedication.id,
           lastDoseAt: nowIso,
         });
+      }
+    } else {
+      for (const medication of fallbackLinked) {
+        await updateMedication(medication.id, {
+          lastDoseAt: nowIso,
+          nextDoseAt: nextDoseIso,
+        });
+
+        if (parseFrequencyHours(item.frequency)) {
+          await NotificationService.scheduleMedicationReminders({
+            petId: medication.petId,
+            petName: activePet.name,
+            medicationName: medication.name,
+            dosage: item.dosage || medication.dosage || "Según receta",
+            frequency: item.frequency,
+            startDate: medication.startDate,
+            endDate: medication.endDate,
+            sourceEventId: item.event.id,
+            sourceMedicationId: medication.id,
+            lastDoseAt: nowIso,
+          });
+        }
       }
     }
 
@@ -636,32 +670,66 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
 
   return (
     <>
-      <div className="min-h-screen bg-[#f6f6f8] dark:bg-[#101622] flex flex-col">
+      <div className={`min-h-screen flex flex-col ${focusExperienceEnabled ? "bg-[#f3f7f5] dark:bg-[#101622]" : "bg-[#f6f6f8] dark:bg-[#101622]"}`}>
       <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
 
         {/* Header */}
-        <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 pt-6 pb-4">
+        <div className={focusExperienceEnabled
+          ? "px-4 pt-6 pb-6 bg-[linear-gradient(180deg,rgba(7,71,56,0.18)_0%,rgba(7,71,56,0.08)_40%,rgba(243,247,245,0)_100%)]"
+          : "bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 pt-6 pb-4"}>
           <div className="flex items-center gap-3 mb-4">
             <button onClick={onBack}
-              className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-              <MaterialIcon name="arrow_back" className="text-xl" />
+              className={`size-10 rounded-full flex items-center justify-center ${focusExperienceEnabled ? "bg-white/80 dark:bg-slate-900/70 shadow-sm" : "bg-slate-100 dark:bg-slate-800"}`}>
+              <MaterialIcon name="arrow_back" className={`text-xl ${focusExperienceEnabled ? "text-[#074738]" : ""}`} />
             </button>
             <div>
-              <h1 className="text-2xl font-black text-slate-900 dark:text-white">Tratamientos y medicación</h1>
-              <p className="text-sm text-slate-500">{activeItems.length} activos · {completedItems.length} finalizados</p>
+              {focusExperienceEnabled && (
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#074738] mb-1">Tratamientos</p>
+              )}
+              <h1 className="text-2xl font-black text-slate-900 dark:text-white">
+                Tratamientos y medicación
+              </h1>
+              <p className={`text-sm ${focusExperienceEnabled ? "text-slate-600 dark:text-slate-300" : "text-slate-500"}`}>
+                {activeBaseItems.length} activos · {expiredItems.length} vencidos · {completedItems.length} finalizados
+              </p>
             </div>
           </div>
 
-          <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          {focusExperienceEnabled && (
+            <div className="mb-4 rounded-[28px] border border-[#074738]/10 dark:border-[#1a9b7d]/20 bg-[#dbe7e2] dark:bg-[#17382f] p-4 shadow-sm">
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-5">
+                PESSY separa tratamientos activos, crónicos e históricos para que el tutor vea continuidad y próxima dosis sin leer toda la historia.
+              </p>
+            </div>
+          )}
+
+          <div className={`flex gap-2 p-1 ${focusExperienceEnabled ? "rounded-full bg-white/80 dark:bg-slate-900/70" : "bg-slate-100 dark:bg-slate-800 rounded-xl"}`}>
             {(["active", "history"] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${activeTab === tab
-                  ? "bg-white dark:bg-slate-900 text-[#2b6fee] shadow-sm"
-                  : "text-slate-600 dark:text-slate-400"}`}>
-                {tab === "active" ? `Activos (${activeItems.length})` : `Historial (${completedItems.length})`}
+                className={`flex-1 py-2.5 font-bold text-sm transition-all ${activeTab === tab
+                  ? `${focusExperienceEnabled ? "bg-[#074738] text-white rounded-full shadow-sm" : "bg-white dark:bg-slate-900 text-[#074738] rounded-lg shadow-sm"}`
+                  : `${focusExperienceEnabled ? "text-slate-600 dark:text-slate-300 rounded-full" : "text-slate-600 dark:text-slate-400 rounded-lg"}`}`}>
+                {tab === "active" ? `Activos (${activeBaseItems.length})` : `Historial (${completedItems.length})`}
               </button>
             ))}
           </div>
+          {activeTab === "active" && (
+            <div className={`mt-3 flex items-center justify-between border px-3 py-2 ${focusExperienceEnabled ? "rounded-[22px] border-[#074738]/10 bg-white/90 dark:border-slate-800 dark:bg-slate-900/70" : "rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/70"}`}>
+              <div>
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Mostrar vencidos</p>
+                <p className="text-[11px] text-slate-500">{expiredItems.length} tratamiento(s) vencido(s)</p>
+              </div>
+              <button
+                onClick={() => setShowExpiredInActive((prev) => !prev)}
+                className={`relative h-7 w-12 rounded-full transition-colors ${showExpiredInActive ? "bg-red-500" : "bg-slate-300 dark:bg-slate-700"}`}
+                aria-label="Mostrar vencidos"
+              >
+                <span
+                  className={`absolute top-0.5 size-6 rounded-full bg-white shadow transition-transform ${showExpiredInActive ? "translate-x-5" : "translate-x-0.5"}`}
+                />
+              </button>
+            </div>
+          )}
           {editFeedback && (
             <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
               <p className="text-xs font-semibold text-emerald-700">{editFeedback}</p>
@@ -672,13 +740,13 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
         {/* List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {activeTab === "active" && reminderPills.length > 0 && (
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3">
+            <div className={`${focusExperienceEnabled ? "rounded-[24px]" : "rounded-2xl"} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3`}>
               <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 mb-2">Recordatorios de hoy</p>
               <div className="flex flex-wrap gap-1.5">
                 {reminderPills.map((pill) => (
                   <span
                     key={pill.id}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#2b6fee]/10 text-[#2b6fee] text-[11px] font-semibold"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#074738]/10 text-[#074738] text-[11px] font-semibold"
                   >
                     <MaterialIcon name="schedule" className="text-sm" />
                     <span className="max-w-[150px] truncate">{pill.name}</span>
@@ -699,14 +767,23 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
             </div>
           ) : (
             shownItems.map((item) => {
-              const sc = STATUS_CONFIG[item.status];
+              const sc = item.isExpired
+                ? { label: "Vencido", color: "text-red-600", bg: "bg-red-100", accent: "#dc2626" }
+                : STATUS_CONFIG[item.status];
               const noteCount = item.event.treatmentNotes?.length || 0;
               const isExpanded = Boolean(expandedNotesByEvent[item.event.id]);
               const needsReview = item.event.requiresManualConfirmation || item.event.workflowStatus === "review_required" || item.event.workflowStatus === "invalid_future_date" || item.event.status === "draft";
 
               return (
-                <motion.div key={item.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                <motion.div
+                  key={item.id}
+                  ref={highlightEventId === item.event.id ? highlightRef : undefined}
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  className={`bg-white dark:bg-slate-900 rounded-2xl border shadow-sm overflow-hidden transition-all ${
+                    highlightEventId === item.event.id
+                      ? "border-amber-400 ring-2 ring-amber-300/50"
+                      : "border-slate-200 dark:border-slate-800"
+                  }`}>
 
                   {/* Accent bar */}
                   <div className="h-1" style={{ backgroundColor: sc.accent }} />
@@ -782,8 +859,16 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                           {item.daysLeft !== null && item.daysLeft > 0 && (
                             <div className="flex justify-between text-xs">
                               <span className="text-slate-400">Días restantes</span>
-                              <span className={`font-bold ${item.daysLeft <= 7 ? "text-amber-500" : "text-[#2b6fee]"}`}>
+                              <span className={`font-bold ${item.daysLeft <= 7 ? "text-amber-500" : "text-[#074738]"}`}>
                                 {item.daysLeft} día{item.daysLeft !== 1 ? "s" : ""}
+                              </span>
+                            </div>
+                          )}
+                          {item.isExpired && item.endDate && (
+                            <div className="flex justify-between text-xs">
+                              <span className="text-slate-400">Estado</span>
+                              <span className="font-bold text-red-600">
+                                Vencido
                               </span>
                             </div>
                           )}
@@ -800,7 +885,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                         <div className="mt-1.5">
                           <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-[#2b6fee] rounded-full transition-all"
+                              className="h-full bg-[#074738] rounded-full transition-all"
                               style={{ width: `${Math.max(0, Math.min(100, (1 - item.daysLeft / item.durationDays) * 100))}%` }}
                             />
                           </div>
@@ -823,19 +908,19 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                     </div>
 
                     {(item.status === "active" || item.status === "chronic") && (
-                      <div className="mb-3 p-3 rounded-xl bg-blue-50/70 border border-blue-100">
+                      <div className="mb-3 p-3 rounded-xl bg-emerald-50/70 border border-emerald-100">
                         <div className="flex items-center justify-between text-xs mb-2">
                           <span className="text-slate-500">Última dosis</span>
                           <span className="font-semibold text-slate-700">{formatDoseMoment(item.lastDoseAt)}</span>
                         </div>
                         <div className="flex items-center justify-between text-xs mb-3">
                           <span className="text-slate-500">Próxima dosis</span>
-                          <span className="font-bold text-[#2b6fee]">{nextDoseLabel(item.lastDoseAt || item.startDate, item.frequency)}</span>
+                          <span className="font-bold text-[#074738]">{nextDoseLabel(item.lastDoseAt || item.startDate, item.frequency)}</span>
                         </div>
                         {!needsReview && (
                           <button
                             onClick={() => void registerDoseNow(item)}
-                            className="w-full py-2 rounded-xl bg-[#2b6fee] text-white text-xs font-bold hover:bg-[#245ecf] transition-colors"
+                            className="w-full py-2 rounded-xl bg-[#074738] text-white text-xs font-bold hover:bg-[#245ecf] transition-colors"
                           >
                             Marcar dosis dada ahora
                           </button>
@@ -892,7 +977,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                               {(item.event.treatmentNotes || []).map((note) => (
                                 <div key={note.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                                   <div className="flex items-center justify-between mb-1">
-                                    <span className="text-[10px] uppercase tracking-wide font-black text-[#2b6fee]">
+                                    <span className="text-[10px] uppercase tracking-wide font-black text-[#074738]">
                                       {NOTE_LABELS[note.interpretedAs]}
                                     </span>
                                     <span className="text-[10px] text-slate-400">{formatDate(note.createdAt)}</span>
@@ -905,11 +990,11 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                                   value={draftNoteByEvent[item.event.id] || ""}
                                   onChange={(e) => setDraftNoteByEvent((prev) => ({ ...prev, [item.event.id]: e.target.value }))}
                                   placeholder="Ej: se redujo dosis por indicación veterinaria"
-                                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-[#2b6fee]"
+                                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-[#074738]"
                                 />
                                 <button onClick={() => saveNote(item.event)}
                                   disabled={Boolean(savingNoteByEvent[item.event.id])}
-                                  className="px-4 py-2 rounded-xl bg-[#2b6fee] text-white text-xs font-bold disabled:opacity-60">
+                                  className="px-4 py-2 rounded-xl bg-[#074738] text-white text-xs font-bold disabled:opacity-60">
                                   {savingNoteByEvent[item.event.id] ? "..." : "Agregar"}
                                 </button>
                               </div>
@@ -948,19 +1033,19 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Dosis</span>
                 <input value={editDosage} onChange={(e) => setEditDosage(e.target.value)}
                   placeholder={editingItem.dosage}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b6fee]" />
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#074738]" />
               </label>
               <label className="block">
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Frecuencia</span>
                 <input value={editFrequency} onChange={(e) => setEditFrequency(e.target.value)}
                   placeholder={editingItem.frequency}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b6fee]" />
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#074738]" />
               </label>
               <label className="block">
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Duración</span>
                 <input value={editDuration} onChange={(e) => setEditDuration(e.target.value)}
                   placeholder={editingItem.duration}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b6fee]" />
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#074738]" />
               </label>
               <label className="block">
                 <span className="text-xs font-bold text-slate-600 dark:text-slate-400 mb-1 block">Hora base de toma</span>
@@ -968,7 +1053,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                   type="time"
                   value={editIntakeTime}
                   onChange={(e) => setEditIntakeTime(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#2b6fee]"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#074738]"
                 />
                 <span className="text-[11px] text-slate-500 mt-1 block">
                   Al guardar, PESSY reprograma recordatorios automáticos en tu celular.
@@ -982,7 +1067,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                 Cancelar
               </button>
               <button onClick={saveEdit} disabled={savingEdit}
-                className="flex-1 py-3 rounded-xl bg-[#2b6fee] text-white text-sm font-bold disabled:opacity-60">
+                className="flex-1 py-3 rounded-xl bg-[#074738] text-white text-sm font-bold disabled:opacity-60">
                 {savingEdit ? "Guardando..." : "Guardar cambios"}
               </button>
             </div>
@@ -1039,7 +1124,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                   <button
                     onClick={() => confirmDelete(deletingItem, true, false)}
                     disabled={deletingInProgress}
-                    className="w-full py-3.5 rounded-xl border border-[#2b6fee]/30 bg-[#2b6fee]/5 text-[#2b6fee] text-sm font-bold flex items-center gap-2 justify-center disabled:opacity-60"
+                    className="w-full py-3.5 rounded-xl border border-[#074738]/30 bg-[#074738]/5 text-[#074738] text-sm font-bold flex items-center gap-2 justify-center disabled:opacity-60"
                   >
                     <MaterialIcon name="notifications" className="text-lg" />
                     Crear recordatorio en PESSY

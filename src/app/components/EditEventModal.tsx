@@ -133,7 +133,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                                     type="text"
                                     value={formData.title}
                                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#2b7cee] outline-none"
+                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#074738] outline-none"
                                 />
                             </div>
 
@@ -143,7 +143,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                                 <select
                                     value={formData.documentType}
                                     onChange={(e) => setFormData({ ...formData, documentType: e.target.value })}
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#2b7cee] outline-none appearance-none"
+                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#074738] outline-none appearance-none"
                                 >
                                     {documentTypes.map((type) => (
                                         <option key={type.value} value={type.value}>{type.label}</option>
@@ -158,7 +158,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                                     type="date"
                                     value={formData.eventDate}
                                     onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#2b7cee] outline-none"
+                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#074738] outline-none"
                                 />
                             </div>
 
@@ -169,7 +169,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                                     type="text"
                                     value={formData.provider}
                                     onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#2b7cee] outline-none"
+                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#074738] outline-none"
                                 />
                             </div>
 
@@ -179,7 +179,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                                 <textarea
                                     value={formData.diagnosis}
                                     onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#2b7cee] outline-none min-h-[100px]"
+                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#074738] outline-none min-h-[100px]"
                                 />
                             </div>
 
@@ -189,7 +189,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                                 <textarea
                                     value={formData.observations}
                                     onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#2b7cee] outline-none min-h-[80px]"
+                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#074738] outline-none min-h-[80px]"
                                 />
                             </div>
                         </div>
@@ -204,7 +204,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                             <button
                                 onClick={handleSave}
                                 disabled={isSaving}
-                                className="flex-[2] py-4 px-6 bg-[#2b7cee] text-white font-bold rounded-2xl shadow-lg shadow-[#2b7cee]/30 disabled:opacity-50 flex items-center justify-center gap-2"
+                                className="flex-[2] py-4 px-6 bg-[#074738] text-white font-bold rounded-2xl shadow-lg shadow-[#074738]/30 disabled:opacity-50 flex items-center justify-center gap-2"
                             >
                                 {isSaving ? (
                                     <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

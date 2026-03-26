@@ -9,12 +9,18 @@ import {
   ExtractedData,
   DocumentExtractionResponse,
   DocumentType,
+  ProactiveCareAlert,
+  ProactiveCarePlan,
+  ProactiveImagingFinding,
+  ProactiveMedicationPlan,
   MasterClinicalPayload,
   MedicalEvent,
   MedicationExtracted,
   Measurement,
 } from "../types/medical";
 import { toDateKeySafe, toTimestampSafe } from "../utils/dateUtils";
+import { httpsCallable } from "firebase/functions";
+import { functions as firebaseFunctions } from "../../lib/firebase";
 
 const DOCUMENT_TYPES: DocumentType[] = [
   "vaccine",
@@ -31,6 +37,98 @@ const DOCUMENT_TYPES: DocumentType[] = [
 
 const CONFIDENCE_LEVELS = ["high", "medium", "low", "not_detected"] as const;
 const APPOINTMENT_HINT_REGEX = /(turno|confirmad|consulta|especialidad|prestaci[oó]n|centro de atenci[oó]n|agenda|cita)/i;
+const QUALITATIVE_MICROSCOPY_HINT_REGEX = /(tricogram|k[\s-]?oh|dermatofit|ectoparasit|microscop|citolog|raspado)/i;
+type MasterImagingFinding = NonNullable<MasterClinicalPayload["imaging_findings"]>[number];
+
+const USE_BACKEND_ANALYSIS = String((import.meta as any).env.VITE_USE_BACKEND_ANALYSIS || "true").toLowerCase() === "true";
+const ALLOW_DIRECT_AI_FALLBACK =
+  String((import.meta as any).env.VITE_ALLOW_DIRECT_ANALYSIS_FALLBACK || "false").toLowerCase() === "true";
+const RUNTIME_ALLOW_DIRECT_AI_FALLBACK = ALLOW_DIRECT_AI_FALLBACK && !import.meta.env.PROD;
+const OCTET_STREAM_MIME_TYPES = new Set(["", "application/octet-stream", "binary/octet-stream"]);
+const PDF_MIME_ALIASES = new Set(["application/pdf", "application/x-pdf", "application/acrobat", "applications/vnd.pdf", "text/pdf"]);
+const IMAGE_MIME_NORMALIZATION: Record<string, string> = {
+  "image/jpg": "image/jpeg",
+  "image/pjpeg": "image/jpeg",
+};
+const SUPPORTED_ANALYSIS_MIME_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+const HEIC_EXTENSIONS = new Set(["heic", "heif"]);
+
+function getFileExtension(fileName: string): string {
+  const match = fileName.toLowerCase().match(/\.([a-z0-9]+)$/);
+  return match?.[1] || "";
+}
+
+function normalizeAnalysisMimeType(file: File): string {
+  const rawMime = (file.type || "").toLowerCase().trim();
+  if (PDF_MIME_ALIASES.has(rawMime)) return "application/pdf";
+  if (IMAGE_MIME_NORMALIZATION[rawMime]) return IMAGE_MIME_NORMALIZATION[rawMime];
+  if (!OCTET_STREAM_MIME_TYPES.has(rawMime)) return rawMime;
+
+  const extension = getFileExtension(file.name || "");
+  if (extension === "pdf") return "application/pdf";
+  if (extension === "jpg" || extension === "jpeg") return "image/jpeg";
+  if (extension === "png") return "image/png";
+  if (extension === "webp") return "image/webp";
+  if (extension === "heic" || extension === "heif") return "image/heic";
+
+  return rawMime || "application/octet-stream";
+}
+
+function isHeicLike(file: File): boolean {
+  const extension = getFileExtension(file.name || "");
+  const mime = (file.type || "").toLowerCase();
+  return HEIC_EXTENSIONS.has(extension) || mime.includes("heic") || mime.includes("heif");
+}
+
+function isSupportedAnalysisMimeType(mimeType: string): boolean {
+  return SUPPORTED_ANALYSIS_MIME_TYPES.has(mimeType);
+}
+
+async function convertHeicToJpeg(file: File): Promise<File> {
+  const { default: heic2any } = await import("heic2any");
+  const converted = await heic2any({
+    blob: file,
+    toType: "image/jpeg",
+    quality: 0.92,
+  });
+  const convertedBlob = Array.isArray(converted) ? converted[0] : converted;
+  if (!(convertedBlob instanceof Blob)) {
+    throw new Error("No se pudo convertir HEIC/HEIF para análisis.");
+  }
+
+  return new File([convertedBlob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
+}
+
+interface BackendAnalyzeResponse {
+  rawText: string;
+  model?: string;
+  tokensUsed?: number;
+  processingTimeMs?: number;
+}
+
+interface BackendSummaryResponse {
+  rawText: string;
+  model?: string;
+  tokensUsed?: number;
+  processingTimeMs?: number;
+}
+
+async function callBackendFunction<TPayload extends Record<string, unknown>, TResult>(
+  name: string,
+  payload: TPayload
+): Promise<TResult> {
+  const callable = httpsCallable<TPayload, TResult>(firebaseFunctions, name);
+  const result = await callable(payload);
+  return result.data;
+}
 
 const asStringOrNull = (value: unknown): string | null => {
   if (typeof value !== "string") return null;
@@ -42,6 +140,74 @@ const asObject = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" ? (value as Record<string, unknown>) : {};
 
 const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+const asBooleanOrNull = (value: unknown): boolean | null => {
+  if (typeof value === "boolean") return value;
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase();
+  if (["true", "si", "sí", "yes", "1", "detectado", "presente"].includes(normalized)) return true;
+  if (["false", "no", "0", "ausente", "no_detectado"].includes(normalized)) return false;
+  return null;
+};
+
+const hasNumericSignal = (value: unknown): boolean => {
+  const text = asStringOrNull(value);
+  if (!text) return false;
+  return /\d/.test(text);
+};
+
+const isQualitativeMicroscopyText = (value: unknown): boolean => {
+  const text = asStringOrNull(value)?.toLowerCase() || "";
+  if (!text) return false;
+  return QUALITATIVE_MICROSCOPY_HINT_REGEX.test(text);
+};
+
+const isNoObservedPathogenFinding = (value: unknown): boolean => {
+  const text = asStringOrNull(value)?.toLowerCase() || "";
+  if (!text) return false;
+  return /(no\s+se\s+observ|ausenc|negativ|sin\s+evidencia)/i.test(text) &&
+    /(dermatofit|ectoparasit|hongo|parasit)/i.test(text);
+};
+
+const isQualitativeMicroscopyMeasurement = (measurement: Pick<Measurement, "name" | "value" | "referenceRange">): boolean => {
+  const joined = [measurement.name, measurement.value, measurement.referenceRange]
+    .filter(Boolean)
+    .join(" ");
+  if (!isQualitativeMicroscopyText(joined)) return false;
+  const hasNumeric = hasNumericSignal(measurement.value) || hasNumericSignal(measurement.referenceRange);
+  return !hasNumeric;
+};
+
+const sanitizeMeasurementReferenceRange = (
+  measurement: Pick<Measurement, "name" | "value" | "referenceRange">
+): string | null => {
+  const rawRange = asStringOrNull(measurement.referenceRange);
+  if (!rawRange) return null;
+  const hasNumeric = hasNumericSignal(measurement.value) || hasNumericSignal(rawRange);
+  if (hasNumeric) return rawRange;
+  // Regla global: sin números/rangos explícitos no hay "fuera de rango".
+  if (/(alto|bajo|alterado|fuera\s+de\s+rango|normal)/i.test(rawRange)) return null;
+  return rawRange;
+};
+
+const collapseQualitativeMicroscopyMeasurements = (measurements: Measurement[]): Measurement[] => {
+  const microscopyRows = measurements.filter((row) => isQualitativeMicroscopyMeasurement(row));
+  if (microscopyRows.length === 0) return measurements;
+
+  const primary = microscopyRows.find((row) => isNoObservedPathogenFinding(row.value)) || microscopyRows[0];
+  if (!primary) return measurements;
+
+  const primaryName = asStringOrNull(primary.name) || "Pelos, OD con KOH";
+  const primaryValue = asStringOrNull(primary.value);
+  if (!primaryValue) return [];
+
+  return [{
+    name: primaryName,
+    value: primaryValue,
+    unit: null,
+    referenceRange: null,
+    confidence: primary.confidence || "high",
+  }];
+};
 
 const asConfidence = (value: unknown): "high" | "medium" | "low" | "not_detected" => {
   if (typeof value === "number") {
@@ -59,6 +225,223 @@ const asConfidence = (value: unknown): "high" | "medium" | "low" | "not_detected
   return (CONFIDENCE_LEVELS as readonly string[]).includes(normalized)
     ? (normalized as "high" | "medium" | "low" | "not_detected")
     : "not_detected";
+};
+
+const normalizeFindingStatus = (
+  value: unknown
+): MasterClinicalPayload["abnormal_findings"][number]["status"] => {
+  const normalized = asStringOrNull(value)?.toLowerCase();
+  if (!normalized) return null;
+
+  if (/(^|[\s_-])(alto|elevado|high)([\s_-]|$)/i.test(normalized)) return "alto";
+  if (/(^|[\s_-])(bajo|disminuido|low)([\s_-]|$)/i.test(normalized)) return "bajo";
+  if (/alterad|fuera\s+de\s+rango/i.test(normalized)) return "alterado";
+  if (/normal|en\s+rango/i.test(normalized)) return "normal";
+  if (/no[_\s-]?observado|ausencia|negativ|sin\s+evidencia|no\s+se\s+observ/i.test(normalized)) return "no_observado";
+  if (/inconclus|indeterminado|no\s+concluyente/i.test(normalized)) return "inconcluso";
+  return null;
+};
+
+const findingStatusLabel = (
+  status: MasterClinicalPayload["abnormal_findings"][number]["status"]
+): string | null => {
+  if (!status) return null;
+  if (status === "alto") return "alto";
+  if (status === "bajo") return "bajo";
+  if (status === "alterado") return "alterado";
+  if (status === "normal") return "normal";
+  if (status === "no_observado") return "no observado";
+  if (status === "inconcluso") return "inconcluso";
+  return null;
+};
+
+const extractPrioritizedClinicalRecommendations = (recommendations: string[]) => {
+  const clean = recommendations
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const startsWith = (prefix: RegExp) => clean.find((item) => prefix.test(item));
+  const byPattern = (pattern: RegExp) => clean.find((item) => pattern.test(item));
+
+  const mainResult =
+    startsWith(/^resultado\s+principal:/i) ||
+    byPattern(/no\s+se\s+observ|negativ|positivo|compatible|hallazgo\s+principal/i) ||
+    null;
+  const notExcluded =
+    startsWith(/^no\s+descarta:/i) ||
+    byPattern(/no\s+descarta|no\s+exclu|falso\s+negativo|ausencia\s+no\s+es\s+excluyente/i) ||
+    null;
+  const limitation =
+    startsWith(/^limitaci[oó]n:/i) ||
+    byPattern(/limitaci[oó]n|muestra|representativa|calidad|no\s+concluyente/i) ||
+    null;
+  const nextStep =
+    startsWith(/^siguiente\s+paso:/i) ||
+    byPattern(/seguimiento|repetir|control|confirmar|cultivo|l[aá]mpara|citolog|raspado/i) ||
+    null;
+
+  return {
+    mainResult,
+    notExcluded,
+    limitation,
+    nextStep,
+  };
+};
+
+const extractVaccineArtifactsFromRecommendations = (recommendations: string[]) => {
+  const joined = recommendations.join(" | ");
+  const pick = (regex: RegExp): string | null => asStringOrNull(joined.match(regex)?.[1] || null);
+  const pickDate = (regex: RegExp): string | null => {
+    const raw = asStringOrNull(joined.match(regex)?.[1] || null);
+    return raw ? asDateKeyOrNull(raw) : null;
+  };
+
+  return {
+    product_name: pick(/(?:vacuna|producto)\s*:\s*([^|]+)/i),
+    manufacturer: pick(/(?:fabricante|laboratorio|marca)\s*:\s*([^|]+)/i),
+    lot_number: pick(/(?:lote|lot)\s*:\s*([a-z0-9\-\/]+)/i),
+    serial_number: pick(/(?:serie|serial|n[ºo]\.?\s*serie)\s*:\s*([a-z0-9\-\/]+)/i),
+    expiry_date: pickDate(/(?:vto|vencimiento|expiry)\s*:\s*([0-9\/\-]+)/i),
+    application_date: pickDate(/(?:aplicaci[oó]n|application)\s*:\s*([0-9\/\-]+)/i),
+    revaccination_date: pickDate(/(?:revacunaci[oó]n|refuerzo|pr[oó]xima\s+vacuna)\s*:\s*([0-9\/\-]+)/i),
+  };
+};
+
+const toIsoDateKey = (value: Date): string =>
+  `${value.getUTCFullYear()}-${String(value.getUTCMonth() + 1).padStart(2, "0")}-${String(value.getUTCDate()).padStart(2, "0")}`;
+
+const addMonthsToDateKey = (dateKey: string | null, months: number): string | null => {
+  if (!dateKey || !Number.isFinite(months)) return null;
+  const parsed = new Date(`${dateKey}T12:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  parsed.setUTCMonth(parsed.getUTCMonth() + months);
+  return toIsoDateKey(parsed);
+};
+
+const normalizeConditionLabel = (value: string): string =>
+  value
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const deriveProactiveCarePlan = (args: {
+  eventDate: string | null;
+  documentType: DocumentType;
+  sourceDocumentType: MasterClinicalPayload["document_type"];
+  diagnosisText: string | null;
+  diagnoses: Array<{ condition_name: string | null; severity?: string | null }>;
+  medications: MedicationExtracted[];
+  recommendations: string[];
+  imagingFindings: ProactiveImagingFinding[];
+  vaccineArtifacts: MasterClinicalPayload["vaccine_artifacts"] | null;
+}): ProactiveCarePlan | null => {
+  const isAppointmentOnly =
+    args.documentType === "appointment" ||
+    args.sourceDocumentType === "medical_appointment" ||
+    args.sourceDocumentType === "appointment";
+
+  const chronicSet = new Set<string>();
+  for (const item of args.diagnoses) {
+    const label = normalizeConditionLabel(asStringOrNull(item.condition_name) || "");
+    if (label) chronicSet.add(label);
+  }
+
+  const diagnosisText = (args.diagnosisText || "").toLowerCase();
+  if (/cardiomiopat/i.test(diagnosisText)) chronicSet.add("Cardiomiopatía");
+  if (/displasia/i.test(diagnosisText)) chronicSet.add("Displasia");
+  if (/hepatomegalia/i.test(diagnosisText)) chronicSet.add("Hepatomegalia");
+
+  const chronicConditions = Array.from(chronicSet);
+  if (
+    isAppointmentOnly &&
+    chronicConditions.length === 0 &&
+    args.medications.length === 0 &&
+    args.imagingFindings.length === 0 &&
+    !args.vaccineArtifacts?.revaccination_date
+  ) {
+    return null;
+  }
+
+  const alerts: ProactiveCareAlert[] = [];
+  if (args.vaccineArtifacts?.revaccination_date) {
+    alerts.push({
+      type: "vaccine",
+      title: `Revacunación${args.vaccineArtifacts.product_name ? ` · ${args.vaccineArtifacts.product_name}` : ""}`,
+      dueDate: args.vaccineArtifacts.revaccination_date,
+      reason: "Fecha detectada en certificado de vacunación.",
+      confidence: "high",
+    });
+  }
+
+  if (chronicConditions.some((name) => /cardiomiopat/i.test(name))) {
+    alerts.push({
+      type: "control",
+      title: "Control cardiológico",
+      dueDate: addMonthsToDateKey(args.eventDate, 3),
+      reason: "Condición cardíaca crónica detectada.",
+      confidence: "medium",
+    });
+  }
+
+  if (chronicConditions.some((name) => /displasia/i.test(name))) {
+    alerts.push({
+      type: "control",
+      title: "Control ortopédico / movilidad",
+      dueDate: addMonthsToDateKey(args.eventDate, 6),
+      reason: "Displasia detectada en historial.",
+      confidence: "medium",
+    });
+  }
+
+  for (const finding of args.imagingFindings) {
+    const highImpact = finding.severity === "severo" || finding.severity === "moderado";
+    if (!highImpact) continue;
+    alerts.push({
+      type: "imaging_followup",
+      title: `Seguimiento de imagen${finding.region ? ` · ${finding.region}` : ""}`,
+      dueDate: addMonthsToDateKey(args.eventDate, finding.severity === "severo" ? 2 : 3),
+      reason: finding.finding,
+      confidence: finding.confidence,
+    });
+  }
+
+  if (args.medications.length > 0) {
+    alerts.push({
+      type: "medication",
+      title: "Revisión de plan de medicación",
+      dueDate: addMonthsToDateKey(args.eventDate, 1),
+      reason: "Se detectó prescripción activa en documento reciente.",
+      confidence: "medium",
+    });
+  }
+
+  const dedupAlertMap = new Map<string, ProactiveCareAlert>();
+  for (const alert of alerts) {
+    const key = `${alert.type}|${alert.title}|${alert.dueDate || ""}`;
+    if (!dedupAlertMap.has(key)) dedupAlertMap.set(key, alert);
+  }
+
+  const medicationPlan: ProactiveMedicationPlan[] = args.medications.map((med) => ({
+    drug: med.name,
+    dosage: med.dosage || null,
+    frequency: med.frequency || null,
+    duration: med.duration || null,
+    confidence: med.confidence,
+  }));
+
+  const hasAny =
+    dedupAlertMap.size > 0 ||
+    chronicConditions.length > 0 ||
+    medicationPlan.length > 0 ||
+    args.imagingFindings.length > 0;
+  if (!hasAny) return null;
+
+  return {
+    alerts: Array.from(dedupAlertMap.values()),
+    chronicConditions,
+    medicationPlan,
+    imagingFindings: args.imagingFindings,
+  };
 };
 
 const asDocumentType = (value: unknown): DocumentType => {
@@ -96,20 +479,92 @@ const asAppointmentTimeOrNull = (value: unknown): string | null => {
   return null;
 };
 
+const MAX_CONDITION_NAME_CHARS = 80;
+
+// Extrae el label corto de un término clínico.
+// Si el modelo devuelve una frase larga ("Infiltrado intersticial bilateral compatible con..."),
+// intentamos aislar la entidad clínica principal antes del primer calificador largo.
+const extractShortClinicalLabel = (source: string): string => {
+  // Cortar en el primer calificador de extensión ("compatible con", "compatible a", "consistente con",
+  // "sugestivo de", "en relación a", "asociado a", "secundario a", "de probable etiología")
+  const qualifierPattern = /\b(compatible\s+(con|a)|consistente\s+con|sugestivo\s+de|en\s+relaci[oó]n\s+(a|con)|asociado\s+a|secundario\s+a|de\s+probable|de\s+etiolog[ií]a|sin\s+evidencia\s+de|a\s+descartar)\b/i;
+  const qualifierMatch = source.search(qualifierPattern);
+  const candidate = qualifierMatch > 8 ? source.slice(0, qualifierMatch).trim() : source;
+
+  // Si aun es largo, cortar en la primera coma o punto que no sea decimal
+  const commaOrPeriod = candidate.search(/[,;]|\.\s/);
+  const shortened = commaOrPeriod > 8 ? candidate.slice(0, commaOrPeriod).trim() : candidate;
+
+  // Truncar hard al límite
+  return shortened.length > MAX_CONDITION_NAME_CHARS
+    ? shortened.slice(0, MAX_CONDITION_NAME_CHARS).trimEnd() + "…"
+    : shortened;
+};
+
 const normalizeClinicalTerm = (value: string): string => {
   const source = value.toLowerCase().trim();
   const dictionary: Array<[RegExp, string]> = [
+    // Cardiovascular
     [/cardiomiopat[ií]a\s+dilatada|cmd\b/g, "cardiomiopatia dilatada"],
+    [/cardiomiopat[ií]a\s+hipertr[oó]fica|cmh\b/g, "cardiomiopatia hipertrofica"],
     [/insuficiencia\s+card[ií]aca/g, "insuficiencia cardiaca"],
-    [/hepatopat[ií]a|enfermedad\s+hep[aá]tica/g, "hepatopatia"],
+    [/endocardiosis\s+mitral|degeneraci[oó]n\s+mitral/g, "degeneracion valvula mitral"],
+    // Hepático / renal
+    [/hepatopat[ií]a|enfermedad\s+hep[aá]tica\s+cr[oó]nica?/g, "hepatopatia cronica"],
+    [/enfermedad\s+hep[aá]tica/g, "hepatopatia"],
+    [/enfermedad\s+renal\s+cr[oó]nica?|erc\b/g, "enfermedad renal cronica"],
+    [/fallo\s+renal\s+agudo?|fra\b/g, "fallo renal agudo"],
+    // Locomotor
     [/displasia\s+de\s+cadera/g, "displasia de cadera"],
+    [/displasia\s+de\s+codo/g, "displasia de codo"],
+    [/artritis\s+reumat[oó]nica?/g, "artritis"],
+    [/enfermedad\s+articular\s+degenerativa?|osteoartritis/g, "osteoartritis"],
+    // Piel
+    [/dermatitis\s+at[oó]pica/g, "dermatitis atopica"],
     [/dermatitis\s+al[eé]rgica|alergia\s+cut[aá]nea/g, "dermatitis alergica"],
+    [/dermatofitosis|ti[ñn]a/g, "dermatofitosis"],
+    // Neurológico
+    [/epilepsia\s+idiop[aá]tica/g, "epilepsia idiopatica"],
+    [/hernias?\s+discales?|enfermedad\s+discal/g, "hernia discal"],
+    // Endocrino / metabólico
+    [/diabetes\s+mellitus/g, "diabetes mellitus"],
+    [/hipotiroidismo/g, "hipotiroidismo"],
+    [/hipertiroidismo/g, "hipertiroidismo"],
+    [/hiperadrenocorticismo|s[ií]ndrome\s+de\s+cushing/g, "hiperadrenocorticismo"],
+    [/hipoadrenocorticismo|s[ií]ndrome\s+de\s+addison/g, "hipoadrenocorticismo"],
+    // Respiratorio
+    [/colapso\s+de\s+tr[aá]quea/g, "colapso de traquea"],
+    [/neumon[ií]a/g, "neumonia"],
+    [/asma\s+(felina|bronquial|veterinaria)/g, "asma bronquial"],
+    // Oncológico
+    [/tumor\s+de\s+c[eé]lulas\s+cebadas?|mastocitoma/g, "mastocitoma"],
+    [/carcinoma\s+de\s+c[eé]lulas\s+escamosas?/g, "carcinoma escamoso"],
+    [/adenocarcinoma/g, "adenocarcinoma"],
+    [/linfoma/g, "linfoma"],
+    // Digestivo
+    [/enfermedad\s+inflamatoria\s+intestinal|eii\b/g, "enfermedad inflamatoria intestinal"],
+    [/gastroenteritis/g, "gastroenteritis"],
+    [/pancreatitis/g, "pancreatitis"],
+    // Parasitario / infeccioso
+    [/leishmaniasis|leishmaniosis/g, "leishmaniasis"],
+    [/dirofilariasis|dirofilariosis/g, "dirofilariasis"],
+    [/erliquiosis/g, "erliquiosis"],
+    [/leptospirosis/g, "leptospirosis"],
+    // Équidos
+    [/s[ií]ndrome\s+metab[oó]lico\s+(equino|del\s+caballo)/g, "sindrome metabolico equino"],
+    [/laminitis|founder/g, "laminitis"],
+    [/c[oó]lico\s+(equino|en\s+caballo)/g, "colico equino"],
+    // Lagomorfos / exóticos
+    [/[eé]stasis\s+gastrointestinal|gi\s+stasis/g, "estasis gastrointestinal"],
+    [/enfermedad\s+dental\s+(en\s+)?(conejo|lagomorfo)|malocluci[oó]n\s+dental/g, "maloclucion dental"],
   ];
 
   for (const [pattern, normalized] of dictionary) {
     if (pattern.test(source)) return normalized;
   }
-  return source.replace(/\s+/g, " ");
+
+  // Para términos no reconocidos: extraer label corto en lugar de copiar texto completo
+  return extractShortClinicalLabel(source);
 };
 
 const titleFromDocumentType = (documentType: DocumentType): string => {
@@ -132,6 +587,7 @@ const mapMasterDocumentType = (value: unknown): DocumentType => {
   const type = asStringOrNull(value);
   if (!type) return "other";
   if (type === "ecografia") return "echocardiogram";
+  if (type === "radiografia" || type === "xray" || type === "rx") return "xray";
   if (type === "laboratorio") return "lab_test";
   if (type === "receta") return "medication";
   if (type === "informe") return "checkup";
@@ -151,6 +607,7 @@ const normalizeToMasterDocumentType = (value: unknown): MasterClinicalPayload["d
   const type = asStringOrNull(value)?.toLowerCase();
   if (!type) return "other";
   if (type === "ecografia") return "medical_study";
+  if (type === "radiografia" || type === "xray" || type === "rx") return "medical_study";
   if (type === "laboratorio") return "laboratory_result";
   if (type === "receta") return "prescription";
   if (type === "informe") return "clinical_report";
@@ -166,6 +623,39 @@ const normalizeToMasterDocumentType = (value: unknown): MasterClinicalPayload["d
   if (type === "invoice") return "invoice";
   if (type === "other") return "other";
   return "other";
+};
+
+const normalizeImagingRegion = (value: unknown): MasterImagingFinding["region"] => {
+  const normalized = asStringOrNull(value)?.toLowerCase();
+  if (!normalized) return null;
+  if (/(t[oó]rax|torax|pecho)/i.test(normalized)) return "torax";
+  if (/(abdomen|abdominal)/i.test(normalized)) return "abdomen";
+  if (/(pelvis|pelv)/i.test(normalized)) return "pelvis";
+  if (/(columna|vertebral|lumb|dors)/i.test(normalized)) return "columna";
+  if (/(cadera|coxofemoral|hip)/i.test(normalized)) return "cadera";
+  if (/(otro|other)/i.test(normalized)) return "otro";
+  return null;
+};
+
+const normalizeImagingView = (value: unknown): MasterImagingFinding["view"] => {
+  const normalized = asStringOrNull(value)?.toLowerCase();
+  if (!normalized) return null;
+  if (/(ventrodorsal|\bvd\b|v-d|ventro\s*dorsal)/i.test(normalized)) return "ventrodorsal";
+  if (/(dorsoventral|\bdv\b|d-v|dorso\s*ventral)/i.test(normalized)) return "dorsoventral";
+  if (/(lateral|latero|\bll\b|l-l)/i.test(normalized)) return "lateral";
+  if (/(oblicua|oblique)/i.test(normalized)) return "oblicua";
+  if (/(otro|other)/i.test(normalized)) return "otro";
+  return null;
+};
+
+const normalizeImagingSeverity = (value: unknown): MasterImagingFinding["severity"] => {
+  const normalized = asStringOrNull(value)?.toLowerCase();
+  if (!normalized) return null;
+  if (normalized === "leve") return "leve";
+  if (normalized === "moderado" || normalized === "moderada") return "moderado";
+  if (normalized === "severo" || normalized === "severa" || normalized === "grave") return "severo";
+  if (normalized === "no_especificado" || normalized === "no especificado") return "no_especificado";
+  return null;
 };
 
 const MEDICATION_SIGNAL_REGEX = /(comprimid|capsul|tableta|pastilla|jarabe|gotas|ampolla|inyecci[oó]n|cada\s+\d+\s*(h|hs|hora|horas)|\b\d+\/\d+\s*comprimido|\b\d+\s*(mg|mcg)\b|pimobendan|ursomax|predni|furosemida|omeprazol|enroflox|amoxic|metronidazol|gabapentin|carprofeno)/i;
@@ -189,9 +679,42 @@ const isLikelyMedicationTreatment = (
   return false;
 };
 
+const isQuantitativeMasterFinding = (finding: MasterClinicalPayload["abnormal_findings"][number]): boolean => {
+  return hasNumericSignal(finding.value) || hasNumericSignal(finding.reference_range);
+};
+
+const isQualitativeMicroscopyPayload = (payload: MasterClinicalPayload): boolean => {
+  const haystack = [
+    payload.document_type,
+    payload.document_info.record_number,
+    payload.document_info.clinic_name,
+    ...payload.abnormal_findings.map((finding) => finding.parameter),
+    ...payload.abnormal_findings.map((finding) => finding.value),
+    ...payload.recommendations,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (!isQualitativeMicroscopyText(haystack)) return false;
+
+  const hasQuantitative = payload.abnormal_findings.some((finding) => isQuantitativeMasterFinding(finding));
+  return !hasQuantitative;
+};
+
 const inferLegacyDocumentTypeFromMaster = (payload: MasterClinicalPayload): DocumentType => {
   const mapped = mapMasterDocumentType(payload.document_type);
   if (mapped !== "checkup") return mapped;
+
+  const imagingText = (payload.imaging_findings || [])
+    .map((item) => [item.region, item.view, item.finding].filter(Boolean).join(" "))
+    .join(" ")
+    .toLowerCase();
+  if (imagingText) {
+    if (/(ecocardi|eco\s*card|doppler|mitral|ventricul)/i.test(imagingText)) return "echocardiogram";
+    if (/(ecg|electrocardi|ritmo\s*sinusal|qrs|pr\b)/i.test(imagingText)) return "electrocardiogram";
+    return "xray";
+  }
 
   const haystack = [
     payload.document_info.record_number,
@@ -230,10 +753,17 @@ const buildSummaryFromMaster = (
     clinic?: string | null;
     title?: string | null;
     observations?: string | null;
+    vaccineProductName?: string | null;
+    vaccineLotNumber?: string | null;
+    vaccineExpiryDate?: string | null;
+    vaccineRevaccinationDate?: string | null;
   } = {}
 ): string => {
   const diagnosisText = diagnosis?.replace(/\bno_especificado\b/gi, "").trim() || null;
-  const alteredFindings = findings.filter((item) => /(alto|bajo|alterado|fuera)/i.test(item.referenceRange || ""));
+  const quantitativeFindings = findings.filter((item) =>
+    hasNumericSignal(item.value) || hasNumericSignal(item.referenceRange)
+  );
+  const alteredFindings = quantitativeFindings.filter((item) => /(alto|bajo|alterado|fuera)/i.test(item.referenceRange || ""));
   const petName = asStringOrNull(context.petName) || "la mascota";
   const eventDate = asDateKeyOrNull(context.eventDate) || "fecha no disponible";
   const provider = asStringOrNull(context.provider);
@@ -278,14 +808,65 @@ const buildSummaryFromMaster = (
   }
 
   if (documentType === "lab_test") {
-    if (findings.length > 0) {
-      return `Resultado de laboratorio de ${eventDate}: ${alteredFindings.length} de ${findings.length} mediciones fuera de rango${whoWhere ? `. Laboratorio: ${whoWhere}` : ""}.`;
+    const prioritized = extractPrioritizedClinicalRecommendations(recommendations);
+    const findingPhrases = findings
+      .map((item) => {
+        const name = asStringOrNull(item.name);
+        const value = asStringOrNull(item.value);
+        if (!name || !value) return null;
+        return `${name}: ${value}`;
+      })
+      .filter(Boolean) as string[];
+    const hasQuantitativeSignals = quantitativeFindings.length > 0;
+    const negativeQualitative = findingPhrases.filter((line) =>
+      /(no\s+se\s+observ|negativ|ausenci|sin\s+evidencia|no\s+compatible)/i.test(line)
+    );
+    const positiveQualitative = findingPhrases.filter((line) =>
+      /(positivo|compatible|presencia|detectad|se\s+observ)/i.test(line) &&
+      !/(no\s+se\s+observ|no\s+compatible|sin\s+evidencia)/i.test(line)
+    );
+    const limitationNote = prioritized.limitation || prioritized.notExcluded;
+    const recommendationMain = prioritized.mainResult;
+
+    if (!hasQuantitativeSignals && findingPhrases.length > 0) {
+      const mainFinding = negativeQualitative[0] || positiveQualitative[0] || findingPhrases[0];
+      const normalizedMainFinding = mainFinding.replace(/[.!?]\s*$/, "");
+      const noExclusionText = prioritized.notExcluded
+        ? ` No descarta: ${prioritized.notExcluded}.`
+        : "";
+      const limitationText = limitationNote ? ` Limitación: ${limitationNote}.` : "";
+      const nextStepText = prioritized.nextStep ? ` Siguiente paso: ${prioritized.nextStep}.` : "";
+      return `Laboratorio de ${eventDate}: ${normalizedMainFinding}.${noExclusionText}${limitationText}${nextStepText}${whoWhere ? ` Laboratorio: ${whoWhere}.` : ""}`.trim();
+    }
+
+    if (quantitativeFindings.length > 0) {
+      return `Resultado de laboratorio de ${eventDate}: ${alteredFindings.length} de ${quantitativeFindings.length} mediciones fuera de rango${whoWhere ? `. Laboratorio: ${whoWhere}` : ""}.`;
+    }
+    if (recommendationMain) {
+      const normalizedRecommendation = recommendationMain.replace(/[.!?]\s*$/, "");
+      const noExclusionText = prioritized.notExcluded
+        ? ` No descarta: ${prioritized.notExcluded}.`
+        : "";
+      const limitationText = limitationNote ? ` Limitación: ${limitationNote}.` : "";
+      const nextStepText = prioritized.nextStep ? ` Siguiente paso: ${prioritized.nextStep}.` : "";
+      return `Laboratorio de ${eventDate}: ${normalizedRecommendation}.${noExclusionText}${limitationText}${nextStepText}${whoWhere ? ` Laboratorio: ${whoWhere}.` : ""}`.trim();
     }
     return `Laboratorio registrado en ${eventDate}${whoWhere ? `. Laboratorio: ${whoWhere}` : ""}.`;
   }
 
   if (documentType === "vaccine" || sourceDocumentType === "vaccination_record") {
-    return `Registro de vacunación para ${petName} en ${eventDate}${whoWhere ? `. Aplicada en ${whoWhere}` : ""}.`;
+    const product = asStringOrNull(context.vaccineProductName);
+    const lot = asStringOrNull(context.vaccineLotNumber);
+    const expiry = asDateKeyOrNull(context.vaccineExpiryDate);
+    const revaccination = asDateKeyOrNull(context.vaccineRevaccinationDate);
+    const detailTokens = [
+      product ? `vacuna ${product}` : null,
+      lot ? `lote ${lot}` : null,
+      expiry ? `vto ${expiry}` : null,
+    ].filter(Boolean);
+    const details = detailTokens.length > 0 ? ` (${detailTokens.join(", ")})` : "";
+    const revaccinationText = revaccination ? ` Próxima revacunación: ${revaccination}.` : "";
+    return `Registro de vacunación para ${petName} en ${eventDate}${details}${whoWhere ? `. Aplicada en ${whoWhere}` : ""}.${revaccinationText}`.trim();
   }
 
   if (diagnosisText) {
@@ -378,9 +959,26 @@ const toMasterPayload = (value: Record<string, unknown>): MasterClinicalPayload 
       parameter: asStringOrNull(row.parameter ?? row.name),
       value: asStringOrNull(row.value ?? row.result),
       reference_range: asStringOrNull(row.reference_range ?? row.range),
-      status: asStringOrNull(row.status ?? row.interpretation) as MasterClinicalPayload["abnormal_findings"][number]["status"],
+      status: normalizeFindingStatus(row.status ?? row.interpretation),
     };
   });
+  const imagingFindings = asArray(value.imaging_findings ?? value.radiology_findings ?? value.imagingFindings).map((item) => {
+    if (typeof item === "string") {
+      return {
+        region: null,
+        view: null,
+        finding: asStringOrNull(item),
+        severity: "no_especificado" as const,
+      };
+    }
+    const row = asObject(item);
+    return {
+      region: normalizeImagingRegion(row.region ?? row.area),
+      view: normalizeImagingView(row.view ?? row.projection),
+      finding: asStringOrNull(row.finding ?? row.hallazgo ?? row.description),
+      severity: normalizeImagingSeverity(row.severity),
+    };
+  }).filter((item) => Boolean(item.finding));
 
   const treatments = asArray(value.treatments_detected ?? value.treatments).map((item) => {
     if (typeof item === "string") {
@@ -446,6 +1044,30 @@ const toMasterPayload = (value: Record<string, unknown>): MasterClinicalPayload 
       status: (statusRaw === "programado" ? "scheduled" : statusRaw) as any,
     };
   })();
+  const vaccineArtifactsRaw = asObject(value.vaccine_artifacts);
+  const vaccineArtifactsFromRec = extractVaccineArtifactsFromRecommendations(
+    asArray(value.medical_recommendations ?? value.recommendations)
+      .map((item) => asStringOrNull(item))
+      .filter(Boolean) as string[]
+  );
+  const vaccineArtifacts = {
+    sticker_detected: asBooleanOrNull(
+      vaccineArtifactsRaw.sticker_detected ?? vaccineArtifactsRaw.troquel_detected ?? value.sticker_detected
+    ),
+    stamp_detected: asBooleanOrNull(
+      vaccineArtifactsRaw.stamp_detected ?? vaccineArtifactsRaw.sello_detected ?? value.stamp_detected
+    ),
+    signature_detected: asBooleanOrNull(
+      vaccineArtifactsRaw.signature_detected ?? vaccineArtifactsRaw.firma_detected ?? value.signature_detected
+    ),
+    product_name: asStringOrNull(vaccineArtifactsRaw.product_name ?? vaccineArtifactsRaw.vaccine_name ?? vaccineArtifactsFromRec.product_name),
+    manufacturer: asStringOrNull(vaccineArtifactsRaw.manufacturer ?? vaccineArtifactsRaw.laboratory ?? vaccineArtifactsFromRec.manufacturer),
+    lot_number: asStringOrNull(vaccineArtifactsRaw.lot_number ?? vaccineArtifactsRaw.lote ?? vaccineArtifactsFromRec.lot_number),
+    serial_number: asStringOrNull(vaccineArtifactsRaw.serial_number ?? vaccineArtifactsRaw.serie ?? vaccineArtifactsFromRec.serial_number),
+    expiry_date: asDateKeyOrNull(vaccineArtifactsRaw.expiry_date ?? vaccineArtifactsRaw.vto ?? vaccineArtifactsFromRec.expiry_date),
+    application_date: asDateKeyOrNull(vaccineArtifactsRaw.application_date ?? vaccineArtifactsRaw.applied_date ?? vaccineArtifactsFromRec.application_date),
+    revaccination_date: asDateKeyOrNull(vaccineArtifactsRaw.revaccination_date ?? vaccineArtifactsRaw.next_due_date ?? vaccineArtifactsFromRec.revaccination_date),
+  };
 
   const mergedAppointments = [...appointments];
   if (appointmentEvent?.date) {
@@ -462,6 +1084,17 @@ const toMasterPayload = (value: Record<string, unknown>): MasterClinicalPayload 
   }
 
   const recommendationsSource = asArray(value.medical_recommendations ?? value.recommendations);
+  const vaccineRecommendationLines = [
+    vaccineArtifacts.product_name ? `Producto vacuna: ${vaccineArtifacts.product_name}` : null,
+    vaccineArtifacts.manufacturer ? `Fabricante: ${vaccineArtifacts.manufacturer}` : null,
+    vaccineArtifacts.lot_number ? `Lote: ${vaccineArtifacts.lot_number}` : null,
+    vaccineArtifacts.serial_number ? `Serie: ${vaccineArtifacts.serial_number}` : null,
+    vaccineArtifacts.expiry_date ? `Vto: ${vaccineArtifacts.expiry_date}` : null,
+    vaccineArtifacts.revaccination_date ? `Revacunación: ${vaccineArtifacts.revaccination_date}` : null,
+    vaccineArtifacts.sticker_detected === true ? "Troquel detectado: sí" : null,
+    vaccineArtifacts.stamp_detected === true ? "Sello detectado: sí" : null,
+    vaccineArtifacts.signature_detected === true ? "Firma detectada: sí" : null,
+  ].filter(Boolean) as string[];
   const requestedDocumentType = topLevelAppointmentEvent
     ? "medical_appointment"
     : (asStringOrNull(value.document_type) ?? asStringOrNull(documentInfo.type));
@@ -470,12 +1103,15 @@ const toMasterPayload = (value: Record<string, unknown>): MasterClinicalPayload 
   const hasClinicalPayload =
     diagnoses.some((row) => Boolean(row.condition_name)) ||
     abnormalFindings.some((row) => Boolean(row.parameter || row.value)) ||
+    imagingFindings.some((row) => Boolean(row.finding)) ||
     treatments.some((row) => Boolean(row.treatment_name || row.dosage));
   if ((normalizedDocumentType === "medical_appointment" || normalizedDocumentType === "appointment") && hasClinicalPayload) {
     if (treatments.some((row) => Boolean(row.treatment_name || row.dosage))) {
       normalizedDocumentType = "prescription";
     } else if (abnormalFindings.some((row) => Boolean(row.parameter || row.value))) {
       normalizedDocumentType = "laboratory_result";
+    } else if (imagingFindings.some((row) => Boolean(row.finding))) {
+      normalizedDocumentType = "medical_study";
     } else {
       normalizedDocumentType = "clinical_report";
     }
@@ -500,10 +1136,18 @@ const toMasterPayload = (value: Record<string, unknown>): MasterClinicalPayload 
     },
     diagnoses,
     abnormal_findings: abnormalFindings,
+    imaging_findings: imagingFindings,
     treatments,
     appointments: mergedAppointments,
-    recommendations: recommendationsSource.map((item) => asStringOrNull(item)).filter(Boolean) as string[],
+    recommendations: [
+      ...(recommendationsSource.map((item) => asStringOrNull(item)).filter(Boolean) as string[]),
+      ...vaccineRecommendationLines,
+    ],
     requires_followup: Boolean(value.requires_followup),
+    vaccine_artifacts:
+      Object.values(vaccineArtifacts).some((value) => value !== null && value !== "")
+        ? vaccineArtifacts
+        : null,
     appointment_event: appointmentEvent,
   };
 };
@@ -524,8 +1168,10 @@ const isAppointmentEventPayload = (value: Record<string, unknown>): boolean => {
 const mapMasterPayloadToLegacy = (payload: MasterClinicalPayload): Record<string, unknown> => {
   const documentType = inferLegacyDocumentTypeFromMaster(payload);
   const appointmentEvent = payload.appointment_event || null;
+  const vaccineArtifacts = payload.vaccine_artifacts || null;
   const sourceDocumentType = payload.document_type;
   const canExtractDiagnoses = ["clinical_report", "laboratory_result", "medical_study", "lab_result"].includes(sourceDocumentType);
+  const isQualitativeMicroscopy = canExtractDiagnoses && isQualitativeMicroscopyPayload(payload);
 
   const normalizedDiagnoses = (canExtractDiagnoses ? payload.diagnoses : [])
     .map((entry) => ({
@@ -534,7 +1180,7 @@ const mapMasterPayloadToLegacy = (payload: MasterClinicalPayload): Record<string
     }))
     .filter((entry) => Boolean(entry.condition_name));
 
-  const diagnosis = normalizedDiagnoses.length > 0
+  let diagnosis = normalizedDiagnoses.length > 0
     ? normalizedDiagnoses
       .map((entry) => {
         const details = [entry.organ_system, entry.classification, entry.severity]
@@ -545,18 +1191,55 @@ const mapMasterPayloadToLegacy = (payload: MasterClinicalPayload): Record<string
       .join("; ")
     : null;
 
-  const measurements: Measurement[] = (canExtractDiagnoses ? payload.abnormal_findings : [])
-    .map((finding) => {
-      if (!finding.parameter || !finding.value) return null;
-      return {
-        name: finding.parameter,
-        value: finding.value,
+  const primaryQualitativeFinding = isQualitativeMicroscopy
+    ? payload.abnormal_findings.find((finding) =>
+      isNoObservedPathogenFinding(finding.value) || isNoObservedPathogenFinding(finding.parameter)
+    ) || payload.abnormal_findings[0] || null
+    : null;
+
+  const measurements: Measurement[] = isQualitativeMicroscopy
+    ? (() => {
+      const primaryValue = asStringOrNull(primaryQualitativeFinding?.value);
+      const primaryLabel = asStringOrNull(primaryQualitativeFinding?.parameter) || "Pelos, OD con KOH";
+      if (!primaryValue) return [];
+      return [{
+        name: primaryLabel,
+        value: primaryValue,
         unit: null,
-        referenceRange: [finding.reference_range, finding.status].filter(Boolean).join(" · ") || null,
-        confidence: "high",
+        referenceRange: null,
+        confidence: "high" as const,
+      }];
+    })()
+    : (canExtractDiagnoses ? payload.abnormal_findings : [])
+      .map((finding) => {
+        if (!finding.parameter || !finding.value) return null;
+        const isQuantitative = isQuantitativeMasterFinding(finding);
+        const baseRange = isQuantitative ? asStringOrNull(finding.reference_range) : null;
+        const status = isQuantitative ? findingStatusLabel(finding.status) : null;
+        return {
+          name: finding.parameter,
+          value: finding.value,
+          unit: null,
+          referenceRange: [baseRange, status].filter(Boolean).join(" · ") || null,
+          confidence: "high",
+        };
+      })
+      .filter(Boolean) as Measurement[];
+  const imagingFindings: ProactiveImagingFinding[] = (payload.imaging_findings || [])
+    .map((item) => {
+      if (!item?.finding) return null;
+      return {
+        region: item.region || null,
+        view: item.view || null,
+        finding: item.finding,
+        severity: item.severity || "no_especificado",
+        confidence: "high" as const,
       };
     })
-    .filter(Boolean) as Measurement[];
+    .filter(Boolean) as ProactiveImagingFinding[];
+  if (!diagnosis && imagingFindings.length > 0) {
+    diagnosis = imagingFindings.slice(0, 3).map((item) => item.finding).join("; ");
+  }
 
   const medications: MedicationExtracted[] = (documentType === "appointment"
     ? []
@@ -630,11 +1313,85 @@ const mapMasterPayloadToLegacy = (payload: MasterClinicalPayload): Record<string
     }) || null
     : null;
 
-  const recommendations = payload.recommendations || [];
+  const qualitativeSecondaryFindings = isQualitativeMicroscopy
+    ? payload.abnormal_findings
+      .filter((finding) => finding !== primaryQualitativeFinding)
+      .map((finding) => {
+        const parameter = asStringOrNull(finding.parameter);
+        const value = asStringOrNull(finding.value);
+        if (!parameter || !value) return null;
+        return `${parameter}: ${value}`;
+      })
+      .filter(Boolean) as string[]
+    : [];
+
+  const qualitativeLimitation = isQualitativeMicroscopy
+    ? (
+      payload.abnormal_findings
+        .map((finding) => asStringOrNull(finding.value))
+        .find((value) => /ausencia\s+no\s+es\s+excluyente|no\s+excluyente|no\s+descarta/i.test(value || "")) ||
+      payload.recommendations.find((value) => /ausencia\s+no\s+es\s+excluyente|no\s+excluyente|no\s+descarta/i.test(value || "")) ||
+      null
+    )
+    : null;
+
+  const recommendations = [...(payload.recommendations || [])];
+  if (isQualitativeMicroscopy) {
+    const primaryValue = asStringOrNull(primaryQualitativeFinding?.value);
+    if (
+      primaryValue &&
+      !recommendations.some((item) => /resultado\s+principal:|no\s+se\s+observ|dermatofit|ectoparasit/i.test(item))
+    ) {
+      recommendations.unshift(`Resultado principal: ${primaryValue}`);
+    }
+    if (
+      qualitativeLimitation &&
+      !recommendations.some((item) => /no\s+descarta:|no\s+exclu|ausencia\s+no\s+es\s+excluyente/i.test(item))
+    ) {
+      recommendations.push(`No descarta: ${qualitativeLimitation}`);
+    }
+  }
+  const prioritized = extractPrioritizedClinicalRecommendations(recommendations);
+  const qualitativeFindings = (isQualitativeMicroscopy ? qualitativeSecondaryFindings : payload.abnormal_findings
+    .map((finding) => {
+      const parameter = asStringOrNull(finding.parameter);
+      const value = asStringOrNull(finding.value);
+      if (!parameter || !value) return null;
+      return `${parameter}: ${value}`;
+    })
+    .filter(Boolean)) as string[];
+  const cautionNotes = recommendations
+    .filter((item) =>
+      /(no\s+exclu|no\s+descarta|ausencia\s+no\s+es\s+excluyente|falso\s+negativo|limitaci[oó]n)/i.test(item)
+    )
+    .slice(0, 2);
   const observationsParts = [
     payload.document_info.record_number ? `Registro: ${payload.document_info.record_number}` : null,
     appointmentEvent?.address ? `Dirección: ${appointmentEvent.address}` : null,
     appointmentEvent?.preparation_required ? `Preparación: ${appointmentEvent.preparation_required}` : null,
+    vaccineArtifacts?.product_name ? `Vacuna: ${vaccineArtifacts.product_name}` : null,
+    vaccineArtifacts?.manufacturer ? `Fabricante: ${vaccineArtifacts.manufacturer}` : null,
+    vaccineArtifacts?.lot_number ? `Lote: ${vaccineArtifacts.lot_number}` : null,
+    vaccineArtifacts?.serial_number ? `Serie: ${vaccineArtifacts.serial_number}` : null,
+    vaccineArtifacts?.expiry_date ? `Vto: ${vaccineArtifacts.expiry_date}` : null,
+    vaccineArtifacts?.revaccination_date ? `Revacunación: ${vaccineArtifacts.revaccination_date}` : null,
+    vaccineArtifacts?.sticker_detected === true ? "Troquel detectado" : null,
+    vaccineArtifacts?.stamp_detected === true ? "Sello detectado" : null,
+    vaccineArtifacts?.signature_detected === true ? "Firma detectada" : null,
+    imagingFindings.length > 0
+      ? `Imágenes: ${imagingFindings
+        .slice(0, 4)
+        .map((item) => [item.region, item.view, item.finding].filter(Boolean).join(" · "))
+        .join(" | ")}`
+      : null,
+    isQualitativeMicroscopy && qualitativeSecondaryFindings.length > 0
+      ? `Tricograma y observaciones: ${qualitativeSecondaryFindings.join(" | ")}`
+      : null,
+    qualitativeFindings.length > 0 ? `Hallazgos: ${qualitativeFindings.slice(0, 5).join(" | ")}` : null,
+    prioritized.mainResult ? `Resultado principal: ${prioritized.mainResult}` : null,
+    prioritized.notExcluded ? `No descarta: ${prioritized.notExcluded}` : null,
+    cautionNotes.length > 0 ? `Limitaciones: ${cautionNotes.join(" | ")}` : null,
+    prioritized.nextStep ? `Siguiente paso: ${prioritized.nextStep}` : null,
     recommendations.length > 0 ? `Recomendaciones: ${recommendations.join(" | ")}` : null,
   ].filter(Boolean);
   const provider = appointmentEvent?.professional_name || payload.document_info.veterinarian_name;
@@ -675,6 +1432,10 @@ const mapMasterPayloadToLegacy = (payload: MasterClinicalPayload): Record<string
         clinic,
         title: payload.document_info.record_number,
         observations: observationsParts.join(". "),
+        vaccineProductName: vaccineArtifacts?.product_name || null,
+        vaccineLotNumber: vaccineArtifacts?.lot_number || null,
+        vaccineExpiryDate: vaccineArtifacts?.expiry_date || null,
+        vaccineRevaccinationDate: vaccineArtifacts?.revaccination_date || null,
       }
     );
   const suggestedTitle = (isAppointmentDocument
@@ -682,7 +1443,19 @@ const mapMasterPayloadToLegacy = (payload: MasterClinicalPayload): Record<string
     : firstAppointment?.title)
     || medications[0]?.name
     || normalizedDiagnoses[0]?.condition_name
+    || (isQualitativeMicroscopy ? "Microscopía dermatológica (KOH)" : null)
     || titleFromDocumentType(documentType);
+  const proactiveCarePlan = deriveProactiveCarePlan({
+    eventDate,
+    documentType,
+    sourceDocumentType,
+    diagnosisText: diagnosis,
+    diagnoses: normalizedDiagnoses,
+    medications,
+    recommendations,
+    imagingFindings,
+    vaccineArtifacts,
+  });
 
   return {
     documentType,
@@ -699,18 +1472,31 @@ const mapMasterPayloadToLegacy = (payload: MasterClinicalPayload): Record<string
     observations: observationsParts.join(". ") || null,
     observationsConfidence: observationsParts.length > 0 ? "medium" : "not_detected",
     medications,
-    nextAppointmentDate: isAppointmentDocument ? null : (nextAppointment?.date || null),
+    nextAppointmentDate: isAppointmentDocument
+      ? null
+      : (nextAppointment?.date || vaccineArtifacts?.revaccination_date || null),
     nextAppointmentReason: isAppointmentDocument
       ? null
       : nextAppointment
         ? `Seguimiento sugerido: ${nextAppointment.title || nextAppointment.specialty || "control"}`
-        : recommendations[0] || null,
+        : (recommendations[0] || (vaccineArtifacts?.revaccination_date ? "Revacunación sugerida por certificado." : null)),
     nextAppointmentConfidence: isAppointmentDocument
       ? "not_detected"
       : (nextAppointment ? "high" : (recommendations.length > 0 ? "medium" : "not_detected")),
     suggestedTitle,
     aiGeneratedSummary,
     measurements: isAppointmentDocument ? [] : measurements,
+    vaccineProductName: vaccineArtifacts?.product_name || null,
+    vaccineManufacturer: vaccineArtifacts?.manufacturer || null,
+    vaccineLotNumber: vaccineArtifacts?.lot_number || null,
+    vaccineSerialNumber: vaccineArtifacts?.serial_number || null,
+    vaccineExpiryDate: vaccineArtifacts?.expiry_date || null,
+    vaccineApplicationDate: vaccineArtifacts?.application_date || null,
+    vaccineRevaccinationDate: vaccineArtifacts?.revaccination_date || null,
+    vaccineStickerDetected: vaccineArtifacts?.sticker_detected ?? null,
+    vaccineStampDetected: vaccineArtifacts?.stamp_detected ?? null,
+    vaccineSignatureDetected: vaccineArtifacts?.signature_detected ?? null,
+    proactiveCarePlan,
     masterClinical: payload,
     extractionProtocol: "pessy_clinical_processing_protocol_v1",
   };
@@ -773,6 +1559,90 @@ const sanitizeDetectedAppointments = (
   return [];
 };
 
+const normalizeProactiveAlertType = (value: unknown): ProactiveCareAlert["type"] => {
+  const normalized = asStringOrNull(value)?.toLowerCase();
+  if (!normalized) return "control";
+  if (normalized === "vaccine" || /vacun|revacun|antirr[aá]b/i.test(normalized)) return "vaccine";
+  if (normalized === "medication" || /medic|dosis|pastill|tableta|comp/i.test(normalized)) return "medication";
+  if (normalized === "imaging_followup" || /imag|radiograf|eco|rx/.test(normalized)) return "imaging_followup";
+  return "control";
+};
+
+const sanitizeProactiveImagingFindings = (value: unknown): ProactiveImagingFinding[] =>
+  asArray(value)
+    .map((item) => {
+      const row = asObject(item);
+      const finding = asStringOrNull(row.finding ?? row.hallazgo ?? row.description);
+      if (!finding) return null;
+      const normalizedRegion = normalizeImagingRegion(row.region ?? row.area);
+      const normalizedView = normalizeImagingView(row.view ?? row.projection);
+      return {
+        region: normalizedRegion || asStringOrNull(row.region ?? row.area),
+        view: normalizedView || asStringOrNull(row.view ?? row.projection),
+        finding,
+        severity: normalizeImagingSeverity(row.severity),
+        confidence: asConfidence(row.confidence),
+      };
+    })
+    .filter(Boolean) as ProactiveImagingFinding[];
+
+const sanitizeProactiveCarePlan = (value: unknown): ProactiveCarePlan | null => {
+  const parsed = asObject(value);
+  if (Object.keys(parsed).length === 0) return null;
+
+  const alerts = asArray(parsed.alerts)
+    .map((item) => {
+      const row = asObject(item);
+      const title = asStringOrNull(row.title);
+      if (!title) return null;
+      return {
+        type: normalizeProactiveAlertType(row.type),
+        title,
+        dueDate: asDateKeyOrNull(row.dueDate ?? row.due_date ?? row.date),
+        reason: asStringOrNull(row.reason),
+        confidence: asConfidence(row.confidence),
+      };
+    })
+    .filter(Boolean) as ProactiveCareAlert[];
+
+  const chronicConditions = asArray(parsed.chronicConditions ?? parsed.chronic_conditions)
+    .map((item) => asStringOrNull(item))
+    .filter(Boolean) as string[];
+
+  const medicationPlan = asArray(parsed.medicationPlan ?? parsed.medication_plan)
+    .map((item) => {
+      const row = asObject(item);
+      const drug = asStringOrNull(row.drug ?? row.name);
+      if (!drug) return null;
+      return {
+        drug,
+        dosage: asStringOrNull(row.dosage),
+        frequency: asStringOrNull(row.frequency),
+        duration: asStringOrNull(row.duration),
+        confidence: asConfidence(row.confidence),
+      };
+    })
+    .filter(Boolean) as ProactiveMedicationPlan[];
+
+  const imagingFindings = sanitizeProactiveImagingFindings(
+    parsed.imagingFindings ?? parsed.imaging_findings
+  );
+
+  const hasAny =
+    alerts.length > 0 ||
+    chronicConditions.length > 0 ||
+    medicationPlan.length > 0 ||
+    imagingFindings.length > 0;
+  if (!hasAny) return null;
+
+  return {
+    alerts,
+    chronicConditions,
+    medicationPlan,
+    imagingFindings,
+  };
+};
+
 const sanitizeExtractedData = (raw: unknown, fallbackRawText = ""): ExtractedData => {
   const parsed = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const fallback = buildSafeFallbackExtraction(fallbackRawText);
@@ -782,7 +1652,11 @@ const sanitizeExtractedData = (raw: unknown, fallbackRawText = ""): ExtractedDat
   const clinic = asStringOrNull(parsed.clinic);
   const suggestedTitle = asStringOrNull(parsed.suggestedTitle) || fallback.suggestedTitle;
   const rawDocumentType = asDocumentType(parsed.documentType);
-  const masterClinical = asObject(parsed.masterClinical);
+  const parsedMasterClinical =
+    parsed.masterClinical && typeof parsed.masterClinical === "object"
+      ? (parsed.masterClinical as MasterClinicalPayload)
+      : null;
+  const masterClinical = asObject(parsedMasterClinical);
   const masterDocumentType = asStringOrNull(masterClinical.document_type)?.toLowerCase();
   const appointmentHintText = [
     suggestedTitle,
@@ -819,19 +1693,23 @@ const sanitizeExtractedData = (raw: unknown, fallbackRawText = ""): ExtractedDat
       .filter(Boolean)
     : [];
 
-  const measurements = Array.isArray(parsed.measurements)
+  const rawMeasurements = Array.isArray(parsed.measurements)
     ? parsed.measurements
       .map((item) => {
         const measurement = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
         const name = asStringOrNull(measurement.name);
         const value = asStringOrNull(measurement.value);
         if (!name || !value) return null;
-        return {
+        const provisional: Measurement = {
           name,
           value,
           unit: asStringOrNull(measurement.unit),
           referenceRange: asStringOrNull(measurement.referenceRange),
           confidence: asConfidence(measurement.confidence),
+        };
+        return {
+          ...provisional,
+          referenceRange: sanitizeMeasurementReferenceRange(provisional),
         };
       })
       .filter(Boolean)
@@ -854,10 +1732,120 @@ const sanitizeExtractedData = (raw: unknown, fallbackRawText = ""): ExtractedDat
   });
   if (forceAppointment) inferredType = "appointment";
 
+  const measurements = collapseQualitativeMicroscopyMeasurements(rawMeasurements as Measurement[]);
+
   const summaryFromParsed = asStringOrNull(parsed.aiGeneratedSummary) || fallback.aiGeneratedSummary;
   const adjustedSummary = inferredType === "appointment"
     ? "Confirmación de turno detectada. Revisá fecha, hora y profesional para agregarla a agenda."
     : summaryFromParsed;
+  const parsedVaccineArtifacts = asObject(
+    parsed.vaccineArtifacts ??
+    parsed.vaccine_artifacts ??
+    asObject(masterClinical.vaccine_artifacts)
+  );
+  const vaccineProductName = asStringOrNull(parsed.vaccineProductName ?? parsedVaccineArtifacts.product_name);
+  const vaccineManufacturer = asStringOrNull(parsed.vaccineManufacturer ?? parsedVaccineArtifacts.manufacturer);
+  const vaccineLotNumber = asStringOrNull(parsed.vaccineLotNumber ?? parsedVaccineArtifacts.lot_number ?? parsedVaccineArtifacts.lote);
+  const vaccineSerialNumber = asStringOrNull(parsed.vaccineSerialNumber ?? parsedVaccineArtifacts.serial_number ?? parsedVaccineArtifacts.serie);
+  const vaccineExpiryDate = asDateKeyOrNull(parsed.vaccineExpiryDate ?? parsedVaccineArtifacts.expiry_date ?? parsedVaccineArtifacts.vto);
+  const vaccineApplicationDate = asDateKeyOrNull(parsed.vaccineApplicationDate ?? parsedVaccineArtifacts.application_date);
+  const vaccineRevaccinationDate = asDateKeyOrNull(parsed.vaccineRevaccinationDate ?? parsedVaccineArtifacts.revaccination_date);
+  const vaccineStickerDetected = asBooleanOrNull(parsed.vaccineStickerDetected ?? parsedVaccineArtifacts.sticker_detected);
+  const vaccineStampDetected = asBooleanOrNull(parsed.vaccineStampDetected ?? parsedVaccineArtifacts.stamp_detected);
+  const vaccineSignatureDetected = asBooleanOrNull(parsed.vaccineSignatureDetected ?? parsedVaccineArtifacts.signature_detected);
+  const parsedProactiveCarePlan = sanitizeProactiveCarePlan(
+    parsed.proactiveCarePlan ?? parsed.proactive_care_plan
+  );
+  const parsedImagingFindings = sanitizeProactiveImagingFindings(
+    parsed.imagingFindings ?? parsed.imaging_findings
+  );
+
+  const derivedCarePlanFromMaster = (() => {
+    if (!parsedMasterClinical) return null;
+    const normalizedMaster = toMasterPayload(asObject(parsedMasterClinical));
+    const normalizedDocumentType = inferLegacyDocumentTypeFromMaster(normalizedMaster);
+    const normalizedImagingFindings = (normalizedMaster.imaging_findings || [])
+      .map((item) => {
+        if (!item?.finding) return null;
+        return {
+          region: item.region || null,
+          view: item.view || null,
+          finding: item.finding,
+          severity: item.severity || "no_especificado",
+          confidence: "high" as const,
+        };
+      })
+      .filter(Boolean) as ProactiveImagingFinding[];
+
+    const normalizedMedications = normalizedMaster.treatments
+      .filter((item) => isLikelyMedicationTreatment(item))
+      .map((item) => {
+        if (!item.treatment_name) return null;
+        const dosage = item.dosage || null;
+        return {
+          name: item.treatment_name,
+          dosage,
+          frequency: dosage ? asStringOrNull(dosage.match(/cada\s+\d+\s*horas?/i)?.[0] || null) : null,
+          duration:
+            item.start_date && item.end_date
+              ? `${item.start_date} a ${item.end_date}`
+              : item.status === "activo"
+                ? "indefinido"
+                : null,
+          confidence: "high" as const,
+        };
+      })
+      .filter(Boolean) as MedicationExtracted[];
+
+    return deriveProactiveCarePlan({
+      eventDate: eventDate || normalizedMaster.document_info.date || null,
+      documentType: normalizedDocumentType,
+      sourceDocumentType: normalizedMaster.document_type,
+      diagnosisText: asStringOrNull(parsed.diagnosis),
+      diagnoses: normalizedMaster.diagnoses.map((item) => ({
+        condition_name: item.condition_name,
+        severity: item.severity,
+      })),
+      medications: normalizedMedications,
+      recommendations: normalizedMaster.recommendations || [],
+      imagingFindings: normalizedImagingFindings,
+      vaccineArtifacts: normalizedMaster.vaccine_artifacts || null,
+    });
+  })();
+
+  const derivedCarePlanFromLegacy = deriveProactiveCarePlan({
+    eventDate,
+    documentType: inferredType,
+    sourceDocumentType: normalizeToMasterDocumentType(masterDocumentType),
+    diagnosisText: inferredType === "appointment" ? null : asStringOrNull(parsed.diagnosis),
+    diagnoses: (
+      asStringOrNull(parsed.diagnosis)
+        ?.split(/;\s*/)
+        .map((item) => asStringOrNull(item))
+        .filter(Boolean)
+        .map((item) => ({ condition_name: item || null, severity: null })) || []
+    ),
+    medications: (inferredType === "appointment" ? [] : medications) as MedicationExtracted[],
+    recommendations: [
+      asStringOrNull(parsed.nextAppointmentReason),
+      asStringOrNull(parsed.observations),
+      ...(asArray(parsed.recommendations).map((item) => asStringOrNull(item)).filter(Boolean) as string[]),
+    ].filter(Boolean) as string[],
+    imagingFindings: parsedImagingFindings,
+    vaccineArtifacts: {
+      sticker_detected: vaccineStickerDetected,
+      stamp_detected: vaccineStampDetected,
+      signature_detected: vaccineSignatureDetected,
+      product_name: vaccineProductName,
+      manufacturer: vaccineManufacturer,
+      lot_number: vaccineLotNumber,
+      serial_number: vaccineSerialNumber,
+      expiry_date: vaccineExpiryDate,
+      application_date: vaccineApplicationDate,
+      revaccination_date: vaccineRevaccinationDate,
+    },
+  });
+  const proactiveCarePlan = parsedProactiveCarePlan || derivedCarePlanFromMaster || derivedCarePlanFromLegacy;
 
   return {
     ...fallback,
@@ -875,15 +1863,28 @@ const sanitizeExtractedData = (raw: unknown, fallbackRawText = ""): ExtractedDat
     observations: asStringOrNull(parsed.observations),
     observationsConfidence: asConfidence(parsed.observationsConfidence),
     medications: (inferredType === "appointment" ? [] : medications) as ExtractedData["medications"],
-    nextAppointmentDate: inferredType === "appointment" ? null : asDateKeyOrNull(parsed.nextAppointmentDate),
-    nextAppointmentReason: asStringOrNull(parsed.nextAppointmentReason),
+    nextAppointmentDate: inferredType === "appointment"
+      ? null
+      : asDateKeyOrNull(parsed.nextAppointmentDate) || (inferredType === "vaccine" ? vaccineRevaccinationDate : null),
+    nextAppointmentReason: asStringOrNull(parsed.nextAppointmentReason) || (
+      inferredType === "vaccine" && vaccineRevaccinationDate ? "Revacunación sugerida por certificado." : null
+    ),
     nextAppointmentConfidence: inferredType === "appointment" ? "not_detected" : asConfidence(parsed.nextAppointmentConfidence),
     suggestedTitle,
     aiGeneratedSummary: adjustedSummary,
     measurements: (inferredType === "appointment" ? [] : measurements) as ExtractedData["measurements"],
-    masterClinical: (parsed.masterClinical && typeof parsed.masterClinical === "object")
-      ? (parsed.masterClinical as MasterClinicalPayload)
-      : null,
+    vaccineProductName,
+    vaccineManufacturer,
+    vaccineLotNumber,
+    vaccineSerialNumber,
+    vaccineExpiryDate,
+    vaccineApplicationDate,
+    vaccineRevaccinationDate,
+    vaccineStickerDetected,
+    vaccineStampDetected,
+    vaccineSignatureDetected,
+    proactiveCarePlan,
+    masterClinical: parsedMasterClinical,
     extractionProtocol:
       asStringOrNull(parsed.extractionProtocol) === "pessy_clinical_processing_protocol_v1"
         ? "pessy_clinical_processing_protocol_v1"
@@ -924,6 +1925,7 @@ const buildSafeFallbackExtraction = (rawText?: string | null): ExtractedData => 
     suggestedTitle: "Documento médico",
     aiGeneratedSummary: summary || "Documento recibido. Revisá los datos manualmente.",
     measurements: [],
+    proactiveCarePlan: null,
     masterClinical: null,
     extractionProtocol: "legacy_v1",
   };
@@ -970,9 +1972,13 @@ const safeParseExtractedData = (rawText: string): ExtractedData | null => {
 // MOCK - Reemplazar con API real
 // ============================================================================
 
+/** @deprecated Solo para desarrollo local. No usar en producción. */
 export async function mockProcessDocument(
   file: File
 ): Promise<DocumentExtractionResponse> {
+  if (import.meta.env.PROD) {
+    throw new Error("mockProcessDocument no disponible en producción");
+  }
   // Simular delay de procesamiento
   await new Promise((resolve) => setTimeout(resolve, 2500));
 
@@ -1303,9 +2309,61 @@ export async function mockProcessDocument(
 // IMPLEMENTACION REAL
 // ============================================================================
 
+async function callAnalysisAPIFromBackend(file: File): Promise<DocumentExtractionResponse> {
+  const startedAt = Date.now();
+  const optimizedFile = await prepareFileForAnalysis(file);
+  const normalizedMimeType = normalizeAnalysisMimeType(optimizedFile);
+  if (!isSupportedAnalysisMimeType(normalizedMimeType)) {
+    throw new Error("Formato no compatible. Subí PDF, JPG, PNG o WEBP.");
+  }
+  const base64 = await fileToBase64(optimizedFile);
+
+  const result = await callBackendFunction<
+    { mimeType: string; base64: string; contextHint?: string; fileName?: string },
+    BackendAnalyzeResponse
+  >(
+    "analyzeDocument",
+    {
+      mimeType: normalizedMimeType,
+      base64,
+      contextHint: file.name || undefined,
+      fileName: file.name || undefined,
+    }
+  );
+
+  const rawText = typeof result?.rawText === "string" ? result.rawText : "";
+  const extractedData = safeParseExtractedData(rawText) || buildSafeFallbackExtraction(rawText);
+  const warnings: string[] = [];
+  if ((optimizedFile as any)._heicConversionFailed) {
+    warnings.push("No se pudo convertir la imagen HEIC. Los resultados pueden ser menos precisos.");
+  }
+
+  return {
+    extractedData,
+    processingTimeMs:
+      typeof result?.processingTimeMs === "number"
+        ? result.processingTimeMs
+        : Date.now() - startedAt,
+    model: typeof result?.model === "string" ? result.model : "servicio-analisis-backend",
+    tokensUsed: typeof result?.tokensUsed === "number" ? result.tokensUsed : 0,
+    ...(warnings.length > 0 ? { warnings } : {}),
+  };
+}
+
 export async function callAnalysisAPI(
   file: File
 ): Promise<DocumentExtractionResponse> {
+  if (USE_BACKEND_ANALYSIS) {
+    try {
+      return await callAnalysisAPIFromBackend(file);
+    } catch (backendError) {
+      if (!RUNTIME_ALLOW_DIRECT_AI_FALLBACK) {
+        throw backendError;
+      }
+      console.warn("Backend analysis failed, fallback to direct API:", backendError);
+    }
+  }
+
   const startTime = Date.now();
   const analysisApiKey = import.meta.env.VITE_GEMINI_API_KEY;
   const analysisModel = import.meta.env.VITE_ANALYSIS_MODEL;
@@ -1315,6 +2373,10 @@ export async function callAnalysisAPI(
   }
 
   const optimizedFile = await prepareFileForAnalysis(file);
+  const normalizedMimeType = normalizeAnalysisMimeType(optimizedFile);
+  if (!isSupportedAnalysisMimeType(normalizedMimeType)) {
+    throw new Error("Formato no compatible. Subí PDF, JPG, PNG o WEBP.");
+  }
   const base64 = await fileToBase64(optimizedFile);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -1328,6 +2390,7 @@ Clasificá primero el documento en UNA categoría:
 - clinical_report
 - laboratory_result
 - prescription
+- medical_study
 - medical_appointment
 - vaccination_record
 - other
@@ -1336,6 +2399,16 @@ Reglas críticas:
 - Si detectás fecha futura + hora + especialidad o términos de turno (turno, confirmado, centro de atención, consulta), tratar como medical_appointment.
 - Si es medical_appointment, NO generar diagnósticos ni hallazgos clínicos.
 - No inventar datos faltantes.
+
+FASE 0.5 — LECTURA CLÍNICA OBLIGATORIA (informes cualitativos: KOH, tricograma, citología, raspado)
+1) Identificá estudio solicitado y técnica.
+2) Extraé resultado principal literal (ej. "no se observaron...", "compatible con...", "positivo/negativo").
+3) Diferenciá explícitamente:
+   - qué descarta en esta muestra,
+   - qué NO descarta de forma global.
+4) Capturá limitaciones/disclaimers del informe (ej. "su ausencia no es excluyente").
+5) Listá observaciones secundarias separadas del resultado principal.
+6) Traducí términos técnicos en lenguaje simple dentro de recomendaciones.
 
 FASE 1 — EXTRACCIÓN ESTRUCTURADA
 Analizá el documento completo en modo multimodal y devolvé SOLO JSON válido:
@@ -1348,7 +2421,7 @@ Analizá el documento completo en modo multimodal y devolvé SOLO JSON válido:
     "owner": "string|null"
   },
   "document": {
-    "type": "ecografia|laboratorio|receta|informe|otro",
+    "type": "radiografia|ecografia|laboratorio|receta|informe|otro",
     "study_date": "YYYY-MM-DD|null",
     "clinic_name": "string|null",
     "clinic_address": "string|null",
@@ -1369,7 +2442,15 @@ Analizá el documento completo en modo multimodal y devolvé SOLO JSON válido:
       "parameter": "string|null",
       "value": "string|null",
       "reference_range": "string|null",
-      "interpretation": "alto|bajo|alterado|null"
+      "interpretation": "alto|bajo|alterado|normal|no_observado|inconcluso|null"
+    }
+  ],
+  "imaging_findings": [
+    {
+      "region": "torax|abdomen|pelvis|columna|cadera|otro|null",
+      "view": "ventrodorsal|lateral|dorsoventral|oblicua|otro|null",
+      "finding": "string|null",
+      "severity": "leve|moderado|severo|no_especificado|null"
     }
   ],
   "treatments_detected": [
@@ -1401,6 +2482,22 @@ Opcional para documentos de turno:
   }
 }
 
+Opcional para certificados/carnets de vacunación:
+{
+  "vaccine_artifacts": {
+    "sticker_detected": true,
+    "stamp_detected": true,
+    "signature_detected": true,
+    "product_name": "string|null",
+    "manufacturer": "string|null",
+    "lot_number": "string|null",
+    "serial_number": "string|null",
+    "expiry_date": "YYYY-MM-DD|null",
+    "application_date": "YYYY-MM-DD|null",
+    "revaccination_date": "YYYY-MM-DD|null"
+  }
+}
+
 FASE 2 — NORMALIZACIÓN
 - Fechas en ISO YYYY-MM-DD.
 - Unificar patologías equivalentes.
@@ -1413,6 +2510,19 @@ Reglas:
 - No exceder 6 elementos por lista.
 - Ignorar fecha de impresión y priorizar fecha clínica principal.
 - Si el documento es turno, no completar diagnósticos ni hallazgos clínicos.
+- En estudios cualitativos, usar "abnormal_findings.value" con literal clínico (ej. "no se observaron estructuras compatibles...").
+- Regla crítica: si NO hay valor numérico y NO hay rango numérico explícito, NO usar interpretaciones "alto|bajo|alterado|fuera de rango". Usar "no_observado" o null.
+- Para dermatología microscópica (KOH/tricograma/citología/raspado): devolver UN estudio padre y observaciones como texto, no separar en múltiples "valores de laboratorio" cuantitativos.
+- Si aparece "ausencia no excluyente" o equivalente, incluirlo textualmente en "medical_recommendations".
+- Si el documento es por imágenes (radiografía/ecografía/ECG), completar "imaging_findings" con región, vista/proyección y hallazgo.
+- Para radiografía, mapear abreviaturas de proyección cuando aparezcan (VD, DV, LL) a "view".
+- Priorizar recomendaciones con prefijos:
+  1) "Resultado principal: ..."
+  2) "No descarta: ..." (si aplica)
+  3) "Limitación: ..." (si aplica)
+  4) "Siguiente paso: ..." (si aplica).
+- Si hay troquel/sello/firma visibles, registrarlo en "vaccine_artifacts".
+- Si el troquel tiene lote o serie, priorizar esos valores como fuente de verdad sobre texto libre.
 `;
 
   const response = await fetch(
@@ -1424,7 +2534,7 @@ Reglas:
         contents: [{
           parts: [
             { text: prompt },
-            { inline_data: { mime_type: optimizedFile.type, data: base64 } },
+            { inline_data: { mime_type: normalizedMimeType, data: base64 } },
           ],
         }],
         generationConfig: {
@@ -1469,6 +2579,25 @@ Reglas:
 }
 
 export async function generateHealthSummary(prompt: string): Promise<string> {
+  if (USE_BACKEND_ANALYSIS) {
+    try {
+      const result = await callBackendFunction<
+        { prompt: string; temperature: number; maxOutputTokens: number },
+        BackendSummaryResponse
+      >("generateClinicalSummary", {
+        prompt,
+        temperature: 0.2,
+        maxOutputTokens: 450,
+      });
+      return (result?.rawText || "").trim() || "No se pudo generar el resumen.";
+    } catch (backendError) {
+      if (!RUNTIME_ALLOW_DIRECT_AI_FALLBACK) {
+        throw backendError;
+      }
+      console.warn("Backend summary failed, fallback to direct API:", backendError);
+    }
+  }
+
   const apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
   const analysisModel = (import.meta as any).env.VITE_ANALYSIS_MODEL;
   if (!apiKey || !analysisModel) throw new Error("Servicio de analisis no configurado");
@@ -1586,10 +2715,11 @@ const buildFallbackSynthesis = (input: ClinicalReportSynthesisInput): ClinicalRe
 export async function generateClinicalReportSynthesis(
   input: ClinicalReportSynthesisInput
 ): Promise<ClinicalReportSynthesis> {
+  const useBackendSummary = USE_BACKEND_ANALYSIS;
   const apiKey = (import.meta as any).env.VITE_GEMINI_API_KEY;
   const analysisModel = (import.meta as any).env.VITE_ANALYSIS_MODEL;
 
-  if (!apiKey || !analysisModel) {
+  if (!useBackendSummary && (!apiKey || !analysisModel)) {
     return buildFallbackSynthesis(input);
   }
 
@@ -1704,30 +2834,49 @@ Reglas de escritura:
 - Incluir aclaración breve de que no reemplaza evaluación veterinaria presencial.
 `;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${analysisModel}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.1,
-          topK: 1,
-          topP: 1,
-          responseMimeType: "application/json",
-          maxOutputTokens: 1200,
-        },
-      }),
+  let rawText = "";
+  if (useBackendSummary) {
+    try {
+      const backend = await callBackendFunction<
+        { prompt: string; temperature: number; maxOutputTokens: number; responseMimeType: string },
+        BackendSummaryResponse
+      >("generateClinicalSummary", {
+        prompt,
+        temperature: 0.1,
+        maxOutputTokens: 1200,
+        responseMimeType: "application/json",
+      });
+      rawText = backend?.rawText || "";
+    } catch (error) {
+      console.warn("No se pudo generar resumen clinico en backend:", error);
+      return buildFallbackSynthesis(input);
     }
-  );
+  } else {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${analysisModel}:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.1,
+            topK: 1,
+            topP: 1,
+            responseMimeType: "application/json",
+            maxOutputTokens: 1200,
+          },
+        }),
+      }
+    );
 
-  if (!response.ok) {
-    return buildFallbackSynthesis(input);
+    if (!response.ok) {
+      return buildFallbackSynthesis(input);
+    }
+
+    const data = await response.json();
+    rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
   }
-
-  const data = await response.json();
-  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
   const stripped = rawText.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
   const jsonMatch = stripped.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
@@ -1764,13 +2913,31 @@ async function fileToBase64(file: File): Promise<string> {
   });
 }
 
-async function prepareFileForAnalysis(file: File): Promise<File> {
-  if (!file.type.startsWith("image/")) return file;
-  if (file.size < 450_000) return file;
+async function prepareFileForAnalysis(file: File): Promise<File & { _heicConversionFailed?: boolean }> {
+  let normalizedFile: File & { _heicConversionFailed?: boolean } = file;
+  if (isHeicLike(file)) {
+    try {
+      normalizedFile = await convertHeicToJpeg(file);
+    } catch (error) {
+      console.warn("[ANALYSIS] No se pudo convertir HEIC/HEIF, se usa archivo original:", error);
+      normalizedFile = file;
+      (normalizedFile as any)._heicConversionFailed = true;
+    }
+  }
+
+  const normalizedMimeType = normalizeAnalysisMimeType(normalizedFile);
+  if (!normalizedMimeType.startsWith("image/")) return normalizedFile;
+  if (normalizedFile.size < 450_000) return normalizedFile;
 
   try {
-    const image = await createImageBitmap(file);
-    const maxSide = 1600;
+    const image = await createImageBitmap(normalizedFile);
+    // Preservar más detalle en documentos escaneados (texto chico / troqueles).
+    const shortest = Math.min(image.width, image.height);
+    const longest = Math.max(image.width, image.height);
+    const aspectRatio = longest > 0 ? shortest / longest : 1;
+    const likelyDocumentScan = aspectRatio >= 0.62 && aspectRatio <= 0.82;
+    const maxSide = likelyDocumentScan ? 2200 : 1600;
+    const jpegQuality = likelyDocumentScan ? 0.9 : 0.82;
     const largerSide = Math.max(image.width, image.height);
     const scale = largerSide > maxSide ? maxSide / largerSide : 1;
     const width = Math.max(1, Math.round(image.width * scale));
@@ -1782,24 +2949,25 @@ async function prepareFileForAnalysis(file: File): Promise<File> {
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       image.close();
-      return file;
+      return normalizedFile;
     }
 
     ctx.drawImage(image, 0, 0, width, height);
     image.close();
 
     const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/jpeg", 0.82)
+      canvas.toBlob(resolve, "image/jpeg", jpegQuality)
     );
 
-    if (!blob) return file;
-    if (blob.size >= file.size) return file;
+    if (!blob) return normalizedFile;
+    if (blob.size >= normalizedFile.size) return normalizedFile;
 
-    return new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), {
+    return new File([blob], normalizedFile.name.replace(/\.[^/.]+$/, ".jpg"), {
       type: "image/jpeg",
+      lastModified: Date.now(),
     });
   } catch (error) {
     console.warn("No se pudo optimizar imagen para análisis, se usa original:", error);
-    return file;
+    return normalizedFile;
   }
 }

@@ -6,7 +6,8 @@ import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
 import { useAuth } from "../contexts/AuthContext";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "../../lib/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { storage, db } from "../../lib/firebase";
 import { extractMedicalData } from "../services/analysisService";
 import { NotificationService } from "../services/notificationService";
 import { MedicalEvent, ActiveMedication } from "../types/medical";
@@ -32,6 +33,7 @@ interface TreatmentQuestionItem {
   reminderEnabled: boolean;
   reminderInterval: "8" | "12" | "24" | "other";
   reminderCustomHours: string;
+  firstDoseTime: string; // HH:mm — hora de la primera dosis hoy
   addToCalendar: boolean;
 }
 
@@ -148,7 +150,10 @@ export function DocumentScannerModal({
       }
 
       for (const item of pendingTreatmentContext.items) {
-        const startDate = pendingTreatmentContext.treatmentStart;
+        // Usar la hora de primera dosis elegida por el usuario como punto de inicio del recordatorio
+        const baseDate = pendingTreatmentContext.treatmentStart.slice(0, 10); // YYYY-MM-DD
+        const firstDose = item.firstDoseTime || "09:00";
+        const startDate = `${baseDate}T${firstDose}:00`;
         const frequency = item.frequency.trim() || "Frecuencia no especificada";
         const duration = item.duration.trim();
         const endDate = parseDurationToEndDate(duration || null, startDate);
@@ -256,10 +261,12 @@ export function DocumentScannerModal({
 
       setProcessingStatus("Verificando duplicados...");
       const fileHash = await hashFile(file);
-      const existingEvents = getEventsByPetId(activePet.id);
-      const duplicated = existingEvents.find((event) => event.fileHash && event.fileHash === fileHash);
-
-      if (duplicated) {
+      // Consultar Firestore directamente para evitar falsos positivos por estado React desactualizado
+      // (puede pasar si el usuario acaba de eliminar el evento y el listener no refrescó aún).
+      const hashSnap = await getDocs(
+        query(collection(db, "medical_events"), where("petId", "==", activePet.id), where("fileHash", "==", fileHash))
+      );
+      if (!hashSnap.empty) {
         setUploadStage("error");
         setProcessingStatus("Documento duplicado: ya existe en el historial. Se canceló para evitar doble costo.");
         return;
@@ -299,6 +306,7 @@ export function DocumentScannerModal({
       // ── Registrar bytes usados ─────────────────────────────────────────
       trackUpload(file.size).catch(() => {});
       const aiData = extractionResponse.extractedData;
+      const analysisModel = extractionResponse.model || "unknown";
       const reviewDecision = evaluateDocumentForReview(aiData);
 
       setProcessingStatus("Guardando en tu historial...");
@@ -338,6 +346,7 @@ export function DocumentScannerModal({
         overallConfidence: reviewDecision.overallConfidence,
         ocrProcessed: true,
         aiProcessed: true,
+        analysisModel,
         extractedData: aiData,
         fileHash,
         dedupKey: "",
@@ -350,10 +359,15 @@ export function DocumentScannerModal({
 
       newEvent.dedupKey = buildEventSemanticKey(newEvent);
 
-      const duplicatedByContent = existingEvents.some(
-        (event) => buildEventSemanticKey(event) === newEvent.dedupKey
+      // Consultar Firestore directamente (no estado local) para evitar falso
+      // positivo cuando el usuario acaba de eliminar el evento y el listener
+      // de React aún no actualizó el array local.
+      const dedupSnap = await getDocs(
+        query(collection(db, "medical_events"),
+          where("petId", "==", activePet.id),
+          where("dedupKey", "==", newEvent.dedupKey))
       );
-      if (duplicatedByContent) {
+      if (!dedupSnap.empty) {
         setUploadStage("error");
         setProcessingStatus("Documento duplicado: ya existe uno equivalente en el historial.");
         return;
@@ -364,6 +378,10 @@ export function DocumentScannerModal({
         setUploadStage("error");
         setProcessingStatus("Documento duplicado: se evitó guardar para no generar costos duplicados.");
         return;
+      }
+      // Guardar eventId para navegación de revisión
+      if (reviewDecision.requiresManualConfirmation) {
+        (window as any).__pessy_last_review_event_id = newEvent.id;
       }
 
       // Crear medicaciones activas detectadas en el documento cuando la extracción es confiable.
@@ -385,6 +403,7 @@ export function DocumentScannerModal({
             reminderEnabled: Boolean(med.frequency),
             reminderInterval: interval,
             reminderCustomHours: detectedHours && ![8, 12, 24].includes(detectedHours) ? String(detectedHours) : "",
+            firstDoseTime: new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false }),
             addToCalendar: false,
           };
         });
@@ -427,6 +446,14 @@ export function DocumentScannerModal({
         setProcessingStatus("Servicio saturado temporalmente. Probá nuevamente en un minuto.");
         return;
       }
+      if (msg.includes("formato no compatible") || msg.includes("pdf, jpg, png o webp")) {
+        setProcessingStatus("Formato no compatible. Subí PDF, JPG, PNG o WEBP.");
+        return;
+      }
+      if (msg.includes("demasiado grande") || msg.includes("8mb")) {
+        setProcessingStatus("El archivo es demasiado grande para análisis en tiempo real. Probá con uno más liviano.");
+        return;
+      }
 
       setProcessingStatus("No se pudo procesar el documento en este intento. Probá con una foto más clara o reintentá.");
     }
@@ -452,7 +479,10 @@ export function DocumentScannerModal({
       : reviewTarget === "appointments"
         ? "appointments"
         : "feed";
-    navigate(`/home?review=${reviewParam}`);
+    // Pasamos el eventId para que la pantalla destino resalte el item que necesita revisión
+    const savedEventId = (window as any).__pessy_last_review_event_id || "";
+    const extra = savedEventId ? `&eventId=${savedEventId}` : "";
+    navigate(`/home?review=${reviewParam}${extra}`);
     handleClose();
   };
 
@@ -510,9 +540,9 @@ export function DocumentScannerModal({
                   </div>
 
                   {/* Info sobre procesamiento */}
-                  <div className="mb-6 p-4 bg-[#2b7cee]/10 border border-[#2b7cee]/20 rounded-2xl">
+                  <div className="mb-6 p-4 bg-[#074738]/10 border border-[#074738]/20 rounded-2xl">
                     <div className="flex items-start gap-3">
-                      <MaterialIcon name="description" className="text-[#2b7cee] text-xl mt-0.5" />
+                      <MaterialIcon name="description" className="text-[#074738] text-xl mt-0.5" />
                       <div>
                         <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">
                           Procesamiento inteligente automático
@@ -529,7 +559,7 @@ export function DocumentScannerModal({
                     {/* Scan with Camera */}
                     <button
                       onClick={handleFileSelect}
-                      className="w-full p-5 rounded-2xl bg-[#2b7cee] hover:bg-[#5a8aff] active:scale-95 transition-all flex items-center gap-4"
+                      className="w-full p-5 rounded-2xl bg-[#074738] hover:bg-[#1a9b7d] active:scale-95 transition-all flex items-center gap-4"
                     >
                       <div className="size-14 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
                         <MaterialIcon name="photo_camera" className="text-white text-3xl" />
@@ -548,7 +578,7 @@ export function DocumentScannerModal({
                     {/* Upload from Files */}
                     <button
                       onClick={handleFileSelect}
-                      className="w-full p-5 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-[#2b7cee] dark:hover:border-[#2b7cee] active:scale-95 transition-all flex items-center gap-4"
+                      className="w-full p-5 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-[#074738] dark:hover:border-[#074738] active:scale-95 transition-all flex items-center gap-4"
                     >
                       <div className="size-14 rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0">
                         <MaterialIcon name="upload_file" className="text-slate-700 dark:text-slate-300 text-3xl" />
@@ -570,7 +600,7 @@ export function DocumentScannerModal({
               {/* PROCESSING STAGE */}
               {uploadStage === "processing" && (
                 <div className="p-6 flex flex-col items-center justify-center min-h-[400px]">
-                  <div className="size-14 rounded-full border-4 border-slate-200 dark:border-slate-800 border-t-[#2b7cee] animate-spin mb-6" />
+                  <div className="size-14 rounded-full border-4 border-slate-200 dark:border-slate-800 border-t-[#074738] animate-spin mb-6" />
                   <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">
                     {processingStatus}
                   </h3>
@@ -581,7 +611,7 @@ export function DocumentScannerModal({
                     {["Lectura", "Extraccion", "Guardado"].map((step) => (
                       <span
                         key={step}
-                        className="px-3 py-1.5 rounded-full bg-[#2b7cee]/10 text-[#2b7cee] text-xs font-bold"
+                        className="px-3 py-1.5 rounded-full bg-[#074738]/10 text-[#074738] text-xs font-bold"
                       >
                         {step}
                       </span>
@@ -638,6 +668,20 @@ export function DocumentScannerModal({
                           </label>
                         </div>
 
+                        {/* Primera dosis — campo clave para calcular recordatorios */}
+                        <label className="space-y-1 block">
+                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">¿A qué hora le das la primera dosis hoy?</span>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="time"
+                              value={item.firstDoseTime}
+                              onChange={(event) => updateTreatmentItem(item.id, { firstDoseTime: event.target.value })}
+                              className="flex-1 rounded-xl border border-[#2b7cee]/40 bg-[#2b7cee]/5 px-3 py-2.5 text-sm font-bold text-[#2b7cee] focus:outline-none focus:ring-2 focus:ring-[#2b7cee]"
+                            />
+                            <span className="text-xs text-slate-500">A partir de esta hora calculamos las siguientes tomas</span>
+                          </div>
+                        </label>
+
                         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 space-y-3">
                           <label className="flex items-center justify-between gap-3">
                             <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">Querés recordatorio</span>
@@ -645,7 +689,7 @@ export function DocumentScannerModal({
                               type="checkbox"
                               checked={item.reminderEnabled}
                               onChange={(event) => updateTreatmentItem(item.id, { reminderEnabled: event.target.checked })}
-                              className="size-4 accent-[#2b7cee]"
+                              className="size-4 accent-[#074738]"
                             />
                           </label>
 
@@ -660,7 +704,7 @@ export function DocumentScannerModal({
                                     onClick={() => updateTreatmentItem(item.id, { reminderInterval: option })}
                                     className={`rounded-lg px-2 py-2 text-xs font-bold border ${
                                       item.reminderInterval === option
-                                        ? "bg-[#2b7cee] text-white border-[#2b7cee]"
+                                        ? "bg-[#074738] text-white border-[#074738]"
                                         : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600"
                                     }`}
                                   >
@@ -686,7 +730,7 @@ export function DocumentScannerModal({
                               type="checkbox"
                               checked={item.addToCalendar}
                               onChange={(event) => updateTreatmentItem(item.id, { addToCalendar: event.target.checked })}
-                              className="size-4 accent-[#2b7cee]"
+                              className="size-4 accent-[#074738]"
                             />
                           </label>
                         </div>
@@ -696,7 +740,7 @@ export function DocumentScannerModal({
 
                   <button
                     onClick={finalizeTreatments}
-                    className="w-full py-3 rounded-xl bg-[#2b7cee] hover:bg-[#5a8aff] text-white font-bold shadow-lg shadow-[#2b7cee]/30 transition-colors"
+                    className="w-full py-3 rounded-xl bg-[#074738] hover:bg-[#1a9b7d] text-white font-bold shadow-lg shadow-[#074738]/30 transition-colors"
                   >
                     Confirmar y guardar tratamiento
                   </button>
@@ -722,8 +766,8 @@ export function DocumentScannerModal({
                   <p className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs mb-1">
                     {fileName}
                   </p>
-                  <div className="px-4 py-2 rounded-full bg-[#2b7cee]/10 mb-6">
-                    <p className="text-xs font-bold text-[#2b7cee]">
+                  <div className="px-4 py-2 rounded-full bg-[#074738]/10 mb-6">
+                    <p className="text-xs font-bold text-[#074738]">
                       Tipo detectado: {extractedType}
                     </p>
                   </div>
@@ -744,7 +788,7 @@ export function DocumentScannerModal({
                     className={`px-8 py-3 rounded-xl text-white font-bold transition-colors shadow-lg ${
                       requiresReview
                         ? "bg-amber-500 hover:bg-amber-600 shadow-amber-500/30"
-                        : "bg-[#2b7cee] hover:bg-[#5a8aff] shadow-[#2b7cee]/30"
+                        : "bg-[#074738] hover:bg-[#1a9b7d] shadow-[#074738]/30"
                     }`}
                   >
                     {requiresReview ? "Revisar y confirmar" : "Ver en Timeline"}

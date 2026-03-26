@@ -71,7 +71,7 @@ export function AppearanceScreen({ onBack }: AppearanceScreenProps) {
               onClick={() => setSelectedTheme(theme.id)}
               className={`w-full bg-white dark:bg-slate-900 rounded-xl border-2 p-4 flex items-center justify-between transition-all ${
                 selectedTheme === theme.id
-                  ? "border-[#2b7cee] bg-[#2b7cee]/5"
+                  ? "border-[#074738] bg-[#074738]/5"
                   : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
               }`}
             >
@@ -79,7 +79,7 @@ export function AppearanceScreen({ onBack }: AppearanceScreenProps) {
                 <div
                   className={`size-10 rounded-lg flex items-center justify-center ${
                     selectedTheme === theme.id
-                      ? "bg-[#2b7cee]/10"
+                      ? "bg-[#074738]/10"
                       : "bg-slate-100 dark:bg-slate-800"
                   }`}
                 >
@@ -87,7 +87,7 @@ export function AppearanceScreen({ onBack }: AppearanceScreenProps) {
                     name={theme.icon}
                     className={`text-xl ${
                       selectedTheme === theme.id
-                        ? "text-[#2b7cee]"
+                        ? "text-[#074738]"
                         : "text-slate-600 dark:text-slate-400"
                     }`}
                   />
@@ -102,7 +102,7 @@ export function AppearanceScreen({ onBack }: AppearanceScreenProps) {
                 </div>
               </div>
               {selectedTheme === theme.id && (
-                <div className="size-6 rounded-full bg-[#2b7cee] flex items-center justify-center">
+                <div className="size-6 rounded-full bg-[#074738] flex items-center justify-center">
                   <MaterialIcon name="check" className="text-white text-sm" />
                 </div>
               )}
@@ -118,8 +118,8 @@ export function AppearanceScreen({ onBack }: AppearanceScreenProps) {
             </p>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
-                <div className="size-10 rounded-lg bg-[#2b7cee]/10 flex items-center justify-center">
-                  <MaterialIcon name="ecg_heart" className="text-[#2b7cee] text-xl" />
+                <div className="size-10 rounded-lg bg-[#074738]/10 flex items-center justify-center">
+                  <MaterialIcon name="ecg_heart" className="text-[#074738] text-xl" />
                 </div>
                 <div className="flex-1">
                   <h4 className="font-bold text-slate-900 dark:text-white text-sm">
@@ -131,7 +131,7 @@ export function AppearanceScreen({ onBack }: AppearanceScreenProps) {
                 </div>
               </div>
               <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full w-2/3 bg-[#2b7cee] rounded-full" />
+                <div className="h-full w-2/3 bg-[#074738] rounded-full" />
               </div>
             </div>
           </div>

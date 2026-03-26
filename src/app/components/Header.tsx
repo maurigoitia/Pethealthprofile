@@ -16,7 +16,7 @@ export function Header({ onPetClick, activePet }: HeaderProps) {
   const safeUserName = (userName || "").trim() || "Tutor";
 
   return (
-    <header className="px-4 pt-6 pb-4 bg-gradient-to-b from-[#2b6fee]/5 to-transparent">
+    <header className="px-4 pt-6 pb-4 bg-gradient-to-b from-[#074738]/5 to-transparent">
       {/* Top bar */}
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -33,7 +33,7 @@ export function Header({ onPetClick, activePet }: HeaderProps) {
         >
           <div className="flex items-center gap-4">
             <div className="relative">
-              <div className="size-20 rounded-2xl bg-gradient-to-br from-[#2b6fee] to-purple-500 p-0.5">
+              <div className="size-20 rounded-2xl bg-gradient-to-br from-[#074738] to-emerald-500 p-0.5">
                 <div className="size-full rounded-[15px] overflow-hidden">
                   <PetPhoto
                     src={activePet.photo}

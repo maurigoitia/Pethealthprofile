@@ -4,8 +4,8 @@ import { MaterialIcon } from "./MaterialIcon";
 import { usePet } from "../contexts/PetContext";
 import { useMedical } from "../contexts/MedicalContext";
 import { useAuth } from "../contexts/AuthContext";
-import jsPDF from "jspdf";
 import { formatDateSafe } from "../utils/dateUtils";
+import { loadJsPdf, savePdfWithFallback } from "../utils/pdfExport";
 
 interface ExportReportModalProps {
   isOpen: boolean;
@@ -44,6 +44,60 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       .replace(/\s+/g, " ")
       .trim();
 
+  const getCanonicalSummary = (event: any) => {
+    const extracted = event.extractedData || {};
+    const summary = clean(extracted.diagnosis || extracted.observations || "");
+    if (summary) return summary;
+    if (event.requiresManualConfirmation || event.workflowStatus === "review_required") {
+      return "Pendiente de revisión humana";
+    }
+    return "Sin interpretacion confirmada";
+  };
+
+  const buildNarrativeClinicalProfile = (args: {
+    petName: string;
+    activeConditions: Array<{ normalizedName?: string | null }>;
+    resolvedConditions: Array<{ normalizedName?: string | null }>;
+    treatmentRows: Array<{ name?: string | null; condition?: string | null; status?: string | null }>;
+    studies: any[];
+  }) => {
+    const activeNames = args.activeConditions
+      .map((condition) => clean(condition.normalizedName))
+      .filter(Boolean)
+      .slice(0, 3);
+    const resolvedNames = args.resolvedConditions
+      .map((condition) => clean(condition.normalizedName))
+      .filter(Boolean)
+      .slice(0, 2);
+    const medicationNames = args.treatmentRows
+      .map((row) => clean(row.name))
+      .filter(Boolean)
+      .slice(0, 3);
+    const studyLabels = args.studies
+      .map((event) => clean(event.extractedData?.studyType || event.title || event.extractedData?.suggestedTitle || toTypeLabel(event.extractedData?.documentType)))
+      .filter(Boolean)
+      .slice(0, 3);
+
+    const sentences: string[] = [];
+    if (activeNames.length > 0) {
+      sentences.push(`${args.petName} tiene hoy seguimiento activo por ${activeNames.join(", ")}.`);
+    } else if (resolvedNames.length > 0) {
+      sentences.push(`${args.petName} tiene antecedentes relevantes por ${resolvedNames.join(", ")}.`);
+    } else {
+      sentences.push(`${args.petName} tiene un historial ordenado con eventos y estudios confirmados.`);
+    }
+
+    if (medicationNames.length > 0) {
+      sentences.push(`Los cuidados o continuidades mas relevantes incluyen ${medicationNames.join(", ")}.`);
+    }
+
+    if (studyLabels.length > 0) {
+      sentences.push(`Entre los estudios complementarios registrados se destacan ${studyLabels.join(", ")}.`);
+    }
+
+    return sentences.slice(0, 3).join(" ");
+  };
+
   const toTs = (value?: string | null) => (value ? Date.parse(value) || 0 : 0);
 
   const fmtLong = (iso?: string | null) => {
@@ -77,7 +131,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
   };
 
   const TITLE_MAP: Record<ReportType, string> = {
-    health: "Reporte Clinico Estructurado (V2)",
+    health: "Resumen Estructurado de Cuidado",
     vaccine: "Carnet de Vacunación",
     treatment: "Plan de Tratamiento",
   };
@@ -87,7 +141,8 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
     setIsGenerating(true);
 
     try {
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const JsPdf = await loadJsPdf();
+      const pdf = new JsPdf({ orientation: "portrait", unit: "mm", format: "a4" });
       const PW = 210;
       const M = 16;            // margen
       const CW = PW - M * 2;  // ancho de contenido
@@ -106,7 +161,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       pdf.text("PESSY", M, 17);
       pdf.setFontSize(8);
       pdf.setFont("helvetica", "normal");
-      pdf.text("Expediente clinico certificado", M, 23);
+      pdf.text("Resumen certificado de tu mascota", M, 23);
       pdf.setFontSize(9);
       pdf.setFont("helvetica", "bold");
       pdf.text(TITLE_MAP[selectedReport], PW - M, 15, { align: "right" });
@@ -191,6 +246,13 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         const type = event.extractedData.documentType;
         return ["xray", "lab_test", "echocardiogram", "electrocardiogram"].includes(type);
       });
+      const narrativeClinicalProfile = buildNarrativeClinicalProfile({
+        petName: activePet.name,
+        activeConditions,
+        resolvedConditions,
+        treatmentRows,
+        studies,
+      });
 
       const reportSummaryForVerification = [
         `Problemas activos: ${activeConditions.length}`,
@@ -216,7 +278,31 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           y += 4;
         };
 
-        sectionTitle("1. Estado clínico actual");
+        sectionTitle("1. Perfil resumido");
+
+        pdf.setFontSize(8.6);
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(55, 65, 81);
+        const profileLines = pdf.splitTextToSize(narrativeClinicalProfile || "Sin sintesis disponible.", CW - 2);
+        pdf.text(profileLines, M, y + 1);
+        y += profileLines.length * 4 + 2;
+
+        const profileHighlights = [
+          activeConditions[0] ? `Condición principal: ${clean(activeConditions[0].normalizedName)}` : "",
+          treatmentRows[0] ? `Tratamiento relevante: ${clean(treatmentRows[0].name)}` : "",
+          studies[0] ? `Estudio destacado: ${clean(studies[0].extractedData.studyType || studies[0].title || studies[0].extractedData.suggestedTitle)}` : "",
+        ].filter(Boolean);
+
+        if (profileHighlights.length > 0) {
+          for (const highlight of profileHighlights.slice(0, 3)) {
+            checkY(6);
+            pdf.text(`• ${highlight}`, M, y + 1);
+            y += 5;
+          }
+        }
+
+        y += 2;
+        sectionTitle("2. Estado actual");
 
         pdf.setFontSize(8.5);
         pdf.setFont("helvetica", "bold");
@@ -254,28 +340,26 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           }
         }
 
-        pdf.setFont("helvetica", "bold");
-        pdf.setTextColor(31, 41, 55);
-        pdf.text("Turnos próximos", M, y + 1);
-        y += 4;
-        pdf.setFont("helvetica", "normal");
-        pdf.setTextColor(55, 65, 81);
         const nextAppointments = [...upcoming].sort((a, b) => {
           return toTs(`${a.date || ""}T${a.time || "00:00"}`) - toTs(`${b.date || ""}T${b.time || "00:00"}`);
         });
-        if (nextAppointments.length === 0) {
-          pdf.text("Sin turnos próximos registrados.", M, y + 1);
-          y += 6;
-        } else {
+        if (nextAppointments.length > 0) {
+          pdf.setFont("helvetica", "bold");
+          pdf.setTextColor(31, 41, 55);
+          pdf.text("Agenda próxima", M, y + 1);
+          y += 4;
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(55, 65, 81);
           for (const appointment of nextAppointments.slice(0, 5)) {
             checkY(8);
             const detail = `${fmtDateTime(appointment.date, appointment.time)} · ${clean(
-              appointment.title || appointment.clinic || "Turno veterinario",
+              appointment.title || appointment.clinic || "Turno",
             )}${appointment.veterinarian ? ` · ${clean(appointment.veterinarian)}` : ""}`;
             const lines = pdf.splitTextToSize(`• ${detail}`, CW - 2);
             pdf.text(lines, M, y + 1);
             y += lines.length * 4 + 1;
           }
+          y += 1;
         }
 
         pdf.setFont("helvetica", "bold");
@@ -288,7 +372,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           pdf.text("• Sin inconsistencias lógicas detectadas.", M, y + 1);
           y += 5;
         } else {
-          pdf.text(`• ${activeAlerts.length} alerta(s) clínica(s) activa(s).`, M, y + 1);
+          pdf.text(`• ${activeAlerts.length} alerta(s) activa(s).`, M, y + 1);
           y += 5;
         }
         if (pendingManualReviewCount > 0) {
@@ -296,7 +380,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           y += 5;
         }
 
-        sectionTitle("2. Tratamientos activos vinculados");
+        sectionTitle("3. Tratamientos activos vinculados");
         const colWidths = [34, 20, 20, 34, 18, 34, 18];
         const headers = ["Medicamento", "Dosis", "Frecuencia", "Condición", "Inicio", "Profesional", "Estado"];
         const drawRow = (cells: string[], rowY: number, bg = [248, 250, 252] as [number, number, number]) => {
@@ -346,7 +430,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           }
         }
 
-        sectionTitle("3. Condiciones médicas");
+        sectionTitle("4. Condiciones registradas");
         pdf.setFontSize(8.5);
         pdf.setFont("helvetica", "bold");
         pdf.setTextColor(31, 41, 55);
@@ -400,7 +484,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         pdf.text(`• Estudios complementarios acumulados: ${studies.length}`, M, y + 1);
         y += 6;
 
-        sectionTitle("4. Estudios complementarios");
+        sectionTitle("5. Estudios complementarios");
         if (studies.length === 0) {
           pdf.setFontSize(8.5);
           pdf.setFont("helvetica", "normal");
@@ -412,8 +496,8 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             checkY(11);
             const extracted = event.extractedData;
             const studyTitle = clean(extracted.studyType || event.title || extracted.suggestedTitle || toTypeLabel(extracted.documentType));
-            const detailSource = clean(extracted.provider || extracted.clinic || "Sin firma clínica");
-            const summary = clean(extracted.observations || extracted.diagnosis || extracted.aiGeneratedSummary || "").substring(0, 110);
+            const detailSource = clean(extracted.provider || extracted.clinic || "Sin referencia");
+            const summary = getCanonicalSummary(event).substring(0, 110);
             pdf.setFillColor(248, 250, 252);
             pdf.roundedRect(M, y, CW, 10, 1.8, 1.8, "F");
             pdf.setFontSize(8);
@@ -429,8 +513,8 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           }
         }
 
-        sectionTitle("5. Línea de tiempo clínica (resumen)");
-        const timelineHeaders = ["Fecha", "Tipo", "Profesional/Centro", "Diagnóstico resumido"];
+        sectionTitle("6. Línea de tiempo (resumen)");
+        const timelineHeaders = ["Fecha", "Tipo", "Referencia", "Resumen"];
         const timelineWidths = [24, 20, 48, 86];
         checkY(9);
         pdf.setFillColor(226, 232, 240);
@@ -458,7 +542,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             fmt(extracted.eventDate || event.createdAt),
             toTypeLabel(extracted.documentType),
             clean(extracted.provider || extracted.clinic || "—"),
-            clean(extracted.diagnosis || extracted.observations || event.title || extracted.suggestedTitle || "Sin resumen"),
+            getCanonicalSummary(event),
           ];
 
           let cx = M;
@@ -509,7 +593,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             pdf.setTextColor(90, 90, 90);
             pdf.setFontSize(7.5);
             pdf.text(`Aplicada: ${fmt(d.eventDate || vac.createdAt)}`, M + 3, y + 12);
-            if (d.provider) pdf.text(`Vet: ${clean(d.provider).substring(0, 30)}`, COL2, y + 12);
+            if (d.provider) pdf.text(`Ref: ${clean(d.provider).substring(0, 30)}`, COL2, y + 12);
             if (d.nextAppointmentDate) {
               pdf.setTextColor(16, 185, 129);
               pdf.text(`Próximo refuerzo: ${fmt(d.nextAppointmentDate)}`, M + 3, y + 17);
@@ -650,7 +734,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       }
 
       const fileName = `PESSY_${TITLE_MAP[selectedReport].replace(/ /g, "_")}_${activePet.name}_${new Date().toISOString().slice(0, 10)}.pdf`;
-      pdf.save(fileName);
+      await savePdfWithFallback(pdf, fileName);
       onClose();
 
     } catch (err) {
@@ -662,9 +746,9 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
   };
 
   const options = [
-    { id: "health" as ReportType, icon: "description", title: "Reporte Clínico Estructurado (V2)", subtitle: "Estado actual, vínculos clínicos y cronología", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-500", dot: "bg-teal-600" },
+    { id: "health" as ReportType, icon: "description", title: "Resumen Estructurado de Cuidado", subtitle: "Estado actual, recordatorios y cronologia", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-500", dot: "bg-teal-600" },
     { id: "vaccine" as ReportType, icon: "vaccines", title: "Cartilla de Vacunación", subtitle: "Cobertura vigente y próximos refuerzos", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-500", dot: "bg-teal-600" },
-    { id: "treatment" as ReportType, icon: "medication", title: "Plan de Tratamiento", subtitle: "Terapias actuales y controles sugeridos", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-500", dot: "bg-teal-600" },
+    { id: "treatment" as ReportType, icon: "medication", title: "Plan de Cuidados", subtitle: "Rutinas actuales y proximos pasos sugeridos", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-500", dot: "bg-teal-600" },
   ];
 
   if (!isOpen) return null;
@@ -683,7 +767,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         </div>
         <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-teal-50 to-white dark:from-slate-800 dark:to-slate-900">
           <h2 className="text-xl font-black text-slate-900 dark:text-white">Exportar PDF</h2>
-          <p className="text-sm text-slate-500 mt-0.5">Expediente clínico legible para compartir con veterinario</p>
+          <p className="text-sm text-slate-500 mt-0.5">Resumen legible de tu mascota para compartir cuando lo necesites</p>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
           {options.map((opt) => {

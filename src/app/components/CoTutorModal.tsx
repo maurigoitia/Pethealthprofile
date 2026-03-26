@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "./MaterialIcon";
 import { usePet, CoTutor } from "../contexts/PetContext";
+import { buildCoTutorReferralUrl } from "../utils/coTutorInvite";
 
 interface CoTutorModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const owner = activePet ? isOwner(activePet) : false;
   const coTutors: CoTutor[] = activePet?.coTutors || [];
@@ -46,6 +48,13 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopyLink = () => {
+    if (!generatedCode) return;
+    navigator.clipboard.writeText(buildCoTutorReferralUrl(generatedCode));
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
   const handleJoin = async () => {
     if (!joinCode.trim()) return;
     setLoadingJoin(true);
@@ -69,9 +78,13 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
     setError("");
     setSuccess("");
     try {
-      const { code } = await sendCoTutorInviteEmail(activePetId, inviteEmail);
+      const { code, emailSent } = await sendCoTutorInviteEmail(activePetId, inviteEmail);
       setGeneratedCode(code);
-      setSuccess(`Invitación enviada a ${inviteEmail.trim().toLowerCase()}. Revisá el correo del co-tutor.`);
+      if (emailSent === false) {
+        setSuccess(`Código generado pero no se pudo enviar el email. Compartí el código o link manualmente.`);
+      } else {
+        setSuccess(`Invitación enviada a ${inviteEmail.trim().toLowerCase()}. Revisá el correo del co-tutor.`);
+      }
       setInviteEmail("");
     } catch (e: any) {
       setError(e.message || "No se pudo enviar la invitación por correo.");
@@ -136,13 +149,13 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
             <div className="flex gap-2 mx-5 mt-4 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
               <button
                 onClick={() => { setTab("manage"); setError(""); setSuccess(""); }}
-                className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${tab === "manage" ? "bg-white dark:bg-slate-900 text-[#2b6fee] shadow-sm" : "text-slate-500"}`}
+                className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${tab === "manage" ? "bg-white dark:bg-slate-900 text-[#074738] shadow-sm" : "text-slate-500"}`}
               >
                 {owner ? "Gestionar" : "Mi acceso"}
               </button>
               <button
                 onClick={() => { setTab("join"); setError(""); setSuccess(""); }}
-                className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${tab === "join" ? "bg-white dark:bg-slate-900 text-[#2b6fee] shadow-sm" : "text-slate-500"}`}
+                className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${tab === "join" ? "bg-white dark:bg-slate-900 text-[#074738] shadow-sm" : "text-slate-500"}`}
               >
                 Unirme con código
               </button>
@@ -183,17 +196,35 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                           </button>
                         </div>
                         {generatedCode ? (
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 bg-white dark:bg-slate-900 border-2 border-[#2b6fee] rounded-xl px-4 py-3 text-center">
-                              <span className="text-2xl font-black tracking-[0.3em] text-[#2b6fee]">{generatedCode}</span>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 bg-white dark:bg-slate-900 border-2 border-[#074738] rounded-xl px-4 py-3 text-center">
+                                <span className="text-2xl font-black tracking-[0.3em] text-[#074738]">{generatedCode}</span>
+                              </div>
+                              <button onClick={handleCopy} className="size-12 rounded-xl bg-[#074738] text-white flex items-center justify-center shadow-lg">
+                                <MaterialIcon name={copied ? "check" : "content_copy"} className="text-xl" />
+                              </button>
                             </div>
-                            <button onClick={handleCopy} className="size-12 rounded-xl bg-[#2b6fee] text-white flex items-center justify-center shadow-lg">
-                              <MaterialIcon name={copied ? "check" : "content_copy"} className="text-xl" />
+                            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
+                              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 mb-1">Link de invitación</p>
+                              <p className="text-xs text-slate-600 dark:text-slate-300 break-all leading-5">
+                                {buildCoTutorReferralUrl(generatedCode)}
+                              </p>
+                            </div>
+                            <button
+                              onClick={handleCopyLink}
+                              className="w-full py-3 rounded-xl border border-[#074738]/20 text-[#074738] font-bold text-sm flex items-center justify-center gap-2"
+                            >
+                              <MaterialIcon name={copiedLink ? "check" : "link"} className="text-base" />
+                              {copiedLink ? "Link copiado" : "Copiar link de invitación"}
                             </button>
+                            <p className="text-[11px] text-slate-500 leading-4">
+                              Este link lleva al co-tutor a entrar o crear cuenta y completar el acceso a la mascota.
+                            </p>
                           </div>
                         ) : (
                           <button onClick={handleGenerateCode} disabled={loadingCode}
-                            className="w-full py-3 rounded-xl bg-[#2b6fee] text-white font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-60">
+                            className="w-full py-3 rounded-xl bg-[#074738] text-white font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-60">
                             {loadingCode
                               ? <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                               : <MaterialIcon name="add_link" className="text-lg" />}
@@ -215,8 +246,8 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                           <div className="space-y-2">
                             {coTutors.map((ct) => (
                               <div key={ct.uid} className="flex items-center gap-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                                <div className="size-10 rounded-full bg-[#2b6fee]/10 flex items-center justify-center">
-                                  <MaterialIcon name="person" className="text-[#2b6fee] text-lg" />
+                                <div className="size-10 rounded-full bg-[#074738]/10 flex items-center justify-center">
+                                  <MaterialIcon name="person" className="text-[#074738] text-lg" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-bold text-sm text-slate-900 dark:text-white truncate">{ct.name || ct.email || ct.uid}</p>
@@ -260,10 +291,10 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                       onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                       placeholder="EJ: AB3X7K"
                       maxLength={6}
-                      className="w-full text-center text-2xl font-black tracking-[0.3em] border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-[#2b6fee] focus:outline-none mb-3"
+                      className="w-full text-center text-2xl font-black tracking-[0.3em] border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:border-[#074738] focus:outline-none mb-3"
                     />
                     <button onClick={handleJoin} disabled={loadingJoin || joinCode.length < 6}
-                      className="w-full py-3 rounded-xl bg-[#2b6fee] text-white font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-60">
+                      className="w-full py-3 rounded-xl bg-[#074738] text-white font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-60">
                       {loadingJoin
                         ? <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         : <MaterialIcon name="group_add" className="text-lg" />}

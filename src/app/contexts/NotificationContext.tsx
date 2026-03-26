@@ -6,7 +6,7 @@ interface InAppNotification {
   id: string;
   title: string;
   body: string;
-  type: "medication" | "appointment" | "vaccine_reminder";
+  type: "medication" | "appointment" | "vaccine_reminder" | "results";
   timestamp: Date;
   read: boolean;
 }
