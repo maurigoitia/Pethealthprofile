@@ -1,8 +1,15 @@
 User-agent: *
 Allow: /
+Allow: /privacidad
+Allow: /terminos
+
+Disallow: /login
+Disallow: /home
+Disallow: /register
+Disallow: /register-user
+Disallow: /register-pet
+Disallow: /email-link
+Disallow: /verify
+Disallow: /api/*
 
 Sitemap: https://pessy.app/sitemap.xml
-
-Disallow: /admin
-Disallow: /private
-Disallow: /api/*
