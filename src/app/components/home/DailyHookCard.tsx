@@ -25,10 +25,10 @@ export default function DailyHookCard({
 }: DailyHookCardProps) {
   return (
     <div
-      className="relative overflow-hidden w-full p-5"
+      className="relative overflow-hidden w-full p-6"
       style={{
         backgroundColor: "#074738",
-        borderRadius: 18,
+        borderRadius: 16,
       }}
     >
       {/* Decorative circle overlay */}
@@ -112,15 +112,15 @@ export default function DailyHookCard({
               onStart(points);
             }
           }}
-          className="px-4 py-2 bg-white text-[13px] active:scale-95 transition-transform"
+          className="px-5 py-2.5 bg-white text-[12px] font-bold active:scale-95 transition-transform hover:bg-[#E0F2F1]"
           style={{
             color: "#074738",
-            borderRadius: 12,
+            borderRadius: 14,
             fontFamily: "'Plus Jakarta Sans', sans-serif",
-            fontWeight: 800,
+            fontWeight: 700,
           }}
         >
-          Empezar actividad
+          Empezar
         </button>
       </div>
     </div>

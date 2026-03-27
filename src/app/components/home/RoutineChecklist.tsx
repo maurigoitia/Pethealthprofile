@@ -23,22 +23,23 @@ export default function RoutineChecklist({
 
   return (
     <div
-      className="rounded-[16px] border border-[#eef0ee] bg-white"
-      style={{ padding: "14px 16px" }}
+      className="rounded-[16px] border border-[#E5E7EB] bg-white"
+      style={{ padding: "16px 18px" }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[#002f24]">
-            <MaterialIcon name={icon} className="!text-[18px]" />
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-[#074738]">
+            <MaterialIcon name={icon} className="!text-[20px]" />
           </span>
           <span
-            className="text-[13px] font-[800] text-[#002f24]"
+            className="text-[14px] font-bold text-[#074738]"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             {title}
           </span>
         </div>
-        <span className="text-[13px] font-[800] text-[#1A9B7D]">
+        <span className="text-[14px] font-bold text-[#1A9B7D]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
           {completedCount}/{totalCount}
         </span>
       </div>
@@ -59,7 +60,7 @@ export default function RoutineChecklist({
                 className={`flex-shrink-0 flex items-center justify-center w-[22px] h-[22px] rounded-[6px] border-2 transition-colors ${
                   isDone
                     ? "bg-[#074738] border-[#074738]"
-                    : "border-[#d4d8d6] bg-transparent"
+                    : "border-[#E5E7EB] bg-transparent"
                 }`}
               >
                 {isDone && (
@@ -83,11 +84,12 @@ export default function RoutineChecklist({
 
               {/* Label */}
               <span
-                className={`text-[13px] transition-colors ${
+                className={`text-[14px] font-medium transition-colors ${
                   isDone
-                    ? "text-[#9ca8a2] line-through"
-                    : "text-[#002f24]"
+                    ? "text-[#9CA3AF] line-through"
+                    : "text-[#1A1A1A]"
                 }`}
+                style={{ fontFamily: "'Manrope', sans-serif" }}
               >
                 {item}
               </span>

@@ -19,17 +19,17 @@ export default function ProfileNudge({
 
   return (
     <div
-      className="flex items-center gap-3 rounded-[14px] border border-[#FFE082] bg-[#FFF8E1] px-[14px] py-3"
+      className="flex items-center gap-4 rounded-[16px] border border-[#F59E0B]/30 bg-[#FEF3C7] px-4 py-3"
     >
       {/* Emoji */}
-      <span className="text-[28px] leading-none shrink-0">{emoji}</span>
+      <span className="text-[32px] leading-none shrink-0">{emoji}</span>
 
       {/* Text */}
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-[800] text-gray-900 leading-tight">
+        <p className="text-[14px] font-bold text-[#1A1A1A] leading-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
           {sound} Completá el perfil de {petName}
         </p>
-        <p className="text-[11px] text-[#5e716b] leading-tight mt-0.5">
+        <p className="text-[12px] text-[#6B7280] leading-snug mt-1" style={{ fontFamily: "'Manrope', sans-serif" }}>
           Falta {missingText} para recomendaciones personalizadas.
         </p>
       </div>
@@ -37,7 +37,8 @@ export default function ProfileNudge({
       {/* Button */}
       <button
         onClick={onComplete}
-        className="shrink-0 rounded-full bg-[#074738] px-4 py-1.5 text-[12px] font-semibold text-white"
+        className="shrink-0 rounded-full bg-[#074738] px-5 py-2 text-[12px] font-bold text-white hover:bg-[#1A9B7D] transition-colors"
+        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
       >
         Completar
       </button>
