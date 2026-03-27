@@ -71,14 +71,14 @@ export function Sidebar({
           >
             {/* Logo */}
             <div className="px-5 pt-6 pb-4">
-              <h1 className="text-2xl font-black tracking-tight">
-                <span className="text-emerald-400">P</span>ESSY
+              <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                <span className="text-[#1A9B7D]">P</span>ESSY
               </h1>
             </div>
 
             {/* Your Pets */}
             <div className="px-5 pb-4">
-              <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-slate-400">Tus mascotas</p>
+              <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-[#6B7280]" style={{ fontFamily: "'Manrope', sans-serif" }}>Tus mascotas</p>
               <div className="flex items-center gap-3">
                 {pets.map((pet) => (
                   <button
@@ -92,7 +92,7 @@ export function Sidebar({
                     <div
                       className={`size-12 overflow-hidden rounded-full border-2 transition-all ${
                         pet.id === activePetId
-                          ? "border-emerald-400 shadow-lg shadow-emerald-400/30"
+                          ? "border-[#1A9B7D] shadow-lg shadow-[#1A9B7D]/30"
                           : "border-slate-600 opacity-60 hover:opacity-100"
                       }`}
                     >
@@ -135,7 +135,8 @@ export function Sidebar({
                     onNavigate(item.screen);
                     onClose();
                   }}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+                  className="flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+                  style={{ fontFamily: "'Manrope', sans-serif" }}
                 >
                   <MaterialIcon name={item.icon} className="text-xl" />
                   {item.label}
@@ -152,7 +153,8 @@ export function Sidebar({
                   onInviteFriends();
                   onClose();
                 }}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-emerald-400 transition-colors hover:bg-white/10"
+                className="flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-sm font-semibold text-[#1A9B7D] transition-colors hover:bg-white/10"
+                style={{ fontFamily: "'Manrope', sans-serif" }}
               >
                 <MaterialIcon name="person_add" className="text-xl" />
                 Invitar amigos
@@ -168,7 +170,8 @@ export function Sidebar({
                     onNavigate(item.screen);
                     onClose();
                   }}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+                  className="flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+                  style={{ fontFamily: "'Manrope', sans-serif" }}
                 >
                   <MaterialIcon name={item.icon} className="text-xl" />
                   {item.label}
@@ -179,12 +182,12 @@ export function Sidebar({
             {/* User Profile Footer */}
             <div className="border-t border-slate-700/50 px-4 py-4">
               <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-full bg-emerald-400/20">
-                  <MaterialIcon name="person" className="text-lg text-emerald-400" />
+                <div className="flex size-10 items-center justify-center rounded-full bg-[#1A9B7D]/20">
+                  <MaterialIcon name="person" className="text-lg text-[#1A9B7D]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="truncate text-sm font-bold text-white">{userName}</p>
-                  {userEmail && <p className="truncate text-[11px] text-slate-400">{userEmail}</p>}
+                  <p className="truncate text-sm font-bold text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{userName}</p>
+                  {userEmail && <p className="truncate text-[11px] text-slate-400" style={{ fontFamily: "'Manrope', sans-serif" }}>{userEmail}</p>}
                 </div>
                 <button
                   onClick={() => {
