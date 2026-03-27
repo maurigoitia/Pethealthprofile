@@ -1,5 +1,8 @@
 User-agent: *
 Allow: /
+Allow: /blog
+Allow: /blog/
+Allow: /empezar
 
 Sitemap: https://pessy.app/sitemap.xml
 
