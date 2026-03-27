@@ -1,10 +1,10 @@
 import { AnimatePresence, motion } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { useMemo } from "react";
-import { usePet } from "../contexts/PetContext";
-import { useMedical } from "../contexts/MedicalContext";
-import { cleanText } from "../utils/cleanText";
-import { formatDateSafe, toTimestampSafe } from "../utils/dateUtils";
+import { usePet } from "../../contexts/PetContext";
+import { useMedical } from "../../contexts/MedicalContext";
+import { cleanText } from "../../utils/cleanText";
+import { formatDateSafe, toTimestampSafe } from "../../utils/dateUtils";
 import { PetPhoto } from "../pet/PetPhoto";
 
 interface HealthReportModalProps {

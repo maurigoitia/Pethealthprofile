@@ -1,10 +1,10 @@
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { useMedical } from "../contexts/MedicalContext";
-import { usePet, type PetPreferences } from "../contexts/PetContext";
-import { toTimestampSafe } from "../utils/dateUtils";
+import { useMedical } from "../../contexts/MedicalContext";
+import { usePet, type PetPreferences } from "../../contexts/PetContext";
+import { toTimestampSafe } from "../../utils/dateUtils";
 import { PetPhoto } from "./PetPhoto";
-import { getPoints, addPoints, isDailyActivityDone, markDailyActivityDone } from "../utils/gamification";
+import { getPoints, addPoints, isDailyActivityDone, markDailyActivityDone } from "../../utils/gamification";
 
 const PetPreferencesEditor = lazy(() =>
   import("./PetPreferencesEditor.tsx").then((m) => ({ default: m.PetPreferencesEditor }))

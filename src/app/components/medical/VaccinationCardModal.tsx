@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { PetPhoto } from "../pet/PetPhoto";
-import { loadJsPdf, savePdfWithFallback } from "../utils/pdfExport";
+import { loadJsPdf, savePdfWithFallback } from "../../utils/pdfExport";
 
 interface Vaccine {
   id: number;

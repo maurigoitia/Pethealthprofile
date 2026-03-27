@@ -2,11 +2,11 @@ import { MaterialIcon } from "../shared/MaterialIcon";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router";
-import { usePet } from "../contexts/PetContext";
-import { useMedical } from "../contexts/MedicalContext";
-import { PendingAction } from "../types/medical";
-import { formatDateSafe, parseDateSafe } from "../utils/dateUtils";
-import { isPendingActionsEnabled } from "../utils/runtimeFlags";
+import { usePet } from "../../contexts/PetContext";
+import { useMedical } from "../../contexts/MedicalContext";
+import { PendingAction } from "../../types/medical";
+import { formatDateSafe, parseDateSafe } from "../../utils/dateUtils";
+import { isPendingActionsEnabled } from "../../utils/runtimeFlags";
 
 export function ActionTray() {
   const pendingEnabled = isPendingActionsEnabled();

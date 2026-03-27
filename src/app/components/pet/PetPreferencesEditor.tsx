@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import type { PetPreferences } from "../contexts/PetContext";
+import type { PetPreferences } from "../../contexts/PetContext";
 
 interface PetPreferencesEditorProps {
   petName: string;

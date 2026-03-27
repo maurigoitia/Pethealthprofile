@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { useAuth } from "../contexts/AuthContext";
-import { db } from "../../lib/firebase";
+import { useAuth } from "../../contexts/AuthContext";
+import { db } from "../../../lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { getDownloadURL } from "firebase/storage";
 import { updateProfile } from "firebase/auth";
-import { COUNTRIES } from "../data/countries";
-import { uploadWithAuthFallback } from "../utils/storageUpload";
+import { COUNTRIES } from "../../data/countries";
+import { uploadWithAuthFallback } from "../../utils/storageUpload";
 
 interface PersonalInfoScreenProps {
   onBack: () => void;

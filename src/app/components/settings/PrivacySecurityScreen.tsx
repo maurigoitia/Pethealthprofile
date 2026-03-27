@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   disconnectGmailSync,
   GmailSyncStatus,
   startGmailConnectFlow,
   subscribeGmailSyncStatus,
-} from "../services/gmailSyncService";
-import { deleteUserAccount, deleteAllUserClinicalData } from "../services/accountDeletionService";
-import { auth } from "../../lib/firebase";
+} from "../../services/gmailSyncService";
+import { deleteUserAccount, deleteAllUserClinicalData } from "../../services/accountDeletionService";
+import { auth } from "../../../lib/firebase";
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,

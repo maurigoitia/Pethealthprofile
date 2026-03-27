@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { useReminders } from "../contexts/RemindersContext";
-import { usePet } from "../contexts/PetContext";
-import { ReminderType, ReminderRepeat } from "../types/medical";
+import { useReminders } from "../../contexts/RemindersContext";
+import { usePet } from "../../contexts/PetContext";
+import { ReminderType, ReminderRepeat } from "../../types/medical";
 
 interface AddReminderModalProps {
   isOpen: boolean;

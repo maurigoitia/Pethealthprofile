@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { usePet, CoTutor } from "../contexts/PetContext";
-import { buildCoTutorReferralUrl } from "../utils/coTutorInvite";
+import { usePet, CoTutor } from "../../contexts/PetContext";
+import { buildCoTutorReferralUrl } from "../../utils/coTutorInvite";
 
 interface CoTutorModalProps {
   isOpen: boolean;

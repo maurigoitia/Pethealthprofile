@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { CAT_BREEDS, DOG_BREEDS, OTHER_BREEDS } from "../data/breeds";
-import { searchBreeds } from "../utils/breedSearch";
+import { CAT_BREEDS, DOG_BREEDS, OTHER_BREEDS } from "../../data/breeds";
+import { searchBreeds } from "../../utils/breedSearch";
 import { AuthPageShell } from "../auth/AuthPageShell";
 
 export function RegisterPetStep1() {

@@ -3,13 +3,13 @@ import { motion, AnimatePresence } from "motion/react";
 import { clsx } from "clsx";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { EmptyState } from "../shared/EmptyState";
-import { usePet } from "../contexts/PetContext";
-import { useMedical } from "../contexts/MedicalContext";
-import type { ClinicalEpisode } from "../contexts/MedicalContext";
-import { MedicalEvent, DocumentType } from "../types/medical";
+import { usePet } from "../../contexts/PetContext";
+import { useMedical } from "../../contexts/MedicalContext";
+import type { ClinicalEpisode } from "../../contexts/MedicalContext";
+import { MedicalEvent, DocumentType } from "../../types/medical";
 import { EditEventModal } from "./EditEventModal";
-import { formatDateSafe, parseDateSafe, toTimestampSafe } from "../utils/dateUtils";
-import { isFocusHistoryExperimentHost } from "../utils/runtimeFlags";
+import { formatDateSafe, parseDateSafe, toTimestampSafe } from "../../utils/dateUtils";
+import { isFocusHistoryExperimentHost } from "../../utils/runtimeFlags";
 
 interface TimelineProps {
   activePet?: { name: string; photo: string };

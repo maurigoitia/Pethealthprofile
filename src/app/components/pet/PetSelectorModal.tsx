@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { PetPhoto } from "./PetPhoto";
 
 interface Pet {

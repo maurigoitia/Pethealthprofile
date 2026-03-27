@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { StorageQuota, formatBytes, PLAN_LIMITS, useStorageQuota } from "../hooks/useStorageQuota";
+import { StorageQuota, formatBytes, PLAN_LIMITS, useStorageQuota } from "../../hooks/useStorageQuota";
 
 interface StorageUsageWidgetProps {
   premiumPrice?: string;

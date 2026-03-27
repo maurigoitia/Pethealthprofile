@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useAuth } from "../contexts/AuthContext";
-import { createPlatformInvitation, buildPlatformInviteUrl } from "../utils/platformInvite";
+import { useAuth } from "../../contexts/AuthContext";
+import { createPlatformInvitation, buildPlatformInviteUrl } from "../../utils/platformInvite";
 
 interface Props {
   open: boolean;

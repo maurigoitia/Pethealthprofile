@@ -4,9 +4,9 @@ import { Timeline } from "../medical/Timeline";
 import { MonthSummary } from "../medical/MonthSummary";
 import { ActionTray } from "../medical/ActionTray";
 import { ClinicalProfileBlock } from "../medical/ClinicalProfileBlock";
-import { useMedical } from "../contexts/MedicalContext";
-import { formatDateSafe, toTimestampSafe } from "../utils/dateUtils";
-import { isFocusHistoryExperimentHost } from "../utils/runtimeFlags";
+import { useMedical } from "../../contexts/MedicalContext";
+import { formatDateSafe, toTimestampSafe } from "../../utils/dateUtils";
+import { isFocusHistoryExperimentHost } from "../../utils/runtimeFlags";
 
 interface FocusedHomeExperienceProps {
   userName: string;

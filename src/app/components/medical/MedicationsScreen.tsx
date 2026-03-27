@@ -2,15 +2,15 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { motion, AnimatePresence } from "motion/react";
-import { usePet } from "../contexts/PetContext";
-import { useMedical } from "../contexts/MedicalContext";
-import { useReminders } from "../contexts/RemindersContext";
-import { MedicalEvent, TreatmentNote } from "../types/medical";
-import { cleanText } from "../utils/cleanText";
-import { formatDateSafe, parseDateSafe, toDateKeySafe, toTimestampSafe } from "../utils/dateUtils";
-import { downloadIcsEvent } from "../utils/calendarExport";
-import { NotificationService } from "../services/notificationService";
-import { isFocusExperienceHost } from "../utils/runtimeFlags";
+import { usePet } from "../../contexts/PetContext";
+import { useMedical } from "../../contexts/MedicalContext";
+import { useReminders } from "../../contexts/RemindersContext";
+import { MedicalEvent, TreatmentNote } from "../../types/medical";
+import { cleanText } from "../../utils/cleanText";
+import { formatDateSafe, parseDateSafe, toDateKeySafe, toTimestampSafe } from "../../utils/dateUtils";
+import { downloadIcsEvent } from "../../utils/calendarExport";
+import { NotificationService } from "../../services/notificationService";
+import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 
 interface MedicationsScreenProps {
   onBack: () => void;

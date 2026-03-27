@@ -1,5 +1,5 @@
 import { MaterialIcon } from "./MaterialIcon";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { PetPhoto } from "../pet/PetPhoto";
 
 interface HeaderProps {

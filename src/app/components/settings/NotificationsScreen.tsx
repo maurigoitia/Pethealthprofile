@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { useNotifications } from "../contexts/NotificationContext";
-import { useAuth } from "../contexts/AuthContext";
-import { db } from "../../lib/firebase";
+import { useNotifications } from "../../contexts/NotificationContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { db } from "../../../lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
 interface NotificationsScreenProps {

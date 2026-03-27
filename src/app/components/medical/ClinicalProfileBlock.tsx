@@ -1,6 +1,6 @@
 import { motion } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import type { ClinicalProfileSnapshot } from "../contexts/MedicalContext";
+import type { ClinicalProfileSnapshot } from "../../contexts/MedicalContext";
 
 interface ClinicalProfileBlockProps {
     snapshot: ClinicalProfileSnapshot;

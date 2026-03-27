@@ -5,10 +5,10 @@ import { MaterialIcon } from "../shared/MaterialIcon";
 import { PetHomeView } from "../pet/PetHomeView";
 import { Sidebar } from "../shared/Sidebar";
 import { TermsAcceptanceNotice } from "../settings/TermsAcceptanceNotice";
-import { usePet } from "../contexts/PetContext";
-import { useAuth } from "../contexts/AuthContext";
-import { clearPendingCoTutorInvite, readPendingCoTutorInvite, rememberPendingCoTutorInvite, normalizeCoTutorInviteCode } from "../utils/coTutorInvite";
-import { isFocusExperienceHost } from "../utils/runtimeFlags";
+import { usePet } from "../../contexts/PetContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { clearPendingCoTutorInvite, readPendingCoTutorInvite, rememberPendingCoTutorInvite, normalizeCoTutorInviteCode } from "../../utils/coTutorInvite";
+import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 
 const Header = lazy(() =>
   import("../shared/Header.tsx").then((module) => ({ default: module.Header }))

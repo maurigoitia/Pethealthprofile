@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { StorageQuota, formatBytes, PLAN_LIMITS } from "../hooks/useStorageQuota";
+import { StorageQuota, formatBytes, PLAN_LIMITS } from "../../hooks/useStorageQuota";
 import {
   getLocalizedPrice, detectUserCountry, PLANS, LocalizedPrice,
-} from "../utils/pricing";
+} from "../../utils/pricing";
 
 interface StorageLimitModalProps {
   isOpen: boolean;

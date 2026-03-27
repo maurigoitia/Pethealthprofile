@@ -9,9 +9,9 @@ import { AppearanceScreen } from "./AppearanceScreen";
 import { HelpSupportScreen } from "./HelpSupportScreen";
 import { AboutScreen } from "./AboutScreen";
 import { CoTutorModal } from "../pet/CoTutorModal";
-import { useAuth } from "../contexts/AuthContext";
-import { usePet } from "../contexts/PetContext";
-import { useMedical } from "../contexts/MedicalContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { usePet } from "../../contexts/PetContext";
+import { useMedical } from "../../contexts/MedicalContext";
 import { StorageUsageWidget } from "./StorageUsageWidget";
 
 interface UserProfileScreenProps {

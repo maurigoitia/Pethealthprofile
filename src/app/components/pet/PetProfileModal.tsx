@@ -2,16 +2,16 @@ import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { lazy, Suspense, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router";
-import { BirthDatePrecision, usePet } from "../contexts/PetContext";
-import { useMedical } from "../contexts/MedicalContext";
-import { useAuth } from "../contexts/AuthContext";
-import { DOG_BREEDS, CAT_BREEDS, OTHER_BREEDS } from "../data/breeds";
-import { searchBreeds } from "../utils/breedSearch";
-import { formatDateSafe, parseDateSafe, toDateInputValueSafe, toDateKeySafe } from "../utils/dateUtils";
-import { DEFAULT_PET_PHOTO } from "../constants/petDefaults";
+import { BirthDatePrecision, usePet } from "../../contexts/PetContext";
+import { useMedical } from "../../contexts/MedicalContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { DOG_BREEDS, CAT_BREEDS, OTHER_BREEDS } from "../../data/breeds";
+import { searchBreeds } from "../../utils/breedSearch";
+import { formatDateSafe, parseDateSafe, toDateInputValueSafe, toDateKeySafe } from "../../utils/dateUtils";
+import { DEFAULT_PET_PHOTO } from "../../constants/petDefaults";
 import { PetPhoto } from "./PetPhoto";
-import { getPetPhotoAcceptValue, preparePetPhotoForUpload } from "../utils/petPhotoUpload";
-import { uploadPetPhotoWithFallback } from "../services/petPhotoService";
+import { getPetPhotoAcceptValue, preparePetPhotoForUpload } from "../../utils/petPhotoUpload";
+import { uploadPetPhotoWithFallback } from "../../services/petPhotoService";
 
 const VaccinationCardModal = lazy(() =>
   import("../medical/VaccinationCardModal.tsx").then((module) => ({ default: module.VaccinationCardModal }))

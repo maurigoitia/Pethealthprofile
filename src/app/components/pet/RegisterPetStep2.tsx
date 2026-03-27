@@ -1,10 +1,10 @@
 import { useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
-import { usePet } from "../contexts/PetContext";
-import { useAuth } from "../contexts/AuthContext";
-import { DEFAULT_PET_PHOTO } from "../constants/petDefaults";
-import { getPetPhotoAcceptValue, preparePetPhotoForUpload } from "../utils/petPhotoUpload";
-import { uploadPetPhotoWithFallback } from "../services/petPhotoService";
+import { usePet } from "../../contexts/PetContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { DEFAULT_PET_PHOTO } from "../../constants/petDefaults";
+import { getPetPhotoAcceptValue, preparePetPhotoForUpload } from "../../utils/petPhotoUpload";
+import { uploadPetPhotoWithFallback } from "../../services/petPhotoService";
 import { AuthPageShell } from "../auth/AuthPageShell";
 
 export function RegisterPetStep2() {

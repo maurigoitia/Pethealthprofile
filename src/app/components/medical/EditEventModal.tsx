@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { MedicalEvent, DocumentType } from "../types/medical";
-import { useMedical } from "../contexts/MedicalContext";
-import { cleanText } from "../utils/cleanText";
+import { MedicalEvent, DocumentType } from "../../types/medical";
+import { useMedical } from "../../contexts/MedicalContext";
+import { cleanText } from "../../utils/cleanText";
 
 interface EditEventModalProps {
     isOpen: boolean;

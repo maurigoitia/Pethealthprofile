@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { usePet } from "../contexts/PetContext";
-import { useMedical } from "../contexts/MedicalContext";
-import { useAuth } from "../contexts/AuthContext";
-import { formatDateSafe } from "../utils/dateUtils";
-import { loadJsPdf, savePdfWithFallback } from "../utils/pdfExport";
+import { usePet } from "../../contexts/PetContext";
+import { useMedical } from "../../contexts/MedicalContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { formatDateSafe } from "../../utils/dateUtils";
+import { loadJsPdf, savePdfWithFallback } from "../../utils/pdfExport";
 
 interface ExportReportModalProps {
   isOpen: boolean;

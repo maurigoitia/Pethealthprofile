@@ -3,16 +3,16 @@ import { motion } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { AddAppointmentModal } from "./AddAppointmentModal";
 import { PetPhoto } from "../pet/PetPhoto";
-import { useAuth } from "../contexts/AuthContext";
-import { useMedical } from "../contexts/MedicalContext";
-import { useNotifications } from "../contexts/NotificationContext";
-import { usePet } from "../contexts/PetContext";
-import { Appointment } from "../types/medical";
-import { dedupeAppointments } from "../utils/deduplication";
-import { cleanText } from "../utils/cleanText";
-import { buildGoogleCalendarUrl, downloadIcsEvent } from "../utils/calendarExport";
-import { parseDateSafe, toTimestampSafe } from "../utils/dateUtils";
-import { isFocusExperienceHost } from "../utils/runtimeFlags";
+import { useAuth } from "../../contexts/AuthContext";
+import { useMedical } from "../../contexts/MedicalContext";
+import { useNotifications } from "../../contexts/NotificationContext";
+import { usePet } from "../../contexts/PetContext";
+import { Appointment } from "../../types/medical";
+import { dedupeAppointments } from "../../utils/deduplication";
+import { cleanText } from "../../utils/cleanText";
+import { buildGoogleCalendarUrl, downloadIcsEvent } from "../../utils/calendarExport";
+import { parseDateSafe, toTimestampSafe } from "../../utils/dateUtils";
+import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 
 interface AppointmentsScreenProps {
   onBack: () => void;

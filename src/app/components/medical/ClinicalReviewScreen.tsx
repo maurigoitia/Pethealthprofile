@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { useMedical } from "../contexts/MedicalContext";
-import { useAuth } from "../contexts/AuthContext";
-import { ClinicalReviewDraft } from "../types/medical";
+import { useMedical } from "../../contexts/MedicalContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { ClinicalReviewDraft } from "../../types/medical";
 
 interface MedicationFormRow {
   id: string;

@@ -1,5 +1,5 @@
 import { MaterialIcon } from "./MaterialIcon";
-import { isFocusExperienceHost } from "../utils/runtimeFlags";
+import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 
 interface BottomNavProps {
   currentTab: "home" | "settings";

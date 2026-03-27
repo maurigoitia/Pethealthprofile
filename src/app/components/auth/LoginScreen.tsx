@@ -10,11 +10,11 @@ import {
   fetchSignInMethodsForEmail,
   getRedirectResult,
 } from "firebase/auth";
-import { auth } from "../../lib/firebase";
-import { useAuth } from "../contexts/AuthContext";
-import { createPasswordResetActionCodeSettings } from "../utils/authActionLinks";
-import { normalizeCoTutorInviteCode, rememberPendingCoTutorInvite } from "../utils/coTutorInvite";
-import { persistAcquisitionSource, resolveAcquisitionSource, trackAcquisitionEvent } from "../utils/acquisitionTracking";
+import { auth } from "../../../lib/firebase";
+import { useAuth } from "../../contexts/AuthContext";
+import { createPasswordResetActionCodeSettings } from "../../utils/authActionLinks";
+import { normalizeCoTutorInviteCode, rememberPendingCoTutorInvite } from "../../utils/coTutorInvite";
+import { persistAcquisitionSource, resolveAcquisitionSource, trackAcquisitionEvent } from "../../utils/acquisitionTracking";
 import { SEO } from "../shared/SEO";
 import { AuthPageShell } from "./AuthPageShell";
 

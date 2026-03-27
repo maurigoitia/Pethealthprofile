@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
-import { auth } from "../../lib/firebase";
-import { usePet } from "../contexts/PetContext";
-import { clearPendingCoTutorInvite, rememberPendingCoTutorInvite } from "../utils/coTutorInvite";
+import { auth } from "../../../lib/firebase";
+import { usePet } from "../../contexts/PetContext";
+import { clearPendingCoTutorInvite, rememberPendingCoTutorInvite } from "../../utils/coTutorInvite";
 
 const EMAIL_STORAGE_KEY = "pessy_magic_link_email";
 

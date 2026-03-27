@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { usePet } from "../contexts/PetContext";
-import { useMedical } from "../contexts/MedicalContext";
-import { useAuth } from "../contexts/AuthContext";
-import { Appointment } from "../types/medical";
+import { usePet } from "../../contexts/PetContext";
+import { useMedical } from "../../contexts/MedicalContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { Appointment } from "../../types/medical";
 
 interface AddAppointmentModalProps {
     isOpen: boolean;

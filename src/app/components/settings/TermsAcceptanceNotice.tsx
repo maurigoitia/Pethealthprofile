@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { db } from "../../lib/firebase";
-import { useAuth } from "../contexts/AuthContext";
-import { CURRENT_TERMS_UPDATED_LABEL, CURRENT_TERMS_VERSION } from "../constants/legal";
+import { db } from "../../../lib/firebase";
+import { useAuth } from "../../contexts/AuthContext";
+import { CURRENT_TERMS_UPDATED_LABEL, CURRENT_TERMS_VERSION } from "../../constants/legal";
 
 type TermsResponseStatus = "accepted" | "declined";
 

@@ -2,7 +2,7 @@ import { useParams, Link } from "react-router";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { useState, useEffect } from "react";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import { db } from "../../../lib/firebase";
 
 export function VerifyReportScreen() {
   const { hash } = useParams<{ hash: string }>();

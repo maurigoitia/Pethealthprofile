@@ -1,7 +1,7 @@
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { usePet } from "../contexts/PetContext";
-import { useMedical } from "../contexts/MedicalContext";
-import { isFocusHistoryExperimentHost, isPendingActionsEnabled } from "../utils/runtimeFlags";
+import { usePet } from "../../contexts/PetContext";
+import { useMedical } from "../../contexts/MedicalContext";
+import { isFocusHistoryExperimentHost, isPendingActionsEnabled } from "../../utils/runtimeFlags";
 
 export function MonthSummary() {
   if (isFocusHistoryExperimentHost()) return null;

@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { collection, query, where, orderBy, getDocs, doc, updateDoc, Timestamp } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { db, functions } from "../../lib/firebase";
-import { useAuth } from "../contexts/AuthContext";
+import { db, functions } from "../../../lib/firebase";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface AccessRequest {
   id: string;
