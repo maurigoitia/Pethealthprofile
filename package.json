@@ -20,7 +20,6 @@
     "@capacitor/browser": "^7.0.2",
     "@capacitor/core": "^7.4.3",
     "@rollup/rollup-darwin-arm64": "^4.60.0",
-    "@rollup/rollup-linux-arm64-gnu": "^4.60.0",
     "clsx": "2.1.1",
     "date-fns": "3.6.0",
     "firebase": "^12.9.0",

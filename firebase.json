@@ -301,6 +301,11 @@
       ],
       "redirects": [
         {
+          "source": "/blog/:slug",
+          "destination": "/blog/:slug/",
+          "type": 301
+        },
+        {
           "source": "/welcome",
           "destination": "/",
           "type": 301

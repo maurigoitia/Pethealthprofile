@@ -174,6 +174,7 @@ export default defineConfig({
   assetsInclude: ['**/*.svg', '**/*.csv'],
   build: {
     rollupOptions: {
+      input: path.resolve(__dirname, 'app.html'),
       output: {
         manualChunks: {
           // Firebase — split por módulo para tree-shaking
