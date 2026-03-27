@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MaterialIcon } from "../MaterialIcon";
+import { MaterialIcon } from "../shared/MaterialIcon";
 
 interface QuickActionsProps {
   appointments: number;

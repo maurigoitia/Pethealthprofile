@@ -2,8 +2,7 @@ interface MaterialIconProps {
   name: string;
   className?: string;
   filled?: boolean;
-  /** BUG-14 fix: decorative icons should set aria-hidden to hide from screen readers */
-  "aria-hidden"?: boolean;
+  /** BUG-14 fix: decorative icons should set aria-hidden to hide from screen readers */ "aria-hidden"?: boolean;
 }
 
 export function MaterialIcon({ name, className = "", filled = false, "aria-hidden": ariaHidden = true }: MaterialIconProps) {

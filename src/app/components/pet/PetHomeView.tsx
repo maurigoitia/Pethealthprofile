@@ -13,11 +13,11 @@ import {
   WELLBEING_MASTER_BOOK,
   type ThermalSafetyProfile,
   type WellbeingSpeciesGroupId,
-} from "../../domain/wellbeing/wellbeingMasterBook";
+} from "../../../domain/wellbeing/wellbeingMasterBook";
 import {
   runPessyIntelligence,
   type PessyIntelligenceRecommendation,
-} from "../../domain/intelligence/pessyIntelligenceEngine";
+} from "../../../domain/intelligence/pessyIntelligenceEngine";
 
 import DailyHookCard from "../home/DailyHookCard";
 import RoutineChecklist from "../home/RoutineChecklist";

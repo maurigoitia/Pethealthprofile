@@ -4,8 +4,8 @@ import {
   WELLBEING_PROTOCOL_VERSION,
   type WellbeingProtocolInput,
   type WellbeingRoutineKind,
-} from "../../domain/wellbeing/wellbeingProtocol.contract";
-import { evaluateWellbeingProtocolEligibility } from "../../domain/wellbeing/wellbeingProtocol.guards";
+} from "../../../domain/wellbeing/wellbeingProtocol.contract";
+import { evaluateWellbeingProtocolEligibility } from "../../../domain/wellbeing/wellbeingProtocol.guards";
 
 type PreviewFeedback = "bien" | "cansado" | "apatico";
 

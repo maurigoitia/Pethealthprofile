@@ -7,20 +7,20 @@ import {
   type SeparationAnxietyRule,
   type ThermalSafetyProfile,
   type WellbeingSpeciesGroupId,
-} from "../../domain/wellbeing/wellbeingMasterBook";
+} from "../../../domain/wellbeing/wellbeingMasterBook";
 import {
   TRAINING_MASTER_BOOK,
-} from "../../domain/training/training_master_book";
+} from "../../../domain/training/training_master_book";
 import {
   runPessyIntelligence,
   inferTrainingSegmentId,
-} from "../../domain/intelligence/pessyIntelligenceEngine";
-import { runPessyIntelligenceTrainingSet } from "../../domain/intelligence/pessyIntelligenceTrainingSet";
+} from "../../../domain/intelligence/pessyIntelligenceEngine";
+import { runPessyIntelligenceTrainingSet } from "../../../domain/intelligence/pessyIntelligenceTrainingSet";
 import {
   DEFAULT_WALK_ROUTINE_PREFERENCES,
   type UserRoutinePreferences,
-} from "../../domain/intelligence/userRoutinePreferences";
-import { generateWalkSmartSuggestion } from "../../domain/intelligence/smartSuggestionGenerator";
+} from "../../../domain/intelligence/userRoutinePreferences";
+import { generateWalkSmartSuggestion } from "../../../domain/intelligence/smartSuggestionGenerator";
 
 type PreviewScenarioId = "thor_heat" | "lola_puppy" | "milo_anxiety" | "nori_heat";
 type PreviewActionKind = "block" | "alert" | "recommendation";
