@@ -115,14 +115,15 @@ export function ActionTray() {
 
   return (
     <section>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-black flex items-center gap-2 text-slate-700 dark:text-slate-200">
-          <MaterialIcon name="inbox" className="text-slate-500 dark:text-slate-300 text-lg" />
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold flex items-center gap-2 text-[#074738] dark:text-[#E0F2F1]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <MaterialIcon name="inbox" className="text-[#6B7280] dark:text-[#9CA3AF] text-lg" />
           Seguimientos
         </h2>
         <button
           onClick={() => setShowList((prev) => !prev)}
-          className="text-[11px] font-black uppercase tracking-wide text-[#074738] hover:underline"
+          className="text-[11px] font-bold uppercase tracking-wider text-[#1A9B7D] hover:text-[#074738] transition-colors"
+          style={{ fontFamily: "'Manrope', sans-serif" }}
         >
           {showList ? "Ocultar" : `Ver ${pendingActions.length}`}
         </button>
@@ -131,12 +132,12 @@ export function ActionTray() {
       {!showList ? (
         <button
           onClick={() => setShowList(true)}
-          className="w-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+          className="w-full bg-white dark:bg-slate-900 rounded-[16px] border border-[#E5E7EB] dark:border-slate-800 p-4 text-left hover:bg-[#F0FAF9] dark:hover:bg-slate-800/50 transition-colors"
         >
-          <p className="text-sm font-bold text-slate-900 dark:text-white">
+          <p className="text-base font-bold text-[#1A1A1A] dark:text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             {pendingActions.length} pendiente{pendingActions.length !== 1 ? "s" : ""} activo{pendingActions.length !== 1 ? "s" : ""}
           </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-sm text-[#6B7280] dark:text-slate-400 mt-2" style={{ fontFamily: "'Manrope', sans-serif" }}>
             Se movieron acá para no tapar el historial principal.
           </p>
         </button>
