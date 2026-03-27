@@ -46,10 +46,10 @@ export function EmptyState({
       </div>
 
       {/* Text Content */}
-      <h3 className="text-xl font-black text-slate-900 dark:text-white text-center mb-3">
+      <h3 className="text-2xl font-bold text-[#074738] dark:text-[#E0F2F1] text-center mb-3" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
         {title}
       </h3>
-      <p className="text-sm text-slate-500 dark:text-slate-400 text-center max-w-xs mb-6 leading-relaxed">
+      <p className="text-base text-[#6B7280] dark:text-[#9CA3AF] text-center max-w-xs mb-6 leading-relaxed" style={{ fontFamily: "'Manrope', sans-serif" }}>
         {description}
       </p>
 
@@ -57,7 +57,7 @@ export function EmptyState({
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="flex items-center gap-2 px-6 py-3 bg-[#074738] text-white rounded-xl font-bold hover:bg-[#1a9b7d] transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[#074738]/30"
+          className="flex items-center gap-2 px-6 py-3 bg-[#074738] text-white rounded-2xl font-bold hover:bg-[#1a9b7d] transition-all hover:scale-105 active:scale-95 shadow-md shadow-[#074738]/20"
         >
           <MaterialIcon name="add_circle" className="text-xl" />
           <span>{actionLabel}</span>

@@ -9,14 +9,27 @@ service firebase.storage {
       return request.resource == null || request.resource.size < 30 * 1024 * 1024;
     }
 
+    // MEJORADO: Validar content-type y extensión
+    function validImageType() {
+      return request.resource.contentType.matches('image/(jpeg|png|gif|webp)');
+    }
+
+    function validDocumentType() {
+      return request.resource.contentType.matches('application/(pdf|msword|vnd\\.openxmlformats-officedocument\\..*)');
+    }
+
+    function validMediaType() {
+      return validImageType() || validDocumentType();
+    }
+
     // Perfil de usuario y assets de mascotas por usuario
     match /users/{userId}/{allPaths=**} {
-      allow read, write: if isOwner(userId) && validWriteSize();
+      allow read, write: if isOwner(userId) && validWriteSize() && validMediaType();
     }
 
     // Documentos médicos subidos por el tutor
     match /documents/{userId}/{allPaths=**} {
-      allow read, write: if isOwner(userId) && validWriteSize();
+      allow read, write: if isOwner(userId) && validWriteSize() && validMediaType();
     }
   }
 }

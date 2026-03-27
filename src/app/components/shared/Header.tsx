@@ -20,8 +20,8 @@ export function Header({ onPetClick, activePet }: HeaderProps) {
       {/* Top bar */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-xs text-slate-400 font-medium">Hola,</p>
-          <p className="text-base font-black text-slate-900 dark:text-white">{safeUserName}</p>
+          <p className="text-xs text-[#6B7280] font-medium" style={{ fontFamily: "'Manrope', sans-serif" }}>Hola,</p>
+          <p className="text-xl font-bold text-[#074738] dark:text-[#E0F2F1]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{safeUserName}</p>
         </div>
       </div>
 
@@ -49,10 +49,10 @@ export function Header({ onPetClick, activePet }: HeaderProps) {
             </div>
 
             <div className="flex-1 text-left">
-              <h2 className="text-xl font-black text-slate-900 dark:text-white mb-0.5">
+              <h2 className="text-xl font-bold text-[#074738] dark:text-[#E0F2F1] mb-0.5" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                 {activePet.name}
               </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+              <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF] font-medium" style={{ fontFamily: "'Manrope', sans-serif" }}>
                 {activePet.species}
               </p>
             </div>

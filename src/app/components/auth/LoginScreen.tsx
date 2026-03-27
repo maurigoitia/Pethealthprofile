@@ -270,9 +270,9 @@ export function LoginScreen() {
           transition={{ duration: 0.5 }}
           className="mb-8 w-full"
         >
-          <div className="w-full rounded-[1.75rem] border border-[#dfe6e2] bg-[#f4f3f9] p-5">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]">Tu mascota, sus cosas</p>
-            <p className="mt-2 text-sm font-medium leading-6 text-[#36584e]">
+          <div className="w-full rounded-[1.75rem] border border-[#E5E7EB] bg-[#F0FAF9] p-5">
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]" style={{ fontFamily: "'Manrope', sans-serif" }}>Tu mascota, sus cosas</p>
+            <p className="mt-2 text-sm font-medium leading-6 text-[#6B7280]" style={{ fontFamily: "'Manrope', sans-serif" }}>
               Porque quererlo ya es suficiente trabajo.
             </p>
           </div>
@@ -286,9 +286,9 @@ export function LoginScreen() {
           className="w-full space-y-4"
         >
           {inviteCode && (
-            <div className="rounded-[1.5rem] border border-[#b5efd9] bg-[#eef8f3] px-5 py-4 text-slate-900">
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]">Invitacion de co-tutor</p>
-              <p className="text-sm font-medium leading-5 mt-1">
+            <div className="rounded-[1.5rem] border border-[#1A9B7D]/30 bg-[#E0F2F1] px-5 py-4 text-[#1A1A1A]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]" style={{ fontFamily: "'Manrope', sans-serif" }}>Invitacion de co-tutor</p>
+              <p className="text-sm font-medium leading-5 mt-1 text-[#6B7280]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                 Al completar el acceso, vamos a vincular esta cuenta con la mascota compartida.
               </p>
             </div>
@@ -299,7 +299,8 @@ export function LoginScreen() {
             aria-label="Correo electrónico"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-[1.5rem] border border-[#dfe6e2] bg-white px-5 py-4 text-slate-900 outline-none focus:ring-2 focus:ring-[#074738]/20"
+            className="w-full rounded-[1.5rem] border border-[#E5E7EB] bg-white px-5 py-4 text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#074738]/20"
+            style={{ fontFamily: "'Manrope', sans-serif" }}
             required
           />
 
@@ -310,14 +311,16 @@ export function LoginScreen() {
               aria-label="Contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-[1.5rem] border border-[#dfe6e2] bg-white px-5 py-4 pr-28 text-slate-900 outline-none focus:ring-2 focus:ring-[#074738]/20"
+              className="w-full rounded-[1.5rem] border border-[#E5E7EB] bg-white px-5 py-4 pr-28 text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#074738]/20"
+              style={{ fontFamily: "'Manrope', sans-serif" }}
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-[#dfe6e2] bg-[#f4f3f9] px-3 py-1 text-xs font-bold text-[#074738]"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-[#E5E7EB] bg-[#F0FAF9] px-3 py-1 text-xs font-bold text-[#074738] hover:bg-[#E0F2F1] transition-colors"
+              style={{ fontFamily: "'Manrope', sans-serif" }}
             >
               {showPassword ? "Ocultar" : "Mostrar"}
             </button>
@@ -327,34 +330,36 @@ export function LoginScreen() {
             <button
               type="button"
               onClick={() => { setShowReset(true); setResetEmail(email); setResetError(""); setResetSuccess(""); }}
-              className="text-sm font-semibold text-[#5e716b] transition-colors hover:text-[#074738]"
+              className="text-sm font-semibold text-[#6B7280] transition-colors hover:text-[#074738]"
+              style={{ fontFamily: "'Manrope', sans-serif" }}
             >
               ¿Olvidaste tu contraseña?
             </button>
           </div>
 
-          {error && <p className="rounded-xl border border-red-100 bg-red-50 px-4 py-2 text-center text-sm font-semibold text-red-700">{error}</p>}
+          {error && <p className="rounded-2xl border border-[#EF4444]/30 bg-[#EF4444]/10 px-4 py-2 text-center text-sm font-semibold text-[#EF4444]" style={{ fontFamily: "'Manrope', sans-serif" }}>{error}</p>}
 
           <button
             type="submit"
             disabled={loading || authLoading}
-            className="w-full rounded-full bg-[#074738] py-4 font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60"
-            style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+            className="w-full rounded-full bg-[#074738] py-4 font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60 hover:bg-[#1A9B7D] transition-colors"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             {authLoading ? "Validando sesión..." : loading ? "Ingresando..." : "Ingresar"}
           </button>
 
           <div className="flex items-center gap-3 pt-1">
-            <div className="h-px flex-1 bg-[#dfe6e2]" />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">o continuar con</span>
-            <div className="h-px flex-1 bg-[#dfe6e2]" />
+            <div className="h-px flex-1 bg-[#E5E7EB]" />
+            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9CA3AF]" style={{ fontFamily: "'Manrope', sans-serif" }}>o continuar con</span>
+            <div className="h-px flex-1 bg-[#E5E7EB]" />
           </div>
 
           <button
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loadingGoogle}
-            className="flex w-full items-center justify-center gap-3 rounded-full border border-[#dfe6e2] bg-[#f4f3f9] py-4 text-[15px] font-bold text-slate-900 transition-all active:scale-[0.99] disabled:opacity-60 hover:bg-[#edf2f1]"
+            className="flex w-full items-center justify-center gap-3 rounded-full border border-[#E5E7EB] bg-[#F0FAF9] py-4 text-[15px] font-bold text-[#1A1A1A] transition-all active:scale-[0.99] disabled:opacity-60 hover:bg-[#E0F2F1]"
+            style={{ fontFamily: "'Manrope', sans-serif" }}
           >
             <span className="size-7 rounded-full bg-white flex items-center justify-center shadow-sm">
               <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">

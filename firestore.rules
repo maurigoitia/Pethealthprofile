@@ -89,7 +89,9 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && request.auth.token.email == 'mauri@pessy.app';
+      // MEJORADO: Usar custom claims en lugar de email hardcodeado
+      // En Firebase Console o script: await admin.auth().setCustomUserClaims(uid, {admin: true});
+      return signedIn() && request.auth.token.admin == true;
     }
 
     match /users/{userId} {
@@ -127,7 +129,10 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.email is string
         && request.resource.data.name.size() > 0
-        && request.resource.data.email.size() > 5;
+        && request.resource.data.name.size() <= 200
+        && request.resource.data.email.size() > 5
+        && request.resource.data.email.size() <= 255
+        && request.resource.data.email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
       allow read, update: if isAdmin();
       allow delete: if false;
     }
@@ -208,14 +213,15 @@ service cloud.firestore {
     }
 
     match /medical_events/{eventId} {
-      allow create: if canAccessPetById(request.resource.data.petId);
+      allow create: if canAccessPetById(request.resource.data.petId)
+        && request.resource.data.size() <= 500 * 1024; // Max 500KB document
       allow read, update, delete: if canAccessPetById(resource.data.petId);
     }
 
     match /clinical_events/{eventId} {
-      allow create: if
+      allow create: if request.resource.data.size() <= 500 * 1024 && (
         (request.resource.data.petId is string && canAccessPetById(request.resource.data.petId)) ||
-        (signedIn() && request.resource.data.userId == request.auth.uid);
+        (signedIn() && request.resource.data.userId == request.auth.uid));
       allow read, update, delete: if
         (resource.data.petId is string && canAccessPetById(resource.data.petId)) ||
         (signedIn() && resource.data.userId == request.auth.uid);
@@ -235,7 +241,8 @@ service cloud.firestore {
     }
 
     match /medications/{medicationId} {
-      allow create: if canAccessPetById(request.resource.data.petId);
+      allow create: if canAccessPetById(request.resource.data.petId)
+        && request.resource.data.size() <= 500 * 1024;
       allow read, update, delete: if canAccessPetById(resource.data.petId);
     }
 
