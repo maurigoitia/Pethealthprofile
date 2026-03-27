@@ -381,6 +381,10 @@
           "destination": "/blog/tu-mascota-todo-en-orden.html"
         },
         {
+          "source": "/blog/vacunas-perros-argentina",
+          "destination": "/blog/vacunas-perros-argentina.html"
+        },
+        {
           "source": "**",
           "destination": "/app.html"
         }
