@@ -143,7 +143,7 @@ export function ConsentManager({ onConsent, onBack, compact = false }: ConsentMa
           type="button"
           onClick={handleAccept}
           disabled={!allRequired}
-          className="w-full rounded-full bg-[#074738] py-4 text-sm font-bold uppercase tracking-[0.16em] text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full rounded-[14px] bg-[#074738] py-4 text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[0_4px_12px_rgba(26,155,125,0.3)] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Acepto y continúo
         </button>
@@ -152,7 +152,7 @@ export function ConsentManager({ onConsent, onBack, compact = false }: ConsentMa
           <button
             type="button"
             onClick={onBack}
-            className="w-full rounded-full border border-[#dfe6e2] py-3 text-sm font-bold uppercase tracking-[0.16em] text-[#074738]"
+            className="w-full rounded-[14px] border border-[#E5E7EB] py-3 text-sm font-bold uppercase tracking-[0.16em] text-[#074738]"
           >
             Volver
           </button>
@@ -185,7 +185,7 @@ function ConsentItem({
   const isOpen = expanded === expandedId;
 
   return (
-    <div className="rounded-2xl border border-slate-200 overflow-hidden transition-all">
+    <div className="rounded-[16px] border border-[#E5E7EB] overflow-hidden transition-all">
       <label className="flex items-start gap-3 px-4 py-4 cursor-pointer">
         <input
           type="checkbox"
@@ -214,7 +214,7 @@ function ConsentItem({
 
       {isOpen && (
         <div className="px-4 pb-4 pt-0">
-          <div className="rounded-xl bg-[#F0FAF9] px-4 py-3">
+          <div className="rounded-[12px] bg-[#F0FAF9] px-4 py-3">
             <p className="text-xs leading-relaxed text-[#3d5c52]">{children}</p>
             {link && (
               <a

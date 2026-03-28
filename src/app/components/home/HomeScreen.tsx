@@ -7,8 +7,13 @@ import { Sidebar } from "../shared/Sidebar";
 import { TermsAcceptanceNotice } from "../settings/TermsAcceptanceNotice";
 import { usePet } from "../../contexts/PetContext";
 import { useAuth } from "../../contexts/AuthContext";
+import { usePreferences } from "../../contexts/PreferenceContext";
 import { clearPendingCoTutorInvite, readPendingCoTutorInvite, rememberPendingCoTutorInvite, normalizeCoTutorInviteCode } from "../../utils/coTutorInvite";
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
+
+const RandomQuestionCard = lazy(() =>
+  import("../preferences/RandomQuestionCard.tsx")
+);
 
 const Header = lazy(() =>
   import("../shared/Header.tsx").then((module) => ({ default: module.Header }))
@@ -49,6 +54,15 @@ const ExportReportModal = lazy(() =>
 const NearbyVetsScreen = lazy(() =>
   import("../nearby/NearbyVetsScreen.tsx").then((module) => ({ default: module.NearbyVetsScreen }))
 );
+const LostPetFeedScreen = lazy(() =>
+  import("../community/LostPetFeed.tsx").then((module) => ({ default: module.LostPetFeed }))
+);
+const ReportLostPetScreen = lazy(() =>
+  import("../community/ReportLostPet.tsx").then((module) => ({ default: module.ReportLostPet }))
+);
+const RecommendationFeedScreen = lazy(() =>
+  import("../lifestyle/RecommendationFeed.tsx").then((module) => ({ default: module.RecommendationFeed }))
+);
 const InviteFriendsModal = lazy(() =>
   import("../pet/InviteFriendsModal.tsx")
 );
@@ -74,12 +88,13 @@ export default function HomeScreen() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [showInviteFriends, setShowInviteFriends] = useState(false);
   const [currentTab, setCurrentTab] = useState<"home" | "settings">("home");
-  const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications" | "nearby-vets">("card");
+  const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications" | "nearby-vets" | "lost-pets" | "report-lost" | "explore">("card");
   const [inviteNotice, setInviteNotice] = useState<{ type: "info" | "success" | "error"; message: string } | null>(null);
   const [inviteJoiningCode, setInviteJoiningCode] = useState("");
   const [inviteResolvedCode, setInviteResolvedCode] = useState("");
   const { activePetId, setActivePetId, pets, activePet, loading: petsLoading, joinWithCode } = usePet();
   const { user, loading: authLoading, userName, logout } = useAuth();
+  const { currentQuestion, answerQuestion, dismissQuestion } = usePreferences();
   const focusExperienceEnabled = isFocusExperienceHost();
 
   useEffect(() => {
@@ -438,6 +453,41 @@ export default function HomeScreen() {
     );
   }
 
+  // Show Lost Pets Feed
+  if (viewMode === "lost-pets") {
+    return withTermsNotice(
+      <>
+        <Suspense fallback={<ScreenLoader label="Cargando reportes..." />}>
+          <LostPetFeedScreen onReport={() => setViewMode("report-lost")} onBack={() => setViewMode("card")} />
+        </Suspense>
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} />
+      </>
+    );
+  }
+
+  // Show Report Lost Pet
+  if (viewMode === "report-lost") {
+    return withTermsNotice(
+      <>
+        <Suspense fallback={<ScreenLoader label="Cargando..." />}>
+          <ReportLostPetScreen onBack={() => setViewMode("lost-pets")} onSuccess={() => setViewMode("lost-pets")} />
+        </Suspense>
+      </>
+    );
+  }
+
+  // Show Explore / Recommendations
+  if (viewMode === "explore") {
+    return withTermsNotice(
+      <>
+        <Suspense fallback={<ScreenLoader label="Descubriendo lugares..." />}>
+          <RecommendationFeedScreen onBack={() => setViewMode("card")} />
+        </Suspense>
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} />
+      </>
+    );
+  }
+
   return withTermsNotice(
     <div className="bg-[#F0FAF9] dark:bg-[#101622] text-slate-900 dark:text-slate-100 min-h-screen font-['Manrope',sans-serif]">
       {/* Sidebar */}
@@ -523,6 +573,19 @@ export default function HomeScreen() {
                   activePetId={activePetId}
                   onPetChange={handlePetChange}
                 />
+                {/* Random Question — 1 per session to build owner profile */}
+                {currentQuestion && activePet && (
+                  <Suspense fallback={null}>
+                    <div className="mt-4">
+                      <RandomQuestionCard
+                        question={currentQuestion}
+                        petName={activePet.name}
+                        onAnswer={answerQuestion}
+                        onDismiss={dismissQuestion}
+                      />
+                    </div>
+                  </Suspense>
+                )}
               </>
             )}
           </>

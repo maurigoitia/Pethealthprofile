@@ -6,6 +6,8 @@ import { MedicalProvider } from "./contexts/MedicalContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { RemindersProvider } from "./contexts/RemindersContext";
+import { PreferenceProvider } from "./contexts/PreferenceContext";
+import { GamificationProvider } from "./contexts/GamificationContext";
 import { AppErrorBoundary } from "./components/shared/AppErrorBoundary";
 
 export default function App() {
@@ -16,8 +18,12 @@ export default function App() {
           <MedicalProvider>
             <NotificationProvider>
               <RemindersProvider>
-                <RouterProvider router={router} />
-                <Toaster position="top-center" richColors />
+                <PreferenceProvider>
+                  <GamificationProvider>
+                    <RouterProvider router={router} />
+                    <Toaster position="top-center" richColors />
+                  </GamificationProvider>
+                </PreferenceProvider>
               </RemindersProvider>
             </NotificationProvider>
           </MedicalProvider>

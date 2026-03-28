@@ -282,7 +282,7 @@ export function RegisterUserScreen() {
         highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
       >
         <div className="space-y-6">
-          <div className="rounded-[1.5rem] border border-[#e8d5b5] bg-[#fdf6ec] px-6 py-6 text-center">
+          <div className="rounded-[16px] border border-[#E5E7EB] bg-[#F0FAF9] px-6 py-6 text-center">
             <p className="text-base font-bold text-[#1A9B7D]">Pessy es solo por invitación</p>
             <p className="mt-2 text-sm leading-5 text-[#9CA3AF]">
               Por ahora el acceso es limitado. Podés solicitar tu lugar en la lista de espera.
@@ -290,13 +290,13 @@ export function RegisterUserScreen() {
           </div>
           <a
             href="/solicitar-acceso"
-            className="block w-full rounded-full bg-[#074738] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-white"
+            className="block w-full rounded-[14px] bg-[#074738] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[0_4px_12px_rgba(26,155,125,0.3)]"
           >
             Solicitar acceso
           </a>
           <a
             href="/login"
-            className="block w-full rounded-full border border-[#dfe6e2] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-[#1A9B7D]"
+            className="block w-full rounded-[14px] border border-[#E5E7EB] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-[#1A9B7D]"
           >
             Ya tengo cuenta
           </a>
@@ -314,19 +314,19 @@ export function RegisterUserScreen() {
         highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
       >
         <div className="space-y-6">
-          <div className="rounded-[1.5rem] border border-[#e8d5b5] bg-[#fdf6ec] px-6 py-6 text-center">
+          <div className="rounded-[16px] border border-[#E5E7EB] bg-[#F0FAF9] px-6 py-6 text-center">
             <p className="text-base font-bold text-[#1A9B7D]">Link inválido</p>
             <p className="mt-2 text-sm leading-5 text-[#9CA3AF]">{gateMessage}</p>
           </div>
           <a
             href="/solicitar-acceso"
-            className="block w-full rounded-full bg-[#074738] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-white"
+            className="block w-full rounded-[14px] bg-[#074738] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[0_4px_12px_rgba(26,155,125,0.3)]"
           >
             Solicitar acceso
           </a>
           <a
             href="/login"
-            className="block w-full rounded-full border border-[#dfe6e2] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-[#1A9B7D]"
+            className="block w-full rounded-[14px] border border-[#E5E7EB] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-[#1A9B7D]"
           >
             Ya tengo cuenta
           </a>
@@ -356,7 +356,7 @@ export function RegisterUserScreen() {
 
       <form onSubmit={handleCreateAccount} className="space-y-4">
           {inviteCode && (
-            <div className="rounded-[1.5rem] border border-[#b5efd9] bg-[#eef8f3] px-4 py-4 text-left">
+            <div className="rounded-[16px] border border-[#b5efd9] bg-[#F0FAF9] px-4 py-4 text-left">
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#1A9B7D]">Invitación de co-tutor</p>
               <p className="mt-1 text-sm leading-5 text-[#1A9B7D]">
                 Esta cuenta se va a vincular con una mascota compartida apenas termines el registro.
@@ -393,7 +393,7 @@ export function RegisterUserScreen() {
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-slate-200 bg-[#F0FAF9] px-3 py-1 text-xs font-bold text-[#1A9B7D]"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-[14px] border border-[#E5E7EB] bg-[#F0FAF9] px-3 py-1 text-xs font-bold text-[#1A9B7D]"
             >
               {showPassword ? "Ocultar" : "Mostrar"}
             </button>
@@ -404,7 +404,7 @@ export function RegisterUserScreen() {
             <select
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              className="w-full px-4 py-4 rounded-[16px] border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none appearance-none bg-white text-slate-700 cursor-pointer"
+              className="w-full px-4 py-4 rounded-[12px] border border-[#E5E7EB] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none appearance-none bg-white text-slate-700 cursor-pointer"
             >
               <option value="">🌍 ¿De dónde sos?</option>
               {COUNTRIES.map((c) => (
@@ -423,7 +423,7 @@ export function RegisterUserScreen() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-full bg-[#074738] py-4 text-sm font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60"
+            className="w-full rounded-[14px] bg-[#074738] py-4 text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[0_4px_12px_rgba(26,155,125,0.3)] disabled:opacity-60"
           >
             {loading ? "Creando..." : "Crear cuenta"}
           </button>
@@ -431,7 +431,7 @@ export function RegisterUserScreen() {
           <button
             type="button"
             onClick={() => navigate(inviteCode ? `/login?invite=${inviteCode}` : "/login")}
-            className="w-full rounded-full border border-[#dfe6e2] py-4 text-sm font-bold uppercase tracking-[0.16em] text-[#1A9B7D] transition-all hover:bg-[#f4f3f9]"
+            className="w-full rounded-[14px] border border-[#E5E7EB] py-4 text-sm font-bold uppercase tracking-[0.16em] text-[#1A9B7D] transition-all hover:bg-[#f4f3f9]"
           >
             Ya tengo cuenta
           </button>
