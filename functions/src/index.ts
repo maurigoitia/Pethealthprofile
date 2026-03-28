@@ -476,6 +476,7 @@ import { resolveBrainOutput } from "./clinical/brainResolver";
 import { pessyClinicalBrainGrounding } from "./clinical/groundedBrain";
 import { provisionPessyVertexDatastore } from "./clinical/vertexDatastoreAdmin";
 import { syncNotebookKnowledge } from "./clinical/notebookKnowledgeSync";
+import { seedBrainKnowledge } from "./clinical/seedNotebookKnowledge";
 import {
   dispatchTreatmentRemindersV3,
   evaluateTreatmentDedupV3,
@@ -2555,6 +2556,7 @@ export {
   deleteAllUserClinicalData,
   submitDataDeletionRequest,
   syncNotebookKnowledge,
+  seedBrainKnowledge,
 };
 
 // ---------------------------------------------------------------------------
