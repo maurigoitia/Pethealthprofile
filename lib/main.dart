@@ -82,31 +82,37 @@ class _PessyHomeState extends State<_PessyHome> {
   }
 
   Future<void> _setupPushNotifications() async {
-    final messaging = FirebaseMessaging.instance;
+    try {
+      final messaging = FirebaseMessaging.instance;
 
-    // Request permission (iOS shows system dialog)
-    final settings = await messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-    debugPrint('[Pessy] Push permission: ${settings.authorizationStatus}');
+      // Request permission (iOS shows system dialog)
+      final settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      debugPrint('[Pessy] Push permission: ${settings.authorizationStatus}');
 
-    // Get FCM token for this device
-    final token = await messaging.getToken();
-    debugPrint('[Pessy] FCM token: $token');
+      // Get FCM token — fails on Simulator, that's OK
+      try {
+        final token = await messaging.getToken();
+        debugPrint('[Pessy] FCM token: $token');
+      } catch (e) {
+        debugPrint('[Pessy] FCM token unavailable (simulator?): $e');
+      }
 
-    // Listen for foreground messages
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('[Pessy] Foreground message: ${message.notification?.title}');
-      // TODO: show in-app notification or pass to WebView via PessyNative channel
-    });
+      // Listen for foreground messages
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        debugPrint('[Pessy] Foreground message: ${message.notification?.title}');
+      });
 
-    // Handle notification tap when app is in background
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      debugPrint('[Pessy] Notification opened: ${message.data}');
-      // TODO: navigate to specific screen via deep link
-    });
+      // Handle notification tap when app is in background
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        debugPrint('[Pessy] Notification opened: ${message.data}');
+      });
+    } catch (e) {
+      debugPrint('[Pessy] Push setup skipped: $e');
+    }
   }
 
   @override
