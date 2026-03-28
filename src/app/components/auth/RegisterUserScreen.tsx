@@ -24,11 +24,16 @@ export function RegisterUserScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showTermsStep, setShowTermsStep] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  // Role selection: tutor (pet owner) or vet (professional)
+  const [userRole, setUserRole] = useState<"tutor" | "vet" | null>(null);
+  // Vet-only fields
+  const [vetLicense, setVetLicense] = useState("");
+  const [vetSpecialty, setVetSpecialty] = useState("");
   // SECURITY FIX: Consentimiento ANTES de recolectar datos (GDPR Art.7, LFPDPPP Art.15-16)
   // QA/native: skip consent step (auto-accept for dev)
   const isQA = isNativeAppContext() ||
     (typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname));
-  const [consentStep, setConsentStep] = useState<"consent" | "register" | "post-register">(isQA ? "register" : "consent");
+  const [consentStep, setConsentStep] = useState<"role" | "consent" | "register" | "post-register">(isQA ? "role" : "role");
   const [consentData, setConsentData] = useState<ConsentState | null>(isQA ? {
     termsAccepted: true,
     privacyAccepted: true,
@@ -167,6 +172,14 @@ export function RegisterUserScreen() {
         name: name.trim(),
         email: cleanEmail,
         country: country || null,
+        role: userRole || "tutor",
+        ...(userRole === "vet" ? {
+          vetProfile: {
+            license: vetLicense.trim() || null,
+            specialty: vetSpecialty || null,
+            verified: false,
+          },
+        } : {}),
         createdAt: nowIso,
         // SECURITY: Registrar consentimiento explícito (GDPR Art.7, LFPDPPP Art.8-9, Ley 25.326 Art.5)
         consent: consentData ? {
@@ -225,7 +238,8 @@ export function RegisterUserScreen() {
 
       // SECURITY FIX: Consentimiento ya se aceptó antes del form, ir directo
       if (consentData) saveConsent(consentData);
-      navigate(inviteCode ? "/home" : "/register-pet", { replace: true });
+      // Vets go to home (no pet registration needed), tutors register their pet
+      navigate(inviteCode ? "/home" : userRole === "vet" ? "/inicio" : "/register-pet", { replace: true });
     } catch (err: any) {
       if (err?.code === "auth/email-already-in-use") {
         setError("Ese correo ya está registrado.");
@@ -244,8 +258,7 @@ export function RegisterUserScreen() {
   };
 
   const handleAcceptTerms = () => {
-    // Co-tutores van a /home (donde se procesa el invite), otros a /register-pet
-    navigate(inviteCode ? "/home" : "/register-pet", { replace: true });
+    navigate(inviteCode ? "/home" : userRole === "vet" ? "/inicio" : "/register-pet", { replace: true });
   };
 
   if (gateStatus === "loading") {
@@ -265,6 +278,87 @@ export function RegisterUserScreen() {
   }
 
   // SECURITY: Paso de consentimiento ANTES de mostrar el formulario (GDPR Art.7, LFPDPPP Art.15)
+  // ── Step 0: Role selection ──
+  if (gateStatus === "allowed" && consentStep === "role") {
+    return (
+      <AuthPageShell
+        eyebrow="Tu cuenta"
+        title="¿Cómo vas a usar Pessy?"
+        description="Elegí tu perfil para personalizar tu experiencia."
+        highlights={[]}
+      >
+        <div className="space-y-4">
+          <h2 className="text-xl font-extrabold text-[#074738] text-center" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            Elegí tu perfil
+          </h2>
+          <p className="text-sm text-[#9CA3AF] text-center" style={{ fontFamily: "'Manrope', sans-serif" }}>
+            Esto define cómo vas a interactuar con la plataforma.
+          </p>
+
+          {/* Tutor card */}
+          <button
+            type="button"
+            onClick={() => {
+              setUserRole("tutor");
+              setConsentStep(isQA ? "register" : "consent");
+            }}
+            className="w-full rounded-[16px] border-2 border-[#E5E7EB] bg-white p-5 text-left transition-all hover:border-[#1A9B7D] hover:shadow-[0_4px_12px_rgba(26,155,125,0.15)] active:scale-[0.98]"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-[#F0FAF9]">
+                <span className="text-2xl">🐾</span>
+              </div>
+              <div>
+                <p className="text-base font-extrabold text-[#074738]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  Soy tutor de mascota
+                </p>
+                <p className="mt-1 text-sm text-[#6B7280]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                  Quiero gestionar la salud, rutinas y bienestar de mi mascota.
+                </p>
+              </div>
+            </div>
+          </button>
+
+          {/* Vet card */}
+          <button
+            type="button"
+            onClick={() => {
+              setUserRole("vet");
+              setConsentStep(isQA ? "register" : "consent");
+            }}
+            className="w-full rounded-[16px] border-2 border-[#E5E7EB] bg-white p-5 text-left transition-all hover:border-[#5048CA] hover:shadow-[0_4px_12px_rgba(80,72,202,0.15)] active:scale-[0.98]"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-[#F0F0FF]">
+                <span className="text-2xl">🩺</span>
+              </div>
+              <div>
+                <p className="text-base font-extrabold text-[#074738]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  Soy profesional veterinario
+                </p>
+                <p className="mt-1 text-sm text-[#6B7280]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                  Quiero gestionar pacientes, historiales clínicos y consultas.
+                </p>
+              </div>
+            </div>
+          </button>
+
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => navigate("/login")}
+              className="w-full rounded-[14px] border border-[#E5E7EB] py-3 text-sm font-bold uppercase tracking-[0.16em] text-[#074738] transition-all hover:bg-[#f4f3f9]"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              Ya tengo cuenta
+            </button>
+          </div>
+        </div>
+      </AuthPageShell>
+    );
+  }
+
+  // ── Step 1: Consent (GDPR) ──
   if (gateStatus === "allowed" && consentStep === "consent") {
     return (
       <AuthPageShell
@@ -355,13 +449,15 @@ export function RegisterUserScreen() {
     >
       <div className="mb-8">
         <h2
-          className="text-3xl font-extrabold tracking-tight text-[#1A9B7D]"
+          className={`text-3xl font-extrabold tracking-tight ${userRole === "vet" ? "text-[#5048CA]" : "text-[#1A9B7D]"}`}
           style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
         >
-          Crear cuenta
+          {userRole === "vet" ? "Cuenta profesional" : "Crear cuenta"}
         </h2>
         <p className="mt-2 text-sm font-medium leading-6 text-[#9CA3AF]">
-          Empezá con tus datos. Pessy hace el resto — en serio.
+          {userRole === "vet"
+            ? "Registrate como profesional veterinario para gestionar pacientes."
+            : "Empezá con tus datos. Pessy hace el resto — en serio."}
         </p>
       </div>
 
@@ -429,12 +525,48 @@ export function RegisterUserScreen() {
             </div>
           </div>
 
+          {/* Vet-only fields */}
+          {userRole === "vet" && (
+            <>
+              <div className="rounded-[16px] border border-[#5048CA]/20 bg-[#F0F0FF] px-4 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#5048CA]">Datos profesionales</p>
+              </div>
+              <input
+                type="text"
+                placeholder="Matrícula profesional"
+                value={vetLicense}
+                onChange={(e) => setVetLicense(e.target.value)}
+                className="w-full px-4 py-4 rounded-[12px] border border-[#E5E7EB] focus:ring-2 focus:ring-[#5048CA]/30 focus:border-[#5048CA] outline-none"
+              />
+              <select
+                value={vetSpecialty}
+                onChange={(e) => setVetSpecialty(e.target.value)}
+                className="w-full px-4 py-4 rounded-[12px] border border-[#E5E7EB] focus:ring-2 focus:ring-[#5048CA]/30 focus:border-[#5048CA] outline-none appearance-none bg-white text-slate-700 cursor-pointer"
+              >
+                <option value="">Especialidad (opcional)</option>
+                <option value="general">Medicina general</option>
+                <option value="surgery">Cirugía</option>
+                <option value="dermatology">Dermatología</option>
+                <option value="cardiology">Cardiología</option>
+                <option value="nutrition">Nutrición</option>
+                <option value="behavior">Comportamiento</option>
+                <option value="emergency">Emergencias</option>
+                <option value="exotic">Animales exóticos</option>
+                <option value="other">Otra</option>
+              </select>
+            </>
+          )}
+
           {error && <p className="text-red-500 text-sm font-semibold text-center">{error}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-[14px] bg-[#074738] py-4 text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[0_4px_12px_rgba(26,155,125,0.3)] disabled:opacity-60"
+            className={`w-full rounded-[14px] py-4 text-sm font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60 ${
+              userRole === "vet"
+                ? "bg-[#5048CA] shadow-[0_4px_12px_rgba(80,72,202,0.3)]"
+                : "bg-[#074738] shadow-[0_4px_12px_rgba(26,155,125,0.3)]"
+            }`}
           >
             {loading ? "Creando..." : "Crear cuenta"}
           </button>

@@ -10,6 +10,7 @@ interface AuthContextType {
   userFullName: string;   // Nombre completo
   userPhoto: string;      // URL foto de perfil
   userCountry: string;    // Código de país (ej: "AR")
+  userRole: "tutor" | "vet";  // Rol del usuario
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -22,6 +23,7 @@ async function fetchUserProfile(firebaseUser: User): Promise<{
   fullName: string;
   photo: string;
   country: string;
+  role: "tutor" | "vet";
 }> {
   try {
     const snap = await getDoc(doc(db, "users", firebaseUser.uid));
@@ -35,6 +37,7 @@ async function fetchUserProfile(firebaseUser: User): Promise<{
           fullName,
           photo: (data.photo || firebaseUser.photoURL || "") as string,
           country: (data.country || "") as string,
+          role: (data.role === "vet" ? "vet" : "tutor") as "tutor" | "vet",
         };
       }
     }
@@ -51,12 +54,13 @@ async function fetchUserProfile(firebaseUser: User): Promise<{
       fullName: dn,
       photo: firebaseUser.photoURL || "",
       country: "",
+      role: "tutor",
     };
   }
 
   // Fallback 2: email
   const emailName = firebaseUser.email?.split("@")[0] || "Usuario";
-  return { firstName: emailName, fullName: emailName, photo: "", country: "" };
+  return { firstName: emailName, fullName: emailName, photo: "", country: "", role: "tutor" };
 }
 
 // Crea el doc en Firestore solo si no existe. Nunca sobreescribe datos.
@@ -89,8 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userFullName, setUserFullName] = useState("");
   const [userPhoto, setUserPhoto] = useState("");
   const [userCountry, setUserCountry] = useState("");
+  const [userRole, setUserRole] = useState<"tutor" | "vet">("tutor");
 
-  const applyProfile = useCallback((profile: { firstName: string; fullName: string; photo: string; country: string }) => {
+  const applyProfile = useCallback((profile: { firstName: string; fullName: string; photo: string; country: string; role: "tutor" | "vet" }) => {
     const safeFirstName =
       (profile.firstName || "").trim() ||
       (profile.fullName || "").trim().split(/\s+/)[0] ||
@@ -100,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserFullName(safeFullName);
     setUserPhoto(profile.photo);
     setUserCountry(profile.country);
+    setUserRole(profile.role);
   }, []);
 
   const clearProfile = useCallback(() => {
@@ -107,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserFullName("");
     setUserPhoto("");
     setUserCountry("");
+    setUserRole("tutor");
   }, []);
 
   const refreshUser = useCallback(async () => {
@@ -161,7 +168,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => signOut(auth);
 
   return (
-    <AuthContext.Provider value={{ user, loading, userName, userFullName, userPhoto, userCountry, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, loading, userName, userFullName, userPhoto, userCountry, userRole, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
