@@ -302,68 +302,33 @@ export default function HomeScreen() {
     );
   }
 
-  // Empty state: No pets registered (or vet dashboard)
+  // Empty state: No pets registered
   if (pets.length === 0) {
     return withTermsNotice(
       <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen">
         <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24">
           <div className="flex-1 flex items-center justify-center px-6">
-            {userRole === "vet" ? (
-              /* ── Vet empty state ── */
-              <div className="text-center space-y-6">
-                <div className="size-32 mx-auto bg-[#5048CA]/10 rounded-full flex items-center justify-center">
-                  <span className="text-6xl">🩺</span>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    ¡Bienvenido, Dr. {userName}!
-                  </h2>
-                  <p className="text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
-                    Tu perfil profesional está activo. Pronto vas a poder recibir consultas y gestionar pacientes.
-                  </p>
-                </div>
-                <div className="space-y-3 pt-2">
-                  <div className="rounded-[16px] border border-[#5048CA]/20 bg-white p-4 text-left shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-                    <p className="text-sm font-bold text-[#5048CA]">Próximamente</p>
-                    <ul className="mt-2 space-y-1 text-sm text-[#6B7280]">
-                      <li>• Panel de pacientes</li>
-                      <li>• Historial clínico compartido</li>
-                      <li>• Consultas de tutores</li>
-                      <li>• Recetas y documentación</li>
-                    </ul>
-                  </div>
-                  <button
-                    onClick={handleAddNewPet}
-                    className="w-full px-6 py-3 bg-[#5048CA] text-white rounded-[14px] font-semibold transition-colors shadow-[0_4px_12px_rgba(80,72,202,0.3)]"
-                  >
-                    Agregar mascota propia (opcional)
-                  </button>
-                </div>
+            <div className="text-center space-y-6">
+              <div className="size-32 mx-auto bg-[#074738]/10 rounded-full flex items-center justify-center">
+                <span className="material-symbols-outlined text-[#074738]" style={{ fontSize: "64px" }}>
+                  folder_shared
+                </span>
               </div>
-            ) : (
-              /* ── Tutor empty state ── */
-              <div className="text-center space-y-6">
-                <div className="size-32 mx-auto bg-[#074738]/10 rounded-full flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[#074738]" style={{ fontSize: "64px" }}>
-                    folder_shared
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    ¡Bienvenido a PESSY!
-                  </h2>
-                  <p className="text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
-                    Agrega tu primera mascota. Pessy hace el resto.
-                  </p>
-                </div>
-                <button
-                  onClick={handleAddNewPet}
-                  className="px-6 py-3 bg-[#074738] text-white rounded-[14px] font-semibold transition-colors shadow-[0_4px_12px_rgba(26,155,125,0.3)]"
-                >
-                  Agregar primera mascota
-                </button>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  ¡Bienvenido a PESSY!
+                </h2>
+                <p className="text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
+                  Agrega tu primera mascota. Pessy hace el resto.
+                </p>
               </div>
-            )}
+              <button
+                onClick={handleAddNewPet}
+                className="px-6 py-3 bg-[#074738] text-white rounded-[14px] font-semibold transition-colors shadow-[0_4px_12px_rgba(26,155,125,0.3)]"
+              >
+                Agregar primera mascota
+              </button>
+            </div>
           </div>
         </div>
         <BottomNav
