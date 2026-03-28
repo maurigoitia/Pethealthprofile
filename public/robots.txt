@@ -1,5 +1,8 @@
 User-agent: *
 Allow: /
+Allow: /blog
+Allow: /blog/
+Allow: /empezar
 Allow: /privacidad
 Allow: /terminos
 
@@ -11,5 +14,6 @@ Disallow: /register-pet
 Disallow: /email-link
 Disallow: /verify
 Disallow: /api/*
+Disallow: /admin
 
 Sitemap: https://pessy.app/sitemap.xml
