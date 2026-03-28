@@ -240,13 +240,18 @@ export default function HomeScreen() {
   };
 
   // Handle sidebar navigation
-  const handleSidebarNavigate = (screen: "home" | "appointments" | "medications" | "feed" | "settings" | "nearby-vets") => {
+  const handleSidebarNavigate = (screen: "home" | "appointments" | "medications" | "feed" | "settings" | "nearby-vets" | "lost-pets" | "explore") => {
     if (screen === "settings") {
       setCurrentTab("settings");
     } else {
       setCurrentTab("home");
       setViewMode(screen === "home" ? "card" : screen);
     }
+  };
+
+  const handleBottomNavNavigate = (screen: "lost-pets" | "explore") => {
+    setCurrentTab("home");
+    setViewMode(screen);
   };
 
   const handlePetChange = (petId: string) => {
@@ -330,6 +335,7 @@ export default function HomeScreen() {
           currentTab={currentTab}
           onTabChange={handleTabChange}
           onAddDocument={() => setShowScanner(true)}
+          onNavigate={handleBottomNavNavigate}
         />
         <DocumentScannerModal
           isOpen={showScanner}
@@ -361,6 +367,7 @@ export default function HomeScreen() {
           currentTab={currentTab}
           onTabChange={handleTabChange}
           onAddDocument={() => setShowScanner(true)}
+          onNavigate={handleBottomNavNavigate}
         />
         <DocumentScannerModal
           isOpen={showScanner}
@@ -390,6 +397,7 @@ export default function HomeScreen() {
           currentTab={currentTab}
           onTabChange={handleTabChange}
           onAddDocument={() => setShowScanner(true)}
+          onNavigate={handleBottomNavNavigate}
         />
         <Suspense fallback={null}>
           <DocumentScannerModal
@@ -412,6 +420,7 @@ export default function HomeScreen() {
           currentTab={currentTab}
           onTabChange={handleTabChange}
           onAddDocument={() => setShowScanner(true)}
+          onNavigate={handleBottomNavNavigate}
         />
         <Suspense fallback={null}>
           <DocumentScannerModal
@@ -430,7 +439,7 @@ export default function HomeScreen() {
         <Suspense fallback={<ScreenLoader label="Cargando tratamientos..." />}>
           <MedicationsScreen onBack={() => setViewMode("card")} />
         </Suspense>
-        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} />
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} onNavigate={handleBottomNavNavigate} />
         <Suspense fallback={null}>
           <DocumentScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
         </Suspense>
@@ -445,7 +454,7 @@ export default function HomeScreen() {
         <Suspense fallback={<ScreenLoader label="Buscando veterinarias..." />}>
           <NearbyVetsScreen onBack={() => setViewMode("card")} />
         </Suspense>
-        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} />
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} onNavigate={handleBottomNavNavigate} />
         <Suspense fallback={null}>
           <DocumentScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
         </Suspense>
@@ -460,7 +469,7 @@ export default function HomeScreen() {
         <Suspense fallback={<ScreenLoader label="Cargando reportes..." />}>
           <LostPetFeedScreen onReport={() => setViewMode("report-lost")} onBack={() => setViewMode("card")} />
         </Suspense>
-        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} />
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} onNavigate={handleBottomNavNavigate} />
       </>
     );
   }
@@ -483,7 +492,7 @@ export default function HomeScreen() {
         <Suspense fallback={<ScreenLoader label="Descubriendo lugares..." />}>
           <RecommendationFeedScreen onBack={() => setViewMode("card")} />
         </Suspense>
-        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} />
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} onNavigate={handleBottomNavNavigate} />
       </>
     );
   }
@@ -625,6 +634,7 @@ export default function HomeScreen() {
         currentTab={currentTab}
         onTabChange={handleTabChange}
         onAddDocument={() => setShowScanner(true)}
+        onNavigate={handleBottomNavNavigate}
       />
 
       {/* Modals */}

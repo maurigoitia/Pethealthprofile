@@ -17,7 +17,7 @@ interface SidebarProps {
   activePetId: string;
   onPetChange: (petId: string) => void;
   onAddPet: () => void;
-  onNavigate: (screen: "home" | "appointments" | "medications" | "feed" | "settings" | "nearby-vets") => void;
+  onNavigate: (screen: "home" | "appointments" | "medications" | "feed" | "settings" | "nearby-vets" | "lost-pets" | "explore") => void;
   onInviteFriends: () => void;
   onLogout: () => void;
 }
@@ -41,6 +41,8 @@ export function Sidebar({
     { icon: "medication", label: "Seguimientos", screen: "medications" as const },
     { icon: "history", label: "Actividad", screen: "feed" as const },
     { icon: "location_on", label: "Veterinarias", screen: "nearby-vets" as const },
+    { icon: "groups", label: "Comunidad", screen: "lost-pets" as const },
+    { icon: "explore", label: "Explorar", screen: "explore" as const },
   ];
 
   const bottomItems = [
