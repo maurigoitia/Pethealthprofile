@@ -6,7 +6,7 @@ import { MedicalProvider } from "./contexts/MedicalContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { RemindersProvider } from "./contexts/RemindersContext";
-import { AppErrorBoundary } from "./components/AppErrorBoundary";
+import { AppErrorBoundary } from "./components/shared/AppErrorBoundary";
 
 export default function App() {
   return (

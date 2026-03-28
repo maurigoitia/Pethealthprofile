@@ -1,5 +1,5 @@
 import React from 'react';
-import { MaterialIcon } from '../MaterialIcon';
+import { MaterialIcon } from '../shared/MaterialIcon';
 
 interface PessyTipProps {
   icon: string;
@@ -10,16 +10,16 @@ interface PessyTipProps {
 
 const colorStyles = {
   green: {
-    bg: 'bg-[#eef8f3]',
+    bg: 'bg-[#E0F2F1]',
     text: 'text-[#074738]',
   },
   blue: {
     bg: 'bg-[#E3F2FD]',
-    text: 'text-[#1565C0]',
+    text: 'text-[#3B82F6]',
   },
   orange: {
-    bg: 'bg-[#FFF3E0]',
-    text: 'text-[#E65100]',
+    bg: 'bg-[#FEF3C7]',
+    text: 'text-[#D97706]',
   },
 };
 
@@ -28,25 +28,27 @@ export default function PessyTip({ icon, color, title, description }: PessyTipPr
 
   return (
     <div
-      className="flex flex-row items-start gap-[10px] bg-white rounded-[14px] border border-[#eef0ee]"
-      style={{ padding: '12px 14px' }}
+      className="flex flex-row items-start gap-3 bg-white rounded-[16px] border border-[#E5E7EB]"
+      style={{ padding: '14px 16px' }}
     >
       {/* Icon container */}
       <div
-        className={`flex items-center justify-center shrink-0 w-[28px] h-[28px] rounded-[8px] ${styles.bg}`}
+        className={`flex items-center justify-center shrink-0 w-[32px] h-[32px] rounded-[10px] ${styles.bg}`}
       >
-        <MaterialIcon name={icon} className={`${styles.text} !text-[16px]`} />
+        <MaterialIcon name={icon} className={`${styles.text} !text-[18px]`} />
       </div>
 
       {/* Text content */}
       <div className="flex flex-col min-w-0">
         <span
-          className="text-[12px] font-[800] text-[#002f24] leading-tight"
+          className="text-[13px] font-bold text-[#1A1A1A] leading-tight"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
         >
           {title}
         </span>
         <span
-          className="text-[11px] text-[#5e716b] leading-tight mt-[2px]"
+          className="text-[12px] text-[#6B7280] leading-snug mt-1"
+          style={{ fontFamily: "'Manrope', sans-serif" }}
         >
           {description}
         </span>
@@ -58,10 +60,11 @@ export default function PessyTip({ icon, color, title, description }: PessyTipPr
 export function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <h3
-      className="text-[11px] font-[800] text-[#9ca8a2] uppercase tracking-[0.14em]"
+      className="text-[12px] font-bold text-[#9CA3AF] uppercase tracking-[0.14em]"
       style={{
-        margin: '16px 16px 8px',
+        margin: '20px 16px 12px',
         fontFamily: "'Plus Jakarta Sans', sans-serif",
+        letterSpacing: '0.5px',
       }}
     >
       {children}

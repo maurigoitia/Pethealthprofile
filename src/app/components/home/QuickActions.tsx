@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MaterialIcon } from "../MaterialIcon";
+import { MaterialIcon } from "../shared/MaterialIcon";
 
 interface QuickActionsProps {
   appointments: number;
@@ -50,31 +50,30 @@ export default function QuickActions({
   ];
 
   return (
-    <div className="flex flex-row mx-3 gap-1.5">
+    <div className="flex flex-row mx-3 gap-2">
       {cards.map((card) => (
         <button
           key={card.label}
           onClick={card.onClick}
-          className={`flex-1 rounded-[14px] py-3 px-2 text-center border cursor-pointer transition-colors ${
+          className={`flex-1 rounded-[16px] py-4 px-3 text-center border cursor-pointer transition-colors hover:shadow-md ${
             card.hasAlert
-              ? 'border-[#FFB74D] bg-[#FFF8E1]'
-              : 'border-[#eef0ee] bg-white'
+              ? 'border-[#F59E0B] bg-[#FEF3C7]'
+              : 'border-[#E5E7EB] bg-white'
           }`}
         >
-          <span style={{ color: card.hasAlert ? '#E65100' : '#074738' }}>
-            <MaterialIcon name={card.icon} className={`!text-[22px] block`} />
+          <span style={{ color: card.hasAlert ? '#D97706' : '#074738' }}>
+            <MaterialIcon name={card.icon} className={`!text-[24px] block`} />
           </span>
           <span
-            className="block text-[10px] font-bold mt-1"
-            style={{ color: '#5e716b' }}
+            className="block text-[10px] font-bold mt-2"
+            style={{ color: '#6B7280', fontFamily: "'Manrope', sans-serif" }}
           >
             {card.label}
           </span>
           <span
-            className="block text-[16px] mt-0.5"
+            className="block text-[18px] mt-1 font-bold"
             style={{
               color: '#074738',
-              fontWeight: 900,
               fontFamily: "'Plus Jakarta Sans', sans-serif",
             }}
           >

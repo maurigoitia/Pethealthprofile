@@ -1,22 +1,22 @@
 import type { ReactNode } from "react";
 import { createBrowserRouter, Navigate } from "react-router";
-import { RegisterUserScreen } from "./components/RegisterUserScreen";
-import { RegisterPetStep1 } from "./components/RegisterPetStep1";
-import { RegisterPetStep2 } from "./components/RegisterPetStep2";
-import { LoginScreen } from "./components/LoginScreen";
-import HomeScreen from "./components/HomeScreen";
-import { VerifyReportScreen } from "./components/VerifyReportScreen";
-import { EmailLinkSignInScreen } from "./components/EmailLinkSignInScreen";
-import { RouteErrorFallback } from "./components/RouteErrorFallback";
-import { ClinicalReviewScreen } from "./components/ClinicalReviewScreen";
+import { RegisterUserScreen } from "./components/auth/RegisterUserScreen";
+import { RegisterPetStep1 } from "./components/pet/RegisterPetStep1";
+import { RegisterPetStep2 } from "./components/pet/RegisterPetStep2";
+import { LoginScreen } from "./components/auth/LoginScreen";
+import HomeScreen from "./components/home/HomeScreen";
+import { VerifyReportScreen } from "./components/medical/VerifyReportScreen";
+import { EmailLinkSignInScreen } from "./components/auth/EmailLinkSignInScreen";
+import { RouteErrorFallback } from "./components/shared/RouteErrorFallback";
+import { ClinicalReviewScreen } from "./components/medical/ClinicalReviewScreen";
 import LandingEcosystemPreviewPage from "./pages/LandingEcosystemPreviewPage";
 import LandingSocialPage from "./pages/LandingSocialPage";
 import EmpezarLandingPage from "./pages/EmpezarLandingPage";
 import LegalPage from "./pages/LegalPage";
-import { RequestAccessScreen } from "./components/RequestAccessScreen";
+import { RequestAccessScreen } from "./components/auth/RequestAccessScreen";
 import { isProductionAppHost } from "./utils/runtimeFlags";
 
-const AdminAccessRequests = () => import("./components/AdminAccessRequests").then(m => ({ Component: m.AdminAccessRequests }));
+const AdminAccessRequests = () => import("./components/auth/AdminAccessRequests").then(m => ({ Component: m.AdminAccessRequests }));
 
 const withErrorBoundary = <T extends Record<string, unknown>>(route: T): T => ({
   ...route,

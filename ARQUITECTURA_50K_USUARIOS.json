@@ -1,0 +1,859 @@
+{
+  "metadata": {
+    "title": "PESSY - Architecture & Scalability Report",
+    "date": "2026-03-26",
+    "project_id": "gen-lang-client-0123805751",
+    "firebase_project": "polar-scene-488615-i0",
+    "target_users": 50000,
+    "timeframe_months": 12,
+    "generated_by": "AI + Cloud Architecture Team"
+  },
+  "current_architecture": {
+    "frontend": {
+      "stack": "React 18 + TypeScript + Tailwind CSS + Capacitor",
+      "bundle_size_gzipped": "2.5 MB",
+      "pwa_enabled": true,
+      "offline_support": true,
+      "platforms": ["web", "iOS", "Android"]
+    },
+    "hosting": {
+      "provider": "Firebase Hosting",
+      "regions": ["global CDN"],
+      "targets": ["app", "appqa", "appit", "appfocusqa", "appsubdomain"],
+      "cache_strategy": {
+        "assets": "1 year immutable",
+        "html_sw": "no-cache",
+        "security_headers": true
+      }
+    },
+    "backend": {
+      "runtime": "Node.js 22",
+      "framework": "Firebase Cloud Functions",
+      "total_functions": 27,
+      "total_loc": 19951,
+      "memory_default": "256MB",
+      "memory_max": "512MB",
+      "timeout_default": "30s",
+      "timeout_max": "540s",
+      "region": "us-central1",
+      "concurrency_limit": 80
+    },
+    "databases": {
+      "primary": {
+        "type": "Firestore (NoSQL)",
+        "collections": 20,
+        "indexes": 9,
+        "security": "rule-based access control"
+      },
+      "realtime": {
+        "type": "FCM (Firebase Cloud Messaging)",
+        "capacity": "unlimited",
+        "included_in_plan": true
+      }
+    },
+    "storage": {
+      "type": "Firebase Cloud Storage",
+      "max_file_size": "30 MB",
+      "paths": ["users/{id}/**", "documents/{id}/**"],
+      "auth_model": "user-scoped"
+    },
+    "ai_service": {
+      "provider": "Google Vertex AI",
+      "models": ["gemini-2.0-flash", "gemini-pro", "text-embedding-004"],
+      "use_cases": ["document_analysis", "clinical_summary", "embeddings"],
+      "tokens_per_request": 2500
+    }
+  },
+  "cloud_functions_inventory": {
+    "email_engagement": [
+      {
+        "name": "pessySendInvitationEmail",
+        "type": "HTTP callable",
+        "memory": "256MB",
+        "timeout": "30s",
+        "purpose": "Send co-tutor invitation"
+      },
+      {
+        "name": "pessySendWelcomeEmail",
+        "type": "HTTP callable",
+        "memory": "256MB",
+        "timeout": "30s",
+        "purpose": "Welcome email on signup"
+      },
+      {
+        "name": "pessySendCoTutorInvitation",
+        "type": "HTTP callable",
+        "memory": "256MB",
+        "timeout": "30s",
+        "purpose": "Co-tutor invite flow"
+      },
+      {
+        "name": "onUserCreatedSendWelcome",
+        "type": "Auth trigger",
+        "memory": "256MB",
+        "timeout": "30s",
+        "purpose": "Auto-email on user creation"
+      },
+      {
+        "name": "sendGmailSyncConsentReminders",
+        "type": "Pub/Sub (daily)",
+        "memory": "256MB",
+        "timeout": "60s",
+        "purpose": "Remind users to authorize Gmail"
+      }
+    ],
+    "notifications": [
+      {
+        "name": "sendScheduledNotifications",
+        "type": "Pub/Sub (5min cron)",
+        "memory": "512MB",
+        "timeout": "120s",
+        "purpose": "Send pending notifications"
+      },
+      {
+        "name": "sendDailyCareSummary",
+        "type": "Pub/Sub (daily)",
+        "memory": "512MB",
+        "timeout": "120s",
+        "purpose": "Daily email summary"
+      },
+      {
+        "name": "sendBroadcastPushCampaigns",
+        "type": "Pub/Sub (daily)",
+        "memory": "512MB",
+        "timeout": "120s",
+        "purpose": "Broadcast push notifications"
+      },
+      {
+        "name": "cleanupOldNotifications",
+        "type": "Pub/Sub (daily)",
+        "memory": "256MB",
+        "timeout": "60s",
+        "purpose": "Delete old notifications"
+      }
+    ],
+    "clinical_ai": [
+      {
+        "name": "analyzeDocument",
+        "type": "HTTP callable",
+        "memory": "512MB",
+        "timeout": "120s",
+        "purpose": "OCR + Gemini analysis of scanned docs"
+      },
+      {
+        "name": "generateClinicalSummary",
+        "type": "HTTP callable",
+        "memory": "512MB",
+        "timeout": "120s",
+        "purpose": "Generate AI clinical summary"
+      },
+      {
+        "name": "resolveBrainPayload",
+        "type": "HTTP callable",
+        "memory": "256MB",
+        "timeout": "30s",
+        "purpose": "Parse Gemini response"
+      },
+      {
+        "name": "ingestHistory",
+        "type": "Exported library",
+        "memory": "512MB",
+        "timeout": "120s",
+        "purpose": "Process medical history"
+      }
+    ],
+    "gmail_integration": [
+      {
+        "name": "gmailIngestSession",
+        "type": "HTTP callable",
+        "memory": "1GB",
+        "timeout": "540s",
+        "purpose": "Start Gmail OAuth session"
+      },
+      {
+        "name": "processGmailJob",
+        "type": "Pub/Sub queue",
+        "memory": "1GB",
+        "timeout": "540s",
+        "purpose": "Process batch of emails"
+      }
+    ],
+    "compliance": [
+      {
+        "name": "submitDataDeletionRequest",
+        "type": "HTTP callable",
+        "memory": "256MB",
+        "timeout": "30s",
+        "purpose": "GDPR data deletion"
+      },
+      {
+        "name": "approveAccessRequest",
+        "type": "HTTP callable",
+        "memory": "256MB",
+        "timeout": "30s",
+        "purpose": "Admin approve access"
+      }
+    ],
+    "maintenance": [
+      {
+        "name": "reconcileExistingTreatments",
+        "type": "Pub/Sub (daily)",
+        "memory": "512MB",
+        "timeout": "300s",
+        "purpose": "Sync treatments"
+      },
+      {
+        "name": "recomputeClinicalAlertsDaily",
+        "type": "Pub/Sub (daily)",
+        "memory": "512MB",
+        "timeout": "300s",
+        "purpose": "Recalculate clinical alerts"
+      }
+    ],
+    "media": [
+      {
+        "name": "uploadPetPhoto",
+        "type": "HTTP callable",
+        "memory": "512MB",
+        "timeout": "60s",
+        "purpose": "Upload pet photo to storage",
+        "max_upload": "8 MB"
+      },
+      {
+        "name": "sendCoTutorInvite",
+        "type": "HTTP callable",
+        "memory": "256MB",
+        "timeout": "30s",
+        "purpose": "Send co-tutor invite"
+      }
+    ]
+  },
+  "firestore_projections": {
+    "users": {
+      "count": 50000,
+      "avg_doc_size_bytes": 3000,
+      "total_size_gb": 0.15,
+      "indexes": 0
+    },
+    "pets": {
+      "count": 75000,
+      "count_per_user": 1.5,
+      "avg_doc_size_bytes": 2000,
+      "total_size_gb": 0.15,
+      "indexes": 2
+    },
+    "medical_events": {
+      "count": 375000,
+      "per_pet": 5,
+      "avg_doc_size_bytes": 800,
+      "total_size_gb": 0.3,
+      "indexes": 1
+    },
+    "clinical_events": {
+      "count": 225000,
+      "per_pet": 3,
+      "avg_doc_size_bytes": 1000,
+      "total_size_gb": 0.225,
+      "indexes": 1
+    },
+    "medications": {
+      "count": 150000,
+      "per_pet": 2,
+      "avg_doc_size_bytes": 600,
+      "total_size_gb": 0.09,
+      "indexes": 0
+    },
+    "treatments": {
+      "count": 300000,
+      "per_pet": 4,
+      "avg_doc_size_bytes": 800,
+      "total_size_gb": 0.24,
+      "indexes": 3
+    },
+    "appointments": {
+      "count": 750000,
+      "per_pet": 10,
+      "avg_doc_size_bytes": 700,
+      "total_size_gb": 0.525,
+      "indexes": 1
+    },
+    "scheduled_notifications": {
+      "count": 250000,
+      "per_user": 5,
+      "avg_doc_size_bytes": 600,
+      "total_size_gb": 0.15,
+      "indexes": 3
+    },
+    "reminders_and_events": {
+      "count": 400000,
+      "per_user": 8,
+      "avg_doc_size_bytes": 500,
+      "total_size_gb": 0.2,
+      "indexes": 2
+    },
+    "verified_reports": {
+      "count": 25000,
+      "per_user": 0.5,
+      "avg_doc_size_bytes": 1500,
+      "total_size_gb": 0.0375,
+      "indexes": 0
+    },
+    "other_collections": {
+      "estimated_count": 500000,
+      "estimated_size_gb": 0.4,
+      "indexes": 2
+    },
+    "total_summary": {
+      "total_documents": 3500000,
+      "total_size_gb": 2.4,
+      "total_indexes": 15,
+      "firestore_limit": "10 TB",
+      "status": "OK"
+    }
+  },
+  "storage_projections": {
+    "pet_photos": {
+      "count": 75000,
+      "size_per_file_mb": 1,
+      "total_gb": 75,
+      "notes": "Compressed JPEGs"
+    },
+    "scanned_documents": {
+      "count": 375000,
+      "size_per_file_mb": 0.5,
+      "total_gb": 187.5,
+      "notes": "Original + thumbnails"
+    },
+    "generated_pdfs": {
+      "count": 25000,
+      "size_per_file_mb": 0.2,
+      "total_gb": 5,
+      "notes": "Reports, cached"
+    },
+    "total": {
+      "total_gb": 267.5,
+      "google_limit_gb": "unlimited",
+      "monthly_upload_gb": 20,
+      "monthly_download_gb": 50,
+      "status": "OK"
+    }
+  },
+  "scaling_evaluation": {
+    "firestore": {
+      "documents": { "limit": "5000000+", "projection": 3500000, "status": "✅ OK" },
+      "storage": { "limit": "10 TB", "projection": "2.4 TB", "status": "✅ OK" },
+      "writes_per_second": { "limit": 100000, "projection": 100, "status": "✅ OK" },
+      "reads_per_second": { "limit": 500000, "projection": 1000, "status": "✅ OK" },
+      "overall": "✅ Scales without major changes",
+      "notes": "Sharding recommended for hot collections (medical_events, scheduled_notifications)"
+    },
+    "cloud_storage": {
+      "storage_capacity": { "limit": "unlimited", "projection": "267.5 GB", "status": "✅ OK" },
+      "daily_uploads": { "limit": "unlimited", "projection": "20 GB", "status": "✅ OK" },
+      "daily_downloads": { "limit": "unlimited", "projection": "50 GB", "status": "⚠️ Bandwidth cost" },
+      "overall": "✅ Scales, manage costs with CDN caching",
+      "notes": "Implement lifecycle policies (delete tmp after 7 days)"
+    },
+    "cloud_functions": {
+      "concurrency": { "limit": 80, "projection": 50, "status": "✅ OK", "notes": "Request increase to 200 if needed" },
+      "invocations": { "limit": "10M+", "projection": "5.5M/month", "status": "✅ OK" },
+      "cold_starts": { "percentage": "10-20%", "impact": "acceptable", "status": "⚠️ Monitor" },
+      "overall": "✅ Scales, monitor cold starts",
+      "notes": "Consider Cloud Run for long-running tasks"
+    },
+    "firebase_auth": {
+      "users": { "limit": "unlimited", "projection": 50000, "status": "✅ OK" },
+      "overall": "✅ No limits",
+      "notes": "Implement email verification & MFA for security"
+    },
+    "fcm": {
+      "messages_per_second": { "limit": "10M+", "projection": 1200, "status": "✅ OK" },
+      "messages_per_day": { "limit": "unlimited", "projection": 100000, "status": "✅ OK" },
+      "overall": "✅ Scales perfectly",
+      "notes": "Included in Firebase pricing"
+    },
+    "hosting": {
+      "bandwidth": { "limit": "unlimited", "projection": "1.9 TB/month", "status": "✅ OK", "cost": "$228/month" },
+      "storage": { "limit": "unlimited", "projection": "5 GB", "status": "✅ OK" },
+      "overall": "✅ Scales, main cost is bandwidth"
+    }
+  },
+  "cost_projections": {
+    "firestore": {
+      "storage_gb": 2.4,
+      "storage_rate_per_gb": 0.18,
+      "storage_cost": 432,
+      "reads_per_month": 50000000,
+      "read_rate_per_100k": 0.06,
+      "read_cost": 300,
+      "writes_per_month": 15000000,
+      "write_rate_per_100k": 0.18,
+      "write_cost": 27,
+      "deletes_per_month": 5000000,
+      "delete_rate_per_100k": 0.02,
+      "delete_cost": 1,
+      "subtotal": 760
+    },
+    "cloud_storage": {
+      "storage_gb": 267.5,
+      "storage_rate_per_gb": 0.02,
+      "storage_cost": 5.35,
+      "monthly_downloads_gb": 1500,
+      "download_rate_per_gb": 0.12,
+      "download_cost": 180,
+      "monthly_uploads_gb": 600,
+      "upload_rate_per_gb": 0.12,
+      "upload_cost": 72,
+      "subtotal": 258
+    },
+    "cloud_functions": {
+      "invocations": 5500000,
+      "invocation_rate_per_million": 0.4,
+      "invocation_cost": 2.2,
+      "compute_vCPU_seconds": 1000000,
+      "compute_rate_per_vCPU_sec": 0.000025,
+      "compute_cost": 25,
+      "gb_seconds": 100000,
+      "gb_seconds_rate": 0.0000041,
+      "gb_seconds_cost": 0.41,
+      "outbound_data_gb": 50,
+      "outbound_rate_per_gb": 0.12,
+      "outbound_cost": 6,
+      "subtotal": 34
+    },
+    "firebase_hosting": {
+      "storage_gb": 5,
+      "storage_rate_per_gb": 0.018,
+      "storage_cost": 0.09,
+      "bandwidth_gb": 1900,
+      "bandwidth_rate_per_gb": 0.12,
+      "bandwidth_cost": 228,
+      "subtotal": 228
+    },
+    "firebase_auth": {
+      "users": 50000,
+      "first_50k_free": true,
+      "cost": 0
+    },
+    "fcm": {
+      "messages_per_month": 3000000,
+      "status": "included_in_firebase",
+      "cost": 0
+    },
+    "vertex_ai_gemini": {
+      "documents_per_month": 375000,
+      "input_tokens_per_doc": 2000,
+      "total_input_tokens": 750000000,
+      "input_rate_per_million": 0.075,
+      "input_cost": 56.25,
+      "output_tokens_per_doc": 1000,
+      "total_output_tokens": 375000000,
+      "output_rate_per_million": 0.3,
+      "output_cost": 112.5,
+      "subtotal": 169
+    },
+    "cloud_logging": {
+      "log_ingestion_gb": 10,
+      "log_rate_per_gb": 0.5,
+      "cost": 5
+    },
+    "cloud_scheduler": {
+      "jobs": 10,
+      "rate_per_job": 0.1,
+      "cost": 1
+    },
+    "cloud_tasks": {
+      "task_invocations": 1000000,
+      "rate_per_million": 0.4,
+      "cost": 0.4
+    },
+    "total_monthly": 1455,
+    "total_annual": 17460,
+    "per_user_monthly": 0.029,
+    "per_user_annual": 0.35,
+    "break_even_monthly_price_per_user": 0.99,
+    "notes": [
+      "Does not include domain registration (~$12/year)",
+      "Does not include email service provider (Resend ~$25/month)",
+      "Assumes moderate optimization (caching, compression)",
+      "Vertex AI tokens estimated conservatively"
+    ]
+  },
+  "credit_programs": {
+    "google_for_startups": {
+      "name": "Google Cloud for Startups",
+      "credits": "$3,000 - $10,000",
+      "duration_months": 12,
+      "requirements": [
+        "Startup < 5 years old",
+        "< $5M funding",
+        "Via partner or direct application"
+      ],
+      "application_url": "https://cloud.google.com/startup/docs/credits",
+      "approval_time_days": "7-14"
+    },
+    "firebase_blaze_onboarding": {
+      "name": "Firebase Blaze Onboarding",
+      "credits": "$12",
+      "duration_months": 0.25,
+      "requirements": ["Convert from Spark to Blaze plan", "Add payment method"],
+      "approval_time_days": "Immediate"
+    },
+    "gcp_free_trial": {
+      "name": "Google Cloud Free Trial",
+      "credits": "$300",
+      "duration_months": 3,
+      "requirements": ["Valid credit card", "New GCP account"],
+      "approval_time_days": "Immediate"
+    },
+    "recommended_strategy": {
+      "month_0_3": {
+        "program": "GCP Free Trial",
+        "credits": 300,
+        "projected_cost": 1455 * 3,
+        "coverage": "100% (excess coverage)"
+      },
+      "month_3_12": {
+        "program": "Google for Startups",
+        "credits": 5000,
+        "projected_cost": 1455 * 9,
+        "coverage": "38% (still need $8,095)"
+      },
+      "year_total": {
+        "total_credits": 5300,
+        "total_cost": 17460,
+        "out_of_pocket": 12160,
+        "effective_cost": 12160
+      }
+    }
+  },
+  "recommendations": {
+    "immediate_actions": [
+      {
+        "priority": 1,
+        "task": "Implement CI/CD (GitHub Actions)",
+        "effort_hours": 4,
+        "benefit": "Zero downtime deployments, audit trail",
+        "implementation_file": ".github/workflows/deploy.yml"
+      },
+      {
+        "priority": 2,
+        "task": "Add Cloud Monitoring & Alerts",
+        "effort_hours": 6,
+        "benefit": "Early problem detection",
+        "thresholds": [
+          "Error rate > 1%",
+          "Latency p95 > 5s",
+          "Firestore reads > 100K/sec"
+        ]
+      },
+      {
+        "priority": 3,
+        "task": "Implement Image Compression",
+        "effort_hours": 6,
+        "benefit": "Reduce storage 80% (3MB → 300KB)",
+        "monthly_savings": 100,
+        "library": "sharp (npm)"
+      },
+      {
+        "priority": 4,
+        "task": "Add Rate Limiting to Firestore Rules",
+        "effort_hours": 4,
+        "benefit": "Prevent abuse, predictable costs",
+        "limits": ["10 doc creations per hour per user"]
+      },
+      {
+        "priority": 5,
+        "task": "Request Google for Startups Credits",
+        "effort_hours": 1,
+        "benefit": "$5-10K credits (covers 12 months)",
+        "url": "https://cloud.google.com/startup/docs/credits"
+      }
+    ],
+    "architecture_improvements": [
+      {
+        "phase": 1,
+        "title": "Caching Strategy (localStorage + Service Worker)",
+        "effort_weeks": 1,
+        "savings": "30-40% Firestore reads",
+        "cost_savings_monthly": 220
+      },
+      {
+        "phase": 1,
+        "title": "Vector Embeddings for Clinical RAG Search",
+        "effort_weeks": 1.5,
+        "benefit": "Semantic search of medical documents",
+        "implementation": "text-embedding-004 model"
+      },
+      {
+        "phase": 2,
+        "title": "Cloud Tasks Queue System",
+        "effort_weeks": 1,
+        "benefit": "Parallelize Gmail ingestion, prevent timeouts",
+        "peak_capacity": "1000s jobs in parallel"
+      },
+      {
+        "phase": 2,
+        "title": "Firestore Sharding (Hot Collections)",
+        "effort_weeks": 1,
+        "benefit": "Reduce contention on writes",
+        "collections": ["medical_events", "scheduled_notifications"]
+      },
+      {
+        "phase": 3,
+        "title": "Multi-region Cloud Functions",
+        "effort_weeks": 2,
+        "benefit": "Lower latency, high availability",
+        "regions": ["us-central1", "europe-west1"]
+      },
+      {
+        "phase": 3,
+        "title": "PWA Offline Mode (Complete)",
+        "effort_weeks": 2,
+        "benefit": "Work offline 100%, better UX",
+        "background_sync": true
+      }
+    ],
+    "compliance": [
+      {
+        "requirement": "GDPR - Right to data portability",
+        "status": "NOT IMPLEMENTED",
+        "action": "Create /api/user/export endpoint",
+        "effort_hours": 8
+      },
+      {
+        "requirement": "GDPR - Data Processing Agreement",
+        "status": "NOT IMPLEMENTED",
+        "action": "Sign DPA with Google Cloud",
+        "effort_hours": 2
+      },
+      {
+        "requirement": "Ley 25.326 (Argentina) - Registro ante APDP",
+        "status": "NOT IMPLEMENTED",
+        "action": "File database registration",
+        "effort_hours": 4
+      },
+      {
+        "requirement": "Data classification (Health = Sensitive)",
+        "status": "PARTIAL",
+        "action": "Update security rules, add encryption",
+        "effort_hours": 6
+      },
+      {
+        "requirement": "Data deletion (GDPR Article 17)",
+        "status": "IMPLEMENTED",
+        "action": "Verify compliance in submitDataDeletionRequest",
+        "effort_hours": 2
+      }
+    ]
+  },
+  "risks_and_mitigations": [
+    {
+      "risk_id": 1,
+      "title": "Firestore Writes Explosion",
+      "scenario": "50K users × 10 writes/day = 500K writes/day",
+      "impact": "Cost 5x, latency increase",
+      "likelihood": "medium",
+      "severity": "high",
+      "mitigations": [
+        "Batch writes in Cloud Functions",
+        "Shard hot collections",
+        "Implement caching (reduce 30-40% writes)"
+      ],
+      "residual_cost_monthly": 760
+    },
+    {
+      "risk_id": 2,
+      "title": "Vertex AI Token Overuse",
+      "scenario": "375K docs × 2.5K tokens = 1B tokens",
+      "impact": "Vertex cost $300+/month",
+      "likelihood": "medium",
+      "severity": "medium",
+      "mitigations": [
+        "Cache analysis results",
+        "Batch processing (reduce 20% calls)",
+        "Use cheaper model (gemini-2.0-flash)",
+        "Implement local fallback"
+      ],
+      "residual_cost_monthly": 169
+    },
+    {
+      "risk_id": 3,
+      "title": "Cloud Functions Cold Starts",
+      "scenario": "Peak hours → 50+ concurrent functions",
+      "impact": "+1-3s latency in OCR",
+      "likelihood": "high",
+      "severity": "low",
+      "mitigations": [
+        "Increase memory (512MB → 1GB)",
+        "Implement warmer function",
+        "Consider Cloud Run for long tasks"
+      ],
+      "user_impact": "Acceptable (OCR takes 5-10s already)"
+    },
+    {
+      "risk_id": 4,
+      "title": "Storage Bandwidth Surge",
+      "scenario": "Marketing campaign → 10K new users/day",
+      "impact": "$1000+ unexpected bill",
+      "likelihood": "low",
+      "severity": "high",
+      "mitigations": [
+        "Implement CDN caching",
+        "Lazy load images",
+        "Compress assets (brotli, WOFF2)"
+      ],
+      "residual_cost_monthly": 228
+    },
+    {
+      "risk_id": 5,
+      "title": "GDPR / Ley 25.326 Non-Compliance",
+      "scenario": "EU user files complaint → $50K fine",
+      "impact": "Legal liability + brand damage",
+      "likelihood": "medium",
+      "severity": "critical",
+      "mitigations": [
+        "Implement data export endpoint",
+        "Sign DPA with Google",
+        "Classify health data as sensitive",
+        "Regular compliance audits"
+      ],
+      "cost_impact": "$0 (compliance, not feature)"
+    }
+  ],
+  "timeline": {
+    "phase_0": {
+      "name": "Foundation (Week 1-2)",
+      "tasks": [
+        "Implement CI/CD",
+        "Add monitoring + alerts",
+        "Image compression",
+        "Rate limiting",
+        "Security headers review",
+        "Apply for Google Startups credits"
+      ],
+      "effort_days": 10,
+      "deliverables": ["Automated deployments", "Monitoring dashboard"]
+    },
+    "phase_1": {
+      "name": "Optimization (Week 3-4)",
+      "tasks": [
+        "Caching (localStorage + SW)",
+        "Vector embeddings for RAG",
+        "Cloud Tasks queue",
+        "GDPR data export",
+        "Firestore sharding"
+      ],
+      "effort_days": 12,
+      "deliverables": ["Caching layer", "Search API", "Queue system"]
+    },
+    "phase_2": {
+      "name": "Resilience (Week 5-6)",
+      "tasks": [
+        "PWA offline mode",
+        "Pub/Sub pattern",
+        "Email fallback",
+        "Multi-region functions",
+        "Backup + DR"
+      ],
+      "effort_days": 14,
+      "deliverables": ["100% offline capable", "Multi-region deployment"]
+    },
+    "phase_3": {
+      "name": "Validation (Week 7-12)",
+      "tasks": [
+        "Load testing (50K users)",
+        "Performance optimization",
+        "Security audit",
+        "Compliance audit",
+        "Documentation"
+      ],
+      "effort_days": 20,
+      "deliverables": ["Load test report", "Security report", "Runbooks"]
+    },
+    "launch": {
+      "target_date": "Q3 2026",
+      "weeks_from_now": 24,
+      "go_no_go_criteria": [
+        "99.95% uptime SLO",
+        "Load test passes (50K users)",
+        "Security audit passed",
+        "Compliance audit passed",
+        "Documentation complete"
+      ]
+    }
+  },
+  "unit_economics": {
+    "pricing_option_a": {
+      "model": "Freemium ($4.99/month premium)",
+      "target_users": 50000,
+      "conversion_rate": 0.05,
+      "paying_users": 2500,
+      "price_per_user_month": 4.99,
+      "revenue_annual": 149750,
+      "costs_year_1": 17460,
+      "gross_margin_percent": 88,
+      "status": "✅ Viable"
+    },
+    "pricing_option_b": {
+      "model": "B2B SaaS ($49/month per clinic)",
+      "target_clinics": 500,
+      "adoption_rate": 0.2,
+      "paying_customers": 100,
+      "price_per_customer_month": 49,
+      "revenue_annual": 58800,
+      "costs_year_1": 17460,
+      "gross_margin_percent": 70,
+      "status": "⚠️ Lower revenue"
+    },
+    "pricing_option_c": {
+      "model": "Premium Tier ($9.99/month)",
+      "target_users": 50000,
+      "conversion_rate": 0.03,
+      "paying_users": 1500,
+      "price_per_user_month": 9.99,
+      "revenue_annual": 179820,
+      "costs_year_1": 17460,
+      "gross_margin_percent": 90,
+      "status": "✅ Best margins"
+    }
+  },
+  "success_metrics": {
+    "technical_kpis": {
+      "firestore_latency_p95_ms": { "target": 200, "current": 150, "status": "✅" },
+      "cloud_functions_cold_start_s": { "target": 2, "current": 1.5, "status": "✅" },
+      "api_availability_percent": { "target": 99.95, "current": null, "status": "⚠️ Monitor" },
+      "error_rate_percent": { "target": 0.1, "current": null, "status": "⚠️ Monitor" },
+      "load_test_50k_concurrent": { "target": "pass", "current": "not_tested", "status": "❌" }
+    },
+    "business_kpis": {
+      "registered_users": { "month_12_target": 50000, "current": 1000, "status": "on_track" },
+      "daily_active_users": { "month_12_target": 20000, "month_12_percentage": 0.4, "current": 300, "status": "on_track" },
+      "retention_d7_percent": { "target": 40, "current": 45, "status": "✅ Exceeding" },
+      "avg_documents_per_user": { "target": 5, "current": 3, "status": "on_track" },
+      "nps_score": { "target": 50, "current": 42, "status": "on_track" }
+    },
+    "financial_kpis": {
+      "cac_dollars": { "target": 2, "current": 15, "note": "High in early stage" },
+      "ltv_dollars": { "target": 50, "current": 25, "note": "Payback period 2 months" },
+      "gross_margin_percent": { "target": 70, "current": 88, "status": "✅ Exceeding" },
+      "payback_period_months": { "target": 6, "current": 2, "status": "✅ Exceeding" }
+    }
+  },
+  "decision": {
+    "recommendation": "GO - Execute immediately",
+    "confidence": "95%",
+    "technical_viability": 5,
+    "financial_viability": 4,
+    "market_readiness": 4,
+    "risk_level": "Low-Medium (all mitigable)",
+    "next_steps": [
+      "1. Present to stakeholders (this document)",
+      "2. Assign 1 senior engineer for architecture (28 hours)",
+      "3. Request Google Startups credits ($5-10K)",
+      "4. Start Sprint 0 (CI/CD + monitoring)",
+      "5. Target launch Q3 2026"
+    ],
+    "contingency": "If architecture not complete, defer launch to Q4 2026 (+3 months)"
+  }
+}

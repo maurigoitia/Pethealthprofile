@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pessy — Demo UX/UI · Ecosistema Digital · v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+<style>
+/*
+ * PESSY — ECOSISTEMA DIGITAL v2
+ * Reimaginación completa de las pantallas de app
+ * basada en LandingEcosystemPreviewPage.tsx + AppMockups.tsx
+ *
+ * Concepto: "Qué ya está, qué falta, qué se viene"
+ * Notificaciones tipo "Luna va al 50% del día"
+ * Identidad digital, rutinas, compras, cuidados, papeles
+ */
+
+:root {
+  --bg: #faf9ff;
+  --bg-s: #f4f3f9;
+  --card: #ffffff;
+  --green: #074738;
+  --green-soft: #eef5f2;
+  --green-light: #b5efd9;
+  --green-text: #36584e;
+  --purple: #5048ca;
+  --purple-l: #e3dfff;
+  --purple-d: #100069;
+  --teal: #1A9B7D;
+  --text: #002f24;
+  --body: #404945;
+  --muted: #707975;
+  --link: #5e716b;
+  --border: #dfe6e2;
+  --bornav: #d8e4de;
+  --chip-bg: #134c40;
+  --chip-border: #2b5b50;
+  --chip-text: #e2f4ed;
+  --r: 2rem;
+  --ri: 1.25rem;
+  --sh: 0 24px 48px -24px rgba(0,47,36,0.1);
+  --sh2: 0 28px 56px -24px rgba(0,47,36,0.12);
+  --sh-p: 0 28px 56px -24px rgba(7,71,56,0.45);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Manrope',system-ui,sans-serif;background:#0a0a0a;color:#fff;overflow-x:hidden}
+.jk{font-family:'Plus Jakarta Sans','Manrope',sans-serif}
+.ms{font-family:'Material Symbols Outlined';font-size:24px;font-variation-settings:'FILL' 0}
+
+/* Demo shell */
+.dn{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(10,10,10,0.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06)}
+.di{max-width:1400px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.di h1{font-size:18px;font-weight:800;letter-spacing:0.04em}
+.di h1 .p{color:#5048ca}
+.tw{display:flex;gap:3px;overflow-x:auto;flex:1;justify-content:center;scrollbar-width:none}
+.tw::-webkit-scrollbar{display:none}
+.tb{padding:7px 12px;border-radius:10px;border:none;cursor:pointer;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;background:transparent;color:rgba(255,255,255,0.4);transition:all 0.2s}
+.tb:hover{color:rgba(255,255,255,0.7);background:rgba(255,255,255,0.04)}
+.tb.on{background:#5048ca;color:#fff}
+.badge{padding:4px 10px;border-radius:999px;font-size:9px;font-weight:700;letter-spacing:0.15em;background:rgba(80,72,202,0.2);color:#5048ca;border:1px solid rgba(80,72,202,0.3);white-space:nowrap}
+
+/* Phone frame */
+.st{padding:72px 20px 40px;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.stt{font-size:26px;font-weight:800;color:#fff;text-align:center;margin-bottom:6px}
+.sts{font-size:13px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:28px;max-width:520px}
+.ph{width:375px;height:812px;background:#fff;border-radius:44px;box-shadow:0 0 0 12px #1a1a1a,0 0 0 14px #333,0 40px 100px rgba(0,0,0,0.6);overflow:hidden;position:relative;flex-shrink:0}
+.ph .nt{position:absolute;top:0;left:50%;transform:translateX(-50%);width:160px;height:34px;background:#1a1a1a;border-radius:0 0 20px 20px;z-index:10}
+.pc{width:100%;height:100%;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.pc::-webkit-scrollbar{display:none}
+.sc{display:none}
+.sc.on{display:block}
+
+/* Shared elements */
+.nav{position:sticky;top:0;z-index:20;border-bottom:1px solid var(--bornav);background:rgba(255,255,255,0.8);backdrop-filter:blur(20px);padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+.nav .br{display:flex;align-items:center;gap:8px}
+.nav .bc{width:30px;height:30px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center}
+.nav .bn{font-weight:800;font-size:18px;color:var(--green);letter-spacing:0.02em}
+.nbtn{background:var(--green);color:#fff;padding:8px 18px;border-radius:999px;border:none;font-size:12px;font-weight:700}
+.ebdg{display:inline-block;padding:6px 14px;border-radius:999px;background:var(--purple-l);color:var(--purple-d);font-size:10px;font-weight:700;letter-spacing:0.24em;text-transform:uppercase}
+.elbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.25em;color:var(--muted)}
+.ecd{background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:20px;box-shadow:var(--sh)}
+.ecd-d{background:var(--green);border-radius:var(--r);padding:20px;color:#fff;box-shadow:var(--sh-p)}
+.ein{width:100%;padding:14px 18px;border-radius:1.5rem;border:1px solid var(--border);background:#fff;font-size:14px;color:#999;outline:none}
+.ebt{display:block;width:100%;padding:16px;border-radius:999px;border:none;background:var(--green);color:#fff;font-weight:700;font-size:14px;letter-spacing:0.08em;cursor:pointer}
+.ebt2{display:block;width:100%;padding:16px;border-radius:999px;border:1px solid var(--border);background:var(--bg-s);font-weight:700;font-size:14px;color:var(--green);cursor:pointer}
+
+/* Bottom nav pill */
+.bv{position:absolute;bottom:0;left:0;right:0;z-index:30;padding:8px 16px 28px}
+.bv .pl{background:var(--green);border-radius:999px;padding:10px 20px;display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;box-shadow:0 18px 40px rgba(7,71,56,0.28)}
+.bv .ni{display:flex;align-items:center;justify-content:center}
+.bv .ic{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.6)}
+.bv .ic.on{background:rgba(255,255,255,0.15);color:#fff}
+.bv .ic.add{background:#fff;color:var(--green);width:48px;height:48px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+
+/* Back button */
+.bk{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.8);backdrop-filter:blur(8px);border:1px solid var(--bornav);display:flex;align-items:center;justify-content:center;box-shadow:var(--sh)}
+
+/* Token panel */
+.tp{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;max-width:1200px;width:100%;margin-top:24px}
+.tc{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:20px}
+.tc h3{font-size:12px;font-weight:700;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:14px}
+.cr{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.cs{width:36px;height:36px;border-radius:10px;border:2px solid rgba(255,255,255,0.08);flex-shrink:0}
+.ci{font-size:12px}
+.ci strong{color:#fff;font-weight:700;display:block}
+.ci span{color:rgba(255,255,255,0.35);font-size:10px}
+
+@media(max-width:420px){
+  .ph{width:100%;height:100vh;border-radius:0;box-shadow:none}
+  .st{padding:56px 0 0}
+  .stt,.sts{display:none}
+}
+</style>
+</head>
+<body>
+
+<nav class="dn">
+  <div class="di">
+    <h1 class="jk"><span class="p">P</span>ESSY <span style="font-weight:500;font-size:12px;color:rgba(255,255,255,0.3)">Ecosistema Digital v2</span></h1>
+    <div class="tw">
+      <button class="tb on" onclick="go('tokens')">Tokens</button>
+      <button class="tb" onclick="go('landing')">Landing</button>
+      <button class="tb" onclick="go('login')">Login</button>
+      <button class="tb" onclick="go('register')">Registro</button>
+      <button class="tb" onclick="go('regpet')">Mascota</button>
+      <button class="tb" onclick="go('home')">Home</button>
+      <button class="tb" onclick="go('identity')">Identidad</button>
+      <button class="tb" onclick="go('routines')">Rutinas</button>
+      <button class="tb" onclick="go('care')">Cuidados</button>
+      <button class="tb" onclick="go('shopping')">Compras</button>
+      <button class="tb" onclick="go('profile')">Perfil</button>
+      <button class="tb" onclick="go('sidebar')">Sidebar</button>
+    </div>
+    <span class="badge">NUEVA APP</span>
+  </div>
+</nav>
+
+<!-- ═══════ DESIGN TOKENS ═══════ -->
+<div id="s-tokens" class="sc on">
+<div class="st">
+  <h2 class="stt jk">Design System — Ecosistema Digital</h2>
+  <p class="sts">Tokens de LandingEcosystemPreviewPage + AppMockups. Fondo lavanda, púrpura, cards 2rem, concepto ecosistema.</p>
+  <div class="tp">
+    <div class="tc">
+      <h3>Colores Primarios</h3>
+      <div class="cr"><div class="cs" style="background:#5048ca"></div><div class="ci"><strong>Purple Accent</strong><span>#5048ca — Hero accent, headings, progress</span></div></div>
+      <div class="cr"><div class="cs" style="background:#e3dfff"></div><div class="ci"><strong>Purple Light</strong><span>#e3dfff — Badges, icon bg, chips</span></div></div>
+      <div class="cr"><div class="cs" style="background:#100069"></div><div class="ci"><strong>Purple Dark</strong><span>#100069 — Text on purple badges</span></div></div>
+      <div class="cr"><div class="cs" style="background:#074738"></div><div class="ci"><strong>Deep Green</strong><span>#074738 — CTAs, nav, bottom pill, brand</span></div></div>
+      <div class="cr"><div class="cs" style="background:#1A9B7D"></div><div class="ci"><strong>Teal</strong><span>#1A9B7D — States, secondary accent</span></div></div>
+    </div>
+    <div class="tc">
+      <h3>Fondos</h3>
+      <div class="cr"><div class="cs" style="background:#faf9ff"></div><div class="ci"><strong>Page Background</strong><span>#faf9ff — Lavanda, reemplaza blanco</span></div></div>
+      <div class="cr"><div class="cs" style="background:#f4f3f9"></div><div class="ci"><strong>Section Background</strong><span>#f4f3f9 — Cards info, secciones alternas</span></div></div>
+      <div class="cr"><div class="cs" style="background:#eef5f2"></div><div class="ci"><strong>Surface Green Soft</strong><span>#eef5f2 — Rows dentro de cards</span></div></div>
+    </div>
+    <div class="tc">
+      <h3>Texto</h3>
+      <div class="cr"><div class="cs" style="background:#002f24"></div><div class="ci"><strong>Primary</strong><span>#002f24 — Títulos</span></div></div>
+      <div class="cr"><div class="cs" style="background:#404945"></div><div class="ci"><strong>Body</strong><span>#404945 — Párrafos</span></div></div>
+      <div class="cr"><div class="cs" style="background:#707975"></div><div class="ci"><strong>Muted</strong><span>#707975 — Labels, hints</span></div></div>
+    </div>
+    <div class="tc">
+      <h3>Componentes Clave</h3>
+      <p style="font-size:12px;color:rgba(255,255,255,0.5);line-height:1.8">
+        <strong style="color:#fff">Nav:</strong> bg-white/80 backdrop-blur-xl + border #d8e4de<br>
+        <strong style="color:#fff">Cards:</strong> rounded-2rem, shadow profunda, border #dfe6e2<br>
+        <strong style="color:#fff">Bottom Nav:</strong> Pill flotante bg-#074738 rounded-full<br>
+        <strong style="color:#fff">Badges:</strong> Pill bg-#e3dfff text-#100069 uppercase<br>
+        <strong style="color:#fff">Inputs:</strong> rounded-1.5rem, border #dfe6e2<br>
+        <strong style="color:#fff">CTAs:</strong> rounded-full bg-#074738 font-bold<br>
+        <strong style="color:#fff">Chips ecosistema:</strong> bg-#134c40 border-#2b5b50
+      </p>
+    </div>
+    <div class="tc">
+      <h3>Tipografía</h3>
+      <div style="margin-bottom:12px">
+        <p class="jk" style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-0.02em">Plus Jakarta Sans</p>
+        <p style="font-size:11px;color:rgba(255,255,255,0.35)">Títulos (extrabold), CTAs (bold), labels (bold uppercase)</p>
+      </div>
+      <div>
+        <p style="font-family:'Manrope';font-size:18px;font-weight:500;color:#fff">Manrope</p>
+        <p style="font-size:11px;color:rgba(255,255,255,0.35)">Body text (medium), descriptions</p>
+      </div>
+    </div>
+    <div class="tc">
+      <h3>Radius & Shadows</h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <div style="width:50px;height:50px;background:#5048ca;border-radius:32px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700">2rem</div>
+        <div style="width:50px;height:50px;background:#5048ca;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700">1.25r</div>
+        <div style="width:50px;height:50px;background:#5048ca;border-radius:999px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700">pill</div>
+      </div>
+      <p style="font-size:11px;color:rgba(255,255,255,0.3);line-height:1.7">
+        Cards: 2rem · Inner: 1.25rem · Buttons: pill<br>
+        Shadow: <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px;font-size:10px">0 28px 56px -24px rgba(0,47,36,0.12)</code>
+      </p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ LANDING ═══════ -->
+<div id="s-landing" class="sc">
+<div class="st">
+  <h2 class="stt jk">Landing — Ecosistema Digital</h2>
+  <p class="sts">Nav white/blur, hero con badge púrpura, phone mockup con notificaciones rotativas, pricing.</p>
+  <div class="ph">
+    <div class="nt"></div>
+    <div class="pc" style="background:var(--bg)">
+      <div class="nav"><div class="br"><div class="bc"><span style="color:#fff;font-size:12px;font-weight:800">P</span></div><span class="bn jk">Pessy</span></div><button class="nbtn">Entrar</button></div>
+      <div style="padding:24px 24px 0">
+        <span class="ebdg jk">ECOSISTEMA DIGITAL</span>
+        <h1 class="jk" style="margin-top:14px;font-size:32px;font-weight:800;color:var(--text);line-height:1.08;letter-spacing:-0.02em">Tu mascota, sus cosas, <span style="color:var(--purple)">todo en orden.</span></h1>
+        <p style="font-size:14px;color:var(--body);line-height:1.6;margin-top:12px">Paseos, cuidados, compras, visitas y papeles. Pessy te va diciendo qué ya está, qué falta y qué se viene.</p>
+        <div style="display:flex;gap:10px;margin-top:18px">
+          <button class="ebt jk" style="flex:1;font-size:13px;padding:14px">Probar ahora</button>
+          <button class="ebt2 jk" style="flex:1;font-size:12px;padding:14px;display:flex;align-items:center;justify-content:center;gap:4px">Ver cómo <span class="ms" style="font-size:16px">play_circle</span></button>
+        </div>
+        <p class="elbl jk" style="margin-top:14px;font-size:9px;letter-spacing:0.28em">PESSY TE VA DICIENDO QUÉ TOCA.</p>
+      </div>
+      <!-- Phone mockup -->
+      <div style="padding:24px;display:flex;justify-content:center">
+        <div style="width:200px;aspect-ratio:9/19.5;background:#0c0c0c;border-radius:36px;padding:4px;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+          <div style="height:100%;width:100%;border-radius:33px;overflow:hidden;background:#000;position:relative">
+            <img src="https://images.unsplash.com/photo-1686419682443-5050ca21098d?w=400&fit=crop&q=80" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.85">
+            <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:80px;height:16px;background:#000;border-radius:0 0 10px 10px"></div>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px">
+              <p style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.7)">Martes, 25 de marzo</p>
+              <p class="jk" style="font-size:32px;font-weight:800;color:#fff;letter-spacing:-0.04em">14:30</p>
+              <div style="margin-top:auto;width:100%;background:rgba(255,255,255,0.12);backdrop-filter:blur(12px);border-radius:16px;padding:10px;border:1px solid rgba(255,255,255,0.15)">
+                <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
+                  <div style="width:12px;height:12px;background:#fff;border-radius:3px;display:flex;align-items:center;justify-content:center"><span style="font-size:8px;font-weight:800;color:#074738">P</span></div>
+                  <span style="font-size:7px;font-weight:800;color:rgba(255,255,255,0.5);letter-spacing:0.15em">PESSY</span>
+                  <span style="margin-left:auto;font-size:7px;color:rgba(255,255,255,0.4)">AHORA</span>
+                </div>
+                <p style="font-size:9px;font-weight:700;color:#fff">Luna va al 50% del día</p>
+                <p style="font-size:8px;color:rgba(255,255,255,0.7)">Ya hizo el paseo. Falta una compra.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Ecosystem chips -->
+      <div style="padding:0 24px 24px">
+        <div style="background:var(--green);border-radius:var(--r);padding:18px">
+          <span class="jk" style="font-size:9px;font-weight:700;letter-spacing:0.25em;color:#99d2be;display:block;margin-bottom:10px">ECOSISTEMA DIGITAL</span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <span style="padding:6px 12px;border-radius:999px;background:var(--chip-bg);border:1px solid var(--chip-border);color:var(--chip-text);font-size:10px;font-weight:600">Identidad digital</span>
+            <span style="padding:6px 12px;border-radius:999px;background:var(--chip-bg);border:1px solid var(--chip-border);color:var(--chip-text);font-size:10px;font-weight:600">Rutinas</span>
+            <span style="padding:6px 12px;border-radius:999px;background:var(--chip-bg);border:1px solid var(--chip-border);color:var(--chip-text);font-size:10px;font-weight:600">Compras</span>
+            <span style="padding:6px 12px;border-radius:999px;background:var(--chip-bg);border:1px solid var(--chip-border);color:var(--chip-text);font-size:10px;font-weight:600">Cuidados</span>
+            <span style="padding:6px 12px;border-radius:999px;background:var(--chip-bg);border:1px solid var(--chip-border);color:var(--chip-text);font-size:10px;font-weight:600">Papeles</span>
+            <span style="padding:6px 12px;border-radius:999px;background:var(--chip-bg);border:1px solid var(--chip-border);color:var(--chip-text);font-size:10px;font-weight:600">Co-tutores</span>
+          </div>
+        </div>
+      </div>
+      <!-- Pricing -->
+      <div style="background:var(--bg-s);padding:32px 24px">
+        <span class="elbl jk">SUSCRIPCIONES</span>
+        <h2 class="jk" style="font-size:22px;font-weight:800;color:var(--text);margin-top:6px;margin-bottom:16px">Nuestras suscripciones</h2>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="ecd" style="padding:18px">
+            <p style="font-size:10px;font-weight:700;letter-spacing:0.24em;color:var(--muted)">BASE</p>
+            <p class="jk" style="font-size:28px;font-weight:800;color:var(--text)">$0 <span style="font-size:12px;font-weight:600;color:var(--muted)">/para siempre</span></p>
+            <p style="font-size:12px;color:var(--body);margin-top:6px">1 mascota · perfil digital · documentos · carnet</p>
+            <button class="ebt jk" style="margin-top:14px;font-size:12px;padding:12px">Elegir base</button>
+          </div>
+          <div class="ecd-d" style="padding:18px">
+            <p style="font-size:10px;font-weight:700;letter-spacing:0.24em;opacity:0.7">PREMIUM</p>
+            <p class="jk" style="font-size:28px;font-weight:800">Consultar <span style="font-size:12px;font-weight:600;opacity:0.7">/mensual</span></p>
+            <p style="font-size:12px;opacity:0.8;margin-top:6px">compras · envíos · alertas · co-tutores</p>
+            <button style="margin-top:14px;width:100%;padding:12px;border-radius:999px;background:#fff;color:#074738;font-weight:700;font-size:12px;border:none">Quiero premium</button>
+          </div>
+        </div>
+      </div>
+      <!-- Footer -->
+      <div style="padding:24px;text-align:center;border-top:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:8px">
+          <div style="width:20px;height:20px;background:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center"><span style="color:#fff;font-size:10px;font-weight:800">P</span></div>
+          <span class="jk" style="font-weight:800;font-size:14px;color:var(--green)">Pessy</span>
+        </div>
+        <p style="font-size:10px;color:var(--muted)">© 2026 Pessy. Todos los derechos reservados.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ LOGIN ═══════ -->
+<div id="s-login" class="sc">
+<div class="st">
+  <h2 class="stt jk">Login — Ecosistema Digital</h2>
+  <p class="sts">Fondo lavanda, nav white/blur, badge ACCESO, form card con 2rem radius.</p>
+  <div class="ph">
+    <div class="nt"></div>
+    <div class="pc" style="background:var(--bg)">
+      <div class="nav"><div class="br"><div class="bc"><span style="color:#fff;font-size:12px;font-weight:800">P</span></div><span class="bn jk">Pessy</span></div><button class="nbtn">Entrar</button></div>
+      <div style="padding:20px 24px 0">
+        <span class="ebdg jk" style="margin-bottom:10px">ACCESO</span>
+        <h1 class="jk" style="font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px">Porque quererlo ya es suficiente trabajo.</h1>
+        <p style="font-size:12px;color:var(--link)">Con IA.</p>
+      </div>
+      <div style="padding:16px 24px">
+        <div class="ecd" style="padding:24px">
+          <h2 class="jk" style="font-size:24px;font-weight:800;color:var(--text);margin-bottom:4px">Bienvenido de nuevo</h2>
+          <p style="font-size:13px;color:var(--link);margin-bottom:18px">Entrá para seguir desde donde quedaste.</p>
+          <div style="background:var(--bg-s);border-radius:1.5rem;border:1px solid var(--border);padding:14px;margin-bottom:16px">
+            <p style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.16em;color:var(--green)">Tu mascota, sus cosas</p>
+            <p style="font-size:12px;color:var(--green-text);margin-top:4px">Porque quererlo ya es suficiente trabajo.</p>
+          </div>
+          <input class="ein" placeholder="Correo electrónico" style="margin-bottom:8px">
+          <div style="position:relative;margin-bottom:8px">
+            <input class="ein" placeholder="Contraseña" type="password">
+            <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:var(--green);background:var(--bg-s);padding:4px 10px;border-radius:999px;border:1px solid var(--border)">Mostrar</span>
+          </div>
+          <p style="text-align:right;font-size:12px;font-weight:600;color:var(--link);margin-bottom:14px">¿Olvidaste tu contraseña?</p>
+          <button class="ebt jk" style="text-transform:uppercase;letter-spacing:0.16em;font-size:13px">INGRESAR</button>
+          <div style="display:flex;align-items:center;gap:10px;margin:14px 0"><div style="flex:1;height:1px;background:var(--border)"></div><span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:#aaa">o continuar con</span><div style="flex:1;height:1px;background:var(--border)"></div></div>
+          <button class="ebt2" style="display:flex;align-items:center;justify-content:center;gap:8px"><div style="width:22px;height:22px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.1)"><span style="font-size:12px;font-weight:700;color:#4285F4">G</span></div>Google</button>
+          <p style="text-align:center;font-size:12px;font-weight:600;color:var(--purple);margin-top:10px">¿Querés acceso? Solicitalo acá</p>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:12px;padding:12px;border-top:1px solid var(--border);font-size:10px;color:var(--link)">
+        <span>Inicio</span><span style="color:#ddd">·</span><span>Privacidad</span><span style="color:#ddd">·</span><span>Términos</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ REGISTER ═══════ -->
+<div id="s-register" class="sc">
+<div class="st">
+  <h2 class="stt jk">Registro — Ecosistema Digital</h2>
+  <p class="sts">Badge REGISTRO, formulario simple, CTA pill verde, Google OAuth.</p>
+  <div class="ph">
+    <div class="nt"></div>
+    <div class="pc" style="background:var(--bg)">
+      <div class="nav"><div class="br"><div class="bc"><span style="color:#fff;font-size:12px;font-weight:800">P</span></div><span class="bn jk">Pessy</span></div><button class="nbtn">Entrar</button></div>
+      <div style="padding:20px 24px 0">
+        <span class="ebdg jk" style="margin-bottom:10px">REGISTRO</span>
+        <h1 class="jk" style="font-size:18px;font-weight:800;color:var(--text)">Porque quererlo ya es suficiente trabajo.</h1>
+        <p style="font-size:12px;color:var(--link)">Empezá en 1 minuto. Sin tarjeta.</p>
+      </div>
+      <div style="padding:16px 24px">
+        <div class="ecd" style="padding:24px">
+          <h2 class="jk" style="font-size:24px;font-weight:800;color:var(--text);margin-bottom:4px">Creá tu cuenta</h2>
+          <p style="font-size:13px;color:var(--link);margin-bottom:18px">Solo un par de datos para empezar.</p>
+          <input class="ein" placeholder="Tu nombre" style="margin-bottom:8px">
+          <input class="ein" placeholder="Correo electrónico" style="margin-bottom:8px">
+          <input class="ein" placeholder="Contraseña (mínimo 6)" style="margin-bottom:16px" type="password">
+          <button class="ebt jk" style="text-transform:uppercase;letter-spacing:0.16em;font-size:13px">CREAR CUENTA</button>
+          <div style="display:flex;align-items:center;gap:10px;margin:14px 0"><div style="flex:1;height:1px;background:var(--border)"></div><span style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.12em;color:#aaa">o continuar con</span><div style="flex:1;height:1px;background:var(--border)"></div></div>
+          <button class="ebt2" style="display:flex;align-items:center;justify-content:center;gap:8px"><div style="width:22px;height:22px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,0.1)"><span style="font-size:12px;font-weight:700;color:#4285F4">G</span></div>Google</button>
+          <p style="text-align:center;font-size:10px;color:var(--link);margin-top:14px">Al registrarte aceptás los <span style="color:var(--purple);font-weight:600">Términos</span> y <span style="color:var(--purple);font-weight:600">Privacidad</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ REG PET ═══════ -->
+<div id="s-regpet" class="sc">
+<div class="st">
+  <h2 class="stt jk">Registro de Mascota</h2>
+  <p class="sts">Selector de especie con tarjetas púrpura, inputs ecosystem, paso 1 de 2.</p>
+  <div class="ph">
+    <div class="nt"></div>
+    <div class="pc" style="background:var(--bg)">
+      <div class="nav"><div class="br"><div class="bc"><span style="color:#fff;font-size:12px;font-weight:800">P</span></div><span class="bn jk">Pessy</span></div><span style="font-size:12px;font-weight:700;color:var(--muted)">Paso 1 de 2</span></div>
+      <div style="padding:20px 24px 0"><span class="ebdg jk">REGISTRO</span><h1 class="jk" style="font-size:18px;font-weight:800;color:var(--text);margin-top:8px">Contanos quién es</h1><p style="font-size:12px;color:var(--link)">Pessy se encarga del resto.</p></div>
+      <div style="padding:16px 24px">
+        <div class="ecd" style="padding:24px">
+          <h2 class="jk" style="font-size:20px;font-weight:800;color:var(--text);margin-bottom:4px">Datos de tu mascota</h2>
+          <p style="font-size:12px;color:var(--link);margin-bottom:16px">Empezamos con lo básico.</p>
+          <p style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:8px">¿Qué es?</p>
+          <div style="display:flex;gap:10px;margin-bottom:16px">
+            <div style="flex:1;padding:14px;border-radius:18px;border:2px solid var(--purple);background:var(--purple-l);text-align:center"><span style="font-size:28px;display:block;margin-bottom:2px">🐕</span><span style="font-size:12px;font-weight:700;color:var(--text)">Perro</span></div>
+            <div style="flex:1;padding:14px;border-radius:18px;border:2px solid var(--border);background:#fff;text-align:center"><span style="font-size:28px;display:block;margin-bottom:2px">🐈</span><span style="font-size:12px;font-weight:700;color:var(--text)">Gato</span></div>
+            <div style="flex:1;padding:14px;border-radius:18px;border:2px solid var(--border);background:#fff;text-align:center"><span style="font-size:28px;display:block;margin-bottom:2px">🐾</span><span style="font-size:12px;font-weight:700;color:var(--text)">Otro</span></div>
+          </div>
+          <input class="ein" placeholder="Nombre de tu mascota" style="margin-bottom:8px">
+          <input class="ein" placeholder="Raza (ej: Labrador, Siamés)" style="margin-bottom:16px">
+          <button class="ebt jk" style="text-transform:uppercase;letter-spacing:0.16em;font-size:13px">SIGUIENTE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ HOME — REIMAGINADO ═══════ -->
+<div id="s-home" class="sc">
+<div class="st">
+  <h2 class="stt jk">Home — "Qué ya está, qué falta, qué se viene"</h2>
+  <p class="sts">Dashboard del día con progreso, notificación Pessy, resumen ecosistema. Concepto nuevo.</p>
+  <div class="ph">
+    <div class="nt"></div>
+    <div class="pc" style="background:var(--bg);padding-bottom:100px">
+      <!-- Status bar area + floating menu -->
+      <div style="padding:50px 20px 0;display:flex;align-items:center;justify-content:space-between">
+        <div class="bk"><span class="ms" style="font-size:20px;color:var(--green)">menu</span></div>
+        <span class="ebdg jk" style="font-size:8px;padding:5px 12px">ECOSISTEMA DIGITAL</span>
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:18px;color:#fff">notifications</span></div>
+      </div>
+
+      <!-- Greeting -->
+      <div style="padding:16px 20px 0">
+        <p style="font-size:13px;color:var(--muted);font-weight:600">Martes 25 de marzo</p>
+        <h2 class="jk" style="font-size:26px;font-weight:800;color:var(--text);margin-top:2px">Hola, Mauri</h2>
+      </div>
+
+      <!-- Pet card with day progress -->
+      <div style="padding:12px 20px">
+        <div style="background:var(--green);border-radius:var(--r);padding:18px;position:relative;overflow:hidden">
+          <div style="position:absolute;top:0;right:0;width:120px;height:120px;background:rgba(255,255,255,0.04);border-radius:50%;transform:translate(30px,-30px)"></div>
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+            <div style="width:52px;height:52px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,0.3);flex-shrink:0"><img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=200&h=200&fit=crop&q=80" alt="" style="width:100%;height:100%;object-fit:cover"></div>
+            <div>
+              <h3 class="jk" style="font-size:18px;font-weight:800;color:#fff">Luna</h3>
+              <p style="font-size:11px;color:rgba(255,255,255,0.6)">Golden Retriever · 3 años</p>
+            </div>
+            <span class="ms" style="margin-left:auto;color:rgba(255,255,255,0.3);font-size:20px">expand_more</span>
+          </div>
+          <!-- Day progress -->
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+              <span style="font-size:9px;font-weight:700;letter-spacing:0.2em;color:rgba(255,255,255,0.5)">PROGRESO DEL DÍA</span>
+              <span class="jk" style="font-size:13px;font-weight:800;color:#fff">65%</span>
+            </div>
+            <div style="height:6px;background:rgba(255,255,255,0.12);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:65%;background:linear-gradient(90deg,var(--green-light),#fff);border-radius:3px"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <span style="padding:4px 10px;border-radius:999px;background:rgba(255,255,255,0.12);font-size:9px;font-weight:600;color:rgba(255,255,255,0.8)">Paseo hecho</span>
+            <span style="padding:4px 10px;border-radius:999px;background:rgba(245,158,11,0.25);font-size:9px;font-weight:600;color:#fbbf24">1 compra pendiente</span>
+            <span style="padding:4px 10px;border-radius:999px;background:rgba(255,255,255,0.12);font-size:9px;font-weight:600;color:rgba(255,255,255,0.8)">Cuidado OK</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pessy notification card -->
+      <div style="padding:0 20px 12px">
+        <div style="background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:16px;box-shadow:var(--sh);display:flex;gap:12px;align-items:flex-start">
+          <div style="width:36px;height:36px;border-radius:12px;background:var(--purple-l);display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="ms" style="font-size:18px;color:var(--purple)">auto_awesome</span></div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <span class="jk" style="font-size:10px;font-weight:800;letter-spacing:0.15em;color:var(--purple)">PESSY</span>
+              <span style="font-size:9px;color:var(--muted)">AHORA</span>
+            </div>
+            <p style="font-size:13px;font-weight:700;color:var(--text);line-height:1.35">Luna va al 65% del día</p>
+            <p style="font-size:11px;color:var(--body);margin-top:2px;line-height:1.4">Ya hizo el paseo de la mañana. Falta reponer las bolsas. Una visita agendada para el jueves.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Qué ya está / Qué falta / Qué se viene -->
+      <div style="padding:0 20px">
+        <span class="elbl jk" style="display:block;margin-bottom:10px">QUÉ YA ESTÁ</span>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <div style="background:#fff;border-radius:var(--ri);border:1px solid var(--border);padding:12px;display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:10px;background:#ecfdf5;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:16px;color:#059669">check_circle</span></div>
+            <div style="flex:1"><p style="font-size:12px;font-weight:700;color:var(--text)">Paseo de la mañana</p><p style="font-size:10px;color:var(--muted)">RUTINAS · 08:30</p></div>
+          </div>
+          <div style="background:#fff;border-radius:var(--ri);border:1px solid var(--border);padding:12px;display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:10px;background:#ecfdf5;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:16px;color:#059669">check_circle</span></div>
+            <div style="flex:1"><p style="font-size:12px;font-weight:700;color:var(--text)">Desayuno servido</p><p style="font-size:10px;color:var(--muted)">RUTINAS · 07:45</p></div>
+          </div>
+        </div>
+
+        <span class="elbl jk" style="display:block;margin-bottom:10px;color:#F59E0B">QUÉ FALTA</span>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <div style="background:#fff;border-radius:var(--ri);border:1px solid #fde68a;padding:12px;display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:10px;background:#FFF8E1;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:16px;color:#F59E0B">schedule</span></div>
+            <div style="flex:1"><p style="font-size:12px;font-weight:700;color:var(--text)">Reponer bolsas</p><p style="font-size:10px;color:var(--muted)">COMPRAS · Quedan 3</p></div>
+            <span class="ms" style="font-size:16px;color:var(--border)">chevron_right</span>
+          </div>
+          <div style="background:#fff;border-radius:var(--ri);border:1px solid #fde68a;padding:12px;display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:10px;background:#FFF8E1;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:16px;color:#F59E0B">schedule</span></div>
+            <div style="flex:1"><p style="font-size:12px;font-weight:700;color:var(--text)">Paseo de la tarde</p><p style="font-size:10px;color:var(--muted)">RUTINAS · 19:00</p></div>
+            <span class="ms" style="font-size:16px;color:var(--border)">chevron_right</span>
+          </div>
+        </div>
+
+        <span class="elbl jk" style="display:block;margin-bottom:10px;color:var(--purple)">QUÉ SE VIENE</span>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <div style="background:#fff;border-radius:var(--ri);border:1px solid var(--border);padding:12px;display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:10px;background:var(--purple-l);display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:16px;color:var(--purple)">event</span></div>
+            <div style="flex:1"><p style="font-size:12px;font-weight:700;color:var(--text)">Control general</p><p style="font-size:10px;color:var(--muted)">VISITA · Jueves 27</p></div>
+            <span class="ms" style="font-size:16px;color:var(--border)">chevron_right</span>
+          </div>
+          <div style="background:#fff;border-radius:var(--ri);border:1px solid var(--border);padding:12px;display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:10px;background:var(--purple-l);display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:16px;color:var(--purple)">vaccines</span></div>
+            <div style="flex:1"><p style="font-size:12px;font-weight:700;color:var(--text)">Vacuna séxtuple</p><p style="font-size:10px;color:var(--muted)">CUIDADOS · 15 Abr</p></div>
+            <span class="ms" style="font-size:16px;color:var(--border)">chevron_right</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ecosystem summary strip -->
+      <div style="padding:0 20px 20px">
+        <div style="background:var(--bg-s);border-radius:var(--r);padding:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center">
+          <div><div style="width:36px;height:36px;border-radius:12px;background:var(--purple-l);display:flex;align-items:center;justify-content:center;margin:0 auto 4px"><span class="ms" style="font-size:16px;color:var(--purple)">fingerprint</span></div><p style="font-size:9px;font-weight:700;color:var(--text)">Identidad</p></div>
+          <div><div style="width:36px;height:36px;border-radius:12px;background:var(--green-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 4px"><span class="ms" style="font-size:16px;color:var(--green)">repeat</span></div><p style="font-size:9px;font-weight:700;color:var(--text)">Rutinas</p></div>
+          <div><div style="width:36px;height:36px;border-radius:12px;background:#FFF8E1;display:flex;align-items:center;justify-content:center;margin:0 auto 4px"><span class="ms" style="font-size:16px;color:#F59E0B">shopping_bag</span></div><p style="font-size:9px;font-weight:700;color:var(--text)">Compras</p></div>
+          <div><div style="width:36px;height:36px;border-radius:12px;background:#ecfdf5;display:flex;align-items:center;justify-content:center;margin:0 auto 4px"><span class="ms" style="font-size:16px;color:#059669">shield</span></div><p style="font-size:9px;font-weight:700;color:var(--text)">Cuidados</p></div>
+        </div>
+      </div>
+
+      <div class="bv"><div class="pl"><div class="ni"><div class="ic on"><span class="ms">home</span></div></div><div class="ni"><div class="ic add"><span class="ms">add</span></div></div><div class="ni"><div class="ic"><span class="ms">person</span></div></div></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ IDENTIDAD DIGITAL ═══════ -->
+<div id="s-identity" class="sc">
+<div class="st">
+  <h2 class="stt jk">Identidad Digital — Basado en AppMockups</h2>
+  <p class="sts">Replica el HistoryMockup de la landing: documentos, rutinas, compras con estados check/pendiente.</p>
+  <div class="ph">
+    <div class="nt"></div>
+    <div class="pc" style="background:var(--bg);padding-bottom:100px">
+      <div style="padding:50px 20px 16px;display:flex;align-items:center;gap:12px">
+        <div class="bk"><span class="ms" style="font-size:18px;color:var(--body)">arrow_back</span></div>
+        <div>
+          <h2 class="jk" style="font-size:20px;font-weight:800;color:var(--text)">Identidad Digital</h2>
+          <p style="font-size:11px;color:var(--muted)">Luna · Todo en un lugar</p>
+        </div>
+      </div>
+
+      <!-- Identity items — matches HistoryMockup exactly -->
+      <div style="padding:0 20px">
+        <span class="elbl jk" style="display:block;margin-bottom:10px">DOCUMENTOS Y REGISTROS</span>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:14px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh)">
+            <div style="width:36px;height:36px;border-radius:12px;background:#ecfdf5;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:18px;color:var(--green)">check_circle</span></div>
+            <div style="flex:1"><p style="font-size:12px;font-weight:800;color:var(--text)">Documento guardado</p><p style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">PERFIL · 12 FEB</p></div>
+            <span class="ms" style="font-size:16px;color:var(--border)">chevron_right</span>
+          </div>
+          <div style="background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:14px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh)">
+            <div style="width:36px;height:36px;border-radius:12px;background:#ecfdf5;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:18px;color:var(--green)">check_circle</span></div>
+            <div style="flex:1"><p style="font-size:12px;font-weight:800;color:var(--text)">Rutina organizada</p><p style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">RUTINAS · 05 FEB</p></div>
+            <span class="ms" style="font-size:16px;color:var(--border)">chevron_right</span>
+          </div>
+          <div style="background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:14px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh)">
+            <div style="width:36px;height:36px;border-radius:12px;background:#FFF8E1;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:18px;color:#F59E0B">schedule</span></div>
+            <div style="flex:1"><p style="font-size:12px;font-weight:800;color:var(--text)">Compra por reponer</p><p style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">COMPRAS · 28 ENE</p></div>
+            <span class="ms" style="font-size:16px;color:var(--border)">chevron_right</span>
+          </div>
+          <div style="background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:14px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh)">
+            <div style="width:36px;height:36px;border-radius:12px;background:var(--purple-l);display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:18px;color:var(--purple)">description</span></div>
+            <div style="flex:1"><p style="font-size:12px;font-weight:800;color:var(--text)">Carnet digital</p><p style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">PAPELES · ACTIVO</p></div>
+            <span class="ms" style="font-size:16px;color:var(--border)">chevron_right</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PESSY TE ACOMPAÑA card — from AppMockups -->
+      <div style="padding:16px 20px">
+        <div style="background:var(--green);border-radius:var(--r);padding:16px;color:#fff;box-shadow:var(--sh-p)">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+            <span class="ms" style="font-size:14px;color:var(--green-light)">auto_awesome</span>
+            <span class="jk" style="font-size:9px;font-weight:800;letter-spacing:0.18em">PESSY TE ACOMPAÑA</span>
+          </div>
+          <p style="font-size:11px;font-weight:600;opacity:0.9;line-height:1.5">Su historia ya quedó ordenada dentro de su identidad digital. Ves qué ya está, qué falta y qué se viene.</p>
+        </div>
+      </div>
+
+      <!-- QR card — from VaccinesMockup -->
+      <div style="padding:0 20px 20px">
+        <div style="background:#fff;border-radius:var(--r);border:2px dashed var(--border);padding:20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px">
+          <div style="width:48px;height:48px;border-radius:50%;background:var(--bg-s);display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:24px;color:var(--muted)">qr_code_2</span></div>
+          <p class="jk" style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.18em;line-height:1.5">Tocá para generar<br>código QR del carnet</p>
+        </div>
+      </div>
+
+      <div class="bv"><div class="pl"><div class="ni"><div class="ic"><span class="ms">home</span></div></div><div class="ni"><div class="ic add"><span class="ms">add</span></div></div><div class="ni"><div class="ic"><span class="ms">person</span></div></div></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ RUTINAS ═══════ -->
+<div id="s-routines" class="sc">
+<div class="st">
+  <h2 class="stt jk">Rutinas — Basado en MedicationMockup</h2>
+  <p class="sts">Replica la tarjeta de rutinas activas de la landing: scheduling diario, estado, alert ámbar.</p>
+  <div class="ph">
+    <div class="nt"></div>
+    <div class="pc" style="background:var(--bg);padding-bottom:100px">
+      <div style="padding:50px 20px 16px;display:flex;align-items:center;gap:12px">
+        <div class="bk"><span class="ms" style="font-size:18px;color:var(--body)">arrow_back</span></div>
+        <div>
+          <h2 class="jk" style="font-size:20px;font-weight:800;color:var(--text)">Rutinas de Luna</h2>
+          <p style="font-size:11px;color:var(--muted)">Pessy va siguiendo el día</p>
+        </div>
+        <div style="margin-left:auto;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:20px;color:var(--green)">notifications</span></div>
+      </div>
+
+      <div style="padding:0 20px">
+        <span class="elbl jk" style="display:block;margin-bottom:10px">RUTINAS ACTIVAS</span>
+
+        <!-- Main routine card — from MedicationMockup -->
+        <div style="background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:18px;margin-bottom:10px;box-shadow:var(--sh)">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+            <div style="width:48px;height:48px;border-radius:16px;background:var(--green-soft);display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:24px;color:var(--green)">pets</span></div>
+            <div>
+              <h3 class="jk" style="font-size:16px;font-weight:800;color:var(--text)">Paseo de la tarde</h3>
+              <p style="font-size:10px;font-weight:800;color:var(--green);text-transform:uppercase;letter-spacing:0.12em">TODOS LOS DÍAS</p>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+            <div style="background:var(--bg-s);border-radius:16px;padding:10px">
+              <p style="font-size:8px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:2px">PRÓXIMO MOMENTO</p>
+              <p class="jk" style="font-size:14px;font-weight:800;color:var(--text)">19:00 HS</p>
+            </div>
+            <div style="background:var(--bg-s);border-radius:16px;padding:10px">
+              <p style="font-size:8px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:2px">ESTADO</p>
+              <p class="jk" style="font-size:14px;font-weight:800;color:#059669">EN ORDEN</p>
+            </div>
+          </div>
+          <button class="ebt jk" style="font-size:11px;padding:12px;letter-spacing:0.12em;text-transform:uppercase">MARCAR RUTINA</button>
+        </div>
+
+        <!-- Second routine -->
+        <div style="background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:18px;margin-bottom:10px;box-shadow:var(--sh)">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+            <div style="width:48px;height:48px;border-radius:16px;background:var(--purple-l);display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:24px;color:var(--purple)">medication</span></div>
+            <div>
+              <h3 class="jk" style="font-size:16px;font-weight:800;color:var(--text)">Nexgard Spectra</h3>
+              <p style="font-size:10px;font-weight:800;color:var(--purple);text-transform:uppercase;letter-spacing:0.12em">1 VEZ AL MES</p>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px"><span>Inicio: 28 Feb</span><span>Próxima: 28 Mar</span></div>
+          <div style="height:6px;background:var(--bg-s);border-radius:3px;overflow:hidden"><div style="height:100%;width:85%;background:var(--purple);border-radius:3px"></div></div>
+          <p style="font-size:10px;font-weight:700;color:var(--purple);margin-top:6px">3 días restantes</p>
+        </div>
+
+        <!-- Alert card — from MedicationMockup -->
+        <div style="background:#FFF8E1;border-radius:var(--r);border:1px solid #f2d08c;padding:14px;display:flex;gap:10px;margin-top:4px">
+          <span class="ms" style="font-size:18px;color:#F59E0B;flex-shrink:0;margin-top:1px">warning</span>
+          <p style="font-size:11px;font-weight:600;color:#8b5e00;line-height:1.5">En 2 días te recordamos reponer lo que usa todos los días.</p>
+        </div>
+      </div>
+
+      <div class="bv"><div class="pl"><div class="ni"><div class="ic"><span class="ms">home</span></div></div><div class="ni"><div class="ic add"><span class="ms">add</span></div></div><div class="ni"><div class="ic"><span class="ms">person</span></div></div></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ CUIDADOS ═══════ -->
+<div id="s-care" class="sc">
+<div class="st">
+  <h2 class="stt jk">Cuidados al Día — Basado en VaccinesMockup</h2>
+  <p class="sts">Replica las tarjetas de cuidados de la landing: dot indicators, estados, carnet QR.</p>
+  <div class="ph">
+    <div class="nt"></div>
+    <div class="pc" style="background:var(--bg);padding-bottom:100px">
+      <div style="padding:50px 20px 16px;display:flex;align-items:center;gap:12px">
+        <div class="bk"><span class="ms" style="font-size:18px;color:var(--body)">arrow_back</span></div>
+        <div>
+          <h2 class="jk" style="font-size:20px;font-weight:800;color:var(--text)">Cuidados al Día</h2>
+          <p style="font-size:11px;color:var(--muted)">Si falta algo, Pessy te lo dice</p>
+        </div>
+        <div style="margin-left:auto"><span class="ms" style="font-size:20px;color:#059669">verified</span></div>
+      </div>
+
+      <div style="padding:0 20px">
+        <span class="elbl jk" style="display:block;margin-bottom:10px">CUIDADOS AL DÍA</span>
+
+        <!-- Vaccine items — matches VaccinesMockup style -->
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:14px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--sh)">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:8px;height:8px;border-radius:50%;background:#059669;box-shadow:0 0 8px rgba(5,150,105,0.5)"></div>
+              <div>
+                <p style="font-size:12px;font-weight:800;color:var(--text)">Antirrábica</p>
+                <p style="font-size:10px;font-weight:600;color:var(--muted)">Vence: 15 MAR 2027</p>
+              </div>
+            </div>
+            <span style="padding:4px 10px;border-radius:999px;background:#ecfdf5;font-size:9px;font-weight:800;color:#059669;text-transform:uppercase;letter-spacing:0.08em">Al día</span>
+          </div>
+
+          <div style="background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:14px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--sh)">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:8px;height:8px;border-radius:50%;background:#F59E0B;box-shadow:0 0 8px rgba(245,158,11,0.5)"></div>
+              <div>
+                <p style="font-size:12px;font-weight:800;color:var(--text)">Quíntuple</p>
+                <p style="font-size:10px;font-weight:600;color:var(--muted)">Vence: 02 ABR 2026</p>
+              </div>
+            </div>
+            <span style="padding:4px 10px;border-radius:999px;background:#FFF8E1;font-size:9px;font-weight:800;color:#F59E0B;text-transform:uppercase;letter-spacing:0.08em">Próximo</span>
+          </div>
+
+          <div style="background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:14px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--sh)">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:8px;height:8px;border-radius:50%;background:#cbd5e1"></div>
+              <div>
+                <p style="font-size:12px;font-weight:800;color:var(--text)">Higiene dental</p>
+                <p style="font-size:10px;font-weight:600;color:var(--muted)">Vence: 20 MAY 2026</p>
+              </div>
+            </div>
+            <span style="padding:4px 10px;border-radius:999px;background:#f1f5f9;font-size:9px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:0.08em">Pendiente</span>
+          </div>
+
+          <div style="background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:14px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--sh)">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:8px;height:8px;border-radius:50%;background:#059669;box-shadow:0 0 8px rgba(5,150,105,0.5)"></div>
+              <div>
+                <p style="font-size:12px;font-weight:800;color:var(--text)">Desparasitación</p>
+                <p style="font-size:10px;font-weight:600;color:var(--muted)">Nexgard · 28 FEB</p>
+              </div>
+            </div>
+            <span style="padding:4px 10px;border-radius:999px;background:#ecfdf5;font-size:9px;font-weight:800;color:#059669;text-transform:uppercase;letter-spacing:0.08em">Al día</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- QR Carnet — from VaccinesMockup -->
+      <div style="padding:16px 20px">
+        <div style="background:#fff;border-radius:var(--r);border:2px dashed var(--border);padding:20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px">
+          <div style="width:48px;height:48px;border-radius:50%;background:var(--bg-s);display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:24px;color:var(--muted)">qr_code_2</span></div>
+          <p class="jk" style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:0.18em;line-height:1.5">Tocá para generar<br>código QR del carnet</p>
+        </div>
+      </div>
+
+      <div class="bv"><div class="pl"><div class="ni"><div class="ic"><span class="ms">home</span></div></div><div class="ni"><div class="ic add"><span class="ms">add</span></div></div><div class="ni"><div class="ic"><span class="ms">person</span></div></div></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ COMPRAS ═══════ -->
+<div id="s-shopping" class="sc">
+<div class="st">
+  <h2 class="stt jk">Compras — Ecosistema Digital</h2>
+  <p class="sts">Items a reponer, compras activas, concepto "qué falta" aplicado a productos.</p>
+  <div class="ph">
+    <div class="nt"></div>
+    <div class="pc" style="background:var(--bg);padding-bottom:100px">
+      <div style="padding:50px 20px 16px;display:flex;align-items:center;gap:12px">
+        <div class="bk"><span class="ms" style="font-size:18px;color:var(--body)">arrow_back</span></div>
+        <div>
+          <h2 class="jk" style="font-size:20px;font-weight:800;color:var(--text)">Compras de Luna</h2>
+          <p style="font-size:11px;color:var(--muted)">Lo que se necesita y lo que ya está</p>
+        </div>
+      </div>
+
+      <div style="padding:0 20px">
+        <!-- Pessy alert -->
+        <div style="background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:14px;box-shadow:var(--sh);display:flex;gap:12px;align-items:flex-start;margin-bottom:14px">
+          <div style="width:36px;height:36px;border-radius:12px;background:var(--purple-l);display:flex;align-items:center;justify-content:center;flex-shrink:0"><span class="ms" style="font-size:18px;color:var(--purple)">auto_awesome</span></div>
+          <div>
+            <span class="jk" style="font-size:10px;font-weight:800;letter-spacing:0.15em;color:var(--purple)">PESSY</span>
+            <p style="font-size:12px;font-weight:700;color:var(--text);margin-top:2px">A Luna se le acaba algo</p>
+            <p style="font-size:11px;color:var(--body);margin-top:2px">Las bolsas vienen justas para esta semana.</p>
+          </div>
+        </div>
+
+        <span class="elbl jk" style="display:block;margin-bottom:10px;color:#F59E0B">POR REPONER</span>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <div style="background:#fff;border-radius:var(--r);border:1px solid #fde68a;padding:14px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh)">
+            <div style="width:40px;height:40px;border-radius:14px;background:#FFF8E1;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:20px;color:#F59E0B">inventory_2</span></div>
+            <div style="flex:1">
+              <p style="font-size:13px;font-weight:700;color:var(--text)">Bolsas sanitarias</p>
+              <p style="font-size:10px;color:var(--muted)">Quedan 3 · se usan 2/día</p>
+            </div>
+            <button style="padding:6px 14px;border-radius:999px;background:var(--green);color:#fff;border:none;font-size:10px;font-weight:700">Reponer</button>
+          </div>
+          <div style="background:#fff;border-radius:var(--r);border:1px solid #fde68a;padding:14px;display:flex;align-items:center;gap:12px;box-shadow:var(--sh)">
+            <div style="width:40px;height:40px;border-radius:14px;background:#FFF8E1;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:20px;color:#F59E0B">restaurant</span></div>
+            <div style="flex:1">
+              <p style="font-size:13px;font-weight:700;color:var(--text)">Alimento premium</p>
+              <p style="font-size:10px;color:var(--muted)">Bolsa al 20% · 5 días aprox</p>
+            </div>
+            <button style="padding:6px 14px;border-radius:999px;background:var(--green);color:#fff;border:none;font-size:10px;font-weight:700">Reponer</button>
+          </div>
+        </div>
+
+        <span class="elbl jk" style="display:block;margin-bottom:10px">RESUELTO</span>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:14px;display:flex;align-items:center;gap:12px;opacity:0.6">
+            <div style="width:40px;height:40px;border-radius:14px;background:#ecfdf5;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:20px;color:#059669">check_circle</span></div>
+            <div style="flex:1">
+              <p style="font-size:13px;font-weight:700;color:var(--text)">Shampoo hipoalergénico</p>
+              <p style="font-size:10px;color:var(--muted)">Comprado · 18 Mar</p>
+            </div>
+          </div>
+          <div style="background:#fff;border-radius:var(--r);border:1px solid var(--border);padding:14px;display:flex;align-items:center;gap:12px;opacity:0.6">
+            <div style="width:40px;height:40px;border-radius:14px;background:#ecfdf5;display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:20px;color:#059669">check_circle</span></div>
+            <div style="flex:1">
+              <p style="font-size:13px;font-weight:700;color:var(--text)">Correa nueva</p>
+              <p style="font-size:10px;color:var(--muted)">Comprado · 10 Mar</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bv"><div class="pl"><div class="ni"><div class="ic"><span class="ms">home</span></div></div><div class="ni"><div class="ic add"><span class="ms">add</span></div></div><div class="ni"><div class="ic"><span class="ms">person</span></div></div></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ PROFILE ═══════ -->
+<div id="s-profile" class="sc">
+<div class="st">
+  <h2 class="stt jk">Perfil — Ecosistema Digital</h2>
+  <p class="sts">Header gradient green→purple, stats con accent púrpura, eco-cards con datos.</p>
+  <div class="ph">
+    <div class="nt"></div>
+    <div class="pc" style="background:var(--bg)">
+      <!-- Header gradient -->
+      <div style="height:140px;background:linear-gradient(135deg, var(--green), var(--purple));position:relative">
+        <div style="position:absolute;top:48px;left:14px;z-index:20;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:18px;color:#fff">close</span></div>
+        <div style="position:absolute;top:48px;right:14px;z-index:20;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:18px;color:#fff">edit</span></div>
+        <div style="position:absolute;bottom:-40px;left:50%;transform:translateX(-50%);width:88px;height:88px;border-radius:50%;border:4px solid #fff;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.15)"><img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=200&h=200&fit=crop&q=80" alt="" style="width:100%;height:100%;object-fit:cover"></div>
+      </div>
+      <div style="padding:50px 24px 0;text-align:center">
+        <h2 class="jk" style="font-size:22px;font-weight:800;color:var(--text)">Luna</h2>
+        <p style="font-size:12px;color:var(--body);margin-top:2px">Golden Retriever · Hembra</p>
+        <div style="display:flex;justify-content:center;gap:28px;margin-top:16px">
+          <div style="text-align:center"><p class="jk" style="font-size:20px;font-weight:800;color:var(--purple)">3</p><p style="font-size:10px;color:var(--muted)">Años</p></div>
+          <div style="text-align:center"><p class="jk" style="font-size:20px;font-weight:800;color:var(--purple)">28</p><p style="font-size:10px;color:var(--muted)">kg</p></div>
+          <div style="text-align:center"><p class="jk" style="font-size:20px;font-weight:800;color:var(--purple)">12</p><p style="font-size:10px;color:var(--muted)">Eventos</p></div>
+        </div>
+      </div>
+      <div style="padding:16px 24px;display:flex;flex-direction:column;gap:12px">
+        <div class="ecd" style="padding:18px">
+          <h3 class="jk" style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px">Datos generales</h3>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5f5f5"><span style="font-size:12px;color:var(--body)">Especie</span><span style="font-size:12px;font-weight:700;color:var(--text)">Perro</span></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5f5f5"><span style="font-size:12px;color:var(--body)">Raza</span><span style="font-size:12px;font-weight:700;color:var(--text)">Golden Retriever</span></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5f5f5"><span style="font-size:12px;color:var(--body)">Fecha nac.</span><span style="font-size:12px;font-weight:700;color:var(--text)">15 Mar 2023</span></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0"><span style="font-size:12px;color:var(--body)">Castrada</span><span style="font-size:12px;font-weight:700;color:var(--text)">Sí</span></div>
+        </div>
+        <div class="ecd" style="padding:18px">
+          <h3 class="jk" style="font-size:13px;font-weight:700;color:var(--green);margin-bottom:10px">Cuidados al día</h3>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5f5f5"><span style="font-size:12px;color:var(--body)">Vacunas</span><span style="font-size:12px;font-weight:700;color:var(--teal)">Al día ✓</span></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f5f5f5"><span style="font-size:12px;color:var(--body)">Peso</span><span style="font-size:12px;font-weight:700;color:var(--text)">28 kg</span></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0"><span style="font-size:12px;color:var(--body)">Última desparas.</span><span style="font-size:12px;font-weight:700;color:var(--text)">28 Feb 2026</span></div>
+        </div>
+        <!-- Ecosystem chips in profile -->
+        <div style="background:var(--green);border-radius:var(--r);padding:16px">
+          <span class="jk" style="font-size:9px;font-weight:700;letter-spacing:0.25em;color:#99d2be;display:block;margin-bottom:8px">SU ECOSISTEMA</span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <span style="padding:5px 10px;border-radius:999px;background:var(--chip-bg);border:1px solid var(--chip-border);color:var(--chip-text);font-size:9px;font-weight:600">Identidad</span>
+            <span style="padding:5px 10px;border-radius:999px;background:var(--chip-bg);border:1px solid var(--chip-border);color:var(--chip-text);font-size:9px;font-weight:600">Rutinas</span>
+            <span style="padding:5px 10px;border-radius:999px;background:var(--chip-bg);border:1px solid var(--chip-border);color:var(--chip-text);font-size:9px;font-weight:600">Compras</span>
+            <span style="padding:5px 10px;border-radius:999px;background:var(--chip-bg);border:1px solid var(--chip-border);color:var(--chip-text);font-size:9px;font-weight:600">Cuidados</span>
+            <span style="padding:5px 10px;border-radius:999px;background:var(--chip-bg);border:1px solid var(--chip-border);color:var(--chip-text);font-size:9px;font-weight:600">Papeles</span>
+          </div>
+        </div>
+      </div>
+      <div style="height:30px"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════ SIDEBAR — REIMAGINADO ═══════ -->
+<div id="s-sidebar" class="sc">
+<div class="st">
+  <h2 class="stt jk">Sidebar — Nuevo Ecosistema</h2>
+  <p class="sts">Panel deep-green (no más dark navy), chips ecosistema, navegación por categorías del ecosistema.</p>
+  <div class="ph">
+    <div class="nt"></div>
+    <div class="pc" style="background:var(--green);min-height:100%;color:#fff;position:relative">
+      <!-- Brand -->
+      <div style="padding:50px 20px 12px;display:flex;align-items:center;gap:10px">
+        <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center"><span style="font-size:14px;font-weight:800;color:#fff">P</span></div>
+        <span class="jk" style="font-size:20px;font-weight:800;color:#fff;letter-spacing:0.02em">Pessy</span>
+        <span class="ms" style="margin-left:auto;font-size:20px;color:rgba(255,255,255,0.3)">close</span>
+      </div>
+
+      <!-- Badge -->
+      <div style="padding:0 20px 14px">
+        <span style="display:inline-block;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);font-size:9px;font-weight:700;letter-spacing:0.2em;color:var(--green-light)">ECOSISTEMA DIGITAL</span>
+      </div>
+
+      <!-- Pet selector -->
+      <div style="padding:0 20px 10px">
+        <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:rgba(255,255,255,0.3);margin-bottom:8px">TUS MASCOTAS</p>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:16px;background:rgba(255,255,255,0.08);margin-bottom:4px">
+          <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;border:2px solid var(--green-light)"><img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=100&h=100&fit=crop&q=80" style="width:100%;height:100%;object-fit:cover"></div>
+          <div><p style="font-size:14px;font-weight:700">Luna</p><p style="font-size:10px;color:rgba(255,255,255,0.5)">Golden Retriever</p></div>
+          <span class="ms" style="margin-left:auto;font-size:16px;color:var(--green-light)">check_circle</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:16px;margin-bottom:4px">
+          <div style="width:36px;height:36px;border-radius:50%;overflow:hidden;border:2px solid rgba(255,255,255,0.15)"><img src="https://images.unsplash.com/photo-1574158622682-e40e69881006?w=100&h=100&fit=crop&q=80" style="width:100%;height:100%;object-fit:cover"></div>
+          <div><p style="font-size:14px;font-weight:700">Michi</p><p style="font-size:10px;color:rgba(255,255,255,0.5)">Siamés</p></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;opacity:0.4">
+          <div style="width:36px;height:36px;border-radius:50%;border:2px dashed rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center"><span class="ms" style="font-size:16px;color:rgba(255,255,255,0.3)">add</span></div>
+          <p style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.4)">Agregar mascota</p>
+        </div>
+      </div>
+
+      <div style="height:1px;background:rgba(255,255,255,0.06);margin:4px 20px"></div>
+
+      <!-- Ecosystem navigation -->
+      <div style="padding:8px 20px">
+        <p style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.2em;color:rgba(255,255,255,0.3);margin-bottom:8px">ECOSISTEMA</p>
+        <div style="display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px;background:rgba(255,255,255,0.1);margin-bottom:2px"><span class="ms" style="color:var(--green-light)">home</span><span style="font-size:14px;font-weight:600;color:#fff">Inicio</span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px;margin-bottom:2px"><span class="ms" style="color:rgba(255,255,255,0.4)">fingerprint</span><span style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.6)">Identidad digital</span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px;margin-bottom:2px"><span class="ms" style="color:rgba(255,255,255,0.4)">repeat</span><span style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.6)">Rutinas</span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px;margin-bottom:2px"><span class="ms" style="color:rgba(255,255,255,0.4)">shopping_bag</span><span style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.6)">Compras</span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px;margin-bottom:2px"><span class="ms" style="color:rgba(255,255,255,0.4)">shield</span><span style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.6)">Cuidados</span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px;margin-bottom:2px"><span class="ms" style="color:rgba(255,255,255,0.4)">description</span><span style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.6)">Papeles</span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:14px"><span class="ms" style="color:rgba(255,255,255,0.4)">group</span><span style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.6)">Co-tutores</span></div>
+      </div>
+
+      <div style="height:1px;background:rgba(255,255,255,0.06);margin:4px 20px"></div>
+
+      <!-- User -->
+      <div style="position:absolute;bottom:28px;left:20px;right:20px">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(255,255,255,0.06);border-radius:16px">
+          <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800">M</div>
+          <div><p style="font-size:13px;font-weight:700">Mauri</p><p style="font-size:10px;color:rgba(255,255,255,0.35)">mauriciogoitia@gmail.com</p></div>
+          <span class="ms" style="margin-left:auto;font-size:18px;color:rgba(255,255,255,0.25)">logout</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+function go(id){
+  document.querySelectorAll('.sc').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.tb').forEach(t=>t.classList.remove('on'));
+  document.getElementById('s-'+id).classList.add('on');
+  event.target.classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>

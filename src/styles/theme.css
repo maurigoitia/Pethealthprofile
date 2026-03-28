@@ -2,18 +2,20 @@
 
 :root {
   --font-size: 16px;
+  /* Plano Design System Colors */
   --pessy-primary-deep: #074738;
-  --pessy-primary-action: #1a9b7d;
-  --pessy-primary-soft: #e0f2f1;
-  --pessy-primary-bg: #f0faf9;
-  --pessy-neutral-900: #1a1a1a;
-  --pessy-neutral-700: #404040;
-  --pessy-neutral-400: #b0b0b0;
-  --pessy-white: #ffffff;
-  --pessy-success: #4caf50;
-  --pessy-warning: #ffc107;
-  --pessy-error: #f44336;
-  --pessy-info: #2196f3;
+  --pessy-primary-action: #1A9B7D;
+  --pessy-primary-soft: #E0F2F1;
+  --pessy-primary-bg: #F0FAF9;
+  --pessy-purple-accent: #5048CA;
+  --pessy-neutral-900: #1A1A1A;
+  --pessy-neutral-700: #6B7280;
+  --pessy-neutral-400: #9CA3AF;
+  --pessy-white: #FFFFFF;
+  --pessy-success: #10B981;
+  --pessy-warning: #F59E0B;
+  --pessy-error: #EF4444;
+  --pessy-info: #3B82F6;
   --pessy-gradient-main: linear-gradient(135deg, #074738 0%, #1a9b7d 100%);
   --pessy-gradient-soft: linear-gradient(180deg, #f0faf9 0%, #e0f2f1 100%);
   --background: #ffffff;
@@ -168,45 +170,78 @@
   }
 
   h1 {
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
   }
 
   h2 {
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.3px;
   }
 
   h3 {
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.2px;
   }
 
   h4 {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  h5 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  h6 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
     line-height: 1.5;
   }
 
   label {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    font-family: 'Manrope', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   button {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
+    font-family: 'Manrope', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
     line-height: 1.5;
   }
 
   input {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-normal);
+    font-family: 'Manrope', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
     line-height: 1.5;
+  }
+
+  p, body {
+    font-family: 'Manrope', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.6;
   }
 }
 
