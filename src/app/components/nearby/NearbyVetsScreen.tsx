@@ -197,13 +197,11 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
                 <MaterialIcon name="local_hospital" className="text-3xl text-[#074738]" />
               </div>
               <h3 className="font-black text-slate-900 dark:text-white mb-2">
-                {!(import.meta as any).env.VITE_GOOGLE_PLACES_KEY
-                  ? "Buscá en Google Maps"
-                  : "No se encontraron resultados"}
+                Buscá veterinarias cerca tuyo
               </h3>
               <p className="text-sm text-slate-500 mb-6">
                 {!(import.meta as any).env.VITE_GOOGLE_PLACES_KEY
-                  ? "Para ver veterinarias en la app configurá VITE_GOOGLE_PLACES_KEY. Por ahora usá Maps."
+                  ? "Usá Google Maps para encontrar veterinarias cercanas a tu ubicación."
                   : "Intentá de nuevo o buscá en Google Maps"}
               </p>
               <div className="flex gap-3 justify-center">

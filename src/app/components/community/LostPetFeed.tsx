@@ -50,6 +50,9 @@ export function LostPetFeed({ onReport, onBack }: Props) {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as LostPetReport);
       setReports(data);
       setLoading(false);
+    }).catch((err) => {
+      console.error("LostPetFeed:", err);
+      setLoading(false);
     });
   }, []);
 
