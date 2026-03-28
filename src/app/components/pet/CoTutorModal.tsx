@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { usePet, CoTutor } from "../../contexts/PetContext";
 import { buildCoTutorReferralUrl } from "../../utils/coTutorInvite";
@@ -114,22 +114,18 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
         <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-fadeIn"
           />
-          <motion.div
-            initial={{ opacity: 0, y: 60 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 60 }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+          <div
+
+
+
             className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col max-w-md mx-auto"
           >
             <div className="flex justify-center pt-3 pb-1">
@@ -304,9 +300,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         </>
-      )}
-    </AnimatePresence>
   );
 }

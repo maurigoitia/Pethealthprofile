@@ -1,6 +1,5 @@
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
@@ -159,9 +158,8 @@ export function ActionTray() {
             const isAiProjection = action.sourceTag === "ai_projection";
 
             return (
-              <motion.div
+              <div
                 key={action.id}
-                layout
                 className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm"
               >
                 <button
@@ -210,15 +208,8 @@ export function ActionTray() {
                   />
                 </button>
 
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div className="px-4 pb-4 space-y-3 border-t border-slate-100 dark:border-slate-800 pt-3">
+                {isExpanded && (
+                    <div className="px-4 pb-4 space-y-3 border-t border-slate-100 dark:border-slate-800 pt-3 animate-slideDown">
                         <div className="space-y-2 bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-slate-500 dark:text-slate-400">
@@ -298,11 +289,9 @@ export function ActionTray() {
                             Eliminar
                           </button>
                         </div>
-                      </div>
-                    </motion.div>
+                    </div>
                   )}
-                </AnimatePresence>
-              </motion.div>
+              </div>
             );
           })}
         </div>

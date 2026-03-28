@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { motion } from "motion/react";
+
 import { MaterialIcon } from "../shared/MaterialIcon";
 
 interface VetClinic {
@@ -124,15 +124,15 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#f6f6f8] dark:bg-[#101622] flex flex-col">
+    <div className="min-h-screen bg-[#F0FAF9] dark:bg-[#101622] flex flex-col">
       <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
 
         {/* Header */}
         <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 pt-6 pb-4">
           <div className="flex items-center gap-3 mb-4">
             <button onClick={onBack}
-              className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-              <MaterialIcon name="arrow_back" className="text-xl" />
+              className="size-10 rounded-full bg-[#E0F2F1] dark:bg-slate-800 flex items-center justify-center">
+              <MaterialIcon name="arrow_back" className="text-[#074738]" />
             </button>
             <div className="flex-1">
               <h1 className="text-2xl font-black text-slate-900 dark:text-white">Veterinarias</h1>
@@ -141,14 +141,14 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
               </p>
             </div>
             <button onClick={requestLocation}
-              className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+              className="size-10 rounded-full bg-[#E0F2F1] dark:bg-slate-800 flex items-center justify-center">
               <MaterialIcon name="my_location" className="text-[#074738] text-xl" />
             </button>
           </div>
 
           {/* Buscador */}
           <div className="flex gap-2">
-            <div className="flex-1 flex items-center gap-2 px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800">
+            <div className="flex-1 flex items-center gap-2 px-4 py-3 rounded-[12px] bg-[#E0F2F1] dark:bg-slate-800">
               <MaterialIcon name="search" className="text-slate-400 text-lg" />
               <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Buscar veterinaria..."
@@ -156,7 +156,7 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
               />
             </div>
             <button onClick={searchInMaps}
-              className="px-4 py-3 rounded-xl bg-[#074738] text-white text-sm font-bold">
+              className="px-4 py-3 rounded-[12px] bg-[#1A9B7D] text-white text-sm font-bold">
               Maps
             </button>
           </div>
@@ -167,8 +167,8 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
 
           {status === "loading" && (
             <div className="text-center py-16">
-              <div className="size-16 rounded-full bg-[#074738]/10 flex items-center justify-center mx-auto mb-4">
-                <div className="size-8 border-2 border-[#074738]/30 border-t-[#074738] rounded-full animate-spin" />
+              <div className="size-16 rounded-full bg-[#E0F2F1] flex items-center justify-center mx-auto mb-4">
+                <div className="size-8 border-2 border-[#1A9B7D]/30 border-t-[#1A9B7D] rounded-full animate-spin" />
               </div>
               <p className="font-bold text-slate-900 dark:text-white">Buscando veterinarias</p>
               <p className="text-sm text-slate-500 mt-1">Usando tu ubicación actual...</p>
@@ -185,7 +185,7 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
                 Habilitá el acceso a la ubicación para encontrar veterinarias cercanas
               </p>
               <button onClick={searchInMaps}
-                className="px-6 py-3 rounded-xl bg-[#074738] text-white font-bold shadow-lg shadow-[#074738]/30">
+                className="px-6 py-3 rounded-[14px] bg-[#1A9B7D] text-white font-bold shadow-lg shadow-[#1A9B7D]/30">
                 Buscar en Google Maps
               </button>
             </div>
@@ -193,8 +193,8 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
 
           {(status === "error") && !vets.length && (
             <div className="text-center py-16 px-4">
-              <div className="size-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                <MaterialIcon name="local_hospital" className="text-3xl text-slate-400" />
+              <div className="size-16 rounded-full bg-[#E0F2F1] dark:bg-slate-800 flex items-center justify-center mx-auto mb-4">
+                <MaterialIcon name="local_hospital" className="text-3xl text-[#074738]" />
               </div>
               <h3 className="font-black text-slate-900 dark:text-white mb-2">
                 {!(import.meta as any).env.VITE_GOOGLE_PLACES_KEY
@@ -208,11 +208,11 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
               </p>
               <div className="flex gap-3 justify-center">
                 <button onClick={requestLocation}
-                  className="px-5 py-3 rounded-xl border-2 border-[#074738] text-[#074738] font-bold">
+                  className="px-5 py-3 rounded-[14px] border-2 border-[#1A9B7D] text-[#1A9B7D] font-bold">
                   Reintentar
                 </button>
                 <button onClick={searchInMaps}
-                  className="px-5 py-3 rounded-xl bg-[#074738] text-white font-bold shadow-lg shadow-[#074738]/30">
+                  className="px-5 py-3 rounded-[14px] bg-[#1A9B7D] text-white font-bold shadow-lg shadow-[#1A9B7D]/30">
                   Abrir Maps
                 </button>
               </div>
@@ -225,10 +225,9 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
                 <p className="text-center text-slate-500 py-8">Sin resultados para "{searchQuery}"</p>
               )}
               {filtered.map(vet => (
-                <motion.div key={vet.place_id}
-                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                  className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                  <div className="h-1 bg-[#074738]" />
+                <div key={vet.place_id}
+                                    className="bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+                  <div className="h-1 bg-[#1A9B7D]" />
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <h3 className="font-black text-sm text-slate-900 dark:text-white flex-1 leading-snug">
@@ -236,14 +235,14 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
                       </h3>
                       <div className="flex flex-col items-end gap-1 shrink-0">
                         {vet.distance !== undefined && (
-                          <span className="text-xs font-bold text-[#074738] bg-[#074738]/10 px-2 py-0.5 rounded-full">
+                          <span className="text-xs font-bold text-[#1A9B7D] bg-[#E0F2F1] px-2 py-0.5 rounded-full">
                             {vet.distance < 1 ? `${Math.round(vet.distance * 1000)}m` : `${vet.distance.toFixed(1)}km`}
                           </span>
                         )}
                         {vet.opening_hours && (
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                             vet.opening_hours.open_now
-                              ? "bg-emerald-100 text-emerald-700"
+                              ? "bg-[#D1FAE5] text-[#1A9B7D]"
                               : "bg-red-100 text-red-700"
                           }`}>
                             {vet.opening_hours.open_now ? "Abierto" : "Cerrado"}
@@ -268,23 +267,23 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
 
                     <div className="flex gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                       <button onClick={() => callVet(vet)}
-                        className="flex-1 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-transform">
+                        className="flex-1 py-2.5 rounded-[12px] bg-[#E0F2F1] dark:bg-slate-800 text-[#074738] dark:text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-transform">
                         <MaterialIcon name="phone" className="text-sm" />
                         Llamar
                       </button>
                       <button onClick={() => openInMaps(vet)}
-                        className="flex-1 py-2.5 rounded-xl bg-[#074738] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-[#074738]/25 active:scale-95 transition-transform">
+                        className="flex-1 py-2.5 rounded-[12px] bg-[#1A9B7D] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-[#1A9B7D]/25 active:scale-95 transition-transform">
                         <MaterialIcon name="directions" className="text-sm" />
                         Cómo llegar
                       </button>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               ))}
 
               {/* Botón ver más en Maps */}
               <button onClick={searchInMaps}
-                className="w-full py-3 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold text-sm flex items-center justify-center gap-2">
+                className="w-full py-3 rounded-[14px] border-2 border-[#E0F2F1] dark:border-slate-700 text-[#074738] dark:text-slate-400 font-bold text-sm flex items-center justify-center gap-2">
                 <MaterialIcon name="open_in_new" className="text-sm" />
                 Ver más en Google Maps
               </button>

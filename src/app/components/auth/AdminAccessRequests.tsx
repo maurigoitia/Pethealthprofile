@@ -117,9 +117,9 @@ export function AdminAccessRequests() {
       )}
 
       {fetching ? (
-        <p className="mt-6 text-sm text-[#5e716b]">Cargando solicitudes…</p>
+        <p className="mt-6 text-sm text-[#9CA3AF]">Cargando solicitudes…</p>
       ) : requests.length === 0 ? (
-        <p className="py-12 text-center text-sm text-[#5e716b]">
+        <p className="py-12 text-center text-sm text-[#9CA3AF]">
           No hay solicitudes pendientes.
         </p>
       ) : (
@@ -129,7 +129,7 @@ export function AdminAccessRequests() {
             return (
               <li key={req.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <p className="font-bold text-[#074738]">{req.name}</p>
-                <p className="text-sm text-[#5e716b]">{req.email}</p>
+                <p className="text-sm text-[#9CA3AF]">{req.email}</p>
                 <p className="mt-1 text-xs text-slate-400">
                   {req.source ? `Fuente: ${req.source} · ` : ""}
                   {formatDate(req.createdAt)}

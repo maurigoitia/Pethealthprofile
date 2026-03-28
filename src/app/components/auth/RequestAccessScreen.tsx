@@ -44,7 +44,7 @@ export function RequestAccessScreen() {
       {submitted ? (
         <div className="rounded-[1.5rem] border border-[#b5efd9] bg-[#eef8f3] px-6 py-6 text-center">
           <p
-            className="text-2xl font-extrabold tracking-tight text-[#002f24]"
+            className="text-2xl font-extrabold tracking-tight text-[#074738]"
             style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
           >
             ¡Listo!
@@ -57,12 +57,12 @@ export function RequestAccessScreen() {
         <>
           <div className="mb-8">
             <h2
-              className="text-3xl font-extrabold tracking-tight text-[#002f24]"
+              className="text-3xl font-extrabold tracking-tight text-[#074738]"
               style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
             >
               Unirme a la lista
             </h2>
-            <p className="mt-2 text-sm font-medium leading-6 text-[#5e716b]">
+            <p className="mt-2 text-sm font-medium leading-6 text-[#9CA3AF]">
               Cuando haya lugar, te contactamos.
             </p>
           </div>

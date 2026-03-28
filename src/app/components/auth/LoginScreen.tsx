@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { motion, AnimatePresence } from "motion/react";
+
 import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -254,20 +254,20 @@ export function LoginScreen() {
       >
         <div className="mb-8">
           <h2
-            className="text-3xl font-extrabold tracking-tight text-[#002f24]"
+            className="text-3xl font-extrabold tracking-tight text-[#074738]"
             style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
           >
             Bienvenido de nuevo
           </h2>
-          <p className="mt-2 text-sm font-medium leading-6 text-[#5e716b]">
+          <p className="mt-2 text-sm font-medium leading-6 text-[#9CA3AF]">
             Entrá para seguir desde donde quedaste.
           </p>
         </div>
 
-        <motion.div
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5 }}
+        <div
+
+
+
           className="mb-8 w-full"
         >
           <div className="w-full rounded-[1.75rem] border border-[#E5E7EB] bg-[#F0FAF9] p-5">
@@ -276,13 +276,13 @@ export function LoginScreen() {
               Porque quererlo ya es suficiente trabajo.
             </p>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.form
+        <form
           onSubmit={handleLogin}
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
+
+
+
           className="w-full space-y-4"
         >
           {inviteCode && (
@@ -391,7 +391,7 @@ export function LoginScreen() {
               <button
                 type="button"
                 disabled
-                className="w-full rounded-full border border-[#dfe6e2] bg-white py-4 font-bold uppercase tracking-[0.16em] text-[#9ca8a2] cursor-not-allowed"
+                className="w-full rounded-full border border-[#dfe6e2] bg-white py-4 font-bold uppercase tracking-[0.16em] text-[#9CA3AF] cursor-not-allowed"
                 style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
               >
                 Solo por invitación
@@ -404,24 +404,23 @@ export function LoginScreen() {
               </a>
             </>
           )}
-        </motion.form>
+        </form>
       </AuthPageShell>
 
-      <AnimatePresence>
-        {showReset && (
+              {showReset && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            <div
+
+
+
               onClick={() => setShowReset(false)}
               className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
             />
-            <motion.div
-              initial={{ opacity: 0, y: 60 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 60 }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            <div
+
+
+
+
               className="fixed inset-x-4 bottom-8 z-50 bg-white rounded-3xl shadow-2xl p-6 max-w-md mx-auto"
             >
               <h2 className="text-xl font-black text-slate-900 mb-1">Recuperar contraseña</h2>
@@ -468,10 +467,9 @@ export function LoginScreen() {
                   {resetSuccess ? "Cerrar" : "Cancelar"}
                 </button>
               </form>
-            </motion.div>
+            </div>
           </>
         )}
-      </AnimatePresence>
-    </>
+          </>
   );
 }

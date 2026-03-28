@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "motion/react";
+
 import { MaterialIcon } from "./MaterialIcon";
 
 interface SidebarPet {
@@ -47,26 +47,21 @@ export function Sidebar({
     { icon: "person", label: "Cuenta", screen: "settings" as const },
   ];
 
+  if (!isOpen) return null;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
         <>
           {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-black/50"
+          <div
+            className="fixed inset-0 z-50 bg-black/50 animate-fadeIn"
             onClick={onClose}
           />
 
           {/* Sidebar Panel */}
-          <motion.aside
-            initial={{ x: "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+          <aside
+
+
+
             className="fixed left-0 top-0 bottom-0 z-50 flex w-72 flex-col bg-[#0f1923] text-white"
           >
             {/* Logo */}
@@ -201,9 +196,7 @@ export function Sidebar({
                 </button>
               </div>
             </div>
-          </motion.aside>
+          </aside>
         </>
-      )}
-    </AnimatePresence>
   );
 }

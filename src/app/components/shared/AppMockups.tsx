@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'motion/react';
+
 import { 
   FileText, 
   Calendar, 
@@ -31,11 +31,11 @@ export const HistoryMockup = () => (
         { title: "Rutina organizada", date: "05 FEB", type: "Rutinas", status: "Listo" },
         { title: "Compra por reponer", date: "28 ENE", type: "Compras", status: "Pendiente" }
       ].map((item, i) => (
-        <motion.div 
+        <div 
           key={i}
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: i * 0.1 }}
+
+
+
           className="bg-white rounded-2xl p-3 border border-slate-100 shadow-sm flex items-center justify-between group"
         >
           <div className="flex items-center gap-3">
@@ -48,7 +48,7 @@ export const HistoryMockup = () => (
             </div>
           </div>
           <ChevronRight size={14} className="text-slate-300" />
-        </motion.div>
+        </div>
       ))}
 
       <div className="mt-4 p-3 bg-[#074738] rounded-2xl text-white space-y-1 shadow-lg shadow-[#074738]/10">

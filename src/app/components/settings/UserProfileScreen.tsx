@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { motion } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { PersonalInfoScreen } from "./PersonalInfoScreen";
 import { NotificationsScreen } from "./NotificationsScreen";
@@ -125,10 +124,10 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
 
   // Main profile screen
   return (
-    <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen pb-24">
+    <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen pb-24">
       <div className="max-w-md mx-auto">
         {/* Header with Back Button */}
-        <div className="sticky top-0 z-50 bg-[#f6f6f8]/80 dark:bg-[#101622]/80 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
+        <div className="sticky top-0 z-50 bg-[#F0FAF9]/80 dark:bg-[#101622]/80 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
           <button
             onClick={onBack}
             className="size-10 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
@@ -142,10 +141,7 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
         </div>
 
         {/* Profile Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
+        <div
           className="px-6 pt-8 pb-6"
         >
           <div className="flex flex-col items-center">
@@ -159,7 +155,7 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
                 />
                 <button
                   onClick={() => setCurrentScreen("personal-info")}
-                  className="absolute bottom-4 right-0 size-8 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-lg hover:bg-[#1a9b7d] transition-colors"
+                  className="absolute bottom-4 right-0 size-8 rounded-full bg-[#1A9B7D] text-white flex items-center justify-center shadow-lg hover:bg-[#158a6e] transition-colors"
                 >
                   <MaterialIcon name="edit" className="text-sm" />
                 </button>
@@ -171,7 +167,7 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
                 </div>
                 <button
                   onClick={() => setCurrentScreen("personal-info")}
-                  className="absolute bottom-4 right-0 size-8 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-lg hover:bg-[#1a9b7d] transition-colors"
+                  className="absolute bottom-4 right-0 size-8 rounded-full bg-[#1A9B7D] text-white flex items-center justify-center shadow-lg hover:bg-[#158a6e] transition-colors"
                 >
                   <MaterialIcon name="add_a_photo" className="text-sm" />
                 </button>
@@ -214,23 +210,17 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
               </p>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Storage Widget */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.05 }}
+        <div
           className="px-6 mb-1"
         >
           <StorageUsageWidget />
-        </motion.div>
+        </div>
 
         {/* Menu Items */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
+        <div
           className="px-6 space-y-3"
         >
           {menuItems.map((item, index) => (
@@ -256,13 +246,10 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
               />
             </button>
           ))}
-        </motion.div>
+        </div>
 
         {/* Logout Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
+        <div
           className="px-6 mt-6"
         >
           <button
@@ -274,7 +261,7 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
               Cerrar sesión
             </span>
           </button>
-        </motion.div>
+        </div>
 
         {/* Footer */}
         <div className="text-center px-6 mt-8 pb-8">

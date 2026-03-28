@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { useReminders } from "../../contexts/RemindersContext";
 import { usePet } from "../../contexts/PetContext";
@@ -12,8 +11,8 @@ interface RemindersScreenProps {
 
 // ── Config visual por tipo ────────────────────────────────────────────────────
 const TYPE_CONFIG: Record<ReminderType, { label: string; icon: string; color: string; bg: string }> = {
-  vaccine:    { label: "Vacuna",      icon: "vaccines",         color: "#10b981", bg: "#d1fae5" },
-  medication: { label: "Medicación",  icon: "medication",       color: "#074738", bg: "#e0f2f1" },
+  vaccine:    { label: "Vacuna",      icon: "vaccines",         color: "#1A9B7D", bg: "#D1FAE5" },
+  medication: { label: "Medicación",  icon: "medication",       color: "#074738", bg: "#E0F2F1" },
   checkup:    { label: "Control",     icon: "stethoscope",      color: "#8b5cf6", bg: "#ede9fe" },
   grooming:   { label: "Peluquería",  icon: "content_cut",      color: "#f59e0b", bg: "#fef3c7" },
   deworming:  { label: "Desparasit.", icon: "bug_report",       color: "#ef4444", bg: "#fee2e2" },
@@ -48,7 +47,7 @@ function urgencyGroup(r: ManualReminder): "overdue" | "today" | "week" | "upcomi
 
 const GROUP_CONFIG = {
   overdue:  { label: "Vencidos",      color: "text-red-600",    dot: "bg-red-500"    },
-  today:    { label: "Hoy",           color: "text-[#074738]",  dot: "bg-[#074738]"  },
+  today:    { label: "Hoy",           color: "text-[#1A9B7D]",  dot: "bg-[#1A9B7D]"  },
   week:     { label: "Esta semana",   color: "text-amber-600",  dot: "bg-amber-400"  },
   upcoming: { label: "Próximos",      color: "text-slate-500",  dot: "bg-slate-300"  },
 };
@@ -69,11 +68,11 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
   pending.forEach((r) => groups[urgencyGroup(r)].push(r));
 
   const shownGroups = (["overdue", "today", "week", "upcoming"] as const).filter(
-    (g) => groups[g].length > 0
+    (g) => groups[g].length> 0
   );
 
   return (
-    <div className="min-h-screen bg-[#f6f6f8] dark:bg-[#101622] flex flex-col">
+    <div className="min-h-screen bg-[#F0FAF9] dark:bg-[#101622] flex flex-col">
       <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
 
         {/* Header */}
@@ -81,8 +80,8 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
           <div className="flex items-center gap-3 mb-5">
             {onBack && (
               <button onClick={onBack}
-                className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <MaterialIcon name="arrow_back" className="text-xl" />
+                className="size-10 rounded-full bg-[#E0F2F1] dark:bg-slate-800 flex items-center justify-center">
+                <MaterialIcon name="arrow_back" className="text-[#074738]" />
               </button>
             )}
             <div className="flex-1">
@@ -92,7 +91,7 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
               </p>
             </div>
             <button onClick={() => setShowAdd(true)}
-              className="size-10 rounded-full bg-[#074738] flex items-center justify-center shadow-md shadow-[#074738]/30">
+              className="size-10 rounded-full bg-[#1A9B7D] flex items-center justify-center shadow-md shadow-[#1A9B7D]/30">
               <MaterialIcon name="add" className="text-white text-xl" />
             </button>
           </div>
@@ -103,7 +102,7 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
               <button key={t} onClick={() => setTab(t)}
                 className={`flex-1 pb-3 text-sm font-bold border-b-2 transition-all ${
                   tab === t
-                    ? "border-[#074738] text-[#074738]"
+                    ? "border-[#1A9B7D] text-[#074738]"
                     : "border-transparent text-slate-400"
                 }`}>
                 {t === "pending" ? `Pendientes (${pending.length})` : `Completados (${done.length})`}
@@ -114,12 +113,11 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto pb-28">
-          <AnimatePresence mode="wait">
+          
 
             {/* ── PENDIENTES ── */}
             {tab === "pending" && (
-              <motion.div key="pending" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="p-4 space-y-6">
+              <div className="p-4 space-y-6">
 
                 {pending.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -129,7 +127,7 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                     <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1">¡Todo al día!</h3>
                     <p className="text-sm text-slate-500 max-w-xs">No tenés recordatorios pendientes. Agregá uno para no olvidar nada.</p>
                     <button onClick={() => setShowAdd(true)}
-                      className="mt-5 px-6 py-3 rounded-2xl bg-[#074738] text-white font-bold text-sm">
+                      className="mt-5 px-6 py-3 rounded-[14px] bg-[#1A9B7D] text-white font-bold text-sm">
                       Agregar recordatorio
                     </button>
                   </div>
@@ -155,16 +153,11 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                           const isSwiped = swipedId === r.id;
 
                           return (
-                            <motion.div key={r.id}
-                              layout
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: 20, height: 0 }}
-                              className="relative overflow-hidden rounded-2xl"
-                            >
+                            <div key={r.id}
+                              layout className="relative overflow-hidden rounded-2xl">
                               {/* Swipe actions background */}
                               {isSwiped && (
-                                <div className="absolute inset-0 flex items-center justify-end gap-2 pr-3 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+                                <div className="absolute inset-0 flex items-center justify-end gap-2 pr-3 bg-[#E0F2F1] dark:bg-slate-800 rounded-[12px]">
                                   <button onClick={() => { deleteReminder(r.id); setSwipedId(null); }}
                                     className="size-10 rounded-xl bg-red-500 flex items-center justify-center">
                                     <MaterialIcon name="delete" className="text-white text-lg" />
@@ -173,16 +166,15 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                               )}
 
                               <div
-                                className={`relative bg-white dark:bg-slate-900 rounded-2xl border transition-all ${
+                                className={`relative bg-white dark:bg-slate-900 rounded-[12px] border transition-all ${
                                   isOverdue ? "border-red-200 dark:border-red-900/50" :
-                                  isToday   ? "border-[#074738]/30" :
+                                  isToday   ? "border-[#1A9B7D]/30" :
                                               "border-slate-200 dark:border-slate-800"
                                 }`}
-                                style={{ transform: isSwiped ? "translateX(-80px)" : "translateX(0)", transition: "transform 0.2s" }}
-                              >
+                                style={{ transform: isSwiped ? "translateX(-80px)" : "translateX(0)", transition: "transform 0.2s" }}>
                                 <div className="flex items-center gap-3 p-3.5">
                                   {/* Tipo icon */}
-                                  <div className="size-11 rounded-xl flex items-center justify-center shrink-0"
+                                  <div className="size-11 rounded-[12px] flex items-center justify-center shrink-0"
                                     style={{ backgroundColor: tc.bg }}>
                                     <MaterialIcon name={tc.icon} className="text-xl" style={{ color: tc.color }} />
                                   </div>
@@ -193,7 +185,7 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                                     <div className="flex items-center gap-1.5 mt-0.5">
                                       <span className={`text-xs font-semibold ${
                                         isOverdue ? "text-red-500" :
-                                        isToday   ? "text-[#074738]" :
+                                        isToday   ? "text-[#1A9B7D]" :
                                         diff <= 3  ? "text-amber-500" :
                                                     "text-slate-500"
                                       }`}>
@@ -201,7 +193,7 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                                         {r.dueTime && ` · ${r.dueTime}`}
                                       </span>
                                       {r.repeat !== "none" && (
-                                        <span className="text-[10px] text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full">
+                                        <span className="text-[10px] text-slate-400 bg-[#E0F2F1] dark:bg-slate-800 px-1.5 py-0.5 rounded-full">
                                           ↻
                                         </span>
                                       )}
@@ -215,20 +207,18 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                                   <div className="flex items-center gap-1 shrink-0">
                                     <button
                                       onClick={() => completeReminder(r.id)}
-                                      className={`size-9 rounded-xl flex items-center justify-center transition-colors ${
+                                      className={`size-9 rounded-[12px] flex items-center justify-center transition-colors ${
                                         isOverdue
                                           ? "bg-red-50 dark:bg-red-950/30 text-red-500"
                                           : isToday
-                                          ? "bg-[#074738]/10 text-[#074738]"
-                                          : "bg-slate-100 dark:bg-slate-800 text-slate-500"
-                                      }`}
-                                    >
+                                          ? "bg-[#E0F2F1] text-[#1A9B7D]"
+                                          : "bg-[#E0F2F1] dark:bg-slate-800 text-slate-500"
+                                      }`}>
                                       <MaterialIcon name="check" className="text-lg" />
                                     </button>
                                     <button
                                       onClick={() => setSwipedId(isSwiped ? null : r.id)}
-                                      className="size-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400"
-                                    >
+                                      className="size-9 rounded-[12px] bg-[#E0F2F1] dark:bg-slate-800 flex items-center justify-center text-slate-400">
                                       <MaterialIcon name="more_horiz" className="text-lg" />
                                     </button>
                                   </div>
@@ -236,23 +226,22 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
 
                                 {/* Urgency strip for overdue/today */}
                                 {(isOverdue || isToday) && (
-                                  <div className={`h-0.5 mx-3 mb-3 rounded-full ${isOverdue ? "bg-red-400" : "bg-[#074738]"}`} />
+                                  <div className={`h-0.5 mx-3 mb-3 rounded-full ${isOverdue ? "bg-red-400" : "bg-[#1A9B7D]"}`} />
                                 )}
                               </div>
-                            </motion.div>
+                            </div>
                           );
                         })}
                       </div>
                     </div>
                   ))
                 )}
-              </motion.div>
+              </div>
             )}
 
             {/* ── COMPLETADOS ── */}
             {tab === "done" && (
-              <motion.div key="done" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="p-4 space-y-2">
+              <div className="p-4 space-y-2">
                 {done.length === 0 ? (
                   <div className="text-center py-20">
                     <MaterialIcon name="task_alt" className="text-5xl text-slate-300 mb-3" />
@@ -262,8 +251,8 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                   const tc = TYPE_CONFIG[r.type];
                   return (
                     <div key={r.id}
-                      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center gap-3 p-3.5 opacity-60">
-                      <div className="size-10 rounded-xl flex items-center justify-center shrink-0 bg-slate-100 dark:bg-slate-800">
+                      className="bg-white dark:bg-slate-900 rounded-[12px] border border-slate-100 dark:border-slate-800 flex items-center gap-3 p-3.5 opacity-60">
+                      <div className="size-10 rounded-[12px] flex items-center justify-center shrink-0 bg-[#E0F2F1] dark:bg-slate-800">
                         <MaterialIcon name={tc.icon} className="text-lg text-slate-400" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -271,16 +260,16 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                         <p className="text-xs text-slate-400">{formatDueDate(r.dueDate)}</p>
                       </div>
                       <button onClick={() => deleteReminder(r.id)}
-                        className="size-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        className="size-8 rounded-[12px] bg-[#E0F2F1] dark:bg-slate-800 flex items-center justify-center">
                         <MaterialIcon name="close" className="text-sm text-slate-400" />
                       </button>
                     </div>
                   );
                 })}
-              </motion.div>
+              </div>
             )}
 
-          </AnimatePresence>
+          
         </div>
       </div>
 

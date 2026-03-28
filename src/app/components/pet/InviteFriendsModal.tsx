@@ -73,14 +73,14 @@ export default function InviteFriendsModal({ open, onClose }: Props) {
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-lg font-bold text-[#074738]">Invitar amigos a Pessy</h2>
-            <p className="mt-1 text-sm text-[#5e716b]">
+            <p className="mt-1 text-sm text-[#9CA3AF]">
               Compartí un link de acceso — válido por 24 horas.
             </p>
           </div>
           <button
             onClick={onClose}
             aria-label="Cerrar"
-            className="ml-4 text-[#5e716b] hover:text-[#074738] transition-colors text-xl leading-none"
+            className="ml-4 text-[#9CA3AF] hover:text-[#074738] transition-colors text-xl leading-none"
           >
             ×
           </button>
@@ -105,7 +105,7 @@ export default function InviteFriendsModal({ open, onClose }: Props) {
         {/* Result */}
         {inviteUrl && (
           <div className="mt-2 space-y-3">
-            <p className="text-xs text-[#5e716b] text-center">
+            <p className="text-xs text-[#9CA3AF] text-center">
               Este link expira en 24 horas y es de un solo uso.
             </p>
 
@@ -133,7 +133,7 @@ export default function InviteFriendsModal({ open, onClose }: Props) {
                 setInviteUrl(null);
                 setCopied(false);
               }}
-              className="w-full text-xs text-[#5e716b] underline underline-offset-2 py-1"
+              className="w-full text-xs text-[#9CA3AF] underline underline-offset-2 py-1"
             >
               Generar otro link
             </button>

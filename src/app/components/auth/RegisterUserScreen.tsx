@@ -231,8 +231,8 @@ export function RegisterUserScreen() {
         highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
       >
         <div className="flex flex-col items-center justify-center py-16 gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#074738] border-t-transparent" />
-          <p className="text-sm text-[#5e716b]">Verificando acceso...</p>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1A9B7D] border-t-transparent" />
+          <p className="text-sm text-[#9CA3AF]">Verificando acceso...</p>
         </div>
       </AuthPageShell>
     );
@@ -248,8 +248,8 @@ export function RegisterUserScreen() {
       >
         <div className="space-y-6">
           <div className="rounded-[1.5rem] border border-[#e8d5b5] bg-[#fdf6ec] px-6 py-6 text-center">
-            <p className="text-base font-bold text-[#002f24]">Pessy es solo por invitación</p>
-            <p className="mt-2 text-sm leading-5 text-[#5e716b]">
+            <p className="text-base font-bold text-[#1A9B7D]">Pessy es solo por invitación</p>
+            <p className="mt-2 text-sm leading-5 text-[#9CA3AF]">
               Por ahora el acceso es limitado. Podés solicitar tu lugar en la lista de espera.
             </p>
           </div>
@@ -261,7 +261,7 @@ export function RegisterUserScreen() {
           </a>
           <a
             href="/login"
-            className="block w-full rounded-full border border-[#dfe6e2] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-[#074738]"
+            className="block w-full rounded-full border border-[#dfe6e2] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-[#1A9B7D]"
           >
             Ya tengo cuenta
           </a>
@@ -280,8 +280,8 @@ export function RegisterUserScreen() {
       >
         <div className="space-y-6">
           <div className="rounded-[1.5rem] border border-[#e8d5b5] bg-[#fdf6ec] px-6 py-6 text-center">
-            <p className="text-base font-bold text-[#002f24]">Link inválido</p>
-            <p className="mt-2 text-sm leading-5 text-[#5e716b]">{gateMessage}</p>
+            <p className="text-base font-bold text-[#1A9B7D]">Link inválido</p>
+            <p className="mt-2 text-sm leading-5 text-[#9CA3AF]">{gateMessage}</p>
           </div>
           <a
             href="/solicitar-acceso"
@@ -291,7 +291,7 @@ export function RegisterUserScreen() {
           </a>
           <a
             href="/login"
-            className="block w-full rounded-full border border-[#dfe6e2] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-[#074738]"
+            className="block w-full rounded-full border border-[#dfe6e2] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-[#1A9B7D]"
           >
             Ya tengo cuenta
           </a>
@@ -309,12 +309,12 @@ export function RegisterUserScreen() {
     >
       <div className="mb-8">
         <h2
-          className="text-3xl font-extrabold tracking-tight text-[#002f24]"
+          className="text-3xl font-extrabold tracking-tight text-[#1A9B7D]"
           style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
         >
           Crear cuenta
         </h2>
-        <p className="mt-2 text-sm font-medium leading-6 text-[#5e716b]">
+        <p className="mt-2 text-sm font-medium leading-6 text-[#9CA3AF]">
           Empezá con tus datos. Pessy hace el resto — en serio.
         </p>
       </div>
@@ -322,8 +322,8 @@ export function RegisterUserScreen() {
       <form onSubmit={handleCreateAccount} className="space-y-4">
           {inviteCode && (
             <div className="rounded-[1.5rem] border border-[#b5efd9] bg-[#eef8f3] px-4 py-4 text-left">
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]">Invitación de co-tutor</p>
-              <p className="mt-1 text-sm leading-5 text-[#002f24]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#1A9B7D]">Invitación de co-tutor</p>
+              <p className="mt-1 text-sm leading-5 text-[#1A9B7D]">
                 Esta cuenta se va a vincular con una mascota compartida apenas termines el registro.
               </p>
             </div>
@@ -333,7 +333,7 @@ export function RegisterUserScreen() {
             placeholder="Nombre completo"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
+            className="w-full px-4 py-4 rounded-[16px] border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
             required
           />
 
@@ -342,7 +342,7 @@ export function RegisterUserScreen() {
             placeholder="Correo electrónico"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
+            className="w-full px-4 py-4 rounded-[16px] border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
             required
           />
 
@@ -352,13 +352,13 @@ export function RegisterUserScreen() {
               placeholder="Contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-4 pr-28 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
+              className="w-full px-4 py-4 pr-28 rounded-[16px] border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-[#074738]"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-slate-200 bg-[#F0FAF9] px-3 py-1 text-xs font-bold text-[#1A9B7D]"
             >
               {showPassword ? "Ocultar" : "Mostrar"}
             </button>
@@ -369,7 +369,7 @@ export function RegisterUserScreen() {
             <select
               value={country}
               onChange={(e) => setCountry(e.target.value)}
-              className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none appearance-none bg-white text-slate-700 cursor-pointer"
+              className="w-full px-4 py-4 rounded-[16px] border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none appearance-none bg-white text-slate-700 cursor-pointer"
             >
               <option value="">🌍 ¿De dónde sos?</option>
               {COUNTRIES.map((c) => (
@@ -396,7 +396,7 @@ export function RegisterUserScreen() {
           <button
             type="button"
             onClick={() => navigate(inviteCode ? `/login?invite=${inviteCode}` : "/login")}
-            className="w-full rounded-full border border-[#dfe6e2] py-4 text-sm font-bold uppercase tracking-[0.16em] text-[#074738] transition-all hover:bg-[#f4f3f9]"
+            className="w-full rounded-full border border-[#dfe6e2] py-4 text-sm font-bold uppercase tracking-[0.16em] text-[#1A9B7D] transition-all hover:bg-[#f4f3f9]"
           >
             Ya tengo cuenta
           </button>
@@ -407,16 +407,16 @@ export function RegisterUserScreen() {
           <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
             {/* Header */}
             <div className="px-6 pt-8 pb-2">
-              <span className="inline-block rounded-full bg-[#eef8f3] px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]">
+              <span className="inline-block rounded-full bg-[#eef8f3] px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-[#1A9B7D]">
                 Último paso
               </span>
               <h2
-                className="mt-4 text-[28px] font-[900] leading-tight tracking-tight text-[#002f24]"
+                className="mt-4 text-[28px] font-[900] leading-tight tracking-tight text-[#1A9B7D]"
                 style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
               >
                 Ya casi estás.
               </h2>
-              <p className="mt-2 text-sm leading-relaxed text-[#5e716b]">
+              <p className="mt-2 text-sm leading-relaxed text-[#9CA3AF]">
                 Solo necesitamos que aceptes los términos para activar tu cuenta.
               </p>
             </div>
@@ -427,16 +427,16 @@ export function RegisterUserScreen() {
                 <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#074738]">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                 </div>
-                <p className="text-lg font-[800] text-[#002f24]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                <p className="text-lg font-[800] text-[#1A9B7D]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                   Cuenta creada
                 </p>
-                <p className="mt-1 text-[13px] text-[#5e716b]">
+                <p className="mt-1 text-[13px] text-[#9CA3AF]">
                   Tu cuenta está lista. Aceptá los términos para empezar.
                 </p>
               </div>
 
               {/* Terms checkbox */}
-              <div className="rounded-2xl border border-slate-200 px-4 py-4">
+              <div className="rounded-[16px] border border-slate-200 px-4 py-4">
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="checkbox"
@@ -446,11 +446,11 @@ export function RegisterUserScreen() {
                   />
                   <span className="text-sm leading-relaxed text-slate-700">
                     Leí y acepto los{" "}
-                    <a href="/terminos" target="_blank" className="font-bold text-[#074738] underline">
+                    <a href="/terminos" target="_blank" className="font-bold text-[#1A9B7D] underline">
                       Términos y condiciones
                     </a>{" "}
                     y la{" "}
-                    <a href="/privacidad" target="_blank" className="font-bold text-[#074738] underline">
+                    <a href="/privacidad" target="_blank" className="font-bold text-[#1A9B7D] underline">
                       Política de privacidad
                     </a>{" "}
                     de Pessy.
@@ -468,7 +468,7 @@ export function RegisterUserScreen() {
                 Aceptar y empezar
               </button>
 
-              <p className="text-center text-[11px] leading-relaxed text-[#9ca8a2]">
+              <p className="text-center text-[11px] leading-relaxed text-[#9CA3AF]">
                 Incluye el uso de inteligencia artificial para procesar
                 información clínica de tus mascotas.
               </p>

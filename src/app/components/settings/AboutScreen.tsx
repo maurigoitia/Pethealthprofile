@@ -7,7 +7,7 @@ interface AboutScreenProps {
 
 export function AboutScreen({ onBack }: AboutScreenProps) {
   return (
-    <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen relative overflow-hidden">
+    <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen relative overflow-hidden">
       {/* Logo de fondo como watermark */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] dark:opacity-[0.02]">
         <div className="w-[400px] h-[400px] flex items-center justify-center text-[200px] font-black">P</div>

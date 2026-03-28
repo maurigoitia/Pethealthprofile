@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { motion } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
@@ -79,19 +78,19 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       .slice(0, 3);
 
     const sentences: string[] = [];
-    if (activeNames.length > 0) {
+    if (activeNames.length> 0) {
       sentences.push(`${args.petName} tiene hoy seguimiento activo por ${activeNames.join(", ")}.`);
-    } else if (resolvedNames.length > 0) {
+    } else if (resolvedNames.length> 0) {
       sentences.push(`${args.petName} tiene antecedentes relevantes por ${resolvedNames.join(", ")}.`);
     } else {
       sentences.push(`${args.petName} tiene un historial ordenado con eventos y estudios confirmados.`);
     }
 
-    if (medicationNames.length > 0) {
+    if (medicationNames.length> 0) {
       sentences.push(`Los cuidados o continuidades mas relevantes incluyen ${medicationNames.join(", ")}.`);
     }
 
-    if (studyLabels.length > 0) {
+    if (studyLabels.length> 0) {
       sentences.push(`Entre los estudios complementarios registrados se destacan ${studyLabels.join(", ")}.`);
     }
 
@@ -150,7 +149,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       let y = 0;
 
       const newPage = () => { pdf.addPage(); y = 20; };
-      const checkY = (need = 14) => { if (y + need > 278) newPage(); };
+      const checkY = (need = 14) => { if (y + need> 278) newPage(); };
 
       // ── HEADER ────────────────────────────────────────────────────────────
       pdf.setFillColor(13, 148, 136);
@@ -216,12 +215,12 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         conditions.map((condition) => [condition.id, clean(condition.normalizedName)]),
       );
 
-      const treatmentRows = (activeTreatments.length > 0
+      const treatmentRows = (activeTreatments.length> 0
         ? activeTreatments.map((item) => ({
             name: clean(item.normalizedName) || "Tratamiento",
             dosage: clean(item.dosage) || "—",
             frequency: clean(item.frequency) || "—",
-            condition: item.linkedConditionIds.length > 0
+            condition: item.linkedConditionIds.length> 0
               ? item.linkedConditionIds
                   .map((conditionId) => conditionNameById.get(conditionId))
                   .filter(Boolean)
@@ -240,7 +239,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             professional: clean(item.prescribedBy) || "Sin firma clínica",
             status: item.endDate ? "Temporal" : "Crónico",
           })))
-        .filter((item) => item.name.length > 0);
+        .filter((item) => item.name.length> 0);
 
       const studies = sortedEvents.filter((event) => {
         const type = event.extractedData.documentType;
@@ -293,7 +292,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           studies[0] ? `Estudio destacado: ${clean(studies[0].extractedData.studyType || studies[0].title || studies[0].extractedData.suggestedTitle)}` : "",
         ].filter(Boolean);
 
-        if (profileHighlights.length > 0) {
+        if (profileHighlights.length> 0) {
           for (const highlight of profileHighlights.slice(0, 3)) {
             checkY(6);
             pdf.text(`• ${highlight}`, M, y + 1);
@@ -343,7 +342,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         const nextAppointments = [...upcoming].sort((a, b) => {
           return toTs(`${a.date || ""}T${a.time || "00:00"}`) - toTs(`${b.date || ""}T${b.time || "00:00"}`);
         });
-        if (nextAppointments.length > 0) {
+        if (nextAppointments.length> 0) {
           pdf.setFont("helvetica", "bold");
           pdf.setTextColor(31, 41, 55);
           pdf.text("Agenda próxima", M, y + 1);
@@ -375,7 +374,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           pdf.text(`• ${activeAlerts.length} alerta(s) activa(s).`, M, y + 1);
           y += 5;
         }
-        if (pendingManualReviewCount > 0) {
+        if (pendingManualReviewCount> 0) {
           pdf.text(`• ${pendingManualReviewCount} ítem(s) pendiente(s) de validación manual.`, M, y + 1);
           y += 5;
         }
@@ -447,7 +446,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             const linkedTreatments = treatmentRows
               .filter((row) => row.condition.toLowerCase().includes(clean(condition.normalizedName).toLowerCase()))
               .map((row) => row.name);
-            const treatmentText = linkedTreatments.length > 0 ? linkedTreatments.join(", ") : "sin tratamiento vinculado";
+            const treatmentText = linkedTreatments.length> 0 ? linkedTreatments.join(", ") : "sin tratamiento vinculado";
             const line = `• ${clean(condition.normalizedName)} · detectada: ${fmt(condition.firstDetectedDate)} · tratamientos: ${treatmentText}`;
             const lines = pdf.splitTextToSize(line, CW - 2);
             pdf.text(lines, M, y + 1);
@@ -618,7 +617,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         pdf.line(M, y, M + CW, y);
         y += 4;
 
-        const treatmentRows = treatments.length > 0
+        const treatmentRows = treatments.length> 0
           ? treatments
           : medications.map((item) => ({
               id: item.id,
@@ -660,7 +659,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         }
 
         // Próximas citas
-        if (upcoming.length > 0) {
+        if (upcoming.length> 0) {
           y += 2;
           checkY(16);
           pdf.setFontSize(10.5);
@@ -755,13 +754,8 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
 
   return (
     <>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-40 bg-slate-900/60" onClick={onClose} />
-      <motion.div
-        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-xl max-h-[82vh] flex flex-col max-w-md mx-auto"
-      >
+      <div className="fixed inset-0 z-40 bg-slate-900/60" onClick={onClose} />
+      <div className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-xl max-h-[82vh] flex flex-col max-w-md mx-auto">
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-slate-700 cursor-pointer" onClick={onClose} />
         </div>
@@ -797,7 +791,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
               : <><MaterialIcon name="download" className="text-xl" /><span>Descargar PDF</span></>}
           </button>
         </div>
-      </motion.div>
+      </div>
     </>
   );
 }

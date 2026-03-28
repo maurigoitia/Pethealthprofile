@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import type { ClinicalProfileSnapshot } from "../../contexts/MedicalContext";
 
@@ -29,12 +28,7 @@ export function ClinicalProfileBlock({ snapshot, petName }: ClinicalProfileBlock
     if (!hasData) return null;
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="rounded-[20px] border border-[#074738]/20 bg-gradient-to-br from-[#074738]/8 to-[#074738]/3 p-4 mb-5 shadow-sm"
-        >
+        <div className="rounded-[20px] border border-[#074738]/20 bg-gradient-to-br from-[#074738]/8 to-[#074738]/3 p-4 mb-5 shadow-sm animate-fadeIn">
             {/* Header */}
             <div className="flex items-center gap-2 mb-3">
                 <div className="size-7 rounded-full bg-[#074738]/15 flex items-center justify-center shrink-0">
@@ -107,6 +101,6 @@ export function ClinicalProfileBlock({ snapshot, petName }: ClinicalProfileBlock
             <p className="text-[9px] text-slate-400 mt-3 text-right">
                 Actualizado {new Date(snapshot.generatedAt).toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })}
             </p>
-        </motion.div>
+        </div>
     );
 }

@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { clsx } from "clsx";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { EmptyState } from "../shared/EmptyState";
@@ -68,7 +67,7 @@ const FILTERS: { label: string; value: TimelineFilter }[] = [
 ];
 
 const KIND_CONFIG: Record<ClinicalRenderKind, { icon: string; label: string; iconTone: string; badgeTone: string; accent: string }> = {
-  appointment_confirmation: { icon: "event", label: "Turno", iconTone: "bg-[#074738]/10 text-[#074738]", badgeTone: "bg-[#074738]/10 text-[#074738]", accent: "#074738" },
+  appointment_confirmation: { icon: "event", label: "Turno", iconTone: "bg-[#1A9B7D]/10 text-[#1A9B7D]", badgeTone: "bg-[#1A9B7D]/10 text-[#1A9B7D]", accent: "#074738" },
   prescription: { icon: "medication", label: "Receta", iconTone: "bg-amber-100 text-amber-700", badgeTone: "bg-amber-100 text-amber-700", accent: "#d97706" },
   treatment_plan: { icon: "healing", label: "Tratamiento", iconTone: "bg-amber-100 text-amber-700", badgeTone: "bg-amber-100 text-amber-700", accent: "#d97706" },
   imaging_report: { icon: "radiology", label: "Estudio", iconTone: "bg-violet-100 text-violet-700", badgeTone: "bg-violet-100 text-violet-700", accent: "#7c3aed" },
@@ -128,7 +127,7 @@ function resolveMeasurementStatus(measurement: { value: string; referenceRange: 
     const numericValue = parseNumeric(measurement.value);
     const parsedRange = parseRange(range);
     if (numericValue != null && parsedRange) {
-      return numericValue < parsedRange.min || numericValue > parsedRange.max ? "Fuera de rango" : "En rango";
+      return numericValue < parsedRange.min || numericValue> parsedRange.max ? "Fuera de rango" : "En rango";
     }
   }
 
@@ -302,7 +301,7 @@ function hasStudySignalInEvent(event: MedicalEvent): boolean {
 
 function hasMedicationSignalInEvent(event: MedicalEvent): boolean {
   const d = getExtractedData(event);
-  if ((d.medications || []).length > 0) return true;
+  if ((d.medications || []).length> 0) return true;
   const sourceText = [
     d.sourceSubject,
     d.suggestedTitle,
@@ -355,11 +354,11 @@ function resolveClinicalRenderKind(event: MedicalEvent): ClinicalRenderKind {
         : "imaging_report";
     }
     if (hasMedicationSignalInEvent(event)) {
-      return (d.medications || []).length > 0 ? "prescription" : "treatment_plan";
+      return (d.medications || []).length> 0 ? "prescription" : "treatment_plan";
     }
   }
 
-  const hasDetectedAppointments = (d.detectedAppointments || []).length > 0;
+  const hasDetectedAppointments = (d.detectedAppointments || []).length> 0;
   const hasMasterAppointment = Boolean(d.masterClinical?.appointment_event?.date);
   if (
     d.documentType === "appointment" ||
@@ -389,7 +388,7 @@ function resolveClinicalRenderKind(event: MedicalEvent): ClinicalRenderKind {
     masterType === "prescription" ||
     /(receta|prescrip|comprimido|cada\s+\d+\s*h)/i.test(sourceText)
   ) {
-    if (d.medications?.length > 0) return "prescription";
+    if (d.medications?.length> 0) return "prescription";
     return "treatment_plan";
   }
 
@@ -503,7 +502,7 @@ function buildEventSummary(event: MedicalEvent, petName: string): string {
   if (kind === "laboratory_report") {
     const altered = measurements.filter((m) => resolveMeasurementStatus({ value: String(m.value ?? ""), referenceRange: m.referenceRange ?? null }) === "Fuera de rango").length;
     const total = measurements.length;
-    if (total > 0) {
+    if (total> 0) {
       return `Laboratorio del ${eventDate}: ${altered} de ${total} mediciones fuera de rango${whoWhere ? `. Laboratorio: ${whoWhere}` : ""}.`;
     }
     return `Resultado de laboratorio del ${eventDate}${whoWhere ? `. Laboratorio: ${whoWhere}` : ""}${diagnosis ? `. Interpretación: ${diagnosis}` : ""}.`;
@@ -558,7 +557,7 @@ function buildMetaPills(event: MedicalEvent, kind: ClinicalRenderKind): string[]
 
   if (kind === "laboratory_report") {
     const total = measurements.length;
-    if (total > 0) {
+    if (total> 0) {
       const altered = measurements.filter((m) =>
         resolveMeasurementStatus({ value: String(m.value ?? ""), referenceRange: m.referenceRange ?? null }) === "Fuera de rango"
       ).length;
@@ -644,7 +643,7 @@ const normalizeReviewReason = (value?: string | null) =>
 function hasIncompleteTreatmentData(event: MedicalEvent): boolean {
   const extracted = getExtractedData(event);
   if (extracted?.treatmentValidationStatus === "needs_review") return true;
-  if ((extracted?.treatmentMissingFields || []).length > 0) return true;
+  if ((extracted?.treatmentMissingFields || []).length> 0) return true;
   const reasons = event.reviewReasons || [];
   return reasons.some((reason) => {
     const normalized = normalizeReviewReason(reason);
@@ -708,7 +707,7 @@ function buildHistoricalPeriodMeta(timestamp: number, nowTimestamp: number): {
   const parsed = new Date(timestamp);
   const monthsAgo = monthsFromNow(timestamp, nowTimestamp);
   const yearKey = String(parsed.getFullYear());
-  if (monthsAgo > MONTHLY_BUCKET_UNTIL_MONTHS) {
+  if (monthsAgo> MONTHLY_BUCKET_UNTIL_MONTHS) {
     return {
       periodType: "year",
       periodKey: yearKey,
@@ -741,7 +740,7 @@ function buildEpisodeThreadLabel(event: MedicalEvent): string {
   if (d.linkedEpisodeKey) return cleanText(d.linkedEpisodeKey);
   if (kind === "vaccination_record") return "Vacunación";
   if (kind === "appointment_confirmation") return specialty || "Agenda";
-  if ((kind === "prescription" || kind === "treatment_plan") && medicationNames.length > 0) {
+  if ((kind === "prescription" || kind === "treatment_plan") && medicationNames.length> 0) {
     return medicationNames.slice(0, 2).join(" · ");
   }
   if (diagnosis) return diagnosis;
@@ -798,26 +797,26 @@ function buildHistoricalNarrative(events: MedicalEvent[], petName: string, perio
   const treatmentCount = (kindCounts.prescription || 0) + (kindCounts.treatment_plan || 0);
   const dominantLabel =
     diagnoses[0] ||
-    (imagingCount > 0 ? "estudios y controles" : "") ||
+    (imagingCount> 0 ? "estudios y controles" : "") ||
     (medications[0] ? "tratamiento crónico" : "") ||
-    (vaccineCount > 0 ? "seguimiento preventivo" : "") ||
-    (appointmentCount > 0 ? "actividad registrada" : "") ||
+    (vaccineCount> 0 ? "seguimiento preventivo" : "") ||
+    (appointmentCount> 0 ? "actividad registrada" : "") ||
     "seguimiento";
 
-  const firstSentence = diagnoses.length > 0
+  const firstSentence = diagnoses.length> 0
     ? `En ${periodLabel} ${petName} tuvo seguimiento por ${diagnoses.join(", ")}.`
-    : imagingCount > 0
-      ? `En ${periodLabel} ${petName} tuvo ${imagingCount} estudio${imagingCount > 1 ? "s" : ""} y controles asociados.`
-      : treatmentCount > 0
+    : imagingCount> 0
+      ? `En ${periodLabel} ${petName} tuvo ${imagingCount} estudio${imagingCount> 1 ? "s" : ""} y controles asociados.`
+      : treatmentCount> 0
         ? `En ${periodLabel} ${petName} tuvo continuidad de cuidados y seguimiento.`
-        : vaccineCount > 0
+        : vaccineCount> 0
           ? `En ${periodLabel} ${petName} tuvo actividad preventiva y controles registrados.`
           : `En ${periodLabel} ${petName} tuvo actividad registrada por correo.`;
 
   const extraSentences = [
-    medications.length > 0 ? `También estuvo medicado con ${medications.join(", ")}.` : "",
-    appointmentCount > 0 && diagnoses.length === 0 ? `Se registraron ${appointmentCount} turno${appointmentCount > 1 ? "s" : ""} o recordatorio${appointmentCount > 1 ? "s" : ""}.` : "",
-    providers.length > 0 ? `Intervinieron ${providers.join(" · ")}.` : "",
+    medications.length> 0 ? `También estuvo medicado con ${medications.join(", ")}.` : "",
+    appointmentCount> 0 && diagnoses.length === 0 ? `Se registraron ${appointmentCount} turno${appointmentCount> 1 ? "s" : ""} o recordatorio${appointmentCount> 1 ? "s" : ""}.` : "",
+    providers.length> 0 ? `Intervinieron ${providers.join(" · ")}.` : "",
   ].filter(Boolean);
 
   return {
@@ -865,8 +864,8 @@ function buildAnnualSummary(events: MedicalEvent[], petName: string, yearKey: st
   const dominantProblem =
     diagnoses[0] ||
     medications[0] ||
-    (imagingEvents > 0 ? "estudios y controles" : "") ||
-    (appointmentEvents > 0 ? "seguimiento veterinario" : "") ||
+    (imagingEvents> 0 ? "estudios y controles" : "") ||
+    (appointmentEvents> 0 ? "seguimiento veterinario" : "") ||
     "actividad clínica registrada";
   const dominantProvider = providers[0] || "prestadores habituales";
 
@@ -878,7 +877,7 @@ function buildAnnualSummary(events: MedicalEvent[], petName: string, yearKey: st
       `La atención se concentró en ${dominantProvider}.`,
       medications[0]
         ? `La medicación más repetida fue ${medications[0]}.`
-        : appointmentEvents > 0
+        : appointmentEvents> 0
           ? `Se registraron ${appointmentEvents} turno${appointmentEvents === 1 ? "" : "s"} o recordatorio${appointmentEvents === 1 ? "" : "s"} en el período.`
           : "",
     ]
@@ -888,7 +887,7 @@ function buildAnnualSummary(events: MedicalEvent[], petName: string, yearKey: st
     highlights: [
       diagnoses[0] ? `Patología principal: ${diagnoses[0]}` : "",
       medications[0] ? `Medicación relevante: ${medications[0]}` : "",
-      imagingEvents > 0 ? `${imagingEvents} estudio${imagingEvents === 1 ? "" : "s"} registrados` : "",
+      imagingEvents> 0 ? `${imagingEvents} estudio${imagingEvents === 1 ? "" : "s"} registrados` : "",
     ].filter(Boolean),
     eventCount: events.length,
   };
@@ -980,7 +979,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
 
     for (const ep of firestoreEpisodes) {
       const timestamp = new Date(ep.date).getTime();
-      if (timestamp >= recentCutoff) continue;
+      if (timestamp>= recentCutoff) continue;
 
       const periodMeta = buildHistoricalPeriodMeta(timestamp, Date.now());
       const threadLabel = episodeTypeToThreadLabel(ep);
@@ -1007,7 +1006,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
     const byPeriod = new Map<string, MedicalEvent[]>();
     for (const event of filteredSortedEvents) {
       const ts = getEventTimestamp(event);
-      if (ts >= recentCutoff) continue;
+      if (ts>= recentCutoff) continue;
       const meta = buildHistoricalPeriodMeta(ts, Date.now());
       if (firestoreEpisodeKeys.has(meta.periodKey)) continue;
       if (!byPeriod.has(meta.periodKey)) byPeriod.set(meta.periodKey, []);
@@ -1064,7 +1063,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
     const groupedEvents = new Map<string, MedicalEvent[]>();
 
     for (const entry of timelineEntries) {
-      if (entry.timestamp >= recentCutoff) continue;
+      if (entry.timestamp>= recentCutoff) continue;
       const sourceEvents = entry.kind === "episode" ? entry.sourceEvents : [entry.event];
       if (!groupedEvents.has(entry.yearKey)) groupedEvents.set(entry.yearKey, []);
       groupedEvents.get(entry.yearKey)!.push(...sourceEvents);
@@ -1082,30 +1081,28 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
     <section>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-          <MaterialIcon name="timeline" className="text-[#074738] text-xl" />
+          <MaterialIcon name="timeline" className="text-[#1A9B7D] text-xl" />
           Historial
         </h2>
         <div className="flex items-center gap-2">
           <button
             onClick={() => onExportReport?.()}
-            className="size-9 rounded-full bg-[#074738]/10 flex items-center justify-center hover:bg-[#074738]/20 transition-colors"
-            title="Exportar Reporte"
-          >
-            <MaterialIcon name="description" className="text-[#074738] text-lg" />
+            className="size-9 rounded-full bg-[#1A9B7D]/10 flex items-center justify-center hover:bg-[#1A9B7D]/20 transition-colors"
+            title="Exportar Reporte">
+            <MaterialIcon name="description" className="text-[#1A9B7D] text-lg" />
           </button>
-          {visibleEntryCount > 8 && (
+          {visibleEntryCount> 8 && (
             <button
               onClick={() => setShowAll(!showAll)}
-              className="text-xs font-bold text-[#074738] hover:underline"
-            >
+              className="text-xs font-bold text-[#1A9B7D] hover:underline">
               {showAll ? "Ver menos" : `Ver todo (${visibleEntryCount})`}
             </button>
           )}
         </div>
       </div>
 
-      {allEvents.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-2 mb-4 overflow-x-auto no-scrollbar">
+      {allEvents.length> 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 p-2 mb-4 overflow-x-auto no-scrollbar">
           <div className="flex gap-2 min-w-max">
             {FILTERS.map((filter) => (
               <button
@@ -1117,10 +1114,9 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                 className={clsx(
                   "px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wide whitespace-nowrap transition-all",
                   activeFilter === filter.value
-                    ? "bg-[#074738] text-white shadow-lg shadow-[#074738]/25"
+                    ? "bg-[#1A9B7D] text-white shadow-lg shadow-[#074738]/25"
                     : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-                )}
-              >
+                )}>
                 {filter.label}
               </button>
             ))}
@@ -1135,7 +1131,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
       )}
 
       {filteredSortedEvents.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+        <div className="bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800">
           <EmptyState
             icon="inbox"
             title={allEvents.length === 0 ? "Sin registros" : "Sin resultados para este filtro"}
@@ -1159,15 +1155,15 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
 
               <div className="space-y-3">
                 {historicalEpisodesEnabled && annualSummaryByYear.has(year) && (
-                  <div className="rounded-[24px] border border-[#074738]/15 bg-[#074738]/5 p-4 shadow-sm">
+                  <div className="rounded-[24px] border border-[#074738]/15 bg-[#1A9B7D]/5 p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-wide text-[#074738]">Memoria de cuidados</p>
+                        <p className="text-[10px] font-black uppercase tracking-wide text-[#1A9B7D]">Memoria de cuidados</p>
                         <h3 className="text-[15px] font-black text-slate-900 mt-1">
                           {annualSummaryByYear.get(year)!.headline}
                         </h3>
                       </div>
-                      <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-white text-[#074738]">
+                      <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-white text-[#1A9B7D]">
                         {annualSummaryByYear.get(year)!.eventCount} eventos
                       </span>
                     </div>
@@ -1180,8 +1176,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                       {annualSummaryByYear.get(year)!.highlights.map((highlight, idx) => (
                         <span
                           key={`${year}-annual-highlight-${idx}`}
-                          className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white text-slate-600 border border-[#074738]/10"
-                        >
+                          className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white text-slate-600 border border-[#074738]/10">
                           {highlight}
                         </span>
                       ))}
@@ -1193,28 +1188,22 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                   if (entry.kind === "episode") {
                     const isExpanded = expandedEvent === entry.id;
                     const episodeTone = entry.periodType === "year"
-                      ? "bg-[#074738]/5 border-[#074738]/15"
+                      ? "bg-[#1A9B7D]/5 border-[#074738]/15"
                       : "bg-white/90 border-slate-200/70";
 
                     return (
-                      <motion.div
-                        key={entry.id}
-                        layout
-                        initial={{ y: 18, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: (groupIndex * 0.04) + (index * 0.03) }}
-                      >
+                      <div
+                        key={entry.id}>
                         <button
                           onClick={() => setExpandedEvent(isExpanded ? null : entry.id)}
-                          className="w-full text-left"
-                        >
+                          className="w-full text-left">
                           <div className="flex gap-3 items-start">
-                            <div className="size-14 rounded-full flex items-center justify-center shrink-0 border-4 border-white shadow-sm bg-[#074738]/10 text-[#074738]">
+                            <div className="size-14 rounded-full flex items-center justify-center shrink-0 border-4 border-white shadow-[0_2px_12px_rgba(0,0,0,0.06)] bg-[#1A9B7D]/10 text-[#1A9B7D]">
                               <MaterialIcon name="auto_stories" className="text-[28px]" />
                             </div>
 
-                            <div className={clsx("flex-1 backdrop-blur-sm rounded-[24px] border shadow-sm overflow-hidden hover:shadow-md transition-shadow", episodeTone)}>
-                              <div className="h-1 bg-[#074738]" />
+                            <div className={clsx("flex-1 backdrop-blur-sm rounded-[24px] border shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden hover:shadow-md transition-shadow", episodeTone)}>
+                              <div className="h-1 bg-[#1A9B7D]" />
 
                               <div className="p-4">
                                 <div className="flex items-start justify-between gap-2 mb-2">
@@ -1222,11 +1211,11 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                     <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
                                       {entry.periodLabel}
                                     </p>
-                                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#074738] mt-1">
+                                    <p className="text-[10px] font-bold uppercase tracking-wide text-[#1A9B7D] mt-1">
                                       Vista derivada del historial
                                     </p>
                                   </div>
-                                  <span className="px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-[#074738]/10 text-[#074738]">
+                                  <span className="px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-[#1A9B7D]/10 text-[#1A9B7D]">
                                     {entry.eventCount} evento{entry.eventCount === 1 ? "" : "s"}
                                   </span>
                                 </div>
@@ -1247,24 +1236,21 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                   {entry.diagnoses.map((diagnosis, chipIndex) => (
                                     <span
                                       key={`${entry.id}-diagnosis-${chipIndex}`}
-                                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-100 text-sky-700"
-                                    >
+                                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">
                                       {diagnosis}
                                     </span>
                                   ))}
                                   {entry.medications.map((medication, chipIndex) => (
                                     <span
                                       key={`${entry.id}-medication-${chipIndex}`}
-                                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700"
-                                    >
+                                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
                                       {medication}
                                     </span>
                                   ))}
                                   {entry.providers.map((provider, chipIndex) => (
                                     <span
                                       key={`${entry.id}-provider-${chipIndex}`}
-                                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600"
-                                    >
+                                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
                                       {provider}
                                     </span>
                                   ))}
@@ -1272,7 +1258,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
 
                                 <div className="flex items-center justify-between mt-3">
                                   <div className="flex flex-wrap gap-1.5">
-                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#074738]/10 text-[#074738]">
+                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#1A9B7D]/10 text-[#1A9B7D]">
                                       {entry.periodType === "year" ? "Resumen anual" : "Resumen mensual"}
                                     </span>
                                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
@@ -1286,18 +1272,10 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                 </div>
                               </div>
 
-                              <AnimatePresence>
-                                {isExpanded && (
-                                  <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: "auto", opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="overflow-hidden"
-                                  >
+                              {isExpanded && (<div className="overflow-hidden">
                                     <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-3 space-y-3">
-                                      <div className="rounded-xl border border-[#074738]/15 bg-[#074738]/5 px-3 py-2.5">
-                                        <p className="text-[10px] font-black uppercase tracking-wide text-[#074738] mb-1">
+                                      <div className="rounded-xl border border-[#074738]/15 bg-[#1A9B7D]/5 px-3 py-2.5">
+                                        <p className="text-[10px] font-black uppercase tracking-wide text-[#1A9B7D] mb-1">
                                           Regla de lectura
                                         </p>
                                         <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
@@ -1318,8 +1296,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                             return (
                                               <div
                                                 key={`${entry.id}-${sourceEvent.id}`}
-                                                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5"
-                                              >
+                                                className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
                                                 <div className="flex items-start justify-between gap-3">
                                                   <div>
                                                     <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">
@@ -1345,13 +1322,12 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                         </div>
                                       </div>
                                     </div>
-                                  </motion.div>
+                                  </div>
                                 )}
-                              </AnimatePresence>
                             </div>
                           </div>
                         </button>
-                      </motion.div>
+                      </div>
                     );
                   }
 
@@ -1400,26 +1376,20 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                         : null;
 
                   return (
-                    <motion.div
-                      key={event.id}
-                      layout
-                      initial={{ y: 18, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: (groupIndex * 0.04) + (index * 0.03) }}
-                    >
+                    <div
+                      key={event.id}>
                       <button
                         onClick={() => setExpandedEvent(isExpanded ? null : event.id)}
-                        className="w-full text-left"
-                      >
+                        className="w-full text-left">
                         <div className="flex gap-3 items-start">
-                          <div className={clsx("size-14 rounded-full flex items-center justify-center shrink-0 border-4 border-white shadow-sm", cfg.iconTone)}>
+                          <div className={clsx("size-14 rounded-full flex items-center justify-center shrink-0 border-4 border-white shadow-[0_2px_12px_rgba(0,0,0,0.06)]", cfg.iconTone)}>
                             <MaterialIcon
                               name={isProcessing ? "sync" : cfg.icon}
                               className={clsx("text-[28px]", isProcessing && "animate-spin")}
                             />
                           </div>
 
-                          <div className="flex-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-[24px] border border-slate-200/70 dark:border-slate-800/70 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                          <div className="flex-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm rounded-[24px] border border-slate-200/70 dark:border-slate-800/70 shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden hover:shadow-md transition-shadow">
                             <div className="h-1" style={{ backgroundColor: isProcessing ? "#074738" : isIncompleteTreatmentReview ? "#dc2626" : cfg.accent }} />
 
                             <div className="p-4">
@@ -1447,21 +1417,19 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                 {metaPills.map((pill, idx) => (
                                   <span
                                     key={`${event.id}-meta-${idx}`}
-                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300"
-                                  >
+                                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-300">
                                     {pill}
                                   </span>
                                 ))}
                                 {sourceOriginPill && (
-                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#074738]/10 text-[#074738]">
+                                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#1A9B7D]/10 text-[#1A9B7D]">
                                     {sourceOriginPill}
                                   </span>
                                 )}
                                 {getEventTags(isProcessing).map((tag) => (
                                   <span
                                     key={`${event.id}-${tag}`}
-                                    className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#074738]/10 text-[#074738]"
-                                  >
+                                    className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#1A9B7D]/10 text-[#1A9B7D]">
                                     {tag}
                                   </span>
                                 ))}
@@ -1481,18 +1449,18 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
 
                               <div className="flex items-center justify-between mt-2">
                                 <div className="flex flex-wrap gap-1.5">
-                                  {medications.length > 0 && (
+                                  {medications.length> 0 && (
                                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
                                       {medications.length} trat.
                                     </span>
                                   )}
-                                  {measurements.length > 0 && (
+                                  {measurements.length> 0 && (
                                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-teal-100 text-teal-700">
                                       {measurements.length} vals.
                                     </span>
                                   )}
                                   {d.nextAppointmentDate && (
-                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#074738]/10 text-[#074738]">
+                                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#1A9B7D]/10 text-[#1A9B7D]">
                                       Próx. turno
                                     </span>
                                   )}
@@ -1504,15 +1472,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                               </div>
                             </div>
 
-                            <AnimatePresence>
-                              {isExpanded && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: "auto", opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  transition={{ duration: 0.2 }}
-                                  className="overflow-hidden"
-                                >
+                            {isExpanded && (<div className="overflow-hidden">
                                   <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-3 space-y-3">
                                     {isUnderReview && (
                                       <div className={clsx(
@@ -1545,7 +1505,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                       </div>
                                     )}
 
-                                    {measurements.length > 0 && (
+                                    {measurements.length> 0 && (
                                       <div>
                                         <p className="text-[10px] font-black uppercase tracking-wide text-slate-400 mb-2">Mediciones</p>
                                         <div className="grid grid-cols-2 gap-2">
@@ -1563,8 +1523,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                                     resolveMeasurementStatus({ value: String(m.value ?? ""), referenceRange: m.referenceRange ?? null }) === "Fuera de rango"
                                                       ? "text-rose-600"
                                                       : "text-emerald-600"
-                                                  )}
-                                                >
+                                                  )}>
                                                   {resolveMeasurementStatus({ value: String(m.value ?? ""), referenceRange: m.referenceRange ?? null })}
                                                 </p>
                                               )}
@@ -1574,7 +1533,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                       </div>
                                     )}
 
-                                    {medications.length > 0 && (
+                                    {medications.length> 0 && (
                                       <div>
                                         <p className="text-[10px] font-black uppercase tracking-wide text-slate-400 mb-2">Medicaciones indicadas</p>
                                         <div className="space-y-1.5">
@@ -1591,10 +1550,10 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                     )}
 
                                     {d.nextAppointmentDate && (
-                                      <div className="flex items-center gap-3 bg-[#074738]/5 rounded-xl px-3 py-2.5">
-                                        <MaterialIcon name="event" className="text-[#074738] text-lg shrink-0" />
+                                      <div className="flex items-center gap-3 bg-[#1A9B7D]/5 rounded-xl px-3 py-2.5">
+                                        <MaterialIcon name="event" className="text-[#1A9B7D] text-lg shrink-0" />
                                         <div>
-                                          <p className="text-[10px] font-black uppercase tracking-wide text-[#074738] mb-0.5">Próxima cita</p>
+                                          <p className="text-[10px] font-black uppercase tracking-wide text-[#1A9B7D] mb-0.5">Próxima cita</p>
                                           <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                             {formatDateSafe(
                                               d.nextAppointmentDate,
@@ -1620,8 +1579,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           onClick={(e) => e.stopPropagation()}
-                                          className="flex-1 py-2.5 bg-[#074738]/10 text-[#074738] text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 hover:bg-[#074738]/20 transition-colors"
-                                        >
+                                          className="flex-1 py-2.5 bg-[#1A9B7D]/10 text-[#1A9B7D] text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 hover:bg-[#1A9B7D]/20 transition-colors">
                                           <MaterialIcon name={event.fileType === "pdf" ? "picture_as_pdf" : "image"} className="text-sm" />
                                           Ver documento
                                         </a>
@@ -1633,8 +1591,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                             e.stopPropagation();
                                             setActionError("No pudimos abrir el documento original porque requiere permisos adicionales de Storage.");
                                           }}
-                                          className="flex-1 py-2.5 bg-slate-100 text-slate-500 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5"
-                                        >
+                                          className="flex-1 py-2.5 bg-slate-100 text-slate-500 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5">
                                           <MaterialIcon name="lock" className="text-sm" />
                                           Documento restringido
                                         </button>
@@ -1646,8 +1603,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                           setEventToEdit(event);
                                           setShowEditModal(true);
                                         }}
-                                        className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                                      >
+                                        className="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
                                         <MaterialIcon name="edit" className="text-sm" />
                                         Editar
                                       </button>
@@ -1657,8 +1613,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                           setActionError(null);
                                           setEventToDelete(event);
                                         }}
-                                        className="flex-1 py-2.5 bg-red-50 text-red-600 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 hover:bg-red-100 transition-colors"
-                                      >
+                                        className="flex-1 py-2.5 bg-red-50 text-red-600 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 hover:bg-red-100 transition-colors">
                                         <MaterialIcon
                                           name={deletingEventId === event.id ? "sync" : "delete"}
                                           className={clsx("text-sm", deletingEventId === event.id && "animate-spin")}
@@ -1680,8 +1635,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                               setConfirmingEventId(null);
                                             }
                                           }}
-                                          className="flex-1 py-2.5 bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 hover:bg-emerald-600 transition-colors"
-                                        >
+                                          className="flex-1 py-2.5 bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 hover:bg-emerald-600 transition-colors">
                                           <MaterialIcon
                                             name={confirmingEventId === event.id ? "sync" : "check_circle"}
                                             className={clsx("text-sm", confirmingEventId === event.id && "animate-spin")}
@@ -1691,13 +1645,12 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                       )}
                                     </div>
                                   </div>
-                                </motion.div>
+                                </div>
                               )}
-                            </AnimatePresence>
                           </div>
                         </div>
                       </button>
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>
@@ -1712,26 +1665,15 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
         event={eventToEdit}
       />
 
-      <AnimatePresence>
-        {eventToDelete && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => {
-                if (deletingEventId) return;
-                setEventToDelete(null);
-              }}
-              className="fixed inset-0 z-50 bg-black/45"
-            />
-            <motion.div
-              initial={{ opacity: 0, y: "100%" }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: "100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl p-6 shadow-xl"
-            >
+      {eventToDelete && (
+        <>
+          <div onClick={() => {
+              if (deletingEventId) return;
+              setEventToDelete(null);
+            }}
+            className="fixed inset-0 z-50 bg-black/45 animate-fadeIn"
+          />
+          <div className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl p-6 shadow-xl animate-slideUp">
               <div className="w-10 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-5" />
               <div className="flex items-start gap-3 mb-4">
                 <div className="size-11 rounded-full bg-red-100 dark:bg-red-950/40 flex items-center justify-center shrink-0">
@@ -1749,8 +1691,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                   type="button"
                   disabled={Boolean(deletingEventId)}
                   onClick={() => setEventToDelete(null)}
-                  className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-300 disabled:opacity-50"
-                >
+                  className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-300 disabled:opacity-50">
                   Cancelar
                 </button>
                 <button
@@ -1771,15 +1712,13 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                       setDeletingEventId(null);
                     }
                   }}
-                  className="flex-1 py-3 rounded-xl bg-red-600 text-white text-sm font-bold disabled:opacity-60"
-                >
+                  className="flex-1 py-3 rounded-xl bg-red-600 text-white text-sm font-bold disabled:opacity-60">
                   {deletingEventId ? "Eliminando..." : "Eliminar"}
                 </button>
               </div>
-            </motion.div>
+            </div>
           </>
         )}
-      </AnimatePresence>
     </section>
   );
 }

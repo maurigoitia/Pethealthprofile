@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "motion/react";
+
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { lazy, Suspense, useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router";
@@ -303,18 +303,14 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
     navigate("/register-pet");
   };
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
+  if (!isOpen) return null;
 
-          <motion.div
-            initial={{ opacity: 0, y: "100%" }} animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl max-h-[92vh] overflow-hidden flex flex-col"
+  return (
+        <>
+          <div onClick={onClose} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-fadeIn" />
+
+          <div
+            className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-[24px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] max-h-[92vh] overflow-hidden flex flex-col animate-slideUp"
           >
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-2">
@@ -549,10 +545,8 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
               )}
 
               {/* EDIT OVERLAY */}
-              <AnimatePresence>
-                {isEditing && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-white dark:bg-slate-900 z-10 overflow-y-auto">
+                              {isEditing && (
+                  <div                     className="absolute inset-0 bg-white dark:bg-slate-900 z-10 overflow-y-auto">
                     <div className="p-6 space-y-5">
                       <div className="flex items-center justify-between">
                         <h3 className="text-xl font-black text-slate-900 dark:text-white">Editar Información</h3>
@@ -722,11 +716,11 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                         </button>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 )}
-              </AnimatePresence>
+
             </div>
-          </motion.div>
+          </div>
 
           <Suspense fallback={null}>
             <VaccinationCardModal
@@ -743,7 +737,5 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
             />
           </Suspense>
         </>
-      )}
-    </AnimatePresence>
   );
 }

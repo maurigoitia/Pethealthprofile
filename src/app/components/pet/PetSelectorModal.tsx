@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from "motion/react";
+
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { useAuth } from "../../contexts/AuthContext";
 import { PetPhoto } from "./PetPhoto";
@@ -44,25 +44,21 @@ export function PetSelectorModal({
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
         <>
           {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-fadeIn"
           />
 
           {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, y: "100%" }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+          <div
+
+
+
             className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl max-w-md mx-auto"
           >
             {/* Handle */}
@@ -91,11 +87,10 @@ export function PetSelectorModal({
                   {pets.map((pet) => {
                     const isActive = pet.id === activePetId;
                     return (
-                      <motion.button
+                      <button
                         key={pet.id}
                         onClick={() => handlePetSelect(pet.id)}
-                        whileTap={{ scale: 0.98 }}
-                        className={`w-full p-4 rounded-2xl flex items-center gap-4 transition-all ${
+                                                className={`w-full p-4 rounded-2xl flex items-center gap-4 transition-all ${
                           isActive
                             ? "bg-[#074738] shadow-lg shadow-[#074738]/30"
                             : "bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700"
@@ -151,7 +146,7 @@ export function PetSelectorModal({
                             className="text-slate-400 text-xl"
                           />
                         )}
-                      </motion.button>
+                      </button>
                     );
                   })}
                 </div>
@@ -244,9 +239,7 @@ export function PetSelectorModal({
                 </button>
               </div>
             </div>
-          </motion.div>
+          </div>
         </>
-      )}
-    </AnimatePresence>
   );
 }

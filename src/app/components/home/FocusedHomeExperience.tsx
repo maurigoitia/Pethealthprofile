@@ -175,7 +175,7 @@ export function FocusedHomeExperience({
 
         <button
           onClick={onPetClick}
-          className="w-full rounded-[32px] border border-[#074738]/10 dark:border-[#1a9b7d]/20 bg-[#dbe7e2] dark:bg-[#17382f] p-4 text-left shadow-[0_20px_50px_rgba(7,71,56,0.16)]"
+          className="w-full rounded-[32px] border border-[#074738]/10 dark:border-[#1a9b7d]/20 bg-[#E0F2F1] dark:bg-[#17382f] p-4 text-left shadow-[0_20px_50px_rgba(7,71,56,0.16)]"
         >
           <div className="flex items-start gap-4">
             <div className="size-24 rounded-full overflow-hidden bg-white/80 dark:bg-slate-900/50 shrink-0 ring-4 ring-white/70 dark:ring-white/10">
@@ -188,13 +188,13 @@ export function FocusedHomeExperience({
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-col gap-2">
-                <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#074738] px-3 py-1.5 text-white">
+                <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#1A9B7D] px-3 py-1.5 text-white">
                   <MaterialIcon name="pets" className="text-sm" />
                   <span className="text-[11px] font-black uppercase tracking-[0.14em]">
                     Perfil activo
                   </span>
                 </div>
-                <div className="rounded-[18px] bg-[#074738] px-4 py-3 text-white">
+                <div className="rounded-[18px] bg-[#1A9B7D] px-4 py-3 text-white">
                   <p className="text-[11px] font-black uppercase tracking-[0.14em] text-white/70">Hoy</p>
                   <p className="text-sm font-semibold leading-5 mt-1">
                     {nextAppointment
@@ -243,7 +243,7 @@ export function FocusedHomeExperience({
           )}
         </button>
 
-        <div className="mt-4 rounded-[28px] border border-slate-200/70 dark:border-slate-800 bg-white/92 dark:bg-slate-900 p-5 shadow-sm">
+        <div className="mt-4 rounded-[16px] border border-slate-200/70 dark:border-slate-800 bg-white/92 dark:bg-slate-900 p-5 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Último movimiento</p>
@@ -253,7 +253,7 @@ export function FocusedHomeExperience({
             </div>
             <button
               onClick={onOpenScanner}
-              className="shrink-0 rounded-full bg-[#074738] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-white"
+              className="shrink-0 rounded-[14px] bg-[#1A9B7D] px-4 py-2 text-xs font-black uppercase tracking-[0.14em] text-white"
             >
               Agregar
             </button>
@@ -269,7 +269,7 @@ export function FocusedHomeExperience({
           </p>
           {latestEvent && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-[#074738]/8 px-3 py-1 text-[11px] font-semibold text-[#074738]">
+              <span className="rounded-full bg-[#E0F2F1] px-3 py-1 text-[11px] font-semibold text-[#074738]">
                 {formatDateSafe(
                   latestEvent.extractedData?.eventDate || latestEvent.createdAt,
                   "es-AR",
@@ -299,10 +299,10 @@ export function FocusedHomeExperience({
             {profileCards.map((card) => (
               <div
                 key={card.label}
-                className="rounded-[24px] border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm"
+                className="rounded-[16px] border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="size-9 rounded-2xl bg-[#074738]/10 flex items-center justify-center">
+                  <div className="size-9 rounded-[12px] bg-[#E0F2F1] flex items-center justify-center">
                     <MaterialIcon name={card.icon} className="text-[#074738] text-base" />
                   </div>
                   <span className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">{card.label}</span>
@@ -315,11 +315,11 @@ export function FocusedHomeExperience({
 
         <section className="space-y-3">
           <h2 className="text-base font-black text-slate-900 dark:text-white">Qué hacer ahora</h2>
-          <div className="rounded-[28px] border border-[#074738]/10 dark:border-[#1a9b7d]/20 bg-[#dbe7e2] dark:bg-[#17382f] p-4">
+          <div className="rounded-[28px] border border-[#074738]/10 dark:border-[#1a9b7d]/20 bg-[#E0F2F1] dark:bg-[#17382f] p-4">
             <div className="grid grid-cols-3 gap-3">
               <button
                 onClick={onOpenAppointments}
-                className="rounded-[22px] border border-white/70 dark:border-white/10 bg-white dark:bg-slate-900 p-4 text-left shadow-sm"
+                className="rounded-[16px] border border-white/70 dark:border-white/10 bg-white dark:bg-slate-900 p-4 text-left shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
               >
                 <MaterialIcon name="event" className="text-[#074738] text-xl mb-3" />
                 <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Turnos</p>
@@ -327,7 +327,7 @@ export function FocusedHomeExperience({
               </button>
               <button
                 onClick={onOpenMedications}
-                className="rounded-[22px] border border-white/70 dark:border-white/10 bg-white dark:bg-slate-900 p-4 text-left shadow-sm"
+                className="rounded-[16px] border border-white/70 dark:border-white/10 bg-white dark:bg-slate-900 p-4 text-left shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
               >
                 <MaterialIcon name="medication" className="text-[#074738] text-xl mb-3" />
                 <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Seguimientos</p>
@@ -335,7 +335,7 @@ export function FocusedHomeExperience({
               </button>
               <button
                 onClick={onOpenFeed}
-                className="rounded-[22px] border border-white/70 dark:border-white/10 bg-white dark:bg-slate-900 p-4 text-left shadow-sm"
+                className="rounded-[16px] border border-white/70 dark:border-white/10 bg-white dark:bg-slate-900 p-4 text-left shadow-[0_2px_12px_rgba(0,0,0,0.06)]"
               >
                 <MaterialIcon name="history" className="text-[#074738] text-xl mb-3" />
                 <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Historia</p>
@@ -343,7 +343,7 @@ export function FocusedHomeExperience({
               </button>
             </div>
             {nextAppointment && (
-              <div className="mt-4 rounded-[22px] bg-white dark:bg-slate-900 px-4 py-3 shadow-sm">
+              <div className="mt-4 rounded-[16px] bg-white dark:bg-slate-900 px-4 py-3 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
                 <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Próximo turno</p>
                 <div className="mt-1 flex items-center justify-between gap-3">
                   <div className="min-w-0">
@@ -357,7 +357,7 @@ export function FocusedHomeExperience({
                   </div>
                   <button
                     onClick={onOpenAppointments}
-                    className="rounded-full bg-[#074738] px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-white"
+                    className="rounded-[14px] bg-[#1A9B7D] px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-white"
                   >
                     Ver
                   </button>

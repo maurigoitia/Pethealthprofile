@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { motion, AnimatePresence } from "motion/react";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
 import { useReminders } from "../../contexts/RemindersContext";
@@ -102,7 +101,7 @@ function calcStatus(startIso: string, parsed: ReturnType<typeof parseDuration>):
     const assumed = new Date(start);
     assumed.setDate(assumed.getDate() + 30);
     const daysLeft = Math.ceil((assumed.getTime() - Date.now()) / 86400000);
-    if (daysLeft > 0) return { status: "active", endDate: assumed.toISOString(), daysLeft, durationDays: 30 };
+    if (daysLeft> 0) return { status: "active", endDate: assumed.toISOString(), daysLeft, durationDays: 30 };
     return { status: "completed", endDate: assumed.toISOString(), daysLeft: 0, durationDays: 30 };
   }
 
@@ -116,7 +115,7 @@ function calcStatus(startIso: string, parsed: ReturnType<typeof parseDuration>):
   end.setDate(end.getDate() + parsed.days);
   const daysLeft = Math.ceil((end.getTime() - Date.now()) / 86400000);
 
-  if (daysLeft > 0) return { status: "active", endDate: end.toISOString(), daysLeft, durationDays: parsed.days };
+  if (daysLeft> 0) return { status: "active", endDate: end.toISOString(), daysLeft, durationDays: parsed.days };
   return { status: "completed", endDate: end.toISOString(), daysLeft: 0, durationDays: parsed.days };
 }
 
@@ -133,12 +132,12 @@ function parseFrequencyHours(value?: string | null): number | null {
     text.match(/\b(\d+(?:\.\d+)?)\s*(?:h|hs|hora|horas)\b/);
   if (eachMatch) {
     const num = Number(eachMatch[1]);
-    return Number.isFinite(num) && num > 0 ? num : null;
+    return Number.isFinite(num) && num> 0 ? num : null;
   }
   const dailyMatch = text.match(/(\d+)\s*vez(?:es)?\s*al\s*d[ií]a/);
   if (dailyMatch) {
     const times = Number(dailyMatch[1]);
-    if (Number.isFinite(times) && times > 0) return Math.round(24 / times);
+    if (Number.isFinite(times) && times> 0) return Math.round(24 / times);
   }
   if (/diario|diaria|cada\s+24\s*h/.test(text)) return 24;
   return null;
@@ -456,7 +455,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
       );
 
       const fallbackLinkedMedications =
-        linkedMedications.length > 0
+        linkedMedications.length> 0
           ? linkedMedications
           : activeMedications.filter(
               (medication) => medication.active && medication.generatedFromEventId === editingItem.event.id
@@ -512,7 +511,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
       }
 
       setEditingItem(null);
-      if (remindersScheduled > 0) {
+      if (remindersScheduled> 0) {
         setEditFeedback("Horario actualizado. Creamos un recordatorio automático en tu celular.");
       } else {
         setEditFeedback("Horario actualizado. Si completás una frecuencia válida, activamos recordatorios automáticos.");
@@ -539,7 +538,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
       );
     });
 
-    const fallbackLinked = linked.length > 0
+    const fallbackLinked = linked.length> 0
       ? linked
       : activeMedications.filter(
           (medication) => medication.active && medication.generatedFromEventId === item.event.id
@@ -670,7 +669,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
 
   return (
     <>
-      <div className={`min-h-screen flex flex-col ${focusExperienceEnabled ? "bg-[#f3f7f5] dark:bg-[#101622]" : "bg-[#f6f6f8] dark:bg-[#101622]"}`}>
+      <div className={`min-h-screen flex flex-col ${focusExperienceEnabled ? "bg-[#f3f7f5] dark:bg-[#101622]" : "bg-[#F0FAF9] dark:bg-[#101622]"}`}>
       <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
 
         {/* Header */}
@@ -679,7 +678,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
           : "bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 pt-6 pb-4"}>
           <div className="flex items-center gap-3 mb-4">
             <button onClick={onBack}
-              className={`size-10 rounded-full flex items-center justify-center ${focusExperienceEnabled ? "bg-white/80 dark:bg-slate-900/70 shadow-sm" : "bg-slate-100 dark:bg-slate-800"}`}>
+              className={`size-10 rounded-full flex items-center justify-center ${focusExperienceEnabled ? "bg-white/80 dark:bg-slate-900/70 shadow-[0_2px_12px_rgba(0,0,0,0.06)]" : "bg-slate-100 dark:bg-slate-800"}`}>
               <MaterialIcon name="arrow_back" className={`text-xl ${focusExperienceEnabled ? "text-[#074738]" : ""}`} />
             </button>
             <div>
@@ -696,7 +695,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
           </div>
 
           {focusExperienceEnabled && (
-            <div className="mb-4 rounded-[28px] border border-[#074738]/10 dark:border-[#1a9b7d]/20 bg-[#dbe7e2] dark:bg-[#17382f] p-4 shadow-sm">
+            <div className="mb-4 rounded-[28px] border border-[#074738]/10 dark:border-[#1a9b7d]/20 bg-[#dbe7e2] dark:bg-[#17382f] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
               <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-5">
                 PESSY separa tratamientos activos, crónicos e históricos para que el tutor vea continuidad y próxima dosis sin leer toda la historia.
               </p>
@@ -707,14 +706,14 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
             {(["active", "history"] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 className={`flex-1 py-2.5 font-bold text-sm transition-all ${activeTab === tab
-                  ? `${focusExperienceEnabled ? "bg-[#074738] text-white rounded-full shadow-sm" : "bg-white dark:bg-slate-900 text-[#074738] rounded-lg shadow-sm"}`
+                  ? `${focusExperienceEnabled ? "bg-[#074738] text-white rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.06)]" : "bg-white dark:bg-slate-900 text-[#074738] rounded-lg shadow-[0_2px_12px_rgba(0,0,0,0.06)]"}`
                   : `${focusExperienceEnabled ? "text-slate-600 dark:text-slate-300 rounded-full" : "text-slate-600 dark:text-slate-400 rounded-lg"}`}`}>
                 {tab === "active" ? `Activos (${activeBaseItems.length})` : `Historial (${completedItems.length})`}
               </button>
             ))}
           </div>
           {activeTab === "active" && (
-            <div className={`mt-3 flex items-center justify-between border px-3 py-2 ${focusExperienceEnabled ? "rounded-[22px] border-[#074738]/10 bg-white/90 dark:border-slate-800 dark:bg-slate-900/70" : "rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/70"}`}>
+            <div className={`mt-3 flex items-center justify-between border px-3 py-2 ${focusExperienceEnabled ? "rounded-[22px] border-[#074738]/10 bg-white/90 dark:border-slate-800 dark:bg-slate-900/70" : "rounded-xl border-slate-200 dark:border-slate-800 bg-[#F0FAF9] dark:bg-slate-900/70"}`}>
               <div>
                 <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Mostrar vencidos</p>
                 <p className="text-[11px] text-slate-500">{expiredItems.length} tratamiento(s) vencido(s)</p>
@@ -722,8 +721,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
               <button
                 onClick={() => setShowExpiredInActive((prev) => !prev)}
                 className={`relative h-7 w-12 rounded-full transition-colors ${showExpiredInActive ? "bg-red-500" : "bg-slate-300 dark:bg-slate-700"}`}
-                aria-label="Mostrar vencidos"
-              >
+                aria-label="Mostrar vencidos">
                 <span
                   className={`absolute top-0.5 size-6 rounded-full bg-white shadow transition-transform ${showExpiredInActive ? "translate-x-5" : "translate-x-0.5"}`}
                 />
@@ -731,7 +729,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
             </div>
           )}
           {editFeedback && (
-            <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+            <div className="mt-3 rounded-xl border border-emerald-200 bg-[#F0FAF9] px-3 py-2">
               <p className="text-xs font-semibold text-emerald-700">{editFeedback}</p>
             </div>
           )}
@@ -739,15 +737,14 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
 
         {/* List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {activeTab === "active" && reminderPills.length > 0 && (
-            <div className={`${focusExperienceEnabled ? "rounded-[24px]" : "rounded-2xl"} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3`}>
+          {activeTab === "active" && reminderPills.length> 0 && (
+            <div className={`${focusExperienceEnabled ? "rounded-[24px]" : "rounded-[16px]"} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3`}>
               <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 mb-2">Recordatorios de hoy</p>
               <div className="flex flex-wrap gap-1.5">
                 {reminderPills.map((pill) => (
                   <span
                     key={pill.id}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#074738]/10 text-[#074738] text-[11px] font-semibold"
-                  >
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#074738]/10 text-[#074738] text-[11px] font-semibold">
                     <MaterialIcon name="schedule" className="text-sm" />
                     <span className="max-w-[150px] truncate">{pill.name}</span>
                     <span className="text-[10px] font-black">{pill.when}</span>
@@ -775,11 +772,9 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
               const needsReview = item.event.requiresManualConfirmation || item.event.workflowStatus === "review_required" || item.event.workflowStatus === "invalid_future_date" || item.event.status === "draft";
 
               return (
-                <motion.div
+                <div
                   key={item.id}
-                  ref={highlightEventId === item.event.id ? highlightRef : undefined}
-                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                  className={`bg-white dark:bg-slate-900 rounded-2xl border shadow-sm overflow-hidden transition-all ${
+                  ref={highlightEventId === item.event.id ? highlightRef : undefined} className={`bg-white dark:bg-slate-900 rounded-[16px] border shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden transition-all ${
                     highlightEventId === item.event.id
                       ? "border-amber-400 ring-2 ring-amber-300/50"
                       : "border-slate-200 dark:border-slate-800"
@@ -805,15 +800,13 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                         <button
                           onClick={() => openEdit(item)}
                           className="size-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                          title="Editar"
-                        >
+                          title="Editar">
                           <MaterialIcon name="edit" className="text-sm text-slate-500" />
                         </button>
                         <button
                           onClick={() => { setDeletingItem(item); setDeleteStage("confirm"); }}
                           className="size-7 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
-                          title="Eliminar"
-                        >
+                          title="Eliminar">
                           <MaterialIcon name="delete" className="text-sm text-red-500" />
                         </button>
                       </div>
@@ -829,18 +822,18 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
 
                     {/* Dosis + Frecuencia */}
                     <div className="grid grid-cols-2 gap-2 mb-3">
-                      <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
+                      <div className="bg-[#F0FAF9] dark:bg-slate-800 rounded-xl p-3">
                         <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Dosis</p>
                         <p className="text-sm font-bold text-slate-900 dark:text-white">{item.dosage}</p>
                       </div>
-                      <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
+                      <div className="bg-[#F0FAF9] dark:bg-slate-800 rounded-xl p-3">
                         <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Frecuencia</p>
                         <p className="text-sm font-bold text-slate-900 dark:text-white">{item.frequency}</p>
                       </div>
                     </div>
 
                     {/* Fechas y duración */}
-                    <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 mb-3 space-y-1.5">
+                    <div className="bg-[#F0FAF9] dark:bg-slate-800 rounded-xl p-3 mb-3 space-y-1.5">
                       <div className="flex justify-between text-xs">
                         <span className="text-slate-400">Inicio</span>
                         <span className="font-semibold text-slate-700 dark:text-slate-300">{formatDate(item.startDate)}</span>
@@ -856,7 +849,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                             <span className="text-slate-400">Fin estimado</span>
                             <span className="font-semibold text-slate-700 dark:text-slate-300">{formatDate(item.endDate)}</span>
                           </div>
-                          {item.daysLeft !== null && item.daysLeft > 0 && (
+                          {item.daysLeft !== null && item.daysLeft> 0 && (
                             <div className="flex justify-between text-xs">
                               <span className="text-slate-400">Días restantes</span>
                               <span className={`font-bold ${item.daysLeft <= 7 ? "text-amber-500" : "text-[#074738]"}`}>
@@ -908,7 +901,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                     </div>
 
                     {(item.status === "active" || item.status === "chronic") && (
-                      <div className="mb-3 p-3 rounded-xl bg-emerald-50/70 border border-emerald-100">
+                      <div className="mb-3 p-3 rounded-xl bg-[#F0FAF9]/70 border border-emerald-100">
                         <div className="flex items-center justify-between text-xs mb-2">
                           <span className="text-slate-500">Última dosis</span>
                           <span className="font-semibold text-slate-700">{formatDoseMoment(item.lastDoseAt)}</span>
@@ -920,8 +913,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                         {!needsReview && (
                           <button
                             onClick={() => void registerDoseNow(item)}
-                            className="w-full py-2 rounded-xl bg-[#074738] text-white text-xs font-bold hover:bg-[#245ecf] transition-colors"
-                          >
+                            className="w-full py-2 rounded-xl bg-[#074738] text-white text-xs font-bold hover:bg-[#245ecf] transition-colors">
                             Marcar dosis dada ahora
                           </button>
                         )}
@@ -935,8 +927,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                           <button
                             onClick={() => confirmMedicationEvent(item.event)}
                             disabled={Boolean(confirmingByEvent[item.event.id])}
-                            className="flex-1 px-3 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold disabled:opacity-60"
-                          >
+                            className="flex-1 px-3 py-2 rounded-xl bg-[#1A9B7D] text-white text-xs font-bold disabled:opacity-60">
                             {confirmingByEvent[item.event.id] ? "Confirmando..." : "Confirmar tratamiento"}
                           </button>
                         </div>
@@ -956,8 +947,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                               treatmentNotes: [...(item.event.treatmentNotes || []), note],
                             });
                           }}
-                          className="w-full mb-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                        >
+                          className="w-full mb-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1.5 hover:bg-[#F0FAF9] dark:hover:bg-slate-800 transition-colors">
                           <MaterialIcon name="check_circle" className="text-sm text-slate-400" />
                           Ya no lo toma — marcar como finalizado
                         </button>
@@ -969,13 +959,10 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                         <MaterialIcon name={isExpanded ? "keyboard_arrow_up" : "keyboard_arrow_down"} className="text-xl" />
                       </button>
 
-                      <AnimatePresence>
-                        {isExpanded && (
-                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                      {isExpanded && (<div className="overflow-hidden">
                             <div className="mt-3 space-y-2">
                               {(item.event.treatmentNotes || []).map((note) => (
-                                <div key={note.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                                <div key={note.id} className="p-3 rounded-xl bg-[#F0FAF9] dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                                   <div className="flex items-center justify-between mb-1">
                                     <span className="text-[10px] uppercase tracking-wide font-black text-[#074738]">
                                       {NOTE_LABELS[note.interpretedAs]}
@@ -999,12 +986,11 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                                 </button>
                               </div>
                             </div>
-                          </motion.div>
+                          </div>
                         )}
-                      </AnimatePresence>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               );
             })
           )}
@@ -1013,17 +999,11 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
     </div>
 
     {/* ─── MODAL EDITAR ─────────────────────────────────────────────────── */}
-    <AnimatePresence>
-      {editingItem && (
-        <>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => setEditingItem(null)}
-            className="fixed inset-0 bg-black/60 z-50" />
-          <motion.div
-            initial={{ opacity: 0, y: "100%" }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl p-6 shadow-xl"
-          >
+    {editingItem && (
+      <>
+        <div onClick={() => setEditingItem(null)}
+          className="fixed inset-0 bg-black/60 z-50 animate-fadeIn" />
+        <div className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl p-6 shadow-xl animate-slideUp">
             <div className="w-10 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-5" />
             <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1">{editingItem.medicationName}</h3>
             <p className="text-xs text-slate-500 mb-5">Editá los datos que quieras corregir</p>
@@ -1071,23 +1051,16 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                 {savingEdit ? "Guardando..." : "Guardar cambios"}
               </button>
             </div>
-          </motion.div>
+          </div>
         </>
       )}
-    </AnimatePresence>
 
     {/* ─── MODAL BORRAR ─────────────────────────────────────────────────── */}
-    <AnimatePresence>
-      {deletingItem && (
-        <>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={() => !deletingInProgress && setDeletingItem(null)}
-            className="fixed inset-0 bg-black/60 z-50" />
-          <motion.div
-            initial={{ opacity: 0, y: "100%" }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl p-6 shadow-xl"
-          >
+    {deletingItem && (
+      <>
+        <div onClick={() => !deletingInProgress && setDeletingItem(null)}
+          className="fixed inset-0 bg-black/60 z-50 animate-fadeIn" />
+        <div className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl p-6 shadow-xl animate-slideUp">
             <div className="w-10 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-5" />
 
             {deleteStage === "confirm" ? (
@@ -1124,33 +1097,29 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                   <button
                     onClick={() => confirmDelete(deletingItem, true, false)}
                     disabled={deletingInProgress}
-                    className="w-full py-3.5 rounded-xl border border-[#074738]/30 bg-[#074738]/5 text-[#074738] text-sm font-bold flex items-center gap-2 justify-center disabled:opacity-60"
-                  >
+                    className="w-full py-3.5 rounded-xl border border-[#074738]/30 bg-[#074738]/5 text-[#074738] text-sm font-bold flex items-center gap-2 justify-center disabled:opacity-60">
                     <MaterialIcon name="notifications" className="text-lg" />
                     Crear recordatorio en PESSY
                   </button>
                   <button
                     onClick={() => confirmDelete(deletingItem, false, true)}
                     disabled={deletingInProgress}
-                    className="w-full py-3.5 rounded-xl border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-400 text-sm font-bold flex items-center gap-2 justify-center disabled:opacity-60"
-                  >
+                    className="w-full py-3.5 rounded-xl border border-emerald-200 bg-[#F0FAF9] dark:bg-emerald-950/30 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-400 text-sm font-bold flex items-center gap-2 justify-center disabled:opacity-60">
                     <MaterialIcon name="event" className="text-lg" />
                     Agregar al calendario (.ics)
                   </button>
                   <button
                     onClick={() => confirmDelete(deletingItem, false, false)}
                     disabled={deletingInProgress}
-                    className="w-full py-3 rounded-xl text-slate-500 text-sm font-bold disabled:opacity-60"
-                  >
+                    className="w-full py-3 rounded-xl text-slate-500 text-sm font-bold disabled:opacity-60">
                     {deletingInProgress ? "Eliminando..." : "Eliminar sin crear registro"}
                   </button>
                 </div>
               </>
             )}
-          </motion.div>
+          </div>
         </>
       )}
-      </AnimatePresence>
     </>
   );
 }

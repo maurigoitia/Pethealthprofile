@@ -1,5 +1,4 @@
 import React, { useEffect } from "react";
-import { motion } from "motion/react";
 import { 
   Shield, 
   FileText, 
@@ -75,20 +74,18 @@ export default function LegalPage() {
             <Logo className="size-10 transition-transform group-hover:scale-105" color="#074738" />
             <span
               className="text-2xl font-extrabold tracking-tight text-[#074738]"
-              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-            >
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
               Pessy
             </span>
           </Link>
 
           <div className="hidden lg:flex items-center gap-10">
             {sections.map((section, i) => (
-              <a 
-                key={i} 
-                href={`#${section.id}`} 
-                className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#5e716b] transition-colors hover:text-[#074738]"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
+              <a
+                key={i}
+                href={`#${section.id}`}
+                className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#9CA3AF] transition-colors hover:text-[#074738]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 {section.label}
               </a>
             ))}
@@ -97,8 +94,7 @@ export default function LegalPage() {
           <Link
             to="/inicio"
             className="rounded-full bg-[#074738] px-8 py-3 text-[10px] font-bold uppercase tracking-[0.22em] text-white transition-all hover:scale-[1.02]"
-            style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-          >
+            style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
             Entrar
           </Link>
         </nav>
@@ -107,51 +103,31 @@ export default function LegalPage() {
       <main className="relative z-10 pt-20">
         <section className="relative pt-24 pb-20 px-6">
           <div className="max-w-7xl mx-auto text-center space-y-8">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 rounded-full border border-[#dfe6e2] bg-white px-4 py-1.5 text-[#074738]"
-            >
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#dfe6e2] bg-white px-4 py-1.5 text-[#074738]">
               <div className="size-1.5 rounded-full bg-[#074738]" />
               <span
                 className="text-[10px] font-bold uppercase tracking-[0.22em]"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 Legal y privacidad
               </span>
-            </motion.div>
+            </div>
 
-            <motion.h1 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-5xl md:text-7xl font-extrabold leading-[1.05] tracking-tight text-[#002f24]"
-              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-            >
+            <h1 className="text-5xl md:text-7xl font-extrabold leading-[1.05] tracking-tight text-[#074738]"
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
               Privacidad,
               <br />
               <span className="text-[#5048ca]">
                 terminos y datos.
               </span>
-            </motion.h1>
+            </h1>
 
-            <motion.p 
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="mx-auto max-w-2xl text-xl font-medium leading-relaxed text-[#404945]"
-            >
+            <p className="mx-auto max-w-2xl text-xl font-medium leading-relaxed text-[#404945]">
               Toda la informacion legal de Pessy, en un solo lugar.
-            </motion.p>
+            </p>
 
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="inline-block rounded-full border border-[#dfe6e2] bg-white px-4 py-1.5"
-            >
+            <div className="inline-block rounded-full border border-[#dfe6e2] bg-white px-4 py-1.5">
               <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#707975]">Ultima actualizacion: Marzo 2026</span>
-            </motion.div>
+            </div>
           </div>
         </section>
 
@@ -220,8 +196,7 @@ export default function LegalPage() {
           id="privacidad" 
           title="Politica de Privacidad" 
           meta="Ultima actualizacion: Marzo 2026 · Vigente en AR, MX, UE, USA, CA"
-          onBackTop={scrollToTop}
-        >
+          onBackTop={scrollToTop}>
           <SectionTitle>1. Responsable del Tratamiento</SectionTitle>
           <p>Pessy es un ecosistema digital para mascotas. El tratamiento de datos personales se realiza con el fin de proveer una plataforma centralizada para tutores, co-tutores y actores del sector pet care.</p>
           <HighlightBox>
@@ -290,8 +265,7 @@ export default function LegalPage() {
           id="terminos" 
           title="Terminos y Condiciones de Uso" 
           meta="Ultima actualizacion: Marzo 2026"
-          onBackTop={scrollToTop}
-        >
+          onBackTop={scrollToTop}>
           <SectionTitle>1. Aceptacion</SectionTitle>
           <p>Al acceder o utilizar Pessy, aceptas cumplir con estos Terminos y Condiciones. Si no estas de acuerdo con alguna parte de los mismos, no podras utilizar el servicio.</p>
 
@@ -315,8 +289,7 @@ export default function LegalPage() {
           id="dpa" 
           title="Acuerdo de Procesamiento (DPA)" 
           meta="Version 1.0 · Marzo 2026"
-          onBackTop={scrollToTop}
-        >
+          onBackTop={scrollToTop}>
           <p className="mb-8 font-medium">Este Acuerdo de Procesamiento de Datos (<strong className="text-[#074738]">"DPA"</strong>) rige el tratamiento de Datos Personales en el marco de la provision del ecosistema Pessy.</p>
 
           <SectionTitle>1. Roles</SectionTitle>
@@ -386,8 +359,7 @@ export default function LegalPage() {
           <div>
             <div
               className="text-lg font-bold text-[#f1f7f4]"
-              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-            >
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
               Pessy
             </div>
             <p className="mt-1 text-xs text-[#cfe0da]">
@@ -418,8 +390,7 @@ function Card({ href, icon, title, desc }: { href: string; icon: React.ReactNode
   return (
     <a 
       href={href}
-      className="group bg-white p-10 rounded-[3rem] border border-slate-100 hover:border-[#074738] transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/10 flex flex-col gap-8"
-    >
+      className="group bg-white p-10 rounded-[3rem] border border-slate-100 hover:border-[#074738] transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-500/10 flex flex-col gap-8">
       <div className="size-14 rounded-2xl bg-emerald-50 text-[#1A9B7D] flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
         {icon}
       </div>

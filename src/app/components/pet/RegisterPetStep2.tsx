@@ -111,12 +111,12 @@ export function RegisterPetStep2() {
     >
       <div className="mb-6">
         <h2
-          className="text-3xl font-extrabold tracking-tight text-[#002f24]"
+          className="text-3xl font-extrabold tracking-tight text-[#074738]"
           style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
         >
           Registrar mascota
         </h2>
-        <p className="mt-2 text-sm font-medium text-[#5e716b]">Paso 2 de 2</p>
+        <p className="mt-2 text-sm font-medium text-[#9CA3AF]">Paso 2 de 2</p>
       </div>
 
       <div className="space-y-5">
@@ -124,7 +124,7 @@ export function RegisterPetStep2() {
             <button
               type="button"
               onClick={handlePhotoClick}
-              className="relative h-28 w-28 rounded-full border-2 border-dashed border-[#074738]/40 bg-[#074738]/10 overflow-hidden"
+              className="relative h-28 w-28 rounded-full border-2 border-dashed border-[#1A9B7D]/40 bg-[#E0F2F1] overflow-hidden"
             >
               <img src={photoPreview} alt="Foto mascota" className="h-full w-full object-cover" />
             </button>
@@ -148,14 +148,14 @@ export function RegisterPetStep2() {
             <button
               type="button"
               onClick={() => cameraInputRef.current?.click()}
-              className="rounded-full border border-[#074738] py-3 text-sm font-bold uppercase tracking-[0.16em] text-[#074738] transition-all hover:bg-[#f4f3f9]"
+              className="rounded-[14px] border border-[#1A9B7D] py-3 text-sm font-bold uppercase tracking-[0.16em] text-[#1A9B7D] transition-all hover:bg-[#E0F2F1]"
             >
               Tomar foto
             </button>
             <button
               type="button"
               onClick={() => galleryInputRef.current?.click()}
-              className="rounded-full border border-[#dfe6e2] py-3 text-sm font-bold uppercase tracking-[0.16em] text-[#36584e] transition-all hover:bg-[#f4f3f9]"
+              className="rounded-[14px] border border-[#E0F2F1] py-3 text-sm font-bold uppercase tracking-[0.16em] text-[#9CA3AF] transition-all hover:bg-[#F0FAF9]"
             >
               Elegir foto
             </button>
@@ -167,16 +167,16 @@ export function RegisterPetStep2() {
             placeholder="Peso aproximado (kg)"
             value={formData.weight}
             onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
+            className="w-full px-4 py-4 rounded-[12px] border border-slate-200 focus:ring-2 focus:ring-[#1A9B7D] outline-none"
           />
 
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setFormData({ ...formData, sex: "male" })}
-              className={`py-3 rounded-2xl border-2 font-bold transition-colors ${
+              className={`py-3 rounded-[12px] border-2 font-bold transition-colors ${
                 formData.sex === "male"
-                  ? "border-[#074738] bg-[#074738]/5 text-[#074738]"
+                  ? "border-[#1A9B7D] bg-[#E0F2F1] text-[#1A9B7D]"
                   : "border-slate-200 text-slate-600"
               }`}
             >
@@ -185,9 +185,9 @@ export function RegisterPetStep2() {
             <button
               type="button"
               onClick={() => setFormData({ ...formData, sex: "female" })}
-              className={`py-3 rounded-2xl border-2 font-bold transition-colors ${
+              className={`py-3 rounded-[12px] border-2 font-bold transition-colors ${
                 formData.sex === "female"
-                  ? "border-[#074738] bg-[#074738]/5 text-[#074738]"
+                  ? "border-[#1A9B7D] bg-[#E0F2F1] text-[#1A9B7D]"
                   : "border-slate-200 text-slate-600"
               }`}
             >
@@ -195,13 +195,13 @@ export function RegisterPetStep2() {
             </button>
           </div>
 
-          <label className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3">
+          <label className="flex items-center justify-between rounded-[12px] border border-slate-200 px-4 py-3">
             <span className="text-slate-700 font-medium">¿Está esterilizado/a?</span>
             <input
               type="checkbox"
               checked={formData.isNeutered}
               onChange={(e) => setFormData({ ...formData, isNeutered: e.target.checked })}
-              className="h-4 w-4 accent-[#074738]"
+              className="h-4 w-4 accent-[#1A9B7D]"
             />
           </label>
 
@@ -211,7 +211,7 @@ export function RegisterPetStep2() {
             type="button"
             onClick={handleFinish}
             disabled={isSubmitting || isPreparingPhoto || authLoading || !user}
-            className="w-full rounded-full bg-[#074738] py-4 text-sm font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60"
+            className="w-full rounded-[14px] bg-[#1A9B7D] py-4 text-sm font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60"
           >
             {authLoading
               ? "Verificando sesión..."
@@ -225,7 +225,7 @@ export function RegisterPetStep2() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="w-full rounded-full border border-[#dfe6e2] py-4 text-sm font-bold uppercase tracking-[0.16em] text-[#074738] transition-all hover:bg-[#f4f3f9]"
+            className="w-full rounded-[14px] border border-[#E0F2F1] py-4 text-sm font-bold uppercase tracking-[0.16em] text-[#074738] transition-all hover:bg-[#F0FAF9]"
           >
             Volver
           </button>

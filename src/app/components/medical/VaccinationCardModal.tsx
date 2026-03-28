@@ -1,4 +1,3 @@
-import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { PetPhoto } from "../pet/PetPhoto";
 import { loadJsPdf, savePdfWithFallback } from "../../utils/pdfExport";
@@ -144,21 +143,18 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
   const hasOverdue = vaccines.some(v => v.status === "overdue");
   const hasDueSoon = vaccines.some(v => v.status === "due-soon");
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/70 backdrop-blur-md z-[60]" />
+  if (!isOpen) return null;
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-4 z-[60] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-w-md mx-auto my-auto max-h-[90vh]"
-          >
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-black/70 backdrop-blur-md z-[60] animate-fadeIn"
+      />
+
+      {/* Modal */}
+      <div className="fixed inset-4 z-[60] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-w-md mx-auto my-auto max-h-[90vh] animate-slideUp">
             {/* Header */}
             <div className="px-6 pt-5 pb-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
               <div>
@@ -306,9 +302,7 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
                 WhatsApp
               </button>
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+      </div>
+    </>
   );
 }

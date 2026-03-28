@@ -204,8 +204,8 @@ function WeatherPill({
     >
       <span className="text-[16px] leading-none" role="img">{emoji}</span>
       <div className="min-w-0">
-        <p className="text-[12px] font-[800] text-[#002f24] leading-none">{value}</p>
-        <p className="text-[10px] text-[#9ca8a2] leading-none mt-0.5">{label}</p>
+        <p className="text-[12px] font-[800] text-[#074738] leading-none">{value}</p>
+        <p className="text-[10px] text-[#9CA3AF] leading-none mt-0.5">{label}</p>
       </div>
     </div>
   );
@@ -625,7 +625,7 @@ export function PetHomeView({
                 className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
                   pet.id === activePetId
                     ? "bg-[#074738] text-white"
-                    : "bg-white text-[#5e716b] border border-[#eef0ee]"
+                    : "bg-white text-[#9CA3AF] border border-[#eef0ee]"
                 }`}
               >
                 {pet.name}
@@ -709,10 +709,10 @@ export function PetHomeView({
         ) : currentRoutineItems === null ? (
           <div className="mx-3 mt-2">
             <div className="rounded-[16px] border border-[#eef0ee] bg-white flex items-center gap-3" style={{ padding: "14px 16px" }}>
-              <span className="text-[#002f24]">
+              <span className="text-[#074738]">
                 <MaterialIcon name="bedtime" className="!text-[22px]" />
               </span>
-              <span className="text-[13px] font-[800] text-[#002f24]">
+              <span className="text-[13px] font-[800] text-[#074738]">
                 {activePet.name} ya descansa. Mañana seguimos.
               </span>
             </div>

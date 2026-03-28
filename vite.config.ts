@@ -76,7 +76,7 @@ export default defineConfig({
         // so React Router handles client-side routing.
         // In our dual-page setup, app.html is the React SPA entry point
         // while index.html is the static marketing landing page.
-        navigateFallback: '/app.html',
+        navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//, /^\/offline\.html$/],
         runtimeCaching: [
           {

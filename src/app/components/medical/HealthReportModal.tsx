@@ -1,4 +1,3 @@
-import { AnimatePresence, motion } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { useMemo } from "react";
 import { usePet } from "../../contexts/PetContext";
@@ -90,25 +89,18 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
     };
   }, [activePet, getActiveMedicationsByPetId, getEventsByPetId, getPendingActionsByPetId]);
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/60 z-[100]"
-          />
+  if (!isOpen) return null;
 
-          <motion.div
-            initial={{ opacity: 0, y: "100%" }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-0 z-[101] bg-[#f6f6f8] dark:bg-[#101622] overflow-y-auto"
-          >
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        className="fixed inset-0 bg-black/60 z-[100] animate-fadeIn"
+      />
+
+      {/* Modal */}
+      <div className="fixed inset-0 z-[101] bg-[#F0FAF9] dark:bg-[#101622] overflow-y-auto animate-slideUp">
             <div className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800 px-4 py-4">
               <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -130,18 +122,18 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
 
             <main className="max-w-4xl mx-auto p-4 md:p-6 space-y-4 pb-24">
               {!activePet || !reportData ? (
-                <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 text-center">
+                <div className="bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 p-6 text-center">
                   <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">Sin mascota activa</h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400">Selecciona una mascota para ver el reporte.</p>
                 </div>
               ) : (
                 <>
-                  <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 md:p-5">
+                  <section className="bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 p-4 md:p-5">
                     <div className="flex items-center gap-3 mb-4">
                       <PetPhoto
                         src={activePet.photo}
                         alt={activePet.name}
-                        className="size-16 rounded-2xl object-cover border border-slate-200 dark:border-slate-800"
+                        className="size-16 rounded-[16px] object-cover border border-slate-200 dark:border-slate-800"
                         fallbackClassName="rounded-2xl"
                       />
                       <div>
@@ -153,26 +145,26 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3">
+                      <div className="rounded-xl bg-[#F0FAF9] dark:bg-slate-800 p-3">
                         <p className="text-[11px] uppercase tracking-wide text-slate-500">Eventos</p>
                         <p className="text-lg font-black text-slate-900 dark:text-white">{reportData.events.length}</p>
                       </div>
-                      <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3">
+                      <div className="rounded-xl bg-[#F0FAF9] dark:bg-slate-800 p-3">
                         <p className="text-[11px] uppercase tracking-wide text-slate-500">Vacunas</p>
                         <p className="text-lg font-black text-slate-900 dark:text-white">{reportData.vaccines.length}</p>
                       </div>
-                      <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3">
+                      <div className="rounded-xl bg-[#F0FAF9] dark:bg-slate-800 p-3">
                         <p className="text-[11px] uppercase tracking-wide text-slate-500">Pendientes</p>
                         <p className="text-lg font-black text-slate-900 dark:text-white">{reportData.pendingActions.length}</p>
                       </div>
-                      <div className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3">
+                      <div className="rounded-xl bg-[#F0FAF9] dark:bg-slate-800 p-3">
                         <p className="text-[11px] uppercase tracking-wide text-slate-500">Tratamientos</p>
                         <p className="text-lg font-black text-slate-900 dark:text-white">{reportData.activeMedications.length}</p>
                       </div>
                     </div>
                   </section>
 
-                  <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 md:p-5">
+                  <section className="bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 p-4 md:p-5">
                     <h4 className="text-sm font-black uppercase tracking-wide text-slate-500 mb-3">Historial de peso</h4>
                     {reportData.weightHistory.length === 0 ? (
                       <p className="text-sm text-slate-500 dark:text-slate-400">Sin registros de peso.</p>
@@ -181,7 +173,7 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                         {reportData.weightHistory.map((entry: any) => (
                           <div
                             key={entry.date}
-                            className="flex items-center justify-between rounded-xl bg-slate-50 dark:bg-slate-800 px-3 py-2"
+                            className="flex items-center justify-between rounded-xl bg-[#F0FAF9] dark:bg-slate-800 px-3 py-2"
                           >
                             <span className="text-sm text-slate-600 dark:text-slate-300">{formatDate(entry.date)}</span>
                             <span className="text-sm font-black text-slate-900 dark:text-white">{entry.weight} kg</span>
@@ -191,14 +183,14 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                     )}
                   </section>
 
-                  <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 md:p-5">
+                  <section className="bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 p-4 md:p-5">
                     <h4 className="text-sm font-black uppercase tracking-wide text-slate-500 mb-3">Vacunas registradas</h4>
                     {reportData.vaccines.length === 0 ? (
                       <p className="text-sm text-slate-500 dark:text-slate-400">Sin vacunas registradas.</p>
                     ) : (
                       <div className="space-y-2">
                         {reportData.vaccines.slice(0, 8).map((event) => (
-                          <div key={event.id} className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3">
+                          <div key={event.id} className="rounded-xl bg-[#F0FAF9] dark:bg-slate-800 p-3">
                             <p className="text-sm font-bold text-slate-900 dark:text-white">{event.title}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                               {formatDate(event.extractedData.eventDate || event.createdAt)}
@@ -212,14 +204,14 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                     )}
                   </section>
 
-                  <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 md:p-5">
+                  <section className="bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 p-4 md:p-5">
                     <h4 className="text-sm font-black uppercase tracking-wide text-slate-500 mb-3">Tratamientos activos</h4>
                     {reportData.activeMedications.length === 0 ? (
                       <p className="text-sm text-slate-500 dark:text-slate-400">No hay tratamientos activos.</p>
                     ) : (
                       <div className="space-y-2">
                         {reportData.activeMedications.map((medication) => (
-                          <div key={medication.id} className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3">
+                          <div key={medication.id} className="rounded-xl bg-[#F0FAF9] dark:bg-slate-800 p-3">
                             <p className="text-sm font-bold text-slate-900 dark:text-white">{medication.name}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                               {medication.dosage || "Dosis no especificada"}
@@ -232,14 +224,14 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                     )}
                   </section>
 
-                  <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 md:p-5">
+                  <section className="bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 p-4 md:p-5">
                     <h4 className="text-sm font-black uppercase tracking-wide text-slate-500 mb-3">Historial cronologico</h4>
                     {reportData.timeline.length === 0 ? (
                       <p className="text-sm text-slate-500 dark:text-slate-400">Todavia no hay documentos en el historial.</p>
                     ) : (
                       <div className="space-y-2">
                         {reportData.timeline.map((row) => (
-                          <div key={row.id} className="rounded-xl bg-slate-50 dark:bg-slate-800 p-3">
+                          <div key={row.id} className="rounded-xl bg-[#F0FAF9] dark:bg-slate-800 p-3">
                             <div className="flex items-start justify-between gap-3">
                               <div>
                                 <p className="text-sm font-bold text-slate-900 dark:text-white">{row.title}</p>
@@ -252,7 +244,7 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                                   href={row.documentUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-[11px] font-bold text-[#074738]"
+                                  className="text-[11px] font-bold text-[#1A9B7D]"
                                 >
                                   Ver
                                 </a>
@@ -267,9 +259,7 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
                 </>
               )}
             </main>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+      </div>
+    </>
   );
 }

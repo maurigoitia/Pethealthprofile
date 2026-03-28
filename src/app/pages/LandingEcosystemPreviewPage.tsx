@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { AnimatePresence, motion } from "motion/react";
 import { Camera, Check, ExternalLink, Linkedin, Mail, Shield } from "lucide-react";
 import { SEO } from "../components/shared/SEO";
 import { Logo } from "../components/shared/Logo";
@@ -49,7 +48,7 @@ const pricingPlans = [
     period: "para siempre",
     features: ["1 mascota", "perfil digital", "documentos", "carnet digital"],
     cta: "Elegir base",
-    tone: "bg-white border border-[#dfe6e2] text-[#002f24]",
+    tone: "bg-white border border-[#dfe6e2] text-[#074738]",
   },
   {
     name: "PREMIUM",
@@ -65,7 +64,7 @@ const pricingPlans = [
     period: "mensual",
     features: ["hasta 4 mascotas", "todo de Premium", "compras compartidas"],
     cta: "Quiero familiar",
-    tone: "bg-white border border-[#dfe6e2] text-[#002f24]",
+    tone: "bg-white border border-[#dfe6e2] text-[#074738]",
   },
 ];
 
@@ -321,16 +320,14 @@ export default function LandingEcosystemPreviewPage() {
             <Logo className="size-8" color="#074738" />
             <span
               className="text-2xl font-extrabold tracking-tight text-[#074738]"
-              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-            >
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
               Pessy
             </span>
           </Link>
 
           <div
             className="hidden items-center gap-8 text-sm font-bold tracking-tight text-[#36584e] md:flex"
-            style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-          >
+            style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
             <a href="#identidad" className="transition-colors hover:text-[#074738]">Identidad</a>
             <a href="#como-funciona" className="transition-colors hover:text-[#074738]">Como funciona</a>
             <a href="#planes" className="transition-colors hover:text-[#074738]">Planes</a>
@@ -345,19 +342,12 @@ export default function LandingEcosystemPreviewPage() {
           </button>
         </div>
 
-        <AnimatePresence>
+        
           {mobileMenuOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden border-t border-[#d8e4de] bg-white/95 backdrop-blur-xl md:hidden"
-            >
+            <div className="overflow-hidden border-t border-[#d8e4de] bg-white/95 backdrop-blur-xl md:hidden">
               <div
                 className="flex flex-col gap-4 px-6 py-5 text-base font-bold tracking-tight text-[#36584e]"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 <a href="#identidad" onClick={() => setMobileMenuOpen(false)} className="transition-colors hover:text-[#074738]">Identidad</a>
                 <a href="#como-funciona" onClick={() => setMobileMenuOpen(false)} className="transition-colors hover:text-[#074738]">Como funciona</a>
                 <a href="#planes" onClick={() => setMobileMenuOpen(false)} className="transition-colors hover:text-[#074738]">Planes</a>
@@ -366,81 +356,55 @@ export default function LandingEcosystemPreviewPage() {
                   Entrar
                 </Link>
               </div>
-            </motion.div>
+            </div>
           )}
-        </AnimatePresence>
+        
       </nav>
 
       <main className="pt-28">
         <section className="overflow-hidden px-6 pb-20 pt-6">
           <div className="mx-auto grid max-w-7xl items-center gap-14 md:grid-cols-12">
             <div className="md:col-span-7">
-              <motion.span
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 inline-block rounded-full bg-[#e3dfff] px-4 py-1.5 text-xs font-bold tracking-[0.24em] text-[#100069]"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
+              <span className="mb-6 inline-block rounded-full bg-[#e3dfff] px-4 py-1.5 text-xs font-bold tracking-[0.24em] text-[#100069]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 ECOSISTEMA DIGITAL
-              </motion.span>
+              </span>
 
-              <motion.h1
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 }}
-                className="mb-6 text-5xl font-extrabold leading-[1.06] tracking-tight text-[#002f24] md:text-7xl"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
+              <h1 className="mb-6 text-5xl font-extrabold leading-[1.06] tracking-tight text-[#074738] md:text-7xl"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 Tu mascota, sus cosas,
                 <br />
                 <span className="text-[#5048ca]">todo en orden.</span>
-              </motion.h1>
+              </h1>
 
-              <motion.p
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="mb-10 max-w-2xl text-xl font-medium leading-relaxed text-[#404945]"
-              >
+              <p className="mb-10 max-w-2xl text-xl font-medium leading-relaxed text-[#404945]">
                 Paseos, cuidados, compras, visitas y papeles. Pessy te va diciendo que ya esta,
                 que falta y que se viene.
-              </motion.p>
+              </p>
 
-              <motion.div
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.15 }}
-                className="mb-10 flex flex-col gap-4 sm:flex-row"
-              >
+              <div className="mb-10 flex flex-col gap-4 sm:flex-row">
                 <button
                   type="button"
                   onClick={handlePrimaryEntry}
                   className="rounded-full bg-[#074738] px-8 py-4 text-center text-lg font-bold text-white transition-transform hover:scale-[1.02]"
-                  style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-                >
+                  style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                   Probar ahora
                 </button>
                 <a
                   href="#como-funciona"
                   onClick={handleHowItWorksClick}
                   className="flex items-center justify-center gap-2 rounded-full bg-[#f4f3f9] px-8 py-4 text-lg font-bold text-[#074738] transition-colors hover:bg-[#e8e7ed]"
-                  style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-                >
+                  style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                   Ver como funciona
                   <MaterialIcon name="play_circle" className="text-xl" />
                 </a>
-              </motion.div>
+              </div>
 
               {showInAppWarning && (
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mb-8 max-w-xl rounded-[2rem] border border-[#f2d08c] bg-[#fff7e8] p-5 text-left shadow-[0_24px_48px_-24px_rgba(0,47,36,0.12)]"
-                >
+                <div className="mb-8 max-w-xl rounded-[2rem] border border-[#f2d08c] bg-[#fff7e8] p-5 text-left shadow-[0_24px_48px_-24px_rgba(0,47,36,0.12)]">
                   <p
                     className="text-sm font-bold uppercase tracking-[0.18em] text-[#8b5e00]"
-                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-                  >
+                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                     Abrilo en tu navegador
                   </p>
                   <p className="mt-2 text-sm leading-6 text-[#5a4a24]">
@@ -451,35 +415,27 @@ export default function LandingEcosystemPreviewPage() {
                     <button
                       type="button"
                       onClick={handleOpenInBrowser}
-                      className="rounded-full bg-[#074738] px-5 py-3 text-sm font-bold uppercase tracking-[0.16em] text-white"
-                    >
+                      className="rounded-full bg-[#074738] px-5 py-3 text-sm font-bold uppercase tracking-[0.16em] text-white">
                       Abrir en navegador
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowInAppWarning(false)}
-                      className="rounded-full border border-[#d7c7a0] px-5 py-3 text-sm font-bold uppercase tracking-[0.16em] text-[#8b5e00]"
-                    >
+                      className="rounded-full border border-[#d7c7a0] px-5 py-3 text-sm font-bold uppercase tracking-[0.16em] text-[#8b5e00]">
                       Seguir aca
                     </button>
                   </div>
-                </motion.div>
+                </div>
               )}
 
               <span
                 className="text-[11px] font-bold uppercase tracking-[0.28em] text-[#707975]"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 PESSY TE VA DICIENDO QUE TOCA.
               </span>
             </div>
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.12 }}
-              className="relative md:col-span-5"
-            >
+            <div className="relative md:col-span-5">
               <div className="absolute inset-0 scale-150 rounded-full bg-[#074738]/6 blur-[100px]" />
 
               <div className="relative mx-auto aspect-[9/19.5] w-full max-w-[280px] rounded-[3.5rem] bg-[#0c0c0c] p-1 shadow-2xl ring-1 ring-white/10">
@@ -498,21 +454,15 @@ export default function LandingEcosystemPreviewPage() {
                         <p className="text-[10px] font-bold opacity-80">{formatDate(time)}</p>
                         <h3
                           className="text-5xl font-black tracking-tighter leading-none md:text-6xl"
-                          style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-                        >
+                          style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                           {formatTime(time)}
                         </h3>
                       </div>
 
                       <div className="relative mt-auto mb-10 h-20 w-full">
-                        <AnimatePresence mode="wait">
-                          <motion.div
-                            key={activeNotification}
-                            initial={{ y: 30, opacity: 0, scale: 0.95 }}
-                            animate={{ y: 0, opacity: 1, scale: 1 }}
-                            exit={{ y: -5, opacity: 0 }}
-                            className="absolute inset-0 rounded-[1.8rem] border border-white/15 bg-white/[0.12] p-3 backdrop-blur-xl"
-                          >
+                        
+                          <div
+                            key={activeNotification} className="absolute inset-0 rounded-[1.8rem] border border-white/15 bg-white/[0.12] p-3 backdrop-blur-xl">
                             <div className="mb-1 flex items-center justify-between">
                               <div className="flex items-center gap-1.5">
                                 <div className="flex size-4 items-center justify-center rounded bg-white p-0.5">
@@ -530,8 +480,8 @@ export default function LandingEcosystemPreviewPage() {
                                 {notifications[activeNotification].body}
                               </div>
                             </div>
-                          </motion.div>
-                        </AnimatePresence>
+                          </div>
+                        
                       </div>
 
                       <div className="mb-6 flex w-full justify-between px-2 opacity-60">
@@ -547,7 +497,7 @@ export default function LandingEcosystemPreviewPage() {
 
               <div className="absolute -bottom-10 -left-8 size-40 rounded-full bg-[#ffdad3] opacity-40 blur-3xl" />
               <div className="absolute -right-10 -top-10 size-52 rounded-full bg-[#e3dfff] opacity-25 blur-3xl" />
-            </motion.div>
+            </div>
           </div>
         </section>
 
@@ -555,9 +505,8 @@ export default function LandingEcosystemPreviewPage() {
           <div className="mx-auto max-w-7xl px-6">
             <div className="mb-14 max-w-3xl">
               <h2
-                className="mb-4 text-4xl font-extrabold tracking-tight text-[#002f24]"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
+                className="mb-4 text-4xl font-extrabold tracking-tight text-[#074738]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 Su historia comienza aqui.
               </h2>
               <p className="text-xl font-medium text-[#404945]">
@@ -573,9 +522,8 @@ export default function LandingEcosystemPreviewPage() {
               <div className="space-y-6">
                 <div className="rounded-[2rem] bg-white p-8 shadow-[0_24px_48px_-20px_rgba(0,47,36,0.1)]">
                   <h3
-                    className="mb-3 text-2xl font-bold text-[#002f24]"
-                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-                  >
+                    className="mb-3 text-2xl font-bold text-[#074738]"
+                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                     Todo organizado
                   </h3>
                   <p className="leading-relaxed text-[#404945]">
@@ -584,9 +532,8 @@ export default function LandingEcosystemPreviewPage() {
                 </div>
                 <div className="rounded-[2rem] bg-white p-8 shadow-[0_24px_48px_-20px_rgba(0,47,36,0.1)]">
                   <h3
-                    className="mb-3 text-2xl font-bold text-[#002f24]"
-                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-                  >
+                    className="mb-3 text-2xl font-bold text-[#074738]"
+                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                     Lista para compartir
                   </h3>
                   <p className="leading-relaxed text-[#404945]">
@@ -602,9 +549,8 @@ export default function LandingEcosystemPreviewPage() {
           <div className="mx-auto max-w-7xl px-6">
             <div className="mb-14 max-w-3xl">
               <h2
-                className="mb-4 text-4xl font-extrabold tracking-tight text-[#002f24]"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
+                className="mb-4 text-4xl font-extrabold tracking-tight text-[#074738]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 Ver como funciona
               </h2>
               <p className="text-xl font-medium text-[#404945]">
@@ -614,32 +560,24 @@ export default function LandingEcosystemPreviewPage() {
 
             <div className="grid gap-8 lg:grid-cols-3">
               {howItWorks.map((item, index) => (
-                <motion.article
-                  key={item.title}
-                  initial={{ opacity: 0, y: 18 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.25 }}
-                  transition={{ delay: index * 0.08 }}
-                  className="rounded-[2rem] border border-[#dfe6e2] bg-white p-6 shadow-[0_24px_48px_-24px_rgba(0,47,36,0.1)]"
-                >
+                <article
+                  key={item.title} className="rounded-[2rem] border border-[#dfe6e2] bg-white p-6 shadow-[0_24px_48px_-24px_rgba(0,47,36,0.1)]">
                   <div className="mb-5 flex items-center justify-between">
                     <span
                       className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#707975]"
-                      style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-                    >
+                      style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                       Paso {item.step}
                     </span>
                     <MaterialIcon name="arrow_outward" className="text-[#074738]" />
                   </div>
                   <div className="mb-6 overflow-hidden rounded-[1.5rem] bg-[#f4f3f9]">{item.mockup}</div>
                   <h3
-                    className="mb-3 text-2xl font-bold text-[#002f24]"
-                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-                  >
+                    className="mb-3 text-2xl font-bold text-[#074738]"
+                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                     {item.title}
                   </h3>
                   <p className="leading-relaxed text-[#404945]">{item.body}</p>
-                </motion.article>
+                </article>
               ))}
             </div>
           </div>
@@ -650,8 +588,7 @@ export default function LandingEcosystemPreviewPage() {
             <div>
               <h2
                 className="mb-8 text-4xl font-extrabold leading-tight md:text-5xl"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 Un lugar para sus rutinas, sus compras y sus cuidados.
               </h2>
               <p className="mb-10 text-lg leading-relaxed text-[#cfe7dd]">
@@ -669,12 +606,11 @@ export default function LandingEcosystemPreviewPage() {
             </div>
 
             <div className="grid gap-5">
-              <div className="rounded-[2rem] bg-[#f7fff9] p-7 text-[#002f24] shadow-[0_28px_56px_-20px_rgba(0,0,0,0.35)]">
+              <div className="rounded-[2rem] bg-[#f7fff9] p-7 text-[#074738] shadow-[0_28px_56px_-20px_rgba(0,0,0,0.35)]">
                 <div className="mb-4 flex items-center justify-between">
                   <span
                     className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#5a6d67]"
-                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-                  >
+                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                     Rutinas activas
                   </span>
                   <MaterialIcon name="pets" className="text-[#074738]" />
@@ -698,8 +634,7 @@ export default function LandingEcosystemPreviewPage() {
               <div className="rounded-[2rem] border border-[#1f4d43] bg-[#0d3f35] p-7">
                 <span
                   className="mb-3 block text-[11px] font-bold uppercase tracking-[0.25em] text-[#99d2be]"
-                  style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-                >
+                  style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                   Ecosistema digital
                 </span>
                 <div className="flex flex-wrap gap-3">
@@ -719,14 +654,12 @@ export default function LandingEcosystemPreviewPage() {
             <div className="mb-14">
               <span
                 className="mb-4 inline-block text-[11px] font-bold uppercase tracking-[0.25em] text-[#707975]"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 El equipo
               </span>
               <h2
-                className="mb-4 text-4xl font-extrabold tracking-tight text-[#002f24]"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
+                className="mb-4 text-4xl font-extrabold tracking-tight text-[#074738]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 Las personas detras de Pessy
               </h2>
               <p className="max-w-2xl text-xl font-medium text-[#404945]">
@@ -736,14 +669,8 @@ export default function LandingEcosystemPreviewPage() {
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {team.map((member, index) => (
-                <motion.article
-                  key={member.name}
-                  initial={{ opacity: 0, y: 18 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.2 }}
-                  transition={{ delay: index * 0.08 }}
-                  className="group"
-                >
+                <article
+                  key={member.name} className="group">
                   <div className="overflow-hidden rounded-[2rem] border border-[#dfe6e2] bg-white shadow-[0_24px_48px_-24px_rgba(0,47,36,0.1)]">
                     <div className="relative aspect-[4/5] overflow-hidden bg-[#eef4f1]">
                       <ImageWithFallback
@@ -760,24 +687,22 @@ export default function LandingEcosystemPreviewPage() {
                     <div className="flex items-center justify-between p-5">
                       <div>
                         <h3
-                          className="text-xl font-bold text-[#002f24]"
-                          style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-                        >
+                          className="text-xl font-bold text-[#074738]"
+                          style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                           {member.name}
                         </h3>
-                        <p className="text-sm font-medium text-[#5e716b]">{member.role}</p>
+                        <p className="text-sm font-medium text-[#9CA3AF]">{member.role}</p>
                       </div>
                       <a
                         href={member.linkedin}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex size-10 items-center justify-center rounded-full bg-[#f4f3f9] text-[#074738] transition-transform hover:scale-105"
-                      >
+                        className="flex size-10 items-center justify-center rounded-full bg-[#f4f3f9] text-[#074738] transition-transform hover:scale-105">
                         <Linkedin size={16} />
                       </a>
                     </div>
                   </div>
-                </motion.article>
+                </article>
               ))}
             </div>
           </div>
@@ -788,14 +713,12 @@ export default function LandingEcosystemPreviewPage() {
             <div className="mx-auto mb-14 max-w-3xl text-center">
               <span
                 className="mb-4 inline-block text-[11px] font-bold uppercase tracking-[0.25em] text-[#707975]"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 Suscripciones
               </span>
               <h2
-                className="mb-4 text-4xl font-extrabold tracking-tight text-[#002f24]"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
+                className="mb-4 text-4xl font-extrabold tracking-tight text-[#074738]"
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 Nuestras suscripciones
               </h2>
               <p className="text-xl font-medium text-[#404945]">
@@ -811,8 +734,7 @@ export default function LandingEcosystemPreviewPage() {
                     <div className="flex items-end gap-2">
                       <span
                         className="text-4xl font-extrabold tracking-tight"
-                        style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-                      >
+                        style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                         {plan.price}
                       </span>
                       <span className="pb-1 text-sm font-semibold opacity-70">/ {plan.period}</span>
@@ -834,8 +756,7 @@ export default function LandingEcosystemPreviewPage() {
                         plan.name === "PREMIUM"
                           ? "bg-white text-[#074738]"
                           : "bg-[#074738] text-white"
-                      }`}
-                    >
+                      }`}>
                       {plan.cta}
                     </button>
                   </div>
@@ -852,17 +773,15 @@ export default function LandingEcosystemPreviewPage() {
                 <div>
                   <span
                     className="mb-4 inline-block text-[11px] font-bold uppercase tracking-[0.25em] text-[#707975]"
-                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-                  >
+                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                     Creciendo con Pessy
                   </span>
                   <h2
-                    className="mb-4 text-4xl font-extrabold tracking-tight text-[#002f24]"
-                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-                  >
+                    className="mb-4 text-4xl font-extrabold tracking-tight text-[#074738]"
+                    style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                     Sumate a los más de 100 usuarios que ya están ordenando la vida de sus mascotas.
                   </h2>
-                  <p className="text-lg font-medium leading-relaxed text-[#5e716b]">
+                  <p className="text-lg font-medium leading-relaxed text-[#9CA3AF]">
                     Dejanos tus datos y te llevamos directo al alta con tu cuenta precompletada para arrancar mas rapido.
                   </p>
                   <div className="mt-6 flex flex-wrap gap-3">
@@ -882,7 +801,7 @@ export default function LandingEcosystemPreviewPage() {
                       value={leadName}
                       onChange={(event) => setLeadName(event.target.value)}
                       placeholder="Tu nombre"
-                      className="w-full rounded-2xl border border-[#dfe6e2] bg-white px-4 py-4 text-sm text-[#002f24] outline-none transition focus:border-[#074738] focus:ring-2 focus:ring-[#074738]/15"
+                      className="w-full rounded-2xl border border-[#dfe6e2] bg-white px-4 py-4 text-sm text-[#074738] outline-none transition focus:border-[#074738] focus:ring-2 focus:ring-[#074738]/15"
                       required
                     />
                     <input
@@ -890,7 +809,7 @@ export default function LandingEcosystemPreviewPage() {
                       value={leadEmail}
                       onChange={(event) => setLeadEmail(event.target.value)}
                       placeholder="Tu email"
-                      className="w-full rounded-2xl border border-[#dfe6e2] bg-white px-4 py-4 text-sm text-[#002f24] outline-none transition focus:border-[#074738] focus:ring-2 focus:ring-[#074738]/15"
+                      className="w-full rounded-2xl border border-[#dfe6e2] bg-white px-4 py-4 text-sm text-[#074738] outline-none transition focus:border-[#074738] focus:ring-2 focus:ring-[#074738]/15"
                       required
                     />
                   </div>
@@ -899,15 +818,14 @@ export default function LandingEcosystemPreviewPage() {
                     value={leadPetName}
                     onChange={(event) => setLeadPetName(event.target.value)}
                     placeholder="Nombre de tu mascota"
-                    className="w-full rounded-2xl border border-[#dfe6e2] bg-white px-4 py-4 text-sm text-[#002f24] outline-none transition focus:border-[#074738] focus:ring-2 focus:ring-[#074738]/15"
+                    className="w-full rounded-2xl border border-[#dfe6e2] bg-white px-4 py-4 text-sm text-[#074738] outline-none transition focus:border-[#074738] focus:ring-2 focus:ring-[#074738]/15"
                   />
                   <button
                     type="submit"
-                    className="rounded-full bg-[#074738] px-6 py-4 text-center text-sm font-bold uppercase tracking-[0.18em] text-white transition-transform hover:scale-[1.01]"
-                  >
+                    className="rounded-full bg-[#074738] px-6 py-4 text-center text-sm font-bold uppercase tracking-[0.18em] text-white transition-transform hover:scale-[1.01]">
                     Quiero sumarme
                   </button>
-                  <p className="text-sm text-[#5e716b]">
+                  <p className="text-sm text-[#9CA3AF]">
                     Este formulario te lleva directo a crear tu cuenta con tus datos ya cargados.
                   </p>
                 </form>
@@ -919,9 +837,8 @@ export default function LandingEcosystemPreviewPage() {
         <section className="px-6 py-24 text-center">
           <div className="mx-auto max-w-4xl rounded-[2.5rem] bg-white p-12 shadow-[0_32px_64px_-24px_rgba(0,47,36,0.14)] md:p-16">
             <h2
-              className="mb-6 text-4xl font-extrabold tracking-tight text-[#002f24]"
-              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-            >
+              className="mb-6 text-4xl font-extrabold tracking-tight text-[#074738]"
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
               Empeza a ordenar la vida de tu mascota
             </h2>
             <p className="mb-10 text-xl font-medium text-[#404945]">
@@ -938,16 +855,14 @@ export default function LandingEcosystemPreviewPage() {
                   })
                 }
                 className="inline-flex rounded-full bg-[#074738] px-10 py-4 text-lg font-extrabold text-white transition-transform hover:scale-[1.02]"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 Crear cuenta
               </Link>
               <a
                 href="#como-funciona"
                 onClick={handleHowItWorksClick}
                 className="inline-flex items-center gap-2 rounded-full bg-[#f4f3f9] px-8 py-4 text-lg font-bold text-[#074738]"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
+                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 Ver como funciona
                 <ExternalLink size={18} />
               </a>
@@ -961,8 +876,7 @@ export default function LandingEcosystemPreviewPage() {
           <div>
             <div
               className="text-lg font-bold text-[#f1f7f4]"
-              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-            >
+              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
               Pessy
             </div>
             <p className="mt-1 text-xs text-[#cfe0da]">

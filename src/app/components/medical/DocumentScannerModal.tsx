@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { useNavigate } from "react-router";
 import { usePet } from "../../contexts/PetContext";
@@ -486,28 +485,18 @@ export function DocumentScannerModal({
     handleClose();
   };
 
+  if (!isOpen) return null;
+
   return (
     <>
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={handleClose}
-            className="fixed inset-0 bg-black/60 z-50"
-          />
+      {/* Backdrop */}
+      <div
+        onClick={handleClose}
+        className="fixed inset-0 bg-black/60 z-50 animate-fadeIn"
+      />
 
-          {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, y: "100%" }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-xl max-h-[85vh] overflow-hidden flex flex-col"
-          >
+      {/* Modal */}
+      <div className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-xl max-h-[85vh] overflow-hidden flex flex-col animate-slideUp">
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-2">
               <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full" />
@@ -676,7 +665,7 @@ export function DocumentScannerModal({
                               type="time"
                               value={item.firstDoseTime}
                               onChange={(event) => updateTreatmentItem(item.id, { firstDoseTime: event.target.value })}
-                              className="flex-1 rounded-xl border border-[#2b7cee]/40 bg-[#2b7cee]/5 px-3 py-2.5 text-sm font-bold text-[#2b7cee] focus:outline-none focus:ring-2 focus:ring-[#2b7cee]"
+                              className="flex-1 rounded-xl border border-[#1A9B7D]/40 bg-[#1A9B7D]/5 px-3 py-2.5 text-sm font-bold text-[#074738] focus:outline-none focus:ring-2 focus:ring-[#1A9B7D]"
                             />
                             <span className="text-xs text-slate-500">A partir de esta hora calculamos las siguientes tomas</span>
                           </div>
@@ -750,16 +739,11 @@ export function DocumentScannerModal({
               {/* SUCCESS STAGE */}
               {uploadStage === "success" && (
                 <div className="p-6 flex flex-col items-center justify-center min-h-[400px]">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", damping: 15 }}
-                    className={`size-24 rounded-full flex items-center justify-center mb-6 ${
+                  <div className={`size-24 rounded-full flex items-center justify-center mb-6 ${
                       requiresReview ? "bg-amber-500" : "bg-emerald-500"
-                    }`}
-                  >
+                    }`}>
                     <MaterialIcon name={requiresReview ? "rule_folder" : "check"} className="text-white text-5xl" />
-                  </motion.div>
+                  </div>
                   <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2">
                     {requiresReview ? "Revisión requerida" : "¡Documento procesado!"}
                   </h3>
@@ -817,10 +801,7 @@ export function DocumentScannerModal({
                 </div>
               )}
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+      </div>
     </>
   );
 }

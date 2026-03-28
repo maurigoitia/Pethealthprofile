@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { MedicalEvent, DocumentType } from "../../types/medical";
 import { useMedical } from "../../contexts/MedicalContext";
@@ -94,23 +93,17 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
         { value: "other", label: "Otro" },
     ];
 
+    if (!isOpen) return null;
+
     return (
-        <AnimatePresence>
-            {isOpen && (
-                <>
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
-                    />
-                    <motion.div
-                        initial={{ opacity: 0, y: "100%" }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: "100%" }}
-                        className="fixed inset-x-0 bottom-0 z-[70] bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col max-w-md mx-auto"
-                    >
+        <>
+            {/* Backdrop */}
+            <div
+                onClick={onClose}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] animate-fadeIn"
+            />
+            {/* Modal */}
+            <div className="fixed inset-x-0 bottom-0 z-[70] bg-white dark:bg-slate-900 rounded-t-3xl shadow-[0_2px_12px_rgba(0,0,0,0.06)] max-h-[90vh] overflow-hidden flex flex-col max-w-md mx-auto animate-slideUp">
                         <div className="flex justify-center pt-3 pb-2">
                             <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full" />
                         </div>
@@ -133,7 +126,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                                     type="text"
                                     value={formData.title}
                                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#074738] outline-none"
+                                    className="w-full p-4 bg-[#F0FAF9] dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-[16px] focus:border-[#1A9B7D] outline-none"
                                 />
                             </div>
 
@@ -143,7 +136,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                                 <select
                                     value={formData.documentType}
                                     onChange={(e) => setFormData({ ...formData, documentType: e.target.value })}
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#074738] outline-none appearance-none"
+                                    className="w-full p-4 bg-[#F0FAF9] dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-[16px] focus:border-[#1A9B7D] outline-none appearance-none"
                                 >
                                     {documentTypes.map((type) => (
                                         <option key={type.value} value={type.value}>{type.label}</option>
@@ -158,7 +151,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                                     type="date"
                                     value={formData.eventDate}
                                     onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#074738] outline-none"
+                                    className="w-full p-4 bg-[#F0FAF9] dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-[16px] focus:border-[#1A9B7D] outline-none"
                                 />
                             </div>
 
@@ -169,7 +162,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                                     type="text"
                                     value={formData.provider}
                                     onChange={(e) => setFormData({ ...formData, provider: e.target.value })}
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#074738] outline-none"
+                                    className="w-full p-4 bg-[#F0FAF9] dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-[16px] focus:border-[#1A9B7D] outline-none"
                                 />
                             </div>
 
@@ -179,7 +172,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                                 <textarea
                                     value={formData.diagnosis}
                                     onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#074738] outline-none min-h-[100px]"
+                                    className="w-full p-4 bg-[#F0FAF9] dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-[16px] focus:border-[#1A9B7D] outline-none min-h-[100px]"
                                 />
                             </div>
 
@@ -189,7 +182,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                                 <textarea
                                     value={formData.observations}
                                     onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
-                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl focus:border-[#074738] outline-none min-h-[80px]"
+                                    className="w-full p-4 bg-[#F0FAF9] dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-[16px] focus:border-[#1A9B7D] outline-none min-h-[80px]"
                                 />
                             </div>
                         </div>
@@ -197,14 +190,14 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                         <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex gap-3">
                             <button
                                 onClick={onClose}
-                                className="flex-1 py-4 px-6 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-2xl"
+                                className="flex-1 py-4 px-6 bg-[#E0F2F1] dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-[16px]"
                             >
                                 Cancelar
                             </button>
                             <button
                                 onClick={handleSave}
                                 disabled={isSaving}
-                                className="flex-[2] py-4 px-6 bg-[#074738] text-white font-bold rounded-2xl shadow-lg shadow-[#074738]/30 disabled:opacity-50 flex items-center justify-center gap-2"
+                                className="flex-[2] py-4 px-6 bg-[#1A9B7D] text-white font-bold rounded-[16px] shadow-lg shadow-[#1A9B7D]/30 disabled:opacity-50 flex items-center justify-center gap-2"
                             >
                                 {isSaving ? (
                                     <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -219,7 +212,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                                 <button
                                     onClick={handleSaveAndConfirm}
                                     disabled={isConfirming}
-                                    className="flex-[2] py-4 px-6 bg-emerald-500 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/30 disabled:opacity-50 flex items-center justify-center gap-2"
+                                    className="flex-[2] py-4 px-6 bg-[#1A9B7D] text-white font-bold rounded-[16px] shadow-lg shadow-[#1A9B7D]/30 disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
                                     {isConfirming ? (
                                         <div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -232,9 +225,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                                 </button>
                             )}
                         </div>
-                    </motion.div>
-                </>
-            )}
-        </AnimatePresence>
+            </div>
+        </>
     );
 }

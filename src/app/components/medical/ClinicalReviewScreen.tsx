@@ -171,7 +171,7 @@ export function ClinicalReviewScreen() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F0FAF9] p-6 flex items-center justify-center">
         <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl p-6 text-center">
           <div className="mx-auto mb-3 size-10 rounded-full border-4 border-red-200 border-t-red-600 animate-spin" />
           <p className="text-sm font-bold text-slate-800">Cargando revisión clínica...</p>
@@ -182,7 +182,7 @@ export function ClinicalReviewScreen() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-[#F0FAF9] p-6 flex items-center justify-center">
         <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl p-6 text-center">
           <p className="text-sm font-bold text-slate-900">Necesitás iniciar sesión para revisar este borrador.</p>
           <Link to="/login" className="inline-flex items-center gap-2 mt-4 text-sm font-bold text-[#074738] hover:underline">
@@ -196,7 +196,7 @@ export function ClinicalReviewScreen() {
 
   if (!review) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6">
+      <div className="min-h-screen bg-[#F0FAF9] p-6">
         <div className="max-w-2xl mx-auto bg-white border border-slate-200 rounded-2xl p-6">
           <p className="text-sm font-bold text-slate-900">{error || "Revisión no encontrada."}</p>
           <Link to="/home?review=feed" className="inline-flex items-center gap-2 mt-4 text-sm font-bold text-[#074738] hover:underline">
@@ -209,7 +209,7 @@ export function ClinicalReviewScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-6">
+    <div className="min-h-screen bg-[#F0FAF9] p-4 md:p-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-4">
           <Link to="/home?review=feed" className="inline-flex items-center gap-2 text-sm font-bold text-slate-700 hover:text-slate-900">
@@ -229,7 +229,7 @@ export function ClinicalReviewScreen() {
             <p className="text-xs text-slate-500">{review.sourceDate || "Fecha no disponible"}</p>
             <p className="text-xs text-slate-500 mt-2">Mensaje: {review.sourceMessageId || "N/D"}</p>
 
-            <div className="mt-4 rounded-xl border border-slate-200 overflow-hidden bg-slate-100 min-h-[320px]">
+            <div className="mt-4 rounded-xl border border-slate-200 overflow-hidden bg-[#E0F2F1] min-h-[320px]">
               {canRenderPreview ? (
                 isPdfPreview ? (
                   <iframe title="preview-documento" src={previewUrl || undefined} className="w-full min-h-[420px] border-0" />
@@ -283,7 +283,7 @@ export function ClinicalReviewScreen() {
                 const missingDose = !row.dosage.trim();
                 const missingFrequency = !row.frequency.trim();
                 return (
-                  <div key={row.id} className="rounded-xl border border-slate-200 p-3 bg-slate-50">
+                  <div key={row.id} className="rounded-xl border border-slate-200 p-3 bg-[#F0FAF9]">
                     <p className="text-xs font-black text-slate-700 mb-2">{row.name || "Medicamento sin nombre"}</p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       <input
@@ -319,7 +319,7 @@ export function ClinicalReviewScreen() {
             <button
               onClick={handleSubmit}
               disabled={saving || hasInvalidRows || requiresEventDate || rows.length === 0}
-              className="mt-4 w-full rounded-xl bg-[#074738] text-white py-3 text-sm font-black disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-4 w-full rounded-xl bg-[#1A9B7D] text-white py-3 text-sm font-black disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? "Guardando..." : "Confirmar y mover al historial"}
             </button>

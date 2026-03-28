@@ -86,7 +86,7 @@ export function NotificationsScreen({ onBack }: NotificationsScreenProps) {
   );
 
   return (
-    <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen">
+    <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen">
       <div className="max-w-md mx-auto">
         <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
           <div className="px-4 py-4 flex items-center gap-3">

@@ -55,7 +55,7 @@ const InviteFriendsModal = lazy(() =>
 
 function ScreenLoader({ label = "Cargando..." }: { label?: string }) {
   return (
-    <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen flex items-center justify-center px-6">
+    <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen flex items-center justify-center px-6">
       <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 text-center">
         <div className="mx-auto mb-4 size-10 rounded-full border-4 border-[#074738]/20 border-t-[#074738] animate-spin" />
         <p className="text-base font-bold text-slate-900 dark:text-white">{label}</p>
@@ -269,7 +269,7 @@ export default function HomeScreen() {
   // Loading state: Waiting for Firestore
   if ((petsLoading && pets.length === 0) || inviteJoiningCode) {
     return withTermsNotice(
-      <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen flex items-center justify-center px-6">
+      <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen flex items-center justify-center px-6">
         <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 text-center">
           <p className="text-base font-bold text-slate-900 dark:text-white">
             {inviteJoiningCode ? "Vinculando invitación..." : "Cargando tus datos..."}
@@ -285,7 +285,7 @@ export default function HomeScreen() {
   // Empty state: No pets registered
   if (pets.length === 0) {
     return withTermsNotice(
-      <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen">
+      <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen">
         <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24">
           <div className="flex-1 flex items-center justify-center px-6">
             <div className="text-center space-y-6">
@@ -327,7 +327,7 @@ export default function HomeScreen() {
   // Guard: No active pet selected
   if (!activePet) {
     return withTermsNotice(
-      <div className="bg-[#f6f6f8] dark:bg-[#101622] min-h-screen">
+      <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen">
         <div className="max-w-md mx-auto min-h-screen flex items-center justify-center px-6 pb-24">
           <div className="text-center max-w-sm">
             <h2 className="text-xl font-black text-slate-900 dark:text-white mb-2">No se pudo cargar la mascota activa</h2>
@@ -439,7 +439,7 @@ export default function HomeScreen() {
   }
 
   return withTermsNotice(
-    <div className="bg-[#f6f6f8] dark:bg-[#101622] text-slate-900 dark:text-slate-100 min-h-screen font-['Manrope',sans-serif]">
+    <div className="bg-[#F0FAF9] dark:bg-[#101622] text-slate-900 dark:text-slate-100 min-h-screen font-['Manrope',sans-serif]">
       {/* Sidebar */}
       <Sidebar
         isOpen={showSidebar}

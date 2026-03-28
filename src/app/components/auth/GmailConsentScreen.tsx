@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 
 interface GmailConsentScreenProps {
@@ -60,21 +59,16 @@ export function GmailConsentScreen({ onAccept, onDecline, loading }: GmailConsen
 
   return (
     // BUG-09 fix: role="dialog", aria-modal, aria-labelledby
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 animate-fadeIn"
       role="dialog"
       aria-modal="true"
       aria-labelledby="gmail-modal-title"
       // BUG-18 fix: disable backdrop click to prevent accidental state loss
       // Users can close with "Ahora no" button or ESC key
     >
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", damping: 25 }}
-        className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-slate-900"
+      <div
+        className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-slate-900 animate-slideUp"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -219,8 +213,8 @@ export function GmailConsentScreen({ onAccept, onDecline, loading }: GmailConsen
             </button>.
           </p>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
 

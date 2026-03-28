@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { AddAppointmentModal } from "./AddAppointmentModal";
 import { PetPhoto } from "../pet/PetPhoto";
@@ -416,7 +415,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
               </button>
             </div>
 
-            <div className="rounded-[32px] border border-[#074738]/10 dark:border-[#1a9b7d]/20 bg-[#dbe7e2] dark:bg-[#17382f] p-4 shadow-[0_20px_50px_rgba(7,71,56,0.16)]">
+            <div className="rounded-[32px] border border-[#074738]/10 dark:border-[#1a9b7d]/20 bg-[#E0F2F1] dark:bg-[#17382f] p-4 shadow-[0_20px_50px_rgba(7,71,56,0.16)]">
               <div className="flex items-start gap-4">
                 <div className="size-24 rounded-full overflow-hidden bg-white/75 dark:bg-slate-900/50 ring-4 ring-white/60 dark:ring-white/10 shrink-0">
                   <PetPhoto
@@ -428,7 +427,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap gap-2 mb-3">
-                    <span className="rounded-full bg-[#1a9b7d] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white">
+                    <span className="rounded-full bg-[#1A9B7D] px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white">
                       {activeTab === "upcoming" ? "Próximos" : "Historial"}
                     </span>
                     <span className="rounded-full bg-white/75 px-3 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#074738]">
@@ -448,7 +447,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
               </div>
             </div>
 
-            <div className="mt-4 rounded-[28px] bg-[#dfe5f5] dark:bg-[#172434] p-4">
+            <div className="mt-4 rounded-[28px] bg-[#E0F2F1] dark:bg-[#172434] p-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-black uppercase tracking-[0.14em] text-[#074738]">
                   {activeTab === "upcoming" ? "Próximas fechas" : "Fechas pasadas"}
@@ -482,7 +481,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                         className={`min-w-[72px] rounded-[22px] px-3 py-3 text-center transition-all ${
                           active
                             ? "bg-[#074738] text-white shadow-lg shadow-[#074738]/25"
-                            : "bg-white/80 dark:bg-slate-900/70 text-slate-600 dark:text-slate-200"
+                            : "bg-[#E0F2F1]/80 dark:bg-slate-900/70 text-[#074738] dark:text-slate-200"
                         }`}
                       >
                         <div className={`text-[10px] font-black uppercase tracking-[0.14em] ${active ? "text-white/70" : "text-slate-400"}`}>
@@ -530,10 +529,8 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                 const isSoon = daysFromNow > 0 && daysFromNow <= 3;
 
                 return (
-                  <motion.div
+                  <div
                     key={appointment.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
                     className="rounded-[28px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -551,7 +548,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                           </span>
                           {pastAppointment ? (
                             <span className={`rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] ${
-                              appointment.status === "completed" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                              appointment.status === "completed" ? "bg-[#D1FAE5] text-[#1A9B7D]" : "bg-red-100 text-red-700"
                             }`}>
                               {appointment.status === "completed" ? "Completada" : "Cancelada"}
                             </span>
@@ -571,7 +568,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                           {cleanText(appointment.title)}
                         </h3>
                       </div>
-                      <div className="rounded-[22px] bg-[#e7edf0] dark:bg-slate-800 px-4 py-3 text-center min-w-[86px]">
+                      <div className="rounded-[22px] bg-[#E0F2F1] dark:bg-slate-800 px-4 py-3 text-center min-w-[86px]">
                         <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{formatted.month}</div>
                         <div className="text-[28px] leading-none font-black text-slate-900 dark:text-white mt-1">{formatted.day}</div>
                         {formatted.time ? (
@@ -584,7 +581,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
 
                     <div className="mt-4 space-y-2">
                       {(appointment.veterinarian || appointment.clinic) && (
-                        <div className="rounded-[20px] bg-[#eef2f4] dark:bg-slate-800 px-4 py-3">
+                        <div className="rounded-[20px] bg-[#E0F2F1] dark:bg-slate-800 px-4 py-3">
                           <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">Profesional y centro</p>
                           <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-1">
                             {[appointment.veterinarian, appointment.clinic].filter(Boolean).map(cleanText).join(" · ")}
@@ -592,7 +589,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                         </div>
                       )}
                       {appointment.notes && (
-                        <div className="rounded-[20px] bg-[#074738]/8 px-4 py-3">
+                        <div className="rounded-[20px] bg-[#E0F2F1] px-4 py-3">
                           <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#074738]">Contexto</p>
                           <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 leading-5">
                             {cleanText(appointment.notes)}
@@ -619,7 +616,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                             </button>
                             <button
                               onClick={() => handleAddSuggestedAppointment(appointment)}
-                              className="rounded-full bg-[#074738] px-3 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-white"
+                              className="rounded-full bg-[#1A9B7D] px-3 py-3 text-[11px] font-black uppercase tracking-[0.14em] text-white"
                             >
                               Agregar
                             </button>
@@ -658,7 +655,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                         )}
                       </div>
                     ) : null}
-                  </motion.div>
+                  </div>
                 );
               })
             )}
@@ -691,7 +688,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f6f8] dark:bg-[#101622] flex flex-col">
+    <div className="min-h-screen bg-[#F0FAF9] dark:bg-[#101622] flex flex-col">
       <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
         <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 pt-6 pb-4">
           <div className="flex items-center gap-3 mb-4">
@@ -764,10 +761,8 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
               const isSoon = daysFromNow > 0 && daysFromNow <= 3;
 
               return (
-                <motion.div
+                <div
                   key={appointment.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
                   className={`bg-white dark:bg-slate-900 rounded-2xl border overflow-hidden shadow-sm ${
                     pastAppointment
                       ? "border-slate-100 dark:border-slate-800 opacity-70"
@@ -903,7 +898,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                       </div>
                     ) : null}
                   </div>
-                </motion.div>
+                </div>
               );
             })
           )}

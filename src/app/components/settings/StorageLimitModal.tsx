@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { StorageQuota, formatBytes, PLAN_LIMITS } from "../../hooks/useStorageQuota";
 import {
@@ -57,18 +56,16 @@ export function StorageLimitModal({ isOpen, onClose, quota, triggerUpgrade }: St
     ? Math.round(100 - (prices.annual.usdEquivalent / (prices.monthly.usdEquivalent * 12)) * 100)
     : 0;
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-slate-900/70 backdrop-blur-sm" onClick={onClose} />
+  if (!isOpen) return null;
 
-          <motion.div
-            initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-[61] bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl max-h-[93vh] flex flex-col max-w-md mx-auto overflow-hidden"
-          >
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-[60] bg-slate-900/70 backdrop-blur-sm animate-fadeIn" onClick={onClose} />
+
+      <div
+        className="fixed inset-x-0 bottom-0 z-[61] bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl max-h-[93vh] flex flex-col max-w-md mx-auto overflow-hidden animate-slideUp"
+      >
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-slate-700" />
@@ -242,10 +239,8 @@ export function StorageLimitModal({ isOpen, onClose, quota, triggerUpgrade }: St
                 </button>
               )}
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          </div>
+    </>
   );
 }
 

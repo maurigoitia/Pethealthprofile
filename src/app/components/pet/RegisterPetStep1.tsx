@@ -77,12 +77,12 @@ export function RegisterPetStep1() {
     >
       <div className="mb-6">
         <h2
-          className="text-3xl font-extrabold tracking-tight text-[#002f24]"
+          className="text-3xl font-extrabold tracking-tight text-[#074738]"
           style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
         >
           Registrar mascota
         </h2>
-        <p className="mt-2 text-sm font-medium text-[#5e716b]">Paso 1 de 2</p>
+        <p className="mt-2 text-sm font-medium text-[#9CA3AF]">Paso 1 de 2</p>
       </div>
 
       <div className="space-y-5">
@@ -91,7 +91,7 @@ export function RegisterPetStep1() {
             placeholder="Nombre"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
+            className="w-full px-4 py-4 rounded-[12px] border border-slate-200 focus:ring-2 focus:ring-[#1A9B7D] outline-none"
           />
 
           <select
@@ -110,7 +110,7 @@ export function RegisterPetStep1() {
                 setShowSuggestions(filtered.length > 0);
               }
             }}
-            className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none bg-white"
+            className="w-full px-4 py-4 rounded-[12px] border border-slate-200 focus:ring-2 focus:ring-[#1A9B7D] outline-none bg-white"
           >
             <option value="dog">Perro</option>
             <option value="cat">Gato</option>
@@ -129,11 +129,11 @@ export function RegisterPetStep1() {
               }}
               onFocus={() => updateSuggestions(breedInput)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 120)}
-              className="w-full px-4 py-4 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
+              className="w-full px-4 py-4 rounded-[12px] border border-slate-200 focus:ring-2 focus:ring-[#1A9B7D] outline-none"
             />
 
             {showSuggestions && (
-              <div className="absolute z-20 left-0 right-0 mt-2 max-h-56 overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
+              <div className="absolute z-20 left-0 right-0 mt-2 max-h-56 overflow-y-auto rounded-[12px] border border-slate-200 bg-white shadow-xl">
                 {breedSuggestions.map((suggestion) => (
                   <button
                     key={suggestion}
@@ -154,7 +154,7 @@ export function RegisterPetStep1() {
           <button
             onClick={handleNext}
             disabled={!name.trim()}
-            className="w-full rounded-full bg-[#074738] py-4 text-sm font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60"
+            className="w-full rounded-[14px] bg-[#1A9B7D] py-4 text-sm font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60"
           >
             Continuar
           </button>

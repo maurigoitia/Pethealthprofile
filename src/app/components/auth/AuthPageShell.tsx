@@ -99,10 +99,10 @@ export function AuthPageShell({
           <span className="mb-3 inline-block rounded-full bg-[#074738]/10 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#074738]">
             {eyebrow}
           </span>
-          <h1 className="mb-2 text-2xl font-extrabold leading-tight tracking-tight text-[#002f24]">
+          <h1 className="mb-2 text-2xl font-extrabold leading-tight tracking-tight text-[#074738]">
             {title}
           </h1>
-          <p className="mb-5 text-sm font-medium text-[#5e716b]">{description}</p>
+          <p className="mb-5 text-sm font-medium text-[#9CA3AF]">{description}</p>
         </div>
 
         {/* Form card */}
@@ -113,7 +113,7 @@ export function AuthPageShell({
         </div>
 
         {/* Footer links */}
-        <div className="flex items-center justify-center gap-4 border-t border-[#e2e8e5] bg-white px-5 py-3 text-[11px] font-medium text-[#5e716b]">
+        <div className="flex items-center justify-center gap-4 border-t border-[#e2e8e5] bg-white px-5 py-3 text-[11px] font-medium text-[#9CA3AF]">
           <Link to="/" className="hover:text-[#074738]">Inicio</Link>
           <span className="text-[#d4ddd8]">·</span>
           <Link to="/privacidad" className="hover:text-[#074738]">Privacidad</Link>

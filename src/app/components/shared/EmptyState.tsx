@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+
 import { MaterialIcon } from "./MaterialIcon";
 
 interface EmptyStateProps {
@@ -19,10 +19,10 @@ export function EmptyState({
   illustration,
 }: EmptyStateProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+    <div
+
+
+
       className="flex flex-col items-center justify-center py-16 px-6"
     >
       {/* Illustration or Icon */}
@@ -69,6 +69,6 @@ export function EmptyState({
         <div className="absolute -top-20 -right-20 size-40 bg-[#074738]/5 rounded-full blur-3xl" />
         <div className="absolute -bottom-20 -left-20 size-40 bg-emerald-500/5 rounded-full blur-3xl" />
       </div>
-    </motion.div>
+    </div>
   );
 }

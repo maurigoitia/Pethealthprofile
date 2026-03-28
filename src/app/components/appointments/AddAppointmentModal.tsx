@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
@@ -101,27 +100,20 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
         { id: "other", label: "Otro", icon: "more_horiz", color: "bg-slate-500" },
     ];
 
-    return (
-        <AnimatePresence>
-            {isOpen && (
-                <>
-                    {/* Backdrop */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
-                    />
+    if (!isOpen) return null;
 
-                    {/* Bottom Sheet */}
-                    <motion.div
-                        initial={{ y: "100%" }}
-                        animate={{ y: 0 }}
-                        exit={{ y: "100%" }}
-                        transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                        className="fixed inset-x-0 bottom-0 z-[70] bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col"
-                    >
+    return (
+        <>
+            {/* Backdrop */}
+            <div
+                onClick={onClose}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] animate-fadeIn"
+            />
+
+            {/* Bottom Sheet */}
+            <div
+                className="fixed inset-x-0 bottom-0 z-[70] bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col animate-slideUp"
+            >
                         {/* Handle */}
                         <div className="flex justify-center pt-3 pb-2">
                             <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full" />
@@ -248,9 +240,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                 </button>
                             </form>
                         </div>
-                    </motion.div>
-                </>
-            )}
-        </AnimatePresence>
+                    </div>
+        </>
     );
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+
 import { MaterialIcon } from "../shared/MaterialIcon";
 import type { PetPreferences } from "../../contexts/PetContext";
 
@@ -50,18 +50,16 @@ export function PetPreferencesEditor({ petName, preferences, onSave, onClose }: 
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center"
+    <div
+
+
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center"
       onClick={onClose}
     >
-      <motion.div
-        initial={{ y: "100%" }}
-        animate={{ y: 0 }}
-        exit={{ y: "100%" }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
+      <div
+
+
+
         className="w-full max-w-md rounded-t-3xl bg-white dark:bg-slate-900 sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -96,9 +94,8 @@ export function PetPreferencesEditor({ petName, preferences, onSave, onClose }: 
 
         {/* Content */}
         <div className="max-h-[50vh] overflow-y-auto px-5 py-4">
-          <AnimatePresence mode="wait">
-            {section === "personality" && (
-              <motion.div key="personality" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+                      {section === "personality" && (
+              <div key="personality" className="space-y-3">
                 <p className="text-sm text-slate-500 dark:text-slate-400">¿Cómo es {petName}?</p>
                 <div className="flex flex-wrap gap-2">
                   {PERSONALITY_OPTIONS.map((opt) => {
@@ -118,11 +115,11 @@ export function PetPreferencesEditor({ petName, preferences, onSave, onClose }: 
                     );
                   })}
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {section === "activities" && (
-              <motion.div key="activities" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+              <div key="activities" className="space-y-3">
                 <p className="text-sm text-slate-500 dark:text-slate-400">¿Qué le gusta hacer a {petName}?</p>
                 <div className="grid grid-cols-2 gap-2">
                   {ACTIVITY_OPTIONS.map((opt) => {
@@ -143,11 +140,11 @@ export function PetPreferencesEditor({ petName, preferences, onSave, onClose }: 
                     );
                   })}
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {section === "fears" && (
-              <motion.div key="fears" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
+              <div key="fears" className="space-y-3">
                 <p className="text-sm text-slate-500 dark:text-slate-400">¿{petName} le tiene miedo a algo?</p>
                 <div className="flex flex-wrap gap-2">
                   {FEAR_OPTIONS.map((fear) => {
@@ -183,11 +180,11 @@ export function PetPreferencesEditor({ petName, preferences, onSave, onClose }: 
                     }}
                   />
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {section === "food" && (
-              <motion.div key="food" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+              <div key="food" className="space-y-4">
                 <p className="text-sm text-slate-500 dark:text-slate-400">Datos de comida para predecir cuándo reponer</p>
 
                 <div>
@@ -248,9 +245,9 @@ export function PetPreferencesEditor({ petName, preferences, onSave, onClose }: 
                     className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   />
                 </div>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
+
         </div>
 
         {/* Save Button */}
@@ -263,8 +260,8 @@ export function PetPreferencesEditor({ petName, preferences, onSave, onClose }: 
             Guardar gustos
           </button>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
 
