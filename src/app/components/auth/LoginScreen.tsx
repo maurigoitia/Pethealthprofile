@@ -394,19 +394,7 @@ export function LoginScreen() {
             Crear cuenta
           </button>
 
-          {/* QA: dev bypass — skip auth for localhost testing */}
-          {(typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname)) && (
-            <div className="mt-4 pt-4 border-t border-dashed border-[#E5E7EB]">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#9CA3AF] text-center mb-3">QA Dev Mode</p>
-              <button
-                type="button"
-                onClick={() => navigate("/inicio")}
-                className="w-full rounded-[14px] border-2 border-dashed border-[#1A9B7D]/40 bg-[#F0FAF9] py-3 text-sm font-bold text-[#1A9B7D] transition-all hover:bg-[#E0F2F1]"
-              >
-                Saltar login → ir a /inicio
-              </button>
-            </div>
-          )}
+
         </form>
       </AuthPageShell>
 
