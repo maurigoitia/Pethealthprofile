@@ -124,7 +124,8 @@ export function RegisterUserScreen() {
           }
           return;
         }
-        setGateStatus("blocked");
+        // Beta abierta: registro libre, la aprobación es post-registro por email
+        setGateStatus("allowed");
       } catch {
         if (!cancelled) {
           setGateMessage("No pudimos verificar tu acceso. Revisá tu conexión e intentá de nuevo.");
@@ -367,7 +368,7 @@ export function RegisterUserScreen() {
             placeholder="Nombre completo"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-4 rounded-[16px] border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
+            className="w-full px-4 py-4 rounded-[12px] border border-[#E5E7EB] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none"
             required
           />
 
@@ -376,7 +377,7 @@ export function RegisterUserScreen() {
             placeholder="Correo electrónico"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-4 rounded-[16px] border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
+            className="w-full px-4 py-4 rounded-[12px] border border-[#E5E7EB] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none"
             required
           />
 
@@ -386,7 +387,7 @@ export function RegisterUserScreen() {
               placeholder="Contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-4 pr-28 rounded-[16px] border border-slate-200 focus:ring-2 focus:ring-[#074738] outline-none"
+              className="w-full px-4 py-4 pr-28 rounded-[12px] border border-[#E5E7EB] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none"
               required
             />
             <button

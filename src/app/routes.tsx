@@ -14,7 +14,7 @@ import LandingSocialPage from "./pages/LandingSocialPage";
 import EmpezarLandingPage from "./pages/EmpezarLandingPage";
 import LegalPage from "./pages/LegalPage";
 import { RequestAccessScreen } from "./components/auth/RequestAccessScreen";
-import { isProductionAppHost } from "./utils/runtimeFlags";
+import { isProductionAppHost, isNativeAppContext } from "./utils/runtimeFlags";
 
 const AdminAccessRequests = () => import("./components/auth/AdminAccessRequests").then(m => ({ Component: m.AdminAccessRequests }));
 
@@ -93,10 +93,28 @@ const previewRoutes = previewRoutesEnabled
 
 function RootRoute() {
   const host = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
+  // Inside Flutter WebView or standalone PWA → go straight to app
+  if (isNativeAppContext()) {
+    return <Navigate to="/inicio" replace />;
+  }
+  // app.pessy.app subdomain → app
   if (host === "app.pessy.app") {
     return <Navigate to="/inicio" replace />;
   }
+  // localhost in dev → go to app (not landing)
+  if (host === "localhost" || host === "127.0.0.1") {
+    return <Navigate to="/inicio" replace />;
+  }
+  // pessy.app website → show landing
   return <LandingEcosystemPreviewPage />;
+}
+
+/** Catch-all: native app context → /login, website → / (landing) */
+function CatchAllRedirect() {
+  if (isNativeAppContext()) return <Navigate to="/login" replace />;
+  const host = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
+  if (host === "localhost" || host === "127.0.0.1") return <Navigate to="/login" replace />;
+  return <Navigate to="/" replace />;
 }
 
 export const router = createBrowserRouter([
@@ -129,5 +147,5 @@ export const router = createBrowserRouter([
   ...previewRoutes,
   withErrorBoundary({ path: "/email-link", Component: EmailLinkSignInScreen }),
   withErrorBoundary({ path: "/verify/:hash", Component: VerifyReportScreen }),
-  withErrorBoundary({ path: "*", element: <Navigate to="/" replace /> }),
+  withErrorBoundary({ path: "*", element: <CatchAllRedirect /> }),
 ]);

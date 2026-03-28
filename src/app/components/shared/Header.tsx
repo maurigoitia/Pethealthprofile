@@ -29,7 +29,7 @@ export function Header({ onPetClick, activePet }: HeaderProps) {
       {activePet && (
         <button
           onClick={onPetClick}
-          className="w-full bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-lg shadow-slate-200/50 dark:shadow-slate-950/50 border border-slate-200 dark:border-slate-800 hover:scale-[1.02] active:scale-[0.98] transition-transform"
+          className="w-full bg-white dark:bg-slate-900 rounded-[16px] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-slate-950/50 border border-slate-200 dark:border-slate-800 hover:scale-[1.02] active:scale-[0.98] transition-transform"
         >
           <div className="flex items-center gap-4">
             <div className="relative">
@@ -43,7 +43,7 @@ export function Header({ onPetClick, activePet }: HeaderProps) {
                   />
                 </div>
               </div>
-              <div className="absolute -bottom-1 -right-1 size-6 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 flex items-center justify-center">
+              <div className="absolute -bottom-1 -right-1 size-6 rounded-full bg-[#1A9B7D] border-2 border-white dark:border-slate-900 flex items-center justify-center">
                 <MaterialIcon name="check" className="text-white text-sm" />
               </div>
             </div>

@@ -56,7 +56,7 @@ const InviteFriendsModal = lazy(() =>
 function ScreenLoader({ label = "Cargando..." }: { label?: string }) {
   return (
     <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 text-center">
+      <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 p-8 text-center">
         <div className="mx-auto mb-4 size-10 rounded-full border-4 border-[#074738]/20 border-t-[#074738] animate-spin" />
         <p className="text-base font-bold text-slate-900 dark:text-white">{label}</p>
       </div>
@@ -204,7 +204,7 @@ export default function HomeScreen() {
           backgroundImage: "linear-gradient(180deg, #074738 0%, #0e6a5a 50%, #1a9b7d 100%)",
         }}
       >
-        <div className="w-full max-w-sm bg-white/95 rounded-3xl border border-white/50 p-8 text-center shadow-2xl">
+        <div className="w-full max-w-sm bg-white/95 rounded-[16px] border border-white/50 p-8 text-center shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
           <div className="mx-auto mb-4 size-10 rounded-full border-4 border-[#074738]/20 border-t-[#074738] animate-spin" />
           <p className="text-base font-bold text-slate-900">Validando sesión...</p>
           <p className="text-sm text-slate-500 mt-1">Un instante, por favor.</p>
@@ -249,7 +249,7 @@ export default function HomeScreen() {
       {inviteNotice && (
         <div className="fixed inset-x-4 top-4 z-[60] mx-auto max-w-md">
           <div
-            className={`rounded-2xl border px-4 py-3 shadow-xl ${
+            className={`rounded-[16px] border px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)] ${
               inviteNotice.type === "success"
                 ? "border-emerald-200 bg-emerald-50 text-emerald-900"
                 : inviteNotice.type === "error"
@@ -270,7 +270,7 @@ export default function HomeScreen() {
   if ((petsLoading && pets.length === 0) || inviteJoiningCode) {
     return withTermsNotice(
       <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen flex items-center justify-center px-6">
-        <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 text-center">
+        <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 p-8 text-center">
           <p className="text-base font-bold text-slate-900 dark:text-white">
             {inviteJoiningCode ? "Vinculando invitación..." : "Cargando tus datos..."}
           </p>

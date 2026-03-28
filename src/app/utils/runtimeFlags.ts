@@ -46,6 +46,32 @@ export function isHomeDoseCardsEnabled(): boolean {
   return !isProductionAppHost();
 }
 
+/**
+ * Detect if the app is running inside the Flutter WebView wrapper.
+ * The Flutter WebView injects a `PessyNative` JS channel — if it exists,
+ * we're inside the native app. Also detect standalone PWA mode or
+ * explicit `?source=flutter` param.
+ */
+export function isNativeAppContext(): boolean {
+  if (typeof window === "undefined") return false;
+  // Flutter WebView JS bridge
+  if ((window as any).PessyNative) return true;
+  // URL param (set by Flutter config)
+  if (new URLSearchParams(window.location.search).get("source") === "flutter") return true;
+  // Standalone PWA (installed on home screen)
+  if ((window.navigator as any)?.standalone === true) return true;
+  if (window.matchMedia?.("(display-mode: standalone)")?.matches) return true;
+  return false;
+}
+
+/**
+ * Returns true when the landing/website pages should be shown.
+ * False inside native app or standalone PWA — those should only see app screens.
+ */
+export function isWebsiteContext(): boolean {
+  return !isNativeAppContext();
+}
+
 export function isEmailSyncEnabled(): boolean {
   const envFlag = import.meta.env.VITE_ENABLE_EMAIL_SYNC;
   if (envFlag === "true") return true;

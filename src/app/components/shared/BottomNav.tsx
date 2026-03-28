@@ -18,7 +18,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument }: BottomNavP
     return (
       <nav className="fixed inset-x-0 bottom-4 z-40">
         <div className="max-w-md mx-auto px-4">
-          <div className="rounded-full bg-[#074738] px-5 py-3 shadow-[0_18px_40px_rgba(7,71,56,0.28)]">
+          <div className="rounded-full bg-[#074738] px-5 py-3 shadow-[0_4px_16px_rgba(7,71,56,0.15)]">
             <div className="grid grid-cols-3 items-center">
               <button
                 onClick={() => onTabChange("home")}
@@ -38,7 +38,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument }: BottomNavP
                   className="flex items-center justify-center"
                   aria-label="Agregar documento"
                 >
-                  <div className="size-12 rounded-full bg-white text-[#074738] flex items-center justify-center shadow-sm">
+                  <div className="size-12 rounded-[14px] bg-white text-[#074738] flex items-center justify-center shadow-[0_4px_12px_rgba(26,155,125,0.3)]">
                     <MaterialIcon name="add" className="text-[28px]" />
                   </div>
                 </button>
@@ -91,10 +91,10 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument }: BottomNavP
             {idx === 0 && onAddDocument && (
               <button
                 onClick={onAddDocument}
-                className="flex flex-col items-center gap-1 px-3 py-2 rounded-[12px] transition-all text-[#074738] hover:bg-[#E0F2F1]"
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-[14px] transition-all text-[#074738] hover:bg-[#E0F2F1]"
                 style={{ fontFamily: "'Manrope', sans-serif" }}
               >
-                <div className="size-10 rounded-full bg-[#074738] flex items-center justify-center -mt-3 shadow-md shadow-[#074738]/20 hover:bg-[#1A9B7D] transition-colors">
+                <div className="size-10 rounded-[12px] bg-[#074738] flex items-center justify-center -mt-3 shadow-[0_4px_12px_rgba(26,155,125,0.3)] hover:bg-[#1A9B7D] transition-colors">
                   <MaterialIcon name="add" className="text-white text-2xl" />
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-wider">

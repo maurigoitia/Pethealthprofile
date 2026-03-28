@@ -17,6 +17,7 @@ import { normalizeCoTutorInviteCode, rememberPendingCoTutorInvite } from "../../
 import { persistAcquisitionSource, resolveAcquisitionSource, trackAcquisitionEvent } from "../../utils/acquisitionTracking";
 import { SEO } from "../shared/SEO";
 import { AuthPageShell } from "./AuthPageShell";
+import { isNativeAppContext } from "../../utils/runtimeFlags";
 
 export function LoginScreen() {
   const navigate = useNavigate();
@@ -270,7 +271,7 @@ export function LoginScreen() {
 
           className="mb-8 w-full"
         >
-          <div className="w-full rounded-[1.75rem] border border-[#E5E7EB] bg-[#F0FAF9] p-5">
+          <div className="w-full rounded-[16px] border border-[#E5E7EB] bg-[#F0FAF9] p-5">
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]" style={{ fontFamily: "'Manrope', sans-serif" }}>Tu mascota, sus cosas</p>
             <p className="mt-2 text-sm font-medium leading-6 text-[#6B7280]" style={{ fontFamily: "'Manrope', sans-serif" }}>
               Porque quererlo ya es suficiente trabajo.
@@ -286,7 +287,7 @@ export function LoginScreen() {
           className="w-full space-y-4"
         >
           {inviteCode && (
-            <div className="rounded-[1.5rem] border border-[#1A9B7D]/30 bg-[#E0F2F1] px-5 py-4 text-[#1A1A1A]">
+            <div className="rounded-[16px] border border-[#1A9B7D]/30 bg-[#E0F2F1] px-5 py-4 text-[#1A1A1A]">
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]" style={{ fontFamily: "'Manrope', sans-serif" }}>Invitacion de co-tutor</p>
               <p className="text-sm font-medium leading-5 mt-1 text-[#6B7280]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                 Al completar el acceso, vamos a vincular esta cuenta con la mascota compartida.
@@ -299,7 +300,7 @@ export function LoginScreen() {
             aria-label="Correo electrónico"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-[1.5rem] border border-[#E5E7EB] bg-white px-5 py-4 text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#074738]/20"
+            className="w-full rounded-[12px] border border-[#E5E7EB] bg-white px-5 py-4 text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D]"
             style={{ fontFamily: "'Manrope', sans-serif" }}
             required
           />
@@ -311,7 +312,7 @@ export function LoginScreen() {
               aria-label="Contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-[1.5rem] border border-[#E5E7EB] bg-white px-5 py-4 pr-28 text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#074738]/20"
+              className="w-full rounded-[12px] border border-[#E5E7EB] bg-white px-5 py-4 pr-28 text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D]"
               style={{ fontFamily: "'Manrope', sans-serif" }}
               required
             />
@@ -319,7 +320,7 @@ export function LoginScreen() {
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-[#E5E7EB] bg-[#F0FAF9] px-3 py-1 text-xs font-bold text-[#074738] hover:bg-[#E0F2F1] transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-[14px] border border-[#E5E7EB] bg-[#F0FAF9] px-3 py-1 text-xs font-bold text-[#074738] hover:bg-[#E0F2F1] transition-colors"
               style={{ fontFamily: "'Manrope', sans-serif" }}
             >
               {showPassword ? "Ocultar" : "Mostrar"}
@@ -342,12 +343,16 @@ export function LoginScreen() {
           <button
             type="submit"
             disabled={loading || authLoading}
-            className="w-full rounded-full bg-[#074738] py-4 font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60 hover:bg-[#1A9B7D] transition-colors"
+            className="w-full rounded-[14px] bg-[#074738] py-4 font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60 hover:bg-[#1A9B7D] transition-colors shadow-[0_4px_12px_rgba(26,155,125,0.3)]"
             style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             {authLoading ? "Validando sesión..." : loading ? "Ingresando..." : "Ingresar"}
           </button>
 
+          {/* Google OAuth: hidden in native WebView (403 disallowed_useragent).
+              TODO: implement via SFSafariViewController / Chrome Custom Tabs for native */}
+          {!isNativeAppContext() && (
+          <>
           <div className="flex items-center gap-3 pt-1">
             <div className="h-px flex-1 bg-[#E5E7EB]" />
             <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9CA3AF]" style={{ fontFamily: "'Manrope', sans-serif" }}>o continuar con</span>
@@ -358,7 +363,7 @@ export function LoginScreen() {
             type="button"
             onClick={handleGoogleSignIn}
             disabled={loadingGoogle}
-            className="flex w-full items-center justify-center gap-3 rounded-full border border-[#E5E7EB] bg-[#F0FAF9] py-4 text-[15px] font-bold text-[#1A1A1A] transition-all active:scale-[0.99] disabled:opacity-60 hover:bg-[#E0F2F1]"
+            className="flex w-full items-center justify-center gap-3 rounded-[14px] border border-[#E5E7EB] bg-[#F0FAF9] py-4 text-[15px] font-bold text-[#1A1A1A] transition-all active:scale-[0.99] disabled:opacity-60 hover:bg-[#E0F2F1]"
             style={{ fontFamily: "'Manrope', sans-serif" }}
           >
             <span className="size-7 rounded-full bg-white flex items-center justify-center shadow-sm">
@@ -371,39 +376,23 @@ export function LoginScreen() {
             </span>
             {loadingGoogle ? "Conectando con Google..." : "Google"}
           </button>
-
-          {hasValidCode ? (
-            <button
-              type="button"
-              onClick={() => {
-                const params = new URLSearchParams();
-                if (inviteCode) params.set("invite", inviteCode);
-                if (refCode) params.set("ref", refCode);
-                navigate(`/register-user?${params.toString()}`);
-              }}
-              className="w-full rounded-full border border-[#dfe6e2] bg-white py-4 font-bold uppercase tracking-[0.16em] text-[#074738] transition-all hover:bg-[#f4f3f9]"
-              style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-            >
-              Registrarse
-            </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                disabled
-                className="w-full rounded-full border border-[#dfe6e2] bg-white py-4 font-bold uppercase tracking-[0.16em] text-[#9CA3AF] cursor-not-allowed"
-                style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-              >
-                Solo por invitación
-              </button>
-              <a
-                href="/solicitar-acceso"
-                className="block text-center text-sm font-semibold text-[#1A9B7D] hover:underline mt-2"
-              >
-                ¿Querés acceso? Solicitalo acá
-              </a>
-            </>
+          </>
           )}
+
+          <button
+            type="button"
+            onClick={() => {
+              const params = new URLSearchParams();
+              if (inviteCode) params.set("invite", inviteCode);
+              if (refCode) params.set("ref", refCode);
+              const qs = params.toString();
+              navigate(`/register-user${qs ? `?${qs}` : ""}`);
+            }}
+            className="w-full rounded-[14px] border border-[#dfe6e2] bg-white py-4 font-bold uppercase tracking-[0.16em] text-[#074738] transition-all hover:bg-[#f4f3f9]"
+            style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
+          >
+            Crear cuenta
+          </button>
         </form>
       </AuthPageShell>
 
@@ -421,7 +410,7 @@ export function LoginScreen() {
 
 
 
-              className="fixed inset-x-4 bottom-8 z-50 bg-white rounded-3xl shadow-2xl p-6 max-w-md mx-auto"
+              className="fixed inset-x-4 bottom-8 z-50 bg-white rounded-3xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-6 max-w-md mx-auto"
             >
               <h2 className="text-xl font-black text-slate-900 mb-1">Recuperar contraseña</h2>
               <p className="text-sm text-slate-500 mb-5">

@@ -79,7 +79,7 @@ export function AuthPageShell({
       {/* ── Right: form panel ── */}
       <div className="flex flex-1 flex-col bg-[#f4f7f6]">
         {/* Mobile header */}
-        <header className="flex items-center justify-between border-b border-[#e2e8e5] bg-white px-5 py-4 lg:hidden">
+        <header className="flex items-center justify-between border-b border-[#E5E7EB] bg-white px-5 py-4 lg:hidden">
           <Link to="/" className="flex items-center gap-2.5">
             <Logo className="size-7" color="#074738" />
             <span className="text-xl font-extrabold tracking-tight text-[#074738]">
@@ -107,17 +107,17 @@ export function AuthPageShell({
 
         {/* Form card */}
         <div className="flex flex-1 items-start justify-center px-5 py-6 lg:items-center lg:px-12 lg:py-0">
-          <div className="w-full max-w-md rounded-3xl border border-[#e2e8e5] bg-white p-6 shadow-[0_8px_40px_-12px_rgba(0,47,36,0.1)] md:p-8">
+          <div className="w-full max-w-md rounded-[16px] border border-[#E5E7EB] bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] md:p-8">
             {children}
           </div>
         </div>
 
         {/* Footer links */}
-        <div className="flex items-center justify-center gap-4 border-t border-[#e2e8e5] bg-white px-5 py-3 text-[11px] font-medium text-[#9CA3AF]">
+        <div className="flex items-center justify-center gap-4 border-t border-[#E5E7EB] bg-white px-5 py-3 text-[11px] font-medium text-[#9CA3AF]">
           <Link to="/" className="hover:text-[#074738]">Inicio</Link>
-          <span className="text-[#d4ddd8]">·</span>
+          <span className="text-[#E5E7EB]">·</span>
           <Link to="/privacidad" className="hover:text-[#074738]">Privacidad</Link>
-          <span className="text-[#d4ddd8]">·</span>
+          <span className="text-[#E5E7EB]">·</span>
           <Link to="/terminos" className="hover:text-[#074738]">Términos</Link>
         </div>
       </div>
