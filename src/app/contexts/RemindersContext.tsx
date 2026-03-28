@@ -1,12 +1,13 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import {
   collection, onSnapshot, addDoc, updateDoc, deleteDoc,
-  doc, query, where, orderBy, Timestamp,
+  doc, query, where, orderBy,
 } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { useAuth } from "./AuthContext";
 import { usePet } from "./PetContext";
-import { ManualReminder, ReminderType, ReminderRepeat } from "../types/medical";
+import { ManualReminder } from "../types/medical";
+import { NotificationService } from "../services/notificationService";
 
 interface RemindersContextState {
   reminders: ManualReminder[];
@@ -23,7 +24,7 @@ const RemindersContext = createContext<RemindersContextState | undefined>(undefi
 
 export function RemindersProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const { activePetId } = usePet();
+  const { pets } = usePet();
   const [reminders, setReminders] = useState<ManualReminder[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,7 +38,7 @@ export function RemindersProvider({ children }: { children: ReactNode }) {
     );
 
     const unsub = onSnapshot(q, (snap) => {
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as ManualReminder));
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() } as ManualReminder));
       setReminders(data);
       setLoading(false);
     }, () => setLoading(false));
@@ -57,6 +58,26 @@ export function RemindersProvider({ children }: { children: ReactNode }) {
       createdAt: now,
       updatedAt: now,
     });
+
+    if (data.notifyEnabled) {
+      const petName = pets.find((pet) => pet.id === data.petId)?.name || "tu mascota";
+      try {
+        await NotificationService.scheduleManualReminder({
+          reminderId: ref.id,
+          petId: data.petId,
+          petName,
+          title: data.title,
+          notes: data.notes,
+          type: data.type,
+          dueDate: data.dueDate,
+          dueTime: data.dueTime,
+          repeat: data.repeat,
+        });
+      } catch (error) {
+        console.warn("No se pudo programar push del recordatorio manual:", error);
+      }
+    }
+
     return ref.id;
   };
 
@@ -66,6 +87,12 @@ export function RemindersProvider({ children }: { children: ReactNode }) {
       completedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
+
+    try {
+      await NotificationService.cancelManualReminderNotifications(id);
+    } catch (error) {
+      console.warn("No se pudo cancelar push del recordatorio completado:", error);
+    }
   };
 
   const dismissReminder = async (id: string) => {
@@ -73,17 +100,29 @@ export function RemindersProvider({ children }: { children: ReactNode }) {
       dismissed: true,
       updatedAt: new Date().toISOString(),
     });
+
+    try {
+      await NotificationService.cancelManualReminderNotifications(id);
+    } catch (error) {
+      console.warn("No se pudo cancelar push del recordatorio descartado:", error);
+    }
   };
 
   const deleteReminder = async (id: string) => {
     await deleteDoc(doc(db, "reminders", id));
+
+    try {
+      await NotificationService.cancelManualReminderNotifications(id);
+    } catch (error) {
+      console.warn("No se pudo cancelar push del recordatorio eliminado:", error);
+    }
   };
 
   const getRemindersByPetId = (petId: string) =>
-    reminders.filter(r => r.petId === petId && !r.dismissed);
+    reminders.filter((r) => r.petId === petId && !r.dismissed);
 
   const getPendingCount = (petId: string) =>
-    reminders.filter(r => r.petId === petId && !r.completed && !r.dismissed).length;
+    reminders.filter((r) => r.petId === petId && !r.completed && !r.dismissed).length;
 
   return (
     <RemindersContext.Provider value={{

@@ -2,8 +2,8 @@ const DEFAULT_PET_PHOTO_SVG = `
 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 240'>
   <defs>
     <linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>
-      <stop offset='0%' stop-color='#2b7cee'/>
-      <stop offset='100%' stop-color='#5ea8ff'/>
+      <stop offset='0%' stop-color='#074738'/>
+      <stop offset='100%' stop-color='#1a9b7d'/>
     </linearGradient>
     <radialGradient id='l' cx='0.2' cy='0.2' r='0.9'>
       <stop offset='0%' stop-color='rgba(255,255,255,0.32)'/>

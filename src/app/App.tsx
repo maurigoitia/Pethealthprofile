@@ -1,11 +1,14 @@
 import { RouterProvider } from "react-router";
+import { Toaster } from "sonner";
 import { router } from "./routes.tsx";
 import { PetProvider } from "./contexts/PetContext";
 import { MedicalProvider } from "./contexts/MedicalContext";
 import { AuthProvider } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { RemindersProvider } from "./contexts/RemindersContext";
-import { AppErrorBoundary } from "./components/AppErrorBoundary";
+import { PreferenceProvider } from "./contexts/PreferenceContext";
+import { GamificationProvider } from "./contexts/GamificationContext";
+import { AppErrorBoundary } from "./components/shared/AppErrorBoundary";
 
 export default function App() {
   return (
@@ -15,7 +18,12 @@ export default function App() {
           <MedicalProvider>
             <NotificationProvider>
               <RemindersProvider>
-                <RouterProvider router={router} />
+                <PreferenceProvider>
+                  <GamificationProvider>
+                    <RouterProvider router={router} />
+                    <Toaster position="top-center" richColors />
+                  </GamificationProvider>
+                </PreferenceProvider>
               </RemindersProvider>
             </NotificationProvider>
           </MedicalProvider>

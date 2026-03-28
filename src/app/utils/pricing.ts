@@ -66,6 +66,9 @@ const rateCache: { rates: Record<string, number>; fetchedAt: number } | null = {
   rates: {}, fetchedAt: 0,
 };
 
+/** true si la última resolución de tasas usó el fallback hardcodeado */
+export let usingFallbackRates = false;
+
 async function getExchangeRates(): Promise<Record<string, number>> {
   const now = Date.now();
   const ONE_HOUR = 60 * 60 * 1000;
@@ -81,12 +84,15 @@ async function getExchangeRates(): Promise<Record<string, number>> {
     if (data.rates) {
       rateCache!.rates = data.rates;
       rateCache!.fetchedAt = now;
+      usingFallbackRates = false;
       return data.rates;
     }
-  } catch {
+  } catch (err) {
     // Fallback: tasas aproximadas hardcodeadas (actualizadas Feb 2026)
+    console.warn("[PRICING] No se pudieron obtener tasas de cambio, usando fallback hardcodeado:", (err as Error)?.message || err);
   }
 
+  usingFallbackRates = true;
   return FALLBACK_RATES;
 }
 
@@ -139,7 +145,9 @@ export async function detectUserCountry(): Promise<string> {
     const res = await fetch("https://ipapi.co/country/", { signal: AbortSignal.timeout(3000) });
     const code = (await res.text()).trim().toUpperCase();
     if (code.length === 2) return code;
-  } catch {}
+  } catch (err) {
+    console.warn("[PRICING] No se pudo detectar país por IP, usando timezone como fallback:", (err as Error)?.message || err);
+  }
   // Fallback por timezone del browser
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -150,7 +158,9 @@ export async function detectUserCountry(): Promise<string> {
     if (tz.includes("Bogota"))                                     return "CO";
     if (tz.includes("Montevideo"))                                 return "UY";
     if (tz.includes("Lima"))                                       return "PE";
-  } catch {}
+  } catch (err) {
+    console.warn("[PRICING] Error leyendo timezone del browser:", (err as Error)?.message || err);
+  }
   return "XX";
 }
 

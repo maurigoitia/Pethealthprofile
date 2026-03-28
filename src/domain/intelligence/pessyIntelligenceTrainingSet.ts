@@ -1,0 +1,140 @@
+import {
+  runPessyIntelligence,
+  type PessyIntelligenceInput,
+} from "./pessyIntelligenceEngine";
+import type { TrainingSegmentId } from "../training/training_master_book";
+
+export interface PessyTrainingCase {
+  id: string;
+  label: string;
+  input: PessyIntelligenceInput;
+  expectedCodes: string[];
+  expectedSegmentId: TrainingSegmentId | null;
+}
+
+export interface PessyTrainingCaseResult {
+  id: string;
+  label: string;
+  passed: boolean;
+  expectedCodes: string[];
+  producedCodes: string[];
+  missingCodes: string[];
+  expectedSegmentId: TrainingSegmentId | null;
+  producedSegmentId: TrainingSegmentId | null;
+}
+
+export interface PessyTrainingRunResult {
+  total: number;
+  passed: number;
+  failed: number;
+  scorePct: number;
+  cases: PessyTrainingCaseResult[];
+}
+
+export const PESSY_INTELLIGENCE_TRAINING_SET: PessyTrainingCase[] = [
+  {
+    id: "thor_heat",
+    label: "Thor · calor brachy",
+    input: {
+      petName: "Thor",
+      species: "dog",
+      breed: "Pug",
+      ageLabel: "8 anos",
+      groupIds: ["dog.brachycephalic", "dog.companion"],
+      temperatureC: 31,
+      humidityPct: 74,
+    },
+    expectedCodes: ["avoid_walk_heat", "indoor_play_heat", "practice_wait_signal"],
+    expectedSegmentId: "companion",
+  },
+  {
+    id: "lola_puppy",
+    label: "Lola · cachorro sin vacunas",
+    input: {
+      petName: "Lola",
+      species: "dog",
+      breed: "Teckel",
+      ageLabel: "12 semanas",
+      ageWeeks: 12,
+      groupIds: ["dog.puppy", "dog.companion"],
+      temperatureC: 20,
+      humidityPct: 58,
+      isPuppy: true,
+      isUnvaccinated: true,
+    },
+    expectedCodes: [
+      "safe_socialization_session",
+      "no_public_ground_unvaccinated",
+      "practice_come",
+    ],
+    expectedSegmentId: "puppies",
+  },
+  {
+    id: "milo_anxiety",
+    label: "Milo · ansiedad por separacion",
+    input: {
+      petName: "Milo",
+      species: "dog",
+      breed: "Mestizo adoptado",
+      ageLabel: "4 anos",
+      groupIds: ["dog.reactive"],
+      temperatureC: 23,
+      humidityPct: 48,
+      hasSeparationAnxiety: true,
+    },
+    expectedCodes: [
+      "departure_routine_predictable",
+      "special_toy_departure",
+      "camera_monitoring",
+      "practice_watch_me",
+    ],
+    expectedSegmentId: "reactive",
+  },
+  {
+    id: "nori_heat",
+    label: "Nori · gato persa con calor",
+    input: {
+      petName: "Nori",
+      species: "cat",
+      breed: "Persa",
+      ageLabel: "5 anos",
+      groupIds: ["cat.brachycephalic"],
+      temperatureC: 31,
+      humidityPct: 71,
+    },
+    expectedCodes: ["indoor_cooling_now", "cooling_support"],
+    expectedSegmentId: null,
+  },
+];
+
+export function runPessyIntelligenceTrainingSet(): PessyTrainingRunResult {
+  const cases = PESSY_INTELLIGENCE_TRAINING_SET.map<PessyTrainingCaseResult>((trainingCase) => {
+    const result = runPessyIntelligence(trainingCase.input);
+    const producedCodes = result.recommendations.map((recommendation) => recommendation.code);
+    const missingCodes = trainingCase.expectedCodes.filter((code) => !producedCodes.includes(code));
+    const segmentMatches = result.segmentId === trainingCase.expectedSegmentId;
+    const passed = missingCodes.length === 0 && segmentMatches;
+
+    return {
+      id: trainingCase.id,
+      label: trainingCase.label,
+      passed,
+      expectedCodes: trainingCase.expectedCodes,
+      producedCodes,
+      missingCodes,
+      expectedSegmentId: trainingCase.expectedSegmentId,
+      producedSegmentId: result.segmentId,
+    };
+  });
+
+  const passed = cases.filter((item) => item.passed).length;
+  const total = cases.length;
+
+  return {
+    total,
+    passed,
+    failed: total - passed,
+    scorePct: Math.round((passed / total) * 100),
+    cases,
+  };
+}

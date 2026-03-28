@@ -10,7 +10,7 @@ interface AuthContextType {
   userFullName: string;   // Nombre completo
   userPhoto: string;      // URL foto de perfil
   userCountry: string;    // Código de país (ej: "AR")
-  userRole: "tutor" | "vet"; // Rol del usuario
+  userRole: "tutor" | "vet";  // Rol del usuario
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -105,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserFullName(safeFullName);
     setUserPhoto(profile.photo);
     setUserCountry(profile.country);
-    setUserRole(profile.role || "tutor");
+    setUserRole(profile.role);
   }, []);
 
   const clearProfile = useCallback(() => {

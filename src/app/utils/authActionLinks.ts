@@ -1,6 +1,10 @@
 import type { ActionCodeSettings } from "firebase/auth";
 
+const PRODUCTION_URL = "https://pessy.app";
 const LOCAL_FALLBACK_URL = "http://localhost:5173";
+
+// Origins from Capacitor native context that are not valid Firebase Auth domains
+const NATIVE_ORIGINS = new Set(["https://localhost", "http://localhost", "capacitor://localhost"]);
 
 const normalizeBaseUrl = (rawValue?: string | null): string | null => {
   const value = (rawValue || "").trim();
@@ -18,7 +22,12 @@ const normalizeBaseUrl = (rawValue?: string | null): string | null => {
 export const getAuthActionBaseUrl = (): string => {
   const envUrl = normalizeBaseUrl(import.meta.env.VITE_AUTH_ACTION_URL as string | undefined);
   if (envUrl) return envUrl;
-  if (typeof window !== "undefined" && window.location?.origin) return window.location.origin;
+  if (typeof window !== "undefined" && window.location?.origin) {
+    const origin = window.location.origin;
+    // In Capacitor native context the origin is localhost — always use the real domain
+    if (NATIVE_ORIGINS.has(origin)) return PRODUCTION_URL;
+    return origin;
+  }
   return LOCAL_FALLBACK_URL;
 };
 
@@ -46,7 +55,3 @@ export const createPasswordResetActionCodeSettings = (): ActionCodeSettings => (
   handleCodeInApp: false,
 });
 
-export const createCoTutorActionCodeSettings = (inviteCode: string): ActionCodeSettings => ({
-  url: buildAuthActionUrl("/email-link", { invite: inviteCode }),
-  handleCodeInApp: true,
-});
