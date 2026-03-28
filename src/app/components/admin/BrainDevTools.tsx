@@ -41,7 +41,6 @@ export function BrainDevTools() {
       }}>
         🧠 PESSY Brain — Dev Tools
       </h3>
-
       <button
         onClick={handleSeed}
         disabled={status === "loading"}
@@ -60,7 +59,6 @@ export function BrainDevTools() {
       >
         {status === "loading" ? "Sincronizando..." : "Seed Brain Knowledge (9 notebooks)"}
       </button>
-
       {result && (
         <pre style={{
           marginTop: "12px",

@@ -8,10 +8,6 @@ interface SeedResult {
   ids: string[];
 }
 
-/**
- * Call the seedBrainKnowledge Cloud Function to populate
- * Firestore notebook_knowledge with the 9 PESSY Brain notebooks.
- */
 export async function seedBrainKnowledge(): Promise<SeedResult> {
   const callable = httpsCallable<Record<string, never>, SeedResult>(
     functions,

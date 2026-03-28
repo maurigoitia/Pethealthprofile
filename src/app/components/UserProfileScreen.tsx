@@ -280,6 +280,7 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
         {/* Brain Dev Tools — admin only */}
         <BrainDevTools />
 
+
         {/* Footer */}
         <div className="text-center px-6 mt-8 pb-8">
           <p className="text-xs text-slate-400">
