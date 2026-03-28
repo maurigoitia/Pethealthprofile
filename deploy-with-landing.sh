@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+# Safety check before deploying
+bash pre-deploy-check.sh
+
 echo "🔨 Step 1: Building Vite project..."
 npm run build
 
