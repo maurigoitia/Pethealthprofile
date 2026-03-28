@@ -208,8 +208,15 @@ service cloud.firestore {
     }
 
     match /medical_events/{eventId} {
-      allow create: if canAccessPetById(request.resource.data.petId);
-      allow read, update, delete: if canAccessPetById(resource.data.petId);
+      // SECURITY: Validate userId on create to prevent IDOR (petId alone isn't enough)
+      allow create: if canAccessPetById(request.resource.data.petId)
+        && request.resource.data.userId == request.auth.uid;
+      allow read: if canAccessPetById(resource.data.petId);
+      // SECURITY: Cannot change petId or userId on update (prevents reassignment attacks)
+      allow update: if canAccessPetById(resource.data.petId)
+        && request.resource.data.petId == resource.data.petId
+        && request.resource.data.userId == resource.data.userId;
+      allow delete: if canAccessPetById(resource.data.petId);
     }
 
     match /clinical_events/{eventId} {
@@ -236,12 +243,20 @@ service cloud.firestore {
 
     match /medications/{medicationId} {
       allow create: if canAccessPetById(request.resource.data.petId);
-      allow read, update, delete: if canAccessPetById(resource.data.petId);
+      allow read: if canAccessPetById(resource.data.petId);
+      // SECURITY: Cannot reassign medication to different pet
+      allow update: if canAccessPetById(resource.data.petId)
+        && request.resource.data.petId == resource.data.petId;
+      allow delete: if canAccessPetById(resource.data.petId);
     }
 
     match /appointments/{appointmentId} {
       allow create: if canAccessPetById(request.resource.data.petId);
-      allow read, update, delete: if canAccessPetById(resource.data.petId);
+      allow read: if canAccessPetById(resource.data.petId);
+      // SECURITY: Cannot reassign appointment to different pet
+      allow update: if canAccessPetById(resource.data.petId)
+        && request.resource.data.petId == resource.data.petId;
+      allow delete: if canAccessPetById(resource.data.petId);
     }
 
     match /clinical_conditions/{conditionId} {

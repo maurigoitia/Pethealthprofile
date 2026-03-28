@@ -8,7 +8,9 @@ import {
   subscribeGmailSyncStatus,
 } from "../services/gmailSyncService";
 import { deleteUserAccount, deleteAllUserClinicalData } from "../services/accountDeletionService";
-import { auth } from "../../lib/firebase";
+import { exportAllUserData, downloadAsJSON } from "../services/dataExportService";
+import { clearAllSensitiveData } from "../utils/secureStorage";
+import { auth, db } from "../../lib/firebase";
 import {
   EmailAuthProvider,
   reauthenticateWithCredential,
@@ -149,6 +151,8 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
     try {
       await deleteUserAccount();
       setShowDeleteConfirm(false);
+      // SECURITY: Limpiar TODOS los datos del cliente (GDPR Art. 17)
+      clearAllSensitiveData();
       await clearClientArtifacts();
       await auth.signOut().catch(() => undefined);
       window.location.assign("/");
@@ -157,6 +161,35 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
       setDeleteError("No pudimos eliminar tu cuenta completa. Reintentá en unos minutos.");
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  // GDPR Art. 20 — Portabilidad de datos
+  const [exportLoading, setExportLoading] = useState(false);
+  const handleExportData = async () => {
+    if (!user?.uid || exportLoading) return;
+    setExportLoading(true);
+    try {
+      const { doc: docRef, getDoc: getDocFn } = await import("firebase/firestore");
+      const userSnap = await getDocFn(docRef(db, "users", user.uid));
+      const userData = userSnap.exists() ? userSnap.data() : {};
+
+      // Obtener IDs de mascotas del usuario
+      const { collection: colRef, query: queryFn, where: whereFn, getDocs: getDocsFn } = await import("firebase/firestore");
+      const petsQuery = queryFn(colRef(db, "pets"), whereFn("ownerId", "==", user.uid));
+      const petsSnap = await getDocsFn(petsQuery);
+      const petIds = petsSnap.docs.map(d => d.id);
+      const petsData = petsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      const exported = await exportAllUserData(user.uid, userData, petIds);
+      exported.pets = petsData;
+      downloadAsJSON(exported);
+      toast.success("Datos exportados correctamente");
+    } catch (err) {
+      console.error("Error exportando datos:", err);
+      toast.error("No se pudieron exportar los datos. Intentá de nuevo.");
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -431,6 +464,29 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
               </div>
             </div>
             <MaterialIcon name="chevron_right" className="text-amber-400" />
+          </button>
+
+          {/* GDPR Art. 20 — Data Export / Portability */}
+          <button
+            type="button"
+            onClick={() => void handleExportData()}
+            disabled={exportLoading}
+            className="w-full bg-white dark:bg-slate-900 rounded-xl border border-[#1A9B7D]/30 p-4 flex items-center justify-between hover:bg-[#F0FAF9] transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-lg bg-[#E0F2F1] flex items-center justify-center">
+                <MaterialIcon name="download" className="text-[#1A9B7D] text-xl" />
+              </div>
+              <div className="text-left">
+                <h3 className="font-bold text-[#074738]">
+                  {exportLoading ? "Exportando..." : "Descargar mis datos"}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Descargá una copia completa de tus datos en formato JSON
+                </p>
+              </div>
+            </div>
+            <MaterialIcon name="chevron_right" className="text-[#1A9B7D]" />
           </button>
 
           {/* Delete Account */}
