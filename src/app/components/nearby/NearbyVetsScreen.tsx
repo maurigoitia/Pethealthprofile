@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../../lib/firebase";
 import { MaterialIcon } from "../shared/MaterialIcon";
 
 interface VetClinic {
@@ -36,33 +37,32 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
   const fetchNearbyVets = useCallback(async (lat: number, lng: number) => {
     setStatus("loading");
     try {
-      // Usamos la API de Places via proxy CORS (o directamente si tenés key en env)
-      const apiKey = (import.meta as any).env.VITE_GOOGLE_PLACES_KEY;
+      // Call the Cloud Function that proxies Google Places API
+      const nearbyVetsFunction = httpsCallable<
+        { lat: number; lng: number; radius?: number; type?: string },
+        { success: boolean; results?: VetClinic[]; error?: string }
+      >(functions, "nearbyVets");
 
-      if (!apiKey) {
-        // Fallback: abrir Google Maps con búsqueda
-        setStatus("error");
-        return;
-      }
+      const response = await nearbyVetsFunction({
+        lat,
+        lng,
+        radius: 5000,
+        type: "veterinary_care",
+      });
 
-      const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=5000&type=veterinary_care&language=es&key=${apiKey}`;
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (data.status === "OK") {
-        const results: VetClinic[] = (data.results || []).map((p: VetClinic) => ({
+      if (response.data.success && response.data.results) {
+        const results: VetClinic[] = response.data.results.map((p: VetClinic) => ({
           ...p,
           distance: distanceKm(lat, lng, p.geometry.location.lat, p.geometry.location.lng),
         })).sort((a: VetClinic, b: VetClinic) => (a.distance || 0) - (b.distance || 0));
         setVets(results);
         setStatus("success");
-      } else if (data.status === "ZERO_RESULTS") {
-        setVets([]);
-        setStatus("success");
       } else {
+        console.error("[NearbyVetsScreen] API error:", response.data.error);
         setStatus("error");
       }
-    } catch {
+    } catch (error) {
+      console.error("[NearbyVetsScreen] Function call failed:", error);
       setStatus("error");
     }
   }, []);
@@ -200,9 +200,7 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
                 Buscá veterinarias cerca tuyo
               </h3>
               <p className="text-sm text-slate-500 mb-6">
-                {!(import.meta as any).env.VITE_GOOGLE_PLACES_KEY
-                  ? "Usá Google Maps para encontrar veterinarias cercanas a tu ubicación."
-                  : "Intentá de nuevo o buscá en Google Maps"}
+                Usá Google Maps para encontrar veterinarias cercanas a tu ubicación.
               </p>
               <div className="flex gap-3 justify-center">
                 <button onClick={requestLocation}

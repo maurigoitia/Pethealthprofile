@@ -149,6 +149,20 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/soluciones/historial", element: <Navigate to="/inicio" replace /> }),
   withErrorBoundary({ path: "/home", Component: HomeScreen }),
   withErrorBoundary({ path: "/review/:reviewId", Component: ClinicalReviewScreen }),
+  withErrorBoundary({
+    path: "/adopcion",
+    lazy: async () => {
+      const module = await import("./components/community/AdoptionFeed");
+      return { Component: module.AdoptionFeed };
+    },
+  }),
+  withErrorBoundary({
+    path: "/adopcion/publicar",
+    lazy: async () => {
+      const module = await import("./components/community/PostForAdoption");
+      return { Component: module.PostForAdoption };
+    },
+  }),
   ...previewRoutes,
   withErrorBoundary({ path: "/email-link", Component: EmailLinkSignInScreen }),
   withErrorBoundary({ path: "/verify/:hash", Component: VerifyReportScreen }),

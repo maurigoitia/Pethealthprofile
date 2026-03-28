@@ -49,6 +49,10 @@ export interface LostPetReport {
   lastSeenAt: Timestamp;
   searchRadius: number;          // km — starts at 2, expands to 5, then 10
 
+  // Contact & report type
+  contactPhone?: string;         // owner's phone/WhatsApp
+  reportType?: "perdido" | "encontrado" | "reunido";
+
   // Metadata
   reportedAt: Timestamp;
   updatedAt: Timestamp;

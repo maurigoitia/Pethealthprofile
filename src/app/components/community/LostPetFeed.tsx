@@ -89,41 +89,72 @@ export function LostPetFeed({ onReport, onBack }: Props) {
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">¡Buena noticia! Todas las mascotas están a salvo.</p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             {sorted.map((r) => {
               const dist = userLocation ? distanceKm(userLocation, r.lastSeenLocation) : null;
               const ago = r.reportedAt?.toDate ? timeAgo(r.reportedAt.toDate()) : "";
+              const statusBg = r.reportType === "encontrado" ? "bg-amber-100 dark:bg-amber-900/20" : r.reportType === "reunido" ? "bg-emerald-100 dark:bg-emerald-900/20" : "bg-red-100 dark:bg-red-900/20";
+              const statusText = r.reportType === "encontrado" ? "text-amber-700 dark:text-amber-200" : r.reportType === "reunido" ? "text-emerald-700 dark:text-emerald-200" : "text-red-700 dark:text-red-200";
+              const statusLabel = r.reportType === "encontrado" ? "Encontrado" : r.reportType === "reunido" ? "Reunido" : "Perdido";
+
               return (
-                <div key={r.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex gap-3">
-                  {/* Photo */}
-                  <div className="size-16 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0">
-                    {r.petSnapshot.photoUrls[0] ? (
-                      <img src={r.petSnapshot.photoUrls[0]} alt={r.petSnapshot.name} className="size-full object-cover" />
-                    ) : (
-                      <div className="size-full flex items-center justify-center">
-                        <MaterialIcon name="pets" className="text-2xl text-slate-400" />
+                <div key={r.id} className="bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 overflow-hidden" style={{ boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)" }}>
+                  {/* Photo with status badge */}
+                  {r.petSnapshot.photoUrls[0] ? (
+                    <div className="relative w-full h-40 bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                      <img src={r.petSnapshot.photoUrls[0]} alt={r.petSnapshot.name} className="w-full h-full object-cover" />
+                      <div className={`absolute top-2 right-2 ${statusBg} ${statusText} text-xs font-semibold px-2.5 py-1 rounded-full`}>
+                        {statusLabel}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="relative w-full h-40 bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                      <MaterialIcon name="pets" className="text-4xl text-slate-400" />
+                      <div className={`absolute top-2 right-2 ${statusBg} ${statusText} text-xs font-semibold px-2.5 py-1 rounded-full`}>
+                        {statusLabel}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-[#074738] dark:text-white text-base truncate">{r.petSnapshot.name}</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">{r.petSnapshot.breed} · {r.petSnapshot.size}</p>
-                    <div className="flex items-center gap-3 mt-1.5">
-                      {dist !== null && (
-                        <span className="text-xs text-[#1A9B7D] font-medium flex items-center gap-0.5">
-                          <MaterialIcon name="location_on" className="text-sm" />{dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`}
-                        </span>
-                      )}
-                      <span className="text-xs text-slate-400">{ago}</span>
+                  <div className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="font-bold text-[#074738] dark:text-white text-lg">{r.petSnapshot.name}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{r.petSnapshot.breed} · {r.petSnapshot.size}</p>
+                      </div>
+                    </div>
+
+                    {/* Location & time */}
+                    <div className="flex items-center gap-3 mb-3 text-xs">
+                      <span className="text-[#1A9B7D] font-medium flex items-center gap-1">
+                        <MaterialIcon name="location_on" className="text-sm" />
+                        {dist !== null ? `${dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`}` : r.lastSeenAddress}
+                      </span>
+                      <span className="text-slate-400">{ago}</span>
                       {r.sightingCount > 0 && (
-                        <span className="text-xs text-amber-600 font-medium flex items-center gap-0.5">
-                          <MaterialIcon name="visibility" className="text-sm" />{r.sightingCount}
+                        <span className="text-amber-600 font-medium flex items-center gap-0.5">
+                          <MaterialIcon name="visibility" className="text-sm" />
+                          {r.sightingCount}
                         </span>
                       )}
                     </div>
+
+                    {/* Distinctive features */}
                     {r.petSnapshot.distinctiveFeatures && (
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">"{r.petSnapshot.distinctiveFeatures}"</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 mb-3 line-clamp-2">
+                        Características: {r.petSnapshot.distinctiveFeatures}
+                      </p>
+                    )}
+
+                    {/* Contact info */}
+                    {r.contactPhone && (
+                      <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                        <MaterialIcon name="phone" className="text-[#1A9B7D] text-sm" />
+                        <a href={`tel:${r.contactPhone}`} className="text-xs text-[#1A9B7D] font-medium hover:underline">
+                          {r.contactPhone}
+                        </a>
+                      </div>
                     )}
                   </div>
                 </div>
