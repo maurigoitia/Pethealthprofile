@@ -9,6 +9,12 @@ import { VerifyReportScreen } from "./components/VerifyReportScreen";
 import { EmailLinkSignInScreen } from "./components/EmailLinkSignInScreen";
 import { RouteErrorFallback } from "./components/RouteErrorFallback";
 
+// Pessy Vet — separate app screens
+import { VetLoginScreen } from "./components/vet/VetLoginScreen";
+import { VetRegisterScreen } from "./components/vet/VetRegisterScreen";
+import VetDashboard from "./components/vet/VetDashboard";
+import { VetNewConsultation } from "./components/vet/VetNewConsultation";
+
 const withErrorBoundary = <T extends Record<string, any>>(route: T): T => ({
   ...route,
   errorElement: <RouteErrorFallback />,
@@ -29,5 +35,13 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/home", Component: HomeScreen }),
   withErrorBoundary({ path: "/email-link", Component: EmailLinkSignInScreen }),
   withErrorBoundary({ path: "/verify/:hash", Component: VerifyReportScreen }),
+
+  // ── Pessy Vet routes ──
+  withErrorBoundary({ path: "/vet", element: <Navigate to="/vet/login" replace /> }),
+  withErrorBoundary({ path: "/vet/login", Component: VetLoginScreen }),
+  withErrorBoundary({ path: "/vet/register", Component: VetRegisterScreen }),
+  withErrorBoundary({ path: "/vet/dashboard", Component: VetDashboard }),
+  withErrorBoundary({ path: "/vet/new-consultation", Component: VetNewConsultation }),
+
   withErrorBoundary({ path: "*", element: <Navigate to="/" replace /> }),
 ]);
