@@ -1,7 +1,7 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 
-const db = admin.firestore();
+function getDb() { return admin.firestore(); }
 
 // ─── HAVERSINE DISTANCE (km) ───
 function distanceKm(
@@ -43,7 +43,7 @@ export const onLostPetReport = functions.firestore
 
     try {
       // Get all users with FCM tokens
-      const usersSnap = await db.collectionGroup("fcm_tokens").get();
+      const usersSnap = await getDb().collectionGroup("fcm_tokens").get();
       const tokensByUser = new Map<string, string[]>();
 
       for (const doc of usersSnap.docs) {
@@ -60,7 +60,7 @@ export const onLostPetReport = functions.firestore
       // Get user locations from their pets (approximation)
       // Users whose pets have location data within radius
       const nearbyTokens: string[] = [];
-      const petsSnap = await db.collection("pets").get();
+      const petsSnap = await getDb().collection("pets").get();
 
       for (const petDoc of petsSnap.docs) {
         const pet = petDoc.data();
@@ -68,7 +68,7 @@ export const onLostPetReport = functions.firestore
         if (!ownerId || ownerId === report.reportedBy) continue;
 
         // Check if user has location from preferences or pet data
-        const userPrefsDoc = await db.doc(`user_preferences/${ownerId}`).get();
+        const userPrefsDoc = await getDb().doc(`user_preferences/${ownerId}`).get();
         const userLoc = userPrefsDoc.data()?.lastKnownLocation;
 
         if (userLoc && typeof userLoc.lat === "number" && typeof userLoc.lng === "number") {
@@ -118,9 +118,9 @@ export const onLostPetReport = functions.firestore
       });
 
       if (invalidTokens.length > 0) {
-        const batch = db.batch();
+        const batch = getDb().batch();
         for (const token of invalidTokens) {
-          const tokenSnap = await db.collectionGroup("fcm_tokens")
+          const tokenSnap = await getDb().collectionGroup("fcm_tokens")
             .where("token", "==", token).limit(1).get();
           tokenSnap.docs.forEach((d) => batch.delete(d.ref));
         }
@@ -140,7 +140,7 @@ export const onPetSighting = functions.firestore
     if (!sighting || !sighting.lostPetReportId) return;
 
     try {
-      const reportDoc = await db.doc(`lost_pets/${sighting.lostPetReportId}`).get();
+      const reportDoc = await getDb().doc(`lost_pets/${sighting.lostPetReportId}`).get();
       const report = reportDoc.data();
       if (!report || report.status !== "active") return;
 
@@ -148,7 +148,7 @@ export const onPetSighting = functions.firestore
       const petName = report.petSnapshot?.name || "tu mascota";
 
       // Get owner FCM tokens
-      const tokensSnap = await db.collection(`users/${ownerId}/fcm_tokens`).get();
+      const tokensSnap = await getDb().collection(`users/${ownerId}/fcm_tokens`).get();
       const tokens = tokensSnap.docs.map((d) => d.data().token).filter(Boolean);
 
       if (tokens.length === 0) return;
@@ -273,7 +273,7 @@ export const computeAdoptionMatches = functions.https.onCall(async (data, contex
   }
 
   // Get active adoption listings
-  const listingsSnap = await db.collection("adoption_listings")
+  const listingsSnap = await getDb().collection("adoption_listings")
     .where("status", "==", "active")
     .limit(50)
     .get();
