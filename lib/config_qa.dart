@@ -5,8 +5,8 @@
 
 class PessyConfig {
   // QA: local dev server (change IP if testing on physical device)
-  static const String appUrl = 'http://localhost:3000';
-  static const String homeUrl = 'http://localhost:3000/inicio';
+  static const String appUrl = 'http://localhost:3001';
+  static const String homeUrl = 'http://localhost:3001/inicio';
   static const String deepLinkHost = 'localhost';
   static const int primaryColor = 0xFF074738;
   static const int accentColor = 0xFF1A9B7D;

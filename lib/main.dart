@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'config.dart';
+import 'config_qa.dart';
 import 'screens/webview_screen.dart';
 
 void main() {

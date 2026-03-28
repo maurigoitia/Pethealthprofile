@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import '../config.dart';
+import '../config_qa.dart';
 
 class WebViewScreen extends StatefulWidget {
   final String? initialUrl;
