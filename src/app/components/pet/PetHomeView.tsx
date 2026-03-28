@@ -199,7 +199,7 @@ function WeatherPill({
       className={`flex-1 flex items-center gap-1.5 rounded-[14px] px-2.5 py-2 border ${
         highlight
           ? "border-[#1A9B7D] bg-[#eef8f3]"
-          : "border-[#eef0ee] bg-white"
+          : "border-[#E5E7EB] bg-white"
       }`}
     >
       <span className="text-[16px] leading-none" role="img">{emoji}</span>
@@ -625,7 +625,7 @@ export function PetHomeView({
                 className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
                   pet.id === activePetId
                     ? "bg-[#074738] text-white"
-                    : "bg-white text-[#9CA3AF] border border-[#eef0ee]"
+                    : "bg-white text-[#9CA3AF] border border-[#E5E7EB]"
                 }`}
               >
                 {pet.name}
@@ -708,7 +708,7 @@ export function PetHomeView({
           </div>
         ) : currentRoutineItems === null ? (
           <div className="mx-3 mt-2">
-            <div className="rounded-[16px] border border-[#eef0ee] bg-white flex items-center gap-3" style={{ padding: "14px 16px" }}>
+            <div className="rounded-[16px] border border-[#E5E7EB] bg-white flex items-center gap-3" style={{ padding: "14px 16px" }}>
               <span className="text-[#074738]">
                 <MaterialIcon name="bedtime" className="!text-[22px]" />
               </span>

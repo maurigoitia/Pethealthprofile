@@ -155,7 +155,7 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
                 />
                 <button
                   onClick={() => setCurrentScreen("personal-info")}
-                  className="absolute bottom-4 right-0 size-8 rounded-full bg-[#1A9B7D] text-white flex items-center justify-center shadow-lg hover:bg-[#158a6e] transition-colors"
+                  className="absolute bottom-4 right-0 size-8 rounded-full bg-[#1A9B7D] text-white flex items-center justify-center shadow-[0_4px_12px_rgba(26,155,125,0.3)] hover:bg-[#158a6e] transition-colors"
                 >
                   <MaterialIcon name="edit" className="text-sm" />
                 </button>
@@ -167,7 +167,7 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
                 </div>
                 <button
                   onClick={() => setCurrentScreen("personal-info")}
-                  className="absolute bottom-4 right-0 size-8 rounded-full bg-[#1A9B7D] text-white flex items-center justify-center shadow-lg hover:bg-[#158a6e] transition-colors"
+                  className="absolute bottom-4 right-0 size-8 rounded-full bg-[#1A9B7D] text-white flex items-center justify-center shadow-[0_4px_12px_rgba(26,155,125,0.3)] hover:bg-[#158a6e] transition-colors"
                 >
                   <MaterialIcon name="add_a_photo" className="text-sm" />
                 </button>
@@ -191,19 +191,19 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3 mt-6">
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-3 text-center border border-slate-200 dark:border-slate-800">
+            <div className="bg-white dark:bg-slate-900 rounded-[16px] p-3 text-center border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-slate-800">
               <p className="text-2xl font-black text-[#074738]">{userData.petsCount}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
                 Mascotas
               </p>
             </div>
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-3 text-center border border-slate-200 dark:border-slate-800">
+            <div className="bg-white dark:bg-slate-900 rounded-[16px] p-3 text-center border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-slate-800">
               <p className="text-2xl font-black text-[#074738]">{userData.recordsCount}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
                 Registros
               </p>
             </div>
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-3 text-center border border-slate-200 dark:border-slate-800">
+            <div className="bg-white dark:bg-slate-900 rounded-[16px] p-3 text-center border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-slate-800">
               <p className="text-2xl font-black text-[#074738]">{userData.daysActive}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
                 Días
@@ -227,7 +227,7 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
             <button
               key={index}
               onClick={item.onClick}
-              className="w-full bg-white dark:bg-slate-900 rounded-xl p-4 flex items-center gap-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-800"
+              className="w-full bg-white dark:bg-slate-900 rounded-[16px] p-4 flex items-center gap-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-slate-800"
             >
               <div className="size-10 rounded-lg bg-[#074738]/10 text-[#074738] flex items-center justify-center shrink-0">
                 <MaterialIcon name={item.icon} className="text-xl" />
