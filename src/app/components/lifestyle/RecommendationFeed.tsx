@@ -1,4 +1,5 @@
-export default function RecommendationFeed() {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function RecommendationFeed({ onBack }: { onBack?: () => void }) {
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center px-6 py-12" style={{ background: "#F0FAF9" }}>
       {/* Cork mascot */}
