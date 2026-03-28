@@ -26,6 +26,7 @@ class WebViewScreenState extends State<WebViewScreen> {
         onPageFinished: (_) => setState(() => _isLoading = false),
         onNavigationRequest: (request) {
           if (request.url.contains('pessy.app') ||
+              request.url.contains('localhost') ||
               request.url.contains('accounts.google.com') ||
               request.url.contains('firebaseapp.com')) {
             return NavigationDecision.navigate;
