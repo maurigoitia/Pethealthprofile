@@ -1,7 +1,13 @@
 "use client";
 
 import React from "react";
-import { MaterialIcon } from "../shared/MaterialIcon";
+import { Sun, Sunset, Moon } from "lucide-react";
+
+const ROUTINE_ICONS: Record<string, React.ElementType> = {
+  wb_sunny: Sun,
+  wb_twilight: Sunset,
+  bedtime: Moon,
+};
 
 interface RoutineChecklistProps {
   title: string;
@@ -30,7 +36,7 @@ export default function RoutineChecklist({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <span className="text-[#074738]">
-            <MaterialIcon name={icon} className="!text-[20px]" />
+            {(() => { const IconComp = ROUTINE_ICONS[icon] || Sun; return <IconComp size={20} strokeWidth={1.8} />; })()}
           </span>
           <span
             className="text-[14px] font-bold text-[#074738]"

@@ -1,5 +1,19 @@
 import React from 'react';
+import {
+  Lightbulb, AlertTriangle, ShieldAlert, Thermometer, Droplets,
+  Wind, CloudRain, Dog, Heart, Activity, Utensils, Star,
+} from 'lucide-react';
 import { MaterialIcon } from '../shared/MaterialIcon';
+
+const LUCIDE_MAP: Record<string, React.ElementType> = {
+  lightbulb: Lightbulb, tips_and_updates: Lightbulb,
+  warning: AlertTriangle, report: ShieldAlert,
+  thermostat: Thermometer, water_drop: Droplets,
+  air: Wind, rainy: CloudRain,
+  pets: Dog, favorite: Heart,
+  fitness_center: Activity, restaurant: Utensils,
+  star: Star,
+};
 
 interface PessyTipProps {
   icon: string;
@@ -35,7 +49,10 @@ export default function PessyTip({ icon, color, title, description }: PessyTipPr
       <div
         className={`flex items-center justify-center shrink-0 w-[32px] h-[32px] rounded-[10px] ${styles.bg}`}
       >
-        <MaterialIcon name={icon} className={`${styles.text} !text-[18px]`} />
+        {LUCIDE_MAP[icon]
+          ? React.createElement(LUCIDE_MAP[icon], { size: 18, strokeWidth: 1.8, className: styles.text })
+          : <MaterialIcon name={icon} className={`${styles.text} !text-[18px]`} />
+        }
       </div>
 
       {/* Text content */}

@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import { MaterialIcon } from "../shared/MaterialIcon";
+import { CalendarDays, Pill, Clock, ChevronRight } from 'lucide-react';
 
 interface QuickActionsProps {
   appointments: number;
@@ -20,67 +19,74 @@ export default function QuickActions({
   onMedicationsClick,
   onHistoryClick,
 }: QuickActionsProps) {
-  // Don't render for new users with no data
   if (appointments === 0 && medications === 0 && historyCount === 0) {
     return null;
   }
 
   const cards = [
     {
-      icon: 'calendar_month',
+      Icon: CalendarDays,
       label: 'Turnos',
       value: appointments,
       hasAlert: false,
       onClick: onAppointmentsClick,
+      iconBg: 'bg-[#E0F2F1]',
+      iconColor: 'text-[#1A9B7D]',
     },
     {
-      icon: 'medication',
+      Icon: Pill,
       label: 'Medicación',
       value: medications,
       hasAlert: medications > 0,
       onClick: onMedicationsClick,
+      iconBg: medications > 0 ? 'bg-[#FEF3C7]' : 'bg-[#EDE9FE]',
+      iconColor: medications > 0 ? 'text-[#D97706]' : 'text-[#5048CA]',
     },
     {
-      icon: 'history',
+      Icon: Clock,
       label: 'Historial',
       value: historyCount,
       hasAlert: false,
       onClick: onHistoryClick,
+      iconBg: 'bg-[#FEE2E2]',
+      iconColor: 'text-[#EF4444]',
     },
   ];
 
   return (
-    <div className="flex flex-row mx-3 gap-2">
-      {cards.map((card) => (
-        <button
-          key={card.label}
-          onClick={card.onClick}
-          className={`flex-1 rounded-[16px] py-4 px-3 text-center border cursor-pointer transition-colors hover:shadow-md ${
-            card.hasAlert
-              ? 'border-[#F59E0B] bg-[#FEF3C7]'
-              : 'border-[#E5E7EB] bg-white'
-          }`}
-        >
-          <span style={{ color: card.hasAlert ? '#D97706' : '#074738' }}>
-            <MaterialIcon name={card.icon} className={`!text-[24px] block`} />
-          </span>
-          <span
-            className="block text-[10px] font-bold mt-2"
-            style={{ color: '#6B7280', fontFamily: "'Manrope', sans-serif" }}
+    <div className="mx-3 pessy-stagger">
+      <div className="grid grid-cols-3 gap-2.5">
+        {cards.map((card) => (
+          <button
+            key={card.label}
+            onClick={card.onClick}
+            className={`pessy-card-interactive rounded-[16px] p-4 text-left border ${
+              card.hasAlert
+                ? 'border-[#F59E0B]/30 bg-[#FFFBEB]'
+                : 'border-[rgba(0,0,0,0.04)] bg-white'
+            } shadow-[0_2px_8px_rgba(0,0,0,0.04)]`}
           >
-            {card.label}
-          </span>
-          <span
-            className="block text-[18px] mt-1 font-bold"
-            style={{
-              color: '#074738',
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-            }}
-          >
-            {card.value}
-          </span>
-        </button>
-      ))}
+            <div className={`size-11 rounded-xl ${card.iconBg} flex items-center justify-center mb-3`}>
+              <card.Icon size={20} strokeWidth={1.8} className={card.iconColor} />
+            </div>
+            <p
+              className="text-[22px] font-[800] text-[#074738] leading-none"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              {card.value}
+            </p>
+            <div className="flex items-center justify-between mt-1.5">
+              <span
+                className="text-[11px] font-bold text-[#6B7280]"
+                style={{ fontFamily: "'Manrope', sans-serif" }}
+              >
+                {card.label}
+              </span>
+              <ChevronRight size={14} className="text-[#9CA3AF]" strokeWidth={2} />
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

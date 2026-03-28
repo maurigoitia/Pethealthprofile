@@ -591,15 +591,17 @@ export function PetHomeView({
     <div className="bg-[#F0FAF9] dark:bg-[#0D1B16] min-h-screen font-['Manrope',sans-serif]">
       <div className="max-w-md mx-auto pb-24">
 
-        {/* 1. HERO - Pet photo with name overlay */}
-        <div className="relative h-[200px] overflow-hidden">
+        {/* 1. HERO - Pet photo with name overlay + blob */}
+        <div className="relative h-[220px] overflow-hidden pessy-fade-up">
           <PetPhoto
             src={activePet.photo}
             alt={activePet.name}
             className="w-full h-full object-cover"
             fallbackClassName="rounded-none"
           />
-          <div className="absolute bottom-0 left-0 right-0 h-[100px] bg-gradient-to-t from-[rgba(7,71,56,0.85)] to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 h-[120px] bg-gradient-to-t from-[rgba(7,71,56,0.92)] via-[rgba(7,71,56,0.4)] to-transparent" />
+          {/* Decorative blob — pessy.app organic feel */}
+          <div className="pessy-blob absolute -top-10 -right-10 w-[120px] h-[120px] bg-[rgba(26,155,125,0.15)]" style={{ animationDelay: '2s' }} />
           <div className="absolute bottom-3.5 left-4 text-white">
             <h1
               className="text-[26px] font-[900] leading-none"

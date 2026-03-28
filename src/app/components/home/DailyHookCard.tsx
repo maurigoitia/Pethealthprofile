@@ -31,16 +31,27 @@ export default function DailyHookCard({
         borderRadius: 16,
       }}
     >
-      {/* Decorative circle overlay */}
+      {/* Decorative blob overlays — pessy.app style */}
       <div
-        className="absolute pointer-events-none"
+        className="absolute pointer-events-none pessy-blob"
         style={{
-          width: 140,
-          height: 140,
-          borderRadius: "50%",
-          backgroundColor: "rgba(26,155,125,0.25)",
-          top: -30,
-          right: -20,
+          width: 160,
+          height: 160,
+          backgroundColor: "rgba(26,155,125,0.2)",
+          top: -40,
+          right: -30,
+        }}
+      />
+      <div
+        className="absolute pointer-events-none pessy-blob"
+        style={{
+          width: 80,
+          height: 80,
+          backgroundColor: "rgba(80,72,202,0.15)",
+          bottom: -20,
+          left: -15,
+          animationDelay: '3s',
+          animationDuration: '15s',
         }}
       />
 
