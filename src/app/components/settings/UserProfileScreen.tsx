@@ -7,6 +7,7 @@ import { PrivacySecurityScreen } from "./PrivacySecurityScreen";
 import { AppearanceScreen } from "./AppearanceScreen";
 import { HelpSupportScreen } from "./HelpSupportScreen";
 import { AboutScreen } from "./AboutScreen";
+import { BrainDevTools } from "../admin/BrainDevTools";
 import { CoTutorModal } from "../pet/CoTutorModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePet } from "../../contexts/PetContext";
@@ -262,6 +263,9 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
             </span>
           </button>
         </div>
+
+        {/* Brain Dev Tools — admin only */}
+        <BrainDevTools />
 
         {/* Footer */}
         <div className="text-center px-6 mt-8 pb-8">
