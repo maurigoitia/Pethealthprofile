@@ -294,6 +294,49 @@ service cloud.firestore {
       allow read, update, delete: if canAccessPetById(resource.data.petId);
     }
 
+    // ─── COMMUNITY: Lost Pets ───
+    match /lost_pets/{reportId} {
+      allow create: if signedIn() && request.resource.data.reportedBy == request.auth.uid;
+      allow read: if signedIn();
+      allow update: if signedIn() && resource.data.reportedBy == request.auth.uid;
+      allow delete: if signedIn() && resource.data.reportedBy == request.auth.uid;
+    }
+
+    match /lost_pet_sightings/{sightingId} {
+      allow create: if signedIn() && request.resource.data.reportedBy == request.auth.uid;
+      allow read: if signedIn();
+      allow update, delete: if signedIn() && resource.data.reportedBy == request.auth.uid;
+    }
+
+    // ─── COMMUNITY: Adoption Listings ───
+    match /adoption_listings/{listingId} {
+      allow create: if signedIn() && request.resource.data.listedBy == request.auth.uid;
+      allow read: if signedIn();
+      allow update, delete: if signedIn() && resource.data.listedBy == request.auth.uid;
+    }
+
+    // ─── USER PREFERENCES (random questions, lifestyle tags) ───
+    match /user_preferences/{userId} {
+      allow read, write: if signedIn() && request.auth.uid == userId;
+    }
+
+    // ─── USER GAMIFICATION ───
+    match /user_gamification/{userId} {
+      allow read, write: if signedIn() && request.auth.uid == userId;
+    }
+
+    // ─── PLACES (curated recommendations) ───
+    match /places/{placeId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /place_reviews/{reviewId} {
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if signedIn();
+      allow update, delete: if signedIn() && resource.data.userId == request.auth.uid;
+    }
+
     // Gmail ingestion — temporary collections (user can only access own data)
     match /gmail_raw_documents_tmp/{docId} {
       allow read, delete: if signedIn() && resource.data.user_id == request.auth.uid;
