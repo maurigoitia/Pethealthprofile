@@ -4,6 +4,7 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { useAuth } from "../../contexts/AuthContext";
 import { CURRENT_TERMS_UPDATED_LABEL, CURRENT_TERMS_VERSION } from "../../constants/legal";
+import { isNativeAppContext } from "../../utils/runtimeFlags";
 
 type TermsResponseStatus = "accepted" | "declined";
 
@@ -12,6 +13,11 @@ export function TermsAcceptanceNotice() {
   const [visible, setVisible] = useState(false);
   const [checking, setChecking] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  // QA/native: skip terms overlay entirely
+  const isQA = isNativeAppContext() ||
+    (typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname));
+  if (isQA) return null;
 
   useEffect(() => {
     let cancelled = false;

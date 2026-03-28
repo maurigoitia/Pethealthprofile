@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { Logo } from "../shared/Logo";
+import { isNativeAppContext } from "../../utils/runtimeFlags";
 
 interface AuthPageShellProps {
   eyebrow: string;
@@ -25,10 +26,13 @@ export function AuthPageShell({
   highlights = [],
   children,
 }: AuthPageShellProps) {
+  const isApp = isNativeAppContext() ||
+    (typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname));
+
   return (
     <div className="flex min-h-screen" style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', system-ui, sans-serif" }}>
-      {/* ── Left: brand panel (hidden on mobile) ── */}
-      <div className="relative hidden w-[45%] overflow-hidden bg-[#074738] lg:block">
+      {/* ── Left: brand panel (hidden on mobile, hidden in native app) ── */}
+      {!isApp && <div className="relative hidden w-[45%] overflow-hidden bg-[#074738] lg:block">
         {/* Pet photo with overlay */}
         <img
           src={heroPhoto}
@@ -74,52 +78,70 @@ export function AuthPageShell({
             Tu mascota, sus cosas, todo en orden.
           </p>
         </div>
-      </div>
+      </div>}
 
       {/* ── Right: form panel ── */}
-      <div className="flex flex-1 flex-col bg-[#f4f7f6]">
-        {/* Mobile header */}
-        <header className="flex items-center justify-between border-b border-[#E5E7EB] bg-white px-5 py-4 lg:hidden">
-          <Link to="/" className="flex items-center gap-2.5">
-            <Logo className="size-7" color="#074738" />
-            <span className="text-xl font-extrabold tracking-tight text-[#074738]">
-              Pessy
-            </span>
-          </Link>
-          <Link
-            to="/login"
-            className="rounded-full bg-[#074738] px-4 py-2 text-xs font-bold text-white"
-          >
-            Entrar
-          </Link>
-        </header>
+      <div className={`flex flex-1 flex-col ${isApp ? "bg-[#F0FAF9]" : "bg-[#f4f7f6]"}`}>
+        {/* Mobile header — only on website */}
+        {!isApp && (
+          <header className="flex items-center justify-between border-b border-[#E5E7EB] bg-white px-5 py-4 lg:hidden">
+            <Link to="/" className="flex items-center gap-2.5">
+              <Logo className="size-7" color="#074738" />
+              <span className="text-xl font-extrabold tracking-tight text-[#074738]">
+                Pessy
+              </span>
+            </Link>
+            <Link
+              to="/login"
+              className="rounded-full bg-[#074738] px-4 py-2 text-xs font-bold text-white"
+            >
+              Entrar
+            </Link>
+          </header>
+        )}
 
-        {/* Mobile eyebrow + title */}
-        <div className="px-5 pt-6 lg:hidden">
-          <span className="mb-3 inline-block rounded-full bg-[#074738]/10 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#074738]">
-            {eyebrow}
-          </span>
-          <h1 className="mb-2 text-2xl font-extrabold leading-tight tracking-tight text-[#074738]">
-            {title}
-          </h1>
-          <p className="mb-5 text-sm font-medium text-[#9CA3AF]">{description}</p>
-        </div>
+        {/* App: minimal logo header */}
+        {isApp && (
+          <div className="flex items-center justify-center px-5 pt-8 pb-2">
+            <div className="flex items-center gap-2.5">
+              <Logo className="size-8" color="#074738" />
+              <span className="text-xl font-extrabold tracking-tight text-[#074738]">
+                Pessy
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile eyebrow + title — only on website */}
+        {!isApp && (
+          <div className="px-5 pt-6 lg:hidden">
+            <span className="mb-3 inline-block rounded-full bg-[#074738]/10 px-3.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#074738]">
+              {eyebrow}
+            </span>
+            <h1 className="mb-2 text-2xl font-extrabold leading-tight tracking-tight text-[#074738]">
+              {title}
+            </h1>
+            <p className="mb-5 text-sm font-medium text-[#9CA3AF]">{description}</p>
+          </div>
+        )}
 
         {/* Form card */}
-        <div className="flex flex-1 items-start justify-center px-5 py-6 lg:items-center lg:px-12 lg:py-0">
+        <div className={`flex flex-1 items-start justify-center px-5 ${isApp ? "py-4" : "py-6"} lg:items-center lg:px-12 lg:py-0`}>
           <div className="w-full max-w-md rounded-[16px] border border-[#E5E7EB] bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] md:p-8">
             {children}
           </div>
         </div>
 
-        {/* Footer links */}
-        <div className="flex items-center justify-center gap-4 border-t border-[#E5E7EB] bg-white px-5 py-3 text-[11px] font-medium text-[#9CA3AF]">
-          <Link to="/" className="hover:text-[#074738]">Inicio</Link>
-          <span className="text-[#E5E7EB]">·</span>
-          <Link to="/privacidad" className="hover:text-[#074738]">Privacidad</Link>
-          <span className="text-[#E5E7EB]">·</span>
-          <Link to="/terminos" className="hover:text-[#074738]">Términos</Link>
-        </div>
+        {/* Footer links — only on website */}
+        {!isApp && (
+          <div className="flex items-center justify-center gap-4 border-t border-[#E5E7EB] bg-white px-5 py-3 text-[11px] font-medium text-[#9CA3AF]">
+            <Link to="/" className="hover:text-[#074738]">Inicio</Link>
+            <span className="text-[#E5E7EB]">·</span>
+            <Link to="/privacidad" className="hover:text-[#074738]">Privacidad</Link>
+            <span className="text-[#E5E7EB]">·</span>
+            <Link to="/terminos" className="hover:text-[#074738]">Términos</Link>
+          </div>
+        )}
       </div>
     </div>
   );

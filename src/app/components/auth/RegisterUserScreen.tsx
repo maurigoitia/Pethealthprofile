@@ -9,6 +9,7 @@ import { persistAcquisitionSource, resolveAcquisitionSource, trackAcquisitionEve
 import { validatePlatformInviteCode, validateAccessToken, markPlatformInviteUsed, markAccessTokenUsed } from "../../utils/platformInvite";
 import { AuthPageShell } from "./AuthPageShell";
 import { ConsentManager, ConsentState, saveConsent } from "../ConsentManager";
+import { isNativeAppContext } from "../../utils/runtimeFlags";
 
 export function RegisterUserScreen() {
   const navigate = useNavigate();
@@ -24,8 +25,18 @@ export function RegisterUserScreen() {
   const [showTermsStep, setShowTermsStep] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   // SECURITY FIX: Consentimiento ANTES de recolectar datos (GDPR Art.7, LFPDPPP Art.15-16)
-  const [consentStep, setConsentStep] = useState<"consent" | "register" | "post-register">("consent");
-  const [consentData, setConsentData] = useState<ConsentState | null>(null);
+  // QA/native: skip consent step (auto-accept for dev)
+  const isQA = isNativeAppContext() ||
+    (typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname));
+  const [consentStep, setConsentStep] = useState<"consent" | "register" | "post-register">(isQA ? "register" : "consent");
+  const [consentData, setConsentData] = useState<ConsentState | null>(isQA ? {
+    termsAccepted: true,
+    privacyAccepted: true,
+    aiProcessingAccepted: true,
+    internationalTransferAccepted: true,
+    version: "qa-auto",
+    timestamp: new Date().toISOString(),
+  } : null);
   const [gateStatus, setGateStatus] = useState<"loading" | "allowed" | "blocked" | "invalid">("loading");
   const [gateMessage, setGateMessage] = useState("");
   const [platformInviteCreatedBy, setPlatformInviteCreatedBy] = useState<string | null>(null);
