@@ -21,12 +21,12 @@ export function VetConsultationView({ consultationId, onBack }: Props) {
         <span className={`px-3 py-1 rounded-full text-xs font-bold ${sc[c.status]}`}>{sl[c.status]}</span>
       </div>
       <div className="px-5 space-y-4">
-        <div className="bg-white rounded-[16px] p-4 border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+        <div className="bg-white rounded-[16px] p-4 border border-[rgba(0,0,0,0.04)] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
           <div className="flex items-center gap-3 mb-3"><div className="size-10 rounded-full bg-[#E0F2F1] flex items-center justify-center"><span className="material-symbols-outlined text-[#074738]" style={{fontSize:"20px"}}>person</span></div><p className="font-bold text-slate-900 text-sm">{c.tutorName}</p></div>
           <div className="bg-slate-50 rounded-[12px] p-3"><p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Motivo</p><p className="text-sm text-slate-900">{c.reason||"No especificado"}</p></div>
           {c.symptoms && <div className="bg-slate-50 rounded-[12px] p-3 mt-2"><p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Síntomas</p><p className="text-sm text-slate-900">{c.symptoms}</p></div>}
         </div>
-        <div className="bg-white rounded-[16px] p-4 border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+        <div className="bg-white rounded-[16px] p-4 border border-[rgba(0,0,0,0.04)] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
           <div className="flex items-center justify-between mb-3"><h3 className="font-bold text-slate-900 text-sm">Datos clínicos</h3>{!editing && c.status!=="completed" && <button onClick={()=>setEditing(true)} className="text-[#074738] text-xs font-bold">Editar</button>}</div>
           {editing ? <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3"><div><label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Peso (kg)</label><input value={ed.weight} onChange={e=>setEd({...ed,weight:e.target.value})} className={ic}/></div><div><label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">Temp (°C)</label><input value={ed.temperature} onChange={e=>setEd({...ed,temperature:e.target.value})} className={ic}/></div></div>
