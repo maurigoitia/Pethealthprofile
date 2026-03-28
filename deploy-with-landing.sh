@@ -11,7 +11,8 @@ echo "📄 Step 2: Renaming SPA index.html → app.html..."
 mv dist/index.html dist/app.html
 
 echo "🔧 Step 2.5: Patching service worker navigateFallback..."
-sed -i '' 's/createHandlerBoundToURL("index.html")/createHandlerBoundToURL("app.html")/g' dist/sw.js
+sed -i '' 's|createHandlerBoundToURL("/index.html")|createHandlerBoundToURL("/app.html")|g' dist/sw.js
+sed -i '' 's|createHandlerBoundToURL("index.html")|createHandlerBoundToURL("app.html")|g' dist/sw.js
 echo "   ✓ sw.js patched to use app.html"
 
 echo "🏠 Step 3: Copying landing page as new index.html..."
