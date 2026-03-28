@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'config_qa.dart';
+import 'config_qa.dart'; // DEV — switch to config.dart for production builds
 import 'firebase_options.dart';
 import 'screens/webview_screen.dart';
 import 'services/deep_link_service.dart';
