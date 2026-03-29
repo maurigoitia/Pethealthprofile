@@ -2,9 +2,12 @@ import { MaterialIcon } from "../shared/MaterialIcon";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useMedical } from "../../contexts/MedicalContext";
 import { usePet, type PetPreferences } from "../../contexts/PetContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { toTimestampSafe } from "../../utils/dateUtils";
 import { PetPhoto } from "./PetPhoto";
 import { getPoints, addPoints, isDailyActivityDone, markDailyActivityDone } from "../../utils/gamification";
+import { db } from "../../../lib/firebase";
+import { collection, doc, getDocs, setDoc } from "firebase/firestore";
 
 const PetPreferencesEditor = lazy(() =>
   import("./PetPreferencesEditor.tsx").then((m) => ({ default: m.PetPreferencesEditor }))
@@ -25,6 +28,7 @@ import ProfileNudge from "../home/ProfileNudge";
 import QuickActions from "../home/QuickActions";
 import PessyTip, { SectionTitle } from "../home/PessyTip";
 import PessyDailyCheckin from "../home/PessyDailyCheckin";
+import PessyQuestion from "../home/PessyQuestion";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -234,12 +238,63 @@ function saveCheckedItems(petId: string, items: string[]) {
   window.localStorage.setItem(getRoutineStorageKey(petId), JSON.stringify(items));
 }
 
+// ─── TYPES ────────────────────────────────────────────────────────────────────
+
+/** Personality data stored in Firestore: users/{uid}/pets/{petId}/personality/{topic} */
+type Personality = Record<string, { value: string }>;
+
+/** Extended recommendation — adds optional mission mode fields */
+type EnhancedTip = PessyIntelligenceRecommendation & {
+  isMission?: boolean;
+  missionPoints?: number;
+};
+
+// ─── PERSONALITY QUESTIONS ────────────────────────────────────────────────────
+// Each topic is asked once. After answering, future tips are personalized.
+
+const PERSONALITY_QUESTIONS: Array<{
+  topic: string;
+  question: (petName: string) => string;
+  subtext?: string;
+  options: Array<{ label: string; value: string; emoji: string }>;
+}> = [
+  {
+    topic: "sleep_habits",
+    question: (name) => `¿${name} duerme con vos o solo?`,
+    subtext: "Lo uso para personalizar las rutinas nocturnas.",
+    options: [
+      { label: "Conmigo", value: "with_owner", emoji: "🛏️" },
+      { label: "Solo", value: "alone", emoji: "🏠" },
+    ],
+  },
+  {
+    topic: "training_level",
+    question: (name) => `¿${name} tiene entrenamiento básico?`,
+    subtext: "Así te doy ejercicios del nivel correcto.",
+    options: [
+      { label: "Sí", value: "trained", emoji: "✅" },
+      { label: "Algo", value: "partial", emoji: "🤔" },
+      { label: "No", value: "none", emoji: "❌" },
+    ],
+  },
+  {
+    topic: "noise_sensitivity",
+    question: (name) => `¿${name} se pone nervioso con ruidos fuertes?`,
+    subtext: "Truenos, fuegos, aspiradora, etc.",
+    options: [
+      { label: "Sí mucho", value: "sensitive", emoji: "😰" },
+      { label: "A veces", value: "moderate", emoji: "😐" },
+      { label: "Para nada", value: "calm", emoji: "😌" },
+    ],
+  },
+];
+
 // ─── CONTEXTUAL TIPS FROM REAL DATA ──────────────────────────────────────────
 // These override generic tips — if there's real medication/appointment data,
 // it shows FIRST (kind: "alert") before breed/weather recommendations.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildContextualTips(petName: string, medications: any[], appointments: any[]): PessyIntelligenceRecommendation[] {
+function buildContextualTips(petName: string, medications: any[], appointments: any[], personality?: Personality): EnhancedTip[] {
   const tips: PessyIntelligenceRecommendation[] = [];
 
   // Active medications → always relevant, show name + dosage
@@ -300,6 +355,44 @@ function buildContextualTips(petName: string, medications: any[], appointments: 
     }
   }
 
+  // Personality-aware mission tips (only if personality data exists)
+  const training = personality?.training_level?.value;
+  if (training) {
+    const missionTitle = training === "none"
+      ? `Enseñarle 'Sentado' a ${petName}`
+      : training === "partial"
+        ? `Reforzar 'Quieto' con ${petName}`
+        : `Practicar 'Espera la señal' con ${petName}`;
+    tips.push({
+      id: "mission-training",
+      code: "mission_training",
+      title: missionTitle,
+      detail: training === "none" ? "5 min. Recompensá cada intento." : training === "partial" ? "10 min con más distancia." : "Con distracciones activas.",
+      slot: "recommendation",
+      icon: "school",
+      kind: "recommendation",
+      sourceModule: "mission",
+      isMission: true,
+      missionPoints: training === "trained" ? 20 : 15,
+    });
+  }
+
+  const sleep = personality?.sleep_habits?.value;
+  if (sleep) {
+    tips.push({
+      id: "mission-sleep",
+      code: "mission_sleep",
+      title: sleep === "with_owner" ? `Noche cómoda para los dos` : `Rutina de calma para ${petName}`,
+      detail: sleep === "with_owner" ? `Definí el espacio de ${petName} en la cama.` : `10 min de calma antes de separarse.`,
+      slot: "recommendation",
+      icon: "bedtime",
+      kind: "recommendation",
+      sourceModule: "mission",
+      isMission: true,
+      missionPoints: 10,
+    });
+  }
+
   return tips;
 }
 
@@ -328,7 +421,10 @@ export function PetHomeView({
   onPetChange,
 }: PetHomeViewProps) {
   const { updatePet } = usePet();
+  const { user } = useAuth();
   const [showPreferences, setShowPreferences] = useState(false);
+  const [personality, setPersonality] = useState<Personality>({});
+  const [savingPersonality, setSavingPersonality] = useState(false);
   const [weather, setWeather] = useState<LiveWeatherSnapshot>({
     status: "loading",
     temperatureC: null,
@@ -395,13 +491,48 @@ export function PetHomeView({
 
   const sortedRecommendations = useMemo(() => {
     // Contextual tips from real data (meds, appointments) always come first
-    const contextual = buildContextualTips(activePet?.name || "", activeMedications, upcomingAppointments);
+    const contextual = buildContextualTips(activePet?.name || "", activeMedications, upcomingAppointments, personality);
     const intelligence = intelligenceResult?.recommendations || [];
     const order: Record<string, number> = { block: 0, alert: 1, recommendation: 2 };
     const all = [...contextual, ...intelligence].sort((a, b) => (order[a.kind] ?? 2) - (order[b.kind] ?? 2));
     // Max 4 tips — show what matters, not everything
     return all.slice(0, 4);
-  }, [activePet?.name, activeMedications, upcomingAppointments, intelligenceResult]);
+  }, [activePet?.name, activeMedications, upcomingAppointments, intelligenceResult, personality]);
+
+  // ─── Personality — load from Firestore, save answers ────────────────────────
+  useEffect(() => {
+    if (!user || !activePetId) return;
+    setPersonality({});
+    getDocs(collection(db, "users", user.uid, "pets", activePetId, "personality"))
+      .then((snap) => {
+        const data: Personality = {};
+        snap.docs.forEach((d) => { data[d.id] = d.data() as { value: string }; });
+        setPersonality(data);
+      })
+      .catch(() => {}); // Non-critical — graceful fallback
+  }, [user, activePetId]);
+
+  const savePersonality = async (topic: string, value: string) => {
+    if (!user || !activePetId) return;
+    setSavingPersonality(true);
+    try {
+      await setDoc(doc(db, "users", user.uid, "pets", activePetId, "personality", topic), {
+        value,
+        savedAt: new Date().toISOString(),
+      });
+      setPersonality((prev) => ({ ...prev, [topic]: { value } }));
+    } catch (e) {
+      console.error("[personality save]", e);
+    } finally {
+      setSavingPersonality(false);
+    }
+  };
+
+  // ONE pending question at a time (Duolingo-style progressive onboarding)
+  const pendingQuestion = useMemo(() => {
+    if (!activePet?.name) return null;
+    return PERSONALITY_QUESTIONS.find((q) => !personality[q.topic]) ?? null;
+  }, [personality, activePet?.name]);
 
   // ─── Walk safety (simplified for badge) ─────────────────────────────────────
   const walkSafety: WalkSafetyState = useMemo(() => {
@@ -819,20 +950,39 @@ export function PetHomeView({
           />
         </div>
 
-        {/* 8. PESSY TE DICE - tips from intelligence engine */}
-        {sortedRecommendations.length > 0 && (
+        {/* 8. PESSY TE DICE - question first (if unknown), then tips */}
+        {(pendingQuestion || sortedRecommendations.length > 0) && (
           <>
             <SectionTitle>Pessy te dice</SectionTitle>
             <div className="mx-3 space-y-1.5">
-              {sortedRecommendations.map((rec) => (
-                <PessyTip
-                  key={rec.id}
-                  icon={rec.icon}
-                  color={mapRecToTipColor(rec)}
-                  title={rec.title}
-                  description={rec.detail}
+              {/* ONE personality question at a time */}
+              {pendingQuestion && (
+                <PessyQuestion
+                  question={pendingQuestion.question(activePet.name)}
+                  subtext={pendingQuestion.subtext}
+                  options={pendingQuestion.options}
+                  saving={savingPersonality}
+                  onAnswer={(value) => savePersonality(pendingQuestion.topic, value)}
                 />
-              ))}
+              )}
+              {/* Tips — fewer when a question is showing */}
+              {sortedRecommendations
+                .slice(0, pendingQuestion ? 2 : 4)
+                .map((rec) => {
+                  const enhanced = rec as EnhancedTip;
+                  return (
+                    <PessyTip
+                      key={rec.id}
+                      icon={rec.icon}
+                      color={mapRecToTipColor(rec)}
+                      title={rec.title}
+                      description={rec.detail}
+                      isMission={enhanced.isMission}
+                      missionPoints={enhanced.missionPoints}
+                      onMissionComplete={(total) => setPoints(total)}
+                    />
+                  );
+                })}
             </div>
           </>
         )}
