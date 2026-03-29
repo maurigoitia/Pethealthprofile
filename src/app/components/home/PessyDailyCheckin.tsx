@@ -31,12 +31,13 @@ interface ApptInfo {
 interface Props {
   petName: string;
   petId: string;
+  species?: "dog" | "cat";
   medications: Med[];
   nextAppointment: ApptInfo | null;
   onPointsEarned?: (total: number) => void;
 }
 
-// Cork mascot — inline SVG, no external deps
+// Cork — dog mascot (teal)
 function CorkMascot({ size = 40 }: { size?: number }) {
   return (
     <svg viewBox="0 0 60 72" width={size} height={size * 1.2} style={{ display: "block" }}>
@@ -54,6 +55,42 @@ function CorkMascot({ size = 40 }: { size?: number }) {
       <rect x="32" y="60" width="6" height="8" rx="3" fill="#d4ede8" stroke="#074738" strokeWidth="1.5" />
     </svg>
   );
+}
+
+// Fizz — cat mascot (warm peach/orange)
+function FizzMascot({ size = 40 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 60 72" width={size} height={size * 1.2} style={{ display: "block" }}>
+      {/* Body */}
+      <ellipse cx="30" cy="57" rx="13" ry="10" fill="#FDDCB5" stroke="#C67B3A" strokeWidth="1.5" />
+      {/* Head */}
+      <circle cx="30" cy="30" r="14" fill="#FDDCB5" stroke="#C67B3A" strokeWidth="1.5" />
+      {/* Pointed cat ears */}
+      <polygon points="16,20 11,6 23,14" fill="#F4A261" stroke="#C67B3A" strokeWidth="1.5" strokeLinejoin="round" />
+      <polygon points="44,20 49,6 37,14" fill="#F4A261" stroke="#C67B3A" strokeWidth="1.5" strokeLinejoin="round" />
+      {/* Eyes */}
+      <ellipse cx="25" cy="28" rx="2.5" ry="3" fill="#5C3A1E" />
+      <ellipse cx="35" cy="28" rx="2.5" ry="3" fill="#5C3A1E" />
+      <circle cx="25.8" cy="27" r="1" fill="white" />
+      <circle cx="35.8" cy="27" r="1" fill="white" />
+      {/* Nose */}
+      <ellipse cx="30" cy="34" rx="2.5" ry="1.8" fill="#E8856A" />
+      {/* Whiskers */}
+      <line x1="14" y1="33" x2="25" y2="34" stroke="#C67B3A" strokeWidth="0.8" />
+      <line x1="14" y1="36" x2="25" y2="35" stroke="#C67B3A" strokeWidth="0.8" />
+      <line x1="46" y1="33" x2="35" y2="34" stroke="#C67B3A" strokeWidth="0.8" />
+      <line x1="46" y1="36" x2="35" y2="35" stroke="#C67B3A" strokeWidth="0.8" />
+      {/* Smile */}
+      <path d="M26 37 Q30 41 34 37" stroke="#C67B3A" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      {/* Paws */}
+      <ellipse cx="24" cy="64" rx="5" ry="4" fill="#FDDCB5" stroke="#C67B3A" strokeWidth="1.5" />
+      <ellipse cx="36" cy="64" rx="5" ry="4" fill="#FDDCB5" stroke="#C67B3A" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function PetMascot({ species, size }: { species?: "dog" | "cat"; size?: number }) {
+  return species === "cat" ? <FizzMascot size={size} /> : <CorkMascot size={size} />;
 }
 
 function daysUntil(appt: ApptInfo): number {
@@ -117,7 +154,7 @@ const MOODS = [
   { emoji: "😟", label: "No tan bien", value: "mal" },
 ];
 
-export default function PessyDailyCheckin({ petName, petId, medications, nextAppointment, onPointsEarned }: Props) {
+export default function PessyDailyCheckin({ petName, petId, species, medications, nextAppointment, onPointsEarned }: Props) {
   const { user } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const [done, setDone] = useState(false);
@@ -173,7 +210,7 @@ export default function PessyDailyCheckin({ petName, petId, medications, nextApp
         )}
         <div className="flex items-center gap-3">
           <div className={isYes ? "animate-bounce" : ""} style={{ animationDuration: "0.7s" }}>
-            <CorkMascot size={44} />
+            <PetMascot species={species} size={44} />
           </div>
           <div>
             <p className={`text-sm font-bold ${isYes ? "text-white" : "text-slate-700"}`}>
@@ -191,7 +228,7 @@ export default function PessyDailyCheckin({ petName, petId, medications, nextApp
     return (
       <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4 flex items-center gap-3"
         style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-        <CorkMascot size={40} />
+        <PetMascot species={species} size={40} />
         <div>
           <p className="text-sm font-bold text-[#074738]">¡Listo! Anotado ✓</p>
           <p className="text-xs text-slate-500 mt-0.5">Mañana vuelvo a preguntar 🐾</p>
@@ -210,7 +247,7 @@ export default function PessyDailyCheckin({ petName, petId, medications, nextApp
       >
         <div className="flex items-start gap-3">
           <div className="shrink-0">
-            <CorkMascot size={36} />
+            <PetMascot species={species} size={36} />
           </div>
           <div className="flex-1 min-w-0">
             {ctx.kind === "medication" && ctx.medLabel && (
@@ -235,7 +272,7 @@ export default function PessyDailyCheckin({ petName, petId, medications, nextApp
       style={{ boxShadow: "0 4px 16px rgba(26,155,125,0.12)" }}>
       {/* Header */}
       <div className="bg-[#E0F2F1] px-4 py-3 flex items-center gap-2">
-        <CorkMascot size={28} />
+        <PetMascot species={species} size={28} />
         <p className="text-sm font-bold text-[#074738] flex-1">{ctx.headline}</p>
         <button onClick={() => setExpanded(false)} className="size-8 flex items-center justify-center">
           <MaterialIcon name="close" className="text-[#9CA3AF] text-lg" />

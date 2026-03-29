@@ -838,153 +838,90 @@ export function PetHomeView({
           </div>
         )}
 
-        {/* 2. WEATHER STRIP - 3 pills */}
-        {weather.status === "ready" && (
-          <div className="flex gap-1.5 mx-3 mt-2.5">
-            <WeatherPill emoji="🌡️" value={`${weather.temperatureC}°C`} label="Ahora" />
-            <WeatherPill emoji="💧" value={`${weather.humidityPct}%`} label="Humedad" />
-            <WeatherPill
-              emoji={walkSafety.status === "safe" ? "✅" : walkSafety.status === "caution" ? "⚠️" : "🚫"}
-              value={walkSafety.badge}
-              label="Paseo"
-              highlight={walkSafety.status === "safe"}
-            />
-          </div>
-        )}
-
-        {/* 3. PROFILE NUDGE - only if incomplete */}
-        {profileIncomplete && (
-          <div className="mx-3 mt-2">
-            <ProfileNudge
-              petName={activePet.name}
-              species={species}
-              missingItems={missingItems}
-              onComplete={onProfileClick}
-            />
-          </div>
-        )}
-
-        {/* 4. DAILY HOOK - swipeable suggestion carousel */}
-        <SectionTitle>Hoy con {activePet.name}</SectionTitle>
-        {dailySuggestions.length === 1 ? (
-          <div className="mx-3">
-            <DailyHookCard
-              category={CATEGORY_LABELS[dailySuggestions[0].category] || dailySuggestions[0].category}
-              categoryIcon={dailySuggestions[0].icon}
-              title={dailySuggestions[0].title}
-              description={dailySuggestions[0].detail}
-              duration={dailySuggestions[0].duration}
-              points={dailySuggestions[0].points}
-              onStart={(pts) => { const total = addPoints(pts); setPoints(total); }}
-            />
-          </div>
-        ) : (
-          <div
-            className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 px-3"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" as React.CSSProperties["msOverflowStyle"], WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"] }}
-          >
-            {dailySuggestions.map((s, i) => (
-              <div key={i} className="w-[85vw] max-w-[340px] snap-start flex-shrink-0">
-                <DailyHookCard
-                  category={CATEGORY_LABELS[s.category] || s.category}
-                  categoryIcon={s.icon}
-                  title={s.title}
-                  description={s.detail}
-                  duration={s.duration}
-                  points={s.points}
-                  onStart={(pts) => { const total = addPoints(pts); setPoints(total); }}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 5. ROUTINE CHECKLIST - morning, evening, or sleep based on time */}
-        {currentRoutineItems && currentRoutineItems.length > 0 ? (
-          <div className="mx-3 mt-2">
-            <RoutineChecklist
-              title={routineTitle}
-              icon={routineIcon}
-              items={currentRoutineItems}
-              checkedItems={checkedRoutineItems}
-              onToggle={handleRoutineToggle}
-            />
-          </div>
-        ) : currentRoutineItems === null ? (
-          <div className="mx-3 mt-2">
-            <div className="rounded-[16px] border border-[#E5E7EB] bg-white flex items-center gap-3" style={{ padding: "14px 16px" }}>
-              <span className="text-[#074738]">
-                <MaterialIcon name="bedtime" className="!text-[22px]" />
-              </span>
-              <span className="text-[13px] font-[800] text-[#074738]">
-                {activePet.name} ya descansa. Mañana seguimos.
-              </span>
-            </div>
-          </div>
-        ) : null}
-
-        {/* 6. QUICK ACTIONS - only if pet has medical data */}
-        {(appointmentCount > 0 || medicationCount > 0 || historyCount > 0) && (
-          <>
-            <SectionTitle>Servicios</SectionTitle>
-            <QuickActions
-              appointments={appointmentCount}
-              medications={medicationCount}
-              historyCount={historyCount}
-              onAppointmentsClick={onAppointmentsClick}
-              onMedicationsClick={onMedicationsClick}
-              onHistoryClick={onViewHistory}
-            />
-          </>
-        )}
-
-        {/* 7. PESSY PIENSA - smart check-in based on real data */}
-        <SectionTitle>Pessy piensa</SectionTitle>
-        <div className="mx-3">
+        {/* ── SECTION 2: Cork/Fizz — the ONE most important thing right now ── */}
+        <div className="mx-3 mt-4">
           <PessyDailyCheckin
             petName={activePet.name}
             petId={activePetId}
+            species={species}
             medications={activeMedications.map((m) => ({ name: m.name, dosage: m.dosage }))}
             nextAppointment={upcomingAppointments[0] ?? null}
             onPointsEarned={(total) => setPoints(total)}
           />
         </div>
 
-        {/* 8. PESSY TE DICE - question first (if unknown), then tips */}
+        {/* ── SECTION 3: Quick actions — 2 buttons max ── */}
+        {(historyCount > 0 || medicationCount > 0 || appointmentCount > 0) && (
+          <div className="mx-3 mt-3 flex gap-3">
+            {historyCount > 0 && (
+              <button
+                onClick={onViewHistory}
+                className="flex-1 flex items-center gap-2 bg-white rounded-2xl border border-[#E5E7EB] px-4 py-3 active:scale-[0.97] transition-transform"
+                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+              >
+                <MaterialIcon name="history" className="text-[#1A9B7D] !text-xl shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#074738]">Historial</p>
+                  <p className="text-[10px] text-slate-400">{historyCount} eventos</p>
+                </div>
+              </button>
+            )}
+            {medicationCount > 0 ? (
+              <button
+                onClick={onMedicationsClick}
+                className="flex-1 flex items-center gap-2 bg-white rounded-2xl border border-[#E5E7EB] px-4 py-3 active:scale-[0.97] transition-transform"
+                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+              >
+                <MaterialIcon name="medication" className="text-[#1A9B7D] !text-xl shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#074738]">Medicaciones</p>
+                  <p className="text-[10px] text-slate-400">{medicationCount} activa{medicationCount !== 1 ? "s" : ""}</p>
+                </div>
+              </button>
+            ) : appointmentCount > 0 ? (
+              <button
+                onClick={onAppointmentsClick}
+                className="flex-1 flex items-center gap-2 bg-white rounded-2xl border border-[#E5E7EB] px-4 py-3 active:scale-[0.97] transition-transform"
+                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+              >
+                <MaterialIcon name="event" className="text-[#1A9B7D] !text-xl shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#074738]">Turnos</p>
+                  <p className="text-[10px] text-slate-400">{appointmentCount} próximo{appointmentCount !== 1 ? "s" : ""}</p>
+                </div>
+              </button>
+            ) : null}
+          </div>
+        )}
+
+        {/* ── SECTION 4: Pessy te dice — 1 question OR 1-2 real tips ── */}
         {(pendingQuestion || sortedRecommendations.length > 0) && (
-          <>
-            <SectionTitle>Pessy te dice</SectionTitle>
-            <div className="mx-3 space-y-1.5">
-              {/* ONE personality question at a time */}
-              {pendingQuestion && (
-                <PessyQuestion
-                  question={pendingQuestion.question(activePet.name)}
-                  subtext={pendingQuestion.subtext}
-                  options={pendingQuestion.options}
-                  saving={savingPersonality}
-                  onAnswer={(value) => savePersonality(pendingQuestion.topic, value)}
+          <div className="mx-3 mt-3 space-y-2">
+            {pendingQuestion && (
+              <PessyQuestion
+                question={pendingQuestion.question(activePet.name)}
+                subtext={pendingQuestion.subtext}
+                options={pendingQuestion.options}
+                saving={savingPersonality}
+                onAnswer={(value) => savePersonality(pendingQuestion.topic, value)}
+              />
+            )}
+            {sortedRecommendations.slice(0, pendingQuestion ? 1 : 2).map((rec) => {
+              const enhanced = rec as EnhancedTip;
+              return (
+                <PessyTip
+                  key={rec.id}
+                  icon={rec.icon}
+                  color={mapRecToTipColor(rec)}
+                  title={rec.title}
+                  description={rec.detail}
+                  isMission={enhanced.isMission}
+                  missionPoints={enhanced.missionPoints}
+                  onMissionComplete={(total) => setPoints(total)}
                 />
-              )}
-              {/* Tips — fewer when a question is showing */}
-              {sortedRecommendations
-                .slice(0, pendingQuestion ? 2 : 4)
-                .map((rec) => {
-                  const enhanced = rec as EnhancedTip;
-                  return (
-                    <PessyTip
-                      key={rec.id}
-                      icon={rec.icon}
-                      color={mapRecToTipColor(rec)}
-                      title={rec.title}
-                      description={rec.detail}
-                      isMission={enhanced.isMission}
-                      missionPoints={enhanced.missionPoints}
-                      onMissionComplete={(total) => setPoints(total)}
-                    />
-                  );
-                })}
-            </div>
-          </>
+              );
+            })}
+          </div>
         )}
       </div>
 
