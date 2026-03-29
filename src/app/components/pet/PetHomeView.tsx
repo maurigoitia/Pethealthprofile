@@ -665,40 +665,38 @@ export function PetHomeView({
 
         {/* 4. DAILY HOOK - swipeable suggestion carousel */}
         <SectionTitle>Hoy con {activePet.name}</SectionTitle>
-        <div className="overflow-hidden">
-          {dailySuggestions.length === 1 ? (
-            <div className="mx-3">
-              <DailyHookCard
-                category={CATEGORY_LABELS[dailySuggestions[0].category] || dailySuggestions[0].category}
-                categoryIcon={dailySuggestions[0].icon}
-                title={dailySuggestions[0].title}
-                description={dailySuggestions[0].detail}
-                duration={dailySuggestions[0].duration}
-                points={dailySuggestions[0].points}
-                onStart={(pts) => { const total = addPoints(pts); setPoints(total); }}
-              />
-            </div>
-          ) : (
-            <div
-              className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 px-3"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
-            >
-              {dailySuggestions.map((s, i) => (
-                <div key={i} className="w-[calc(100%-24px)] min-w-[280px] snap-start flex-shrink-0">
-                  <DailyHookCard
-                    category={CATEGORY_LABELS[s.category] || s.category}
-                    categoryIcon={s.icon}
-                    title={s.title}
-                    description={s.detail}
-                    duration={s.duration}
-                    points={s.points}
-                    onStart={(pts) => { const total = addPoints(pts); setPoints(total); }}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {dailySuggestions.length === 1 ? (
+          <div className="mx-3">
+            <DailyHookCard
+              category={CATEGORY_LABELS[dailySuggestions[0].category] || dailySuggestions[0].category}
+              categoryIcon={dailySuggestions[0].icon}
+              title={dailySuggestions[0].title}
+              description={dailySuggestions[0].detail}
+              duration={dailySuggestions[0].duration}
+              points={dailySuggestions[0].points}
+              onStart={(pts) => { const total = addPoints(pts); setPoints(total); }}
+            />
+          </div>
+        ) : (
+          <div
+            className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 px-3"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" as React.CSSProperties["msOverflowStyle"], WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"] }}
+          >
+            {dailySuggestions.map((s, i) => (
+              <div key={i} className="w-[85vw] max-w-[340px] snap-start flex-shrink-0">
+                <DailyHookCard
+                  category={CATEGORY_LABELS[s.category] || s.category}
+                  categoryIcon={s.icon}
+                  title={s.title}
+                  description={s.detail}
+                  duration={s.duration}
+                  points={s.points}
+                  onStart={(pts) => { const total = addPoints(pts); setPoints(total); }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* 5. ROUTINE CHECKLIST - morning, evening, or sleep based on time */}
         {currentRoutineItems && currentRoutineItems.length > 0 ? (
@@ -739,13 +737,15 @@ export function PetHomeView({
           </>
         )}
 
-        {/* 7. PESSY PIENSA - interactive daily check-in */}
+        {/* 7. PESSY PIENSA - smart check-in based on real data */}
         <SectionTitle>Pessy piensa</SectionTitle>
         <div className="mx-3">
           <PessyDailyCheckin
             petName={activePet.name}
             petId={activePetId}
-            hasMedications={medicationCount > 0}
+            medications={activeMedications.map((m) => ({ name: m.name, dosage: m.dosage }))}
+            nextAppointment={upcomingAppointments[0] ?? null}
+            onPointsEarned={(total) => setPoints(total)}
           />
         </div>
 
