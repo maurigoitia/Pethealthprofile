@@ -28,7 +28,7 @@ import ProfileNudge from "../home/ProfileNudge";
 import QuickActions from "../home/QuickActions";
 import PessyTip, { SectionTitle } from "../home/PessyTip";
 import PessyDailyCheckin from "../home/PessyDailyCheckin";
-import PessyQuestion from "../home/PessyQuestion";
+import PersonalityOnboarding from "./PersonalityOnboarding";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -249,46 +249,6 @@ type EnhancedTip = PessyIntelligenceRecommendation & {
   missionPoints?: number;
 };
 
-// ─── PERSONALITY QUESTIONS ────────────────────────────────────────────────────
-// Each topic is asked once. After answering, future tips are personalized.
-
-const PERSONALITY_QUESTIONS: Array<{
-  topic: string;
-  question: (petName: string) => string;
-  subtext?: string;
-  options: Array<{ label: string; value: string; emoji: string }>;
-}> = [
-  {
-    topic: "sleep_habits",
-    question: (name) => `¿${name} duerme con vos o solo?`,
-    subtext: "Lo uso para personalizar las rutinas nocturnas.",
-    options: [
-      { label: "Conmigo", value: "with_owner", emoji: "🛏️" },
-      { label: "Solo", value: "alone", emoji: "🏠" },
-    ],
-  },
-  {
-    topic: "training_level",
-    question: (name) => `¿${name} tiene entrenamiento básico?`,
-    subtext: "Así te doy ejercicios del nivel correcto.",
-    options: [
-      { label: "Sí", value: "trained", emoji: "✅" },
-      { label: "Algo", value: "partial", emoji: "🤔" },
-      { label: "No", value: "none", emoji: "❌" },
-    ],
-  },
-  {
-    topic: "noise_sensitivity",
-    question: (name) => `¿${name} se pone nervioso con ruidos fuertes?`,
-    subtext: "Truenos, fuegos, aspiradora, etc.",
-    options: [
-      { label: "Sí mucho", value: "sensitive", emoji: "😰" },
-      { label: "A veces", value: "moderate", emoji: "😐" },
-      { label: "Para nada", value: "calm", emoji: "😌" },
-    ],
-  },
-];
-
 // ─── CONTEXTUAL TIPS FROM REAL DATA ──────────────────────────────────────────
 // These override generic tips — if there's real medication/appointment data,
 // it shows FIRST (kind: "alert") before breed/weather recommendations.
@@ -424,7 +384,7 @@ export function PetHomeView({
   const { user } = useAuth();
   const [showPreferences, setShowPreferences] = useState(false);
   const [personality, setPersonality] = useState<Personality>({});
-  const [savingPersonality, setSavingPersonality] = useState(false);
+  const [showPersonalityOnboarding, setShowPersonalityOnboarding] = useState(false);
   const [weather, setWeather] = useState<LiveWeatherSnapshot>({
     status: "loading",
     temperatureC: null,
@@ -499,40 +459,25 @@ export function PetHomeView({
     return all.slice(0, 4);
   }, [activePet?.name, activeMedications, upcomingAppointments, intelligenceResult, personality]);
 
-  // ─── Personality — load from Firestore, save answers ────────────────────────
+  // ─── Personality — load from Firestore, trigger onboarding if not done ──────
   useEffect(() => {
     if (!user || !activePetId) return;
     setPersonality({});
+    setShowPersonalityOnboarding(false);
     getDocs(collection(db, "users", user.uid, "pets", activePetId, "personality"))
       .then((snap) => {
         const data: Personality = {};
         snap.docs.forEach((d) => { data[d.id] = d.data() as { value: string }; });
         setPersonality(data);
+        // Show onboarding if the pet has never completed it
+        const completed = snap.docs.find((d) => d.id === "onboardingComplete");
+        if (!completed) {
+          // Delay slightly so the home screen renders first
+          setTimeout(() => setShowPersonalityOnboarding(true), 800);
+        }
       })
       .catch(() => {}); // Non-critical — graceful fallback
   }, [user, activePetId]);
-
-  const savePersonality = async (topic: string, value: string) => {
-    if (!user || !activePetId) return;
-    setSavingPersonality(true);
-    try {
-      await setDoc(doc(db, "users", user.uid, "pets", activePetId, "personality", topic), {
-        value,
-        savedAt: new Date().toISOString(),
-      });
-      setPersonality((prev) => ({ ...prev, [topic]: { value } }));
-    } catch (e) {
-      console.error("[personality save]", e);
-    } finally {
-      setSavingPersonality(false);
-    }
-  };
-
-  // ONE pending question at a time (Duolingo-style progressive onboarding)
-  const pendingQuestion = useMemo(() => {
-    if (!activePet?.name) return null;
-    return PERSONALITY_QUESTIONS.find((q) => !personality[q.topic]) ?? null;
-  }, [personality, activePet?.name]);
 
   // ─── Walk safety (simplified for badge) ─────────────────────────────────────
   const walkSafety: WalkSafetyState = useMemo(() => {
@@ -894,19 +839,10 @@ export function PetHomeView({
           </div>
         )}
 
-        {/* ── SECTION 4: Pessy te dice — 1 question OR 1-2 real tips ── */}
-        {(pendingQuestion || sortedRecommendations.length > 0) && (
+        {/* ── SECTION 4: Pessy te dice — 1-2 real tips ── */}
+        {sortedRecommendations.length > 0 && (
           <div className="mx-3 mt-3 space-y-2">
-            {pendingQuestion && (
-              <PessyQuestion
-                question={pendingQuestion.question(activePet.name)}
-                subtext={pendingQuestion.subtext}
-                options={pendingQuestion.options}
-                saving={savingPersonality}
-                onAnswer={(value) => savePersonality(pendingQuestion.topic, value)}
-              />
-            )}
-            {sortedRecommendations.slice(0, pendingQuestion ? 1 : 2).map((rec) => {
+            {sortedRecommendations.slice(0, 2).map((rec) => {
               const enhanced = rec as EnhancedTip;
               return (
                 <PessyTip
@@ -924,6 +860,28 @@ export function PetHomeView({
           </div>
         )}
       </div>
+
+      {/* ─── Personality Onboarding (one-time quiz) ──────────────────────── */}
+      {showPersonalityOnboarding && activePet && (
+        <PersonalityOnboarding
+          petName={activePet.name}
+          petId={activePetId}
+          species={species}
+          onComplete={() => {
+            setShowPersonalityOnboarding(false);
+            // Reload personality so tips update immediately
+            if (user && activePetId) {
+              getDocs(collection(db, "users", user.uid, "pets", activePetId, "personality"))
+                .then((snap) => {
+                  const data: Personality = {};
+                  snap.docs.forEach((d) => { data[d.id] = d.data() as { value: string }; });
+                  setPersonality(data);
+                })
+                .catch(() => {});
+            }
+          }}
+        />
+      )}
 
       {/* ─── Preferences Editor Modal ─────────────────────────────────────── */}
       {showPreferences && activePet && (

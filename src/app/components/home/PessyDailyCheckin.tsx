@@ -37,14 +37,22 @@ interface Props {
   onPointsEarned?: (total: number) => void;
 }
 
-// Cork — dog mascot (teal)
+// Cork — dog mascot (teal) with animated ears + tail
 function CorkMascot({ size = 40 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 60 72" width={size} height={size * 1.2} style={{ display: "block" }}>
+    <svg viewBox="0 0 60 72" width={size} height={size * 1.2} style={{ display: "block", overflow: "visible" }}>
+      <style>{`
+        .cork-ear-r { transform-box: fill-box; transform-origin: bottom center; transform: rotate(18deg); animation: corkEarWiggle 2.8s ease-in-out infinite; }
+        .cork-ear-l { transform-box: fill-box; transform-origin: bottom center; transform: rotate(-18deg); animation: corkEarWiggle 2.8s ease-in-out infinite 0.3s; }
+        .cork-tail  { transform-box: fill-box; transform-origin: 0% 100%; animation: corkTailWag 1.4s ease-in-out infinite; }
+        @keyframes corkEarWiggle { 0%,100% { transform: rotate(18deg); } 50% { transform: rotate(24deg); } }
+        @keyframes corkTailWag   { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(22deg); } 75% { transform: rotate(-14deg); } }
+      `}</style>
       <ellipse cx="30" cy="56" rx="15" ry="11" fill="#d4ede8" stroke="#074738" strokeWidth="1.5" />
+      <path className="cork-tail" d="M44 52 Q54 43 51 36" stroke="#1A9B7D" strokeWidth="3.5" fill="none" strokeLinecap="round" />
       <circle cx="30" cy="30" r="14" fill="#d4ede8" stroke="#074738" strokeWidth="1.5" />
-      <ellipse cx="18" cy="18" rx="5.5" ry="9" fill="#1A9B7D" stroke="#074738" strokeWidth="1.5" transform="rotate(-18,18,18)" />
-      <ellipse cx="42" cy="18" rx="5.5" ry="9" fill="#1A9B7D" stroke="#074738" strokeWidth="1.5" transform="rotate(18,42,18)" />
+      <ellipse className="cork-ear-l" cx="18" cy="18" rx="5.5" ry="9" fill="#1A9B7D" stroke="#074738" strokeWidth="1.5" />
+      <ellipse className="cork-ear-r" cx="42" cy="18" rx="5.5" ry="9" fill="#1A9B7D" stroke="#074738" strokeWidth="1.5" />
       <circle cx="25" cy="28" r="2.5" fill="#074738" />
       <circle cx="35" cy="28" r="2.5" fill="#074738" />
       <circle cx="25.8" cy="27" r="1" fill="white" />
@@ -57,12 +65,18 @@ function CorkMascot({ size = 40 }: { size?: number }) {
   );
 }
 
-// Fizz — cat mascot (warm peach/orange)
+// Fizz — cat mascot (warm peach/orange) with animated tail
 function FizzMascot({ size = 40 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 60 72" width={size} height={size * 1.2} style={{ display: "block" }}>
+    <svg viewBox="0 0 60 72" width={size} height={size * 1.2} style={{ display: "block", overflow: "visible" }}>
+      <style>{`
+        .fizz-tail { transform-box: fill-box; transform-origin: 0% 100%; animation: fizzTailCurl 2s ease-in-out infinite; }
+        @keyframes fizzTailCurl { 0%,100% { transform: rotate(0deg); } 40% { transform: rotate(18deg); } 70% { transform: rotate(-8deg); } }
+      `}</style>
       {/* Body */}
       <ellipse cx="30" cy="57" rx="13" ry="10" fill="#FDDCB5" stroke="#C67B3A" strokeWidth="1.5" />
+      {/* Tail */}
+      <path className="fizz-tail" d="M43 54 Q54 46 50 38" stroke="#F4A261" strokeWidth="3.5" fill="none" strokeLinecap="round" />
       {/* Head */}
       <circle cx="30" cy="30" r="14" fill="#FDDCB5" stroke="#C67B3A" strokeWidth="1.5" />
       {/* Pointed cat ears */}
