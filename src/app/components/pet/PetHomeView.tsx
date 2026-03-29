@@ -150,6 +150,18 @@ function resolveThermalProfile(species: PetSpecies, groupIds: WellbeingSpeciesGr
 
 const WMO_RAIN_CODES = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82];
 
+/** Parses an age string like "6 meses", "2 años", "1 año 3 meses" → total months */
+function parseAgeToMonths(age?: string | null): number | null {
+  if (!age) return null;
+  const lower = age.toLowerCase();
+  const yearMatch = lower.match(/(\d+)\s*(año|year)/);
+  const monthMatch = lower.match(/(\d+)\s*(mes|month)/);
+  const years = yearMatch ? parseInt(yearMatch[1]) : 0;
+  const months = monthMatch ? parseInt(monthMatch[1]) : 0;
+  if (!yearMatch && !monthMatch) return null;
+  return years * 12 + months;
+}
+
 function computeFoodDaysLeft(prefs: PetPreferences | undefined): number | null {
   if (!prefs?.foodBagKg || !prefs?.foodDailyGrams || !prefs?.foodLastPurchase) return null;
   const totalGrams = prefs.foodBagKg * 1000;
@@ -413,7 +425,13 @@ export function PetHomeView({
   });
 
   const species = resolveSpecies(activePet?.species, activePet?.breed);
-  const groupIds = resolveGroupIds(species, activePet?.breed || "");
+  const ageMonths = parseAgeToMonths(activePet?.age);
+  const isPuppy = species === "dog" && ageMonths !== null && ageMonths < 12;
+  const baseGroupIds = resolveGroupIds(species, activePet?.breed || "");
+  // Inject dog.puppy group if age indicates a puppy (< 12 months)
+  const groupIds: WellbeingSpeciesGroupId[] = (isPuppy && !baseGroupIds.includes("dog.puppy"))
+    ? (["dog.puppy", ...baseGroupIds] as WellbeingSpeciesGroupId[])
+    : baseGroupIds;
   const thermalProfile = resolveThermalProfile(species, groupIds);
   const foodDaysLeft = computeFoodDaysLeft(activePet?.preferences);
 
@@ -425,6 +443,11 @@ export function PetHomeView({
   const profileIncomplete = missingItems.length > 0;
 
   // ─── Intelligence engine ────────────────────────────────────────────────────
+  const hasVaccineOnRecord = petEvents.some((e: any) => e.extractedData?.documentType === "vaccine");
+  const hasSeparationAnxiety = (activePet?.preferences?.fears || []).some((f: string) =>
+    f.toLowerCase().includes("sola") || f.toLowerCase().includes("separac") || f.toLowerCase().includes("ansiedad")
+  );
+
   const intelligenceResult = useMemo(() => {
     if (!activePet?.breed) return null;
     const wc = weather.weatherCode;
@@ -433,6 +456,7 @@ export function PetHomeView({
       species,
       breed: activePet.breed,
       ageLabel: activePet.age || "",
+      ageWeeks: ageMonths !== null ? ageMonths * 4 : null,
       groupIds,
       temperatureC: weather.temperatureC,
       humidityPct: weather.humidityPct,
@@ -446,8 +470,11 @@ export function PetHomeView({
       favoriteActivities: activePet.preferences?.favoriteActivities,
       walkTimes: activePet.preferences?.walkTimes,
       foodDaysLeft,
+      isPuppy,
+      hasSeparationAnxiety,
+      isUnvaccinated: isPuppy && !hasVaccineOnRecord,
     });
-  }, [activePet?.id, activePet?.breed, activePet?.name, activePet?.age, activePet?.preferences, species, groupIds, weather, foodDaysLeft]);
+  }, [activePet?.id, activePet?.breed, activePet?.name, activePet?.age, activePet?.preferences, species, groupIds, weather, foodDaysLeft, isPuppy, hasSeparationAnxiety, hasVaccineOnRecord]);
 
   const sortedRecommendations = useMemo(() => {
     // Contextual tips from real data (meds, appointments) always come first

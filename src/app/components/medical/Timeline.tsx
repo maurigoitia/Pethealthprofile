@@ -751,7 +751,7 @@ function buildEpisodeThreadLabel(event: MedicalEvent): string {
   return KIND_CONFIG[kind]?.label || "Resumen histórico";
 }
 
-function buildHistoricalNarrative(events: MedicalEvent[], petName: string, periodLabel: string): {
+function buildHistoricalNarrative(events: MedicalEvent[], _petName: string, _periodLabel: string): {
   headline: string;
   narrative: string;
   diagnoses: string[];
@@ -792,43 +792,24 @@ function buildHistoricalNarrative(events: MedicalEvent[], petName: string, perio
   }, {} as Record<ClinicalRenderKind, number>);
 
   const imagingCount = (kindCounts.imaging_report || 0) + (kindCounts.laboratory_report || 0);
-  const appointmentCount = kindCounts.appointment_confirmation || 0;
   const vaccineCount = kindCounts.vaccination_record || 0;
-  const treatmentCount = (kindCounts.prescription || 0) + (kindCounts.treatment_plan || 0);
   const dominantLabel =
     diagnoses[0] ||
-    (imagingCount> 0 ? "estudios y controles" : "") ||
+    (imagingCount > 0 ? "estudios y controles" : "") ||
     (medications[0] ? "tratamiento crónico" : "") ||
-    (vaccineCount> 0 ? "seguimiento preventivo" : "") ||
-    (appointmentCount> 0 ? "actividad registrada" : "") ||
+    (vaccineCount > 0 ? "seguimiento preventivo" : "") ||
     "seguimiento";
-
-  const firstSentence = diagnoses.length> 0
-    ? `En ${periodLabel} ${petName} tuvo seguimiento por ${diagnoses.join(", ")}.`
-    : imagingCount> 0
-      ? `En ${periodLabel} ${petName} tuvo ${imagingCount} estudio${imagingCount> 1 ? "s" : ""} y controles asociados.`
-      : treatmentCount> 0
-        ? `En ${periodLabel} ${petName} tuvo continuidad de cuidados y seguimiento.`
-        : vaccineCount> 0
-          ? `En ${periodLabel} ${petName} tuvo actividad preventiva y controles registrados.`
-          : `En ${periodLabel} ${petName} tuvo actividad registrada por correo.`;
-
-  const extraSentences = [
-    medications.length> 0 ? `También estuvo medicado con ${medications.join(", ")}.` : "",
-    appointmentCount> 0 && diagnoses.length === 0 ? `Se registraron ${appointmentCount} turno${appointmentCount> 1 ? "s" : ""} o recordatorio${appointmentCount> 1 ? "s" : ""}.` : "",
-    providers.length> 0 ? `Intervinieron ${providers.join(" · ")}.` : "",
-  ].filter(Boolean);
 
   return {
     headline: capitalizeSpanish(dominantLabel),
-    narrative: [firstSentence, ...extraSentences].slice(0, 3).join(" "),
+    narrative: "",
     diagnoses,
     medications,
     providers,
   };
 }
 
-function buildAnnualSummary(events: MedicalEvent[], petName: string, yearKey: string): AnnualSummaryCard {
+function buildAnnualSummary(events: MedicalEvent[], _petName: string, yearKey: string): AnnualSummaryCard {
   const diagnoses = Array.from(
     new Set(
       events
@@ -847,51 +828,67 @@ function buildAnnualSummary(events: MedicalEvent[], petName: string, yearKey: st
     )
   ).slice(0, 3);
 
-  const providers = Array.from(
-    new Set(
-      events.flatMap((event) => {
-        const d = getExtractedData(event);
-        return [cleanText(d.provider), cleanText(d.clinic)].filter(Boolean);
-      })
-    )
-  ).slice(0, 2);
-
-  const appointmentEvents = events.filter((event) => resolveClinicalRenderKind(event) === "appointment_confirmation").length;
   const imagingEvents = events.filter((event) => {
     const kind = resolveClinicalRenderKind(event);
     return kind === "imaging_report" || kind === "laboratory_report";
   }).length;
-  const dominantProblem =
-    diagnoses[0] ||
-    medications[0] ||
-    (imagingEvents> 0 ? "estudios y controles" : "") ||
-    (appointmentEvents> 0 ? "seguimiento veterinario" : "") ||
-    "actividad clínica registrada";
-  const dominantProvider = providers[0] || "prestadores habituales";
 
   return {
     yearKey,
-    headline: `Anuario ${yearKey}`,
-    narrative: [
-      `Durante ${yearKey}, ${petName} tuvo principalmente ${dominantProblem}.`,
-      `La atención se concentró en ${dominantProvider}.`,
-      medications[0]
-        ? `La medicación más repetida fue ${medications[0]}.`
-        : appointmentEvents> 0
-          ? `Se registraron ${appointmentEvents} turno${appointmentEvents === 1 ? "" : "s"} o recordatorio${appointmentEvents === 1 ? "" : "s"} en el período.`
-          : "",
-    ]
-      .filter(Boolean)
-      .slice(0, 3)
-      .join(" "),
+    headline: yearKey,
+    narrative: "",
     highlights: [
-      diagnoses[0] ? `Patología principal: ${diagnoses[0]}` : "",
-      medications[0] ? `Medicación relevante: ${medications[0]}` : "",
-      imagingEvents> 0 ? `${imagingEvents} estudio${imagingEvents === 1 ? "" : "s"} registrados` : "",
+      diagnoses[0] ? `Patología: ${diagnoses[0]}` : "",
+      medications[0] ? `Medicación: ${medications[0]}` : "",
+      imagingEvents > 0 ? `${imagingEvents} estudio${imagingEvents === 1 ? "" : "s"}` : "",
     ].filter(Boolean),
     eventCount: events.length,
   };
 }
+
+// ─── QUARTERLY CLINICAL SNAPSHOT ─────────────────────────────────────────────
+
+type QuarterCategory = "Vacunas" | "Estudios" | "Tratamientos" | "Consultas" | "Turnos" | "Otros";
+
+interface QuarterlySnapshotData {
+  quarterKey: string;
+  quarterLabel: string;
+  categorized: Map<QuarterCategory, MedicalEvent[]>;
+  totalEvents: number;
+}
+
+const QUARTER_RANGES: Record<string, string> = {
+  Q1: "Ene – Mar", Q2: "Abr – Jun", Q3: "Jul – Sep", Q4: "Oct – Dic",
+};
+
+function getQuarterKey(ts: number): string {
+  const d = new Date(ts);
+  const q = Math.floor(d.getMonth() / 3) + 1;
+  return `Q${q} ${d.getFullYear()}`;
+}
+
+function getQuarterLabel(qKey: string): string {
+  const [qPart, yearPart] = qKey.split(" ");
+  return `${qKey} (${QUARTER_RANGES[qPart || "Q1"] || ""})`;
+}
+
+function categorizeEventForSnapshot(event: MedicalEvent): QuarterCategory {
+  const type = (getExtractedData(event)?.documentType || "") as string;
+  if (type === "vaccine") return "Vacunas";
+  if (["xray", "lab_test", "echocardiogram", "electrocardiogram"].includes(type)) return "Estudios";
+  if (["medication", "treatment_plan", "prescription"].includes(type)) return "Tratamientos";
+  if (["checkup", "clinical_report"].includes(type)) return "Consultas";
+  if (type === "appointment") return "Turnos";
+  return "Otros";
+}
+
+function getSnapshotEventStatus(event: MedicalEvent): { label: string; color: string } {
+  if (event.workflowStatus === "confirmed") return { label: "✓ Confirmado", color: "text-emerald-600" };
+  if (event.requiresManualConfirmation || event.workflowStatus === "review_required") return { label: "⏳ Pendiente", color: "text-amber-500" };
+  return { label: "✓ Confirmado", color: "text-emerald-600" };
+}
+
+const CATEGORY_ORDER: QuarterCategory[] = ["Vacunas", "Tratamientos", "Estudios", "Consultas", "Turnos", "Otros"];
 
 export function Timeline({ activePet, onExportReport }: TimelineProps) {
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
@@ -1077,6 +1074,35 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
     return summaries;
   }, [activePet?.name, historicalEpisodesEnabled, timelineEntries]);
 
+  // ─── Quarterly clinical snapshots ──────────────────────────────────────────
+  const quarterlySnapshotsByYear = useMemo(() => {
+    if (!historicalEpisodesEnabled) return new Map<string, QuarterlySnapshotData[]>();
+    const byQuarter = new Map<string, MedicalEvent[]>();
+    for (const event of allEvents) {
+      const ts = toTimestampSafe(getExtractedData(event)?.eventDate || event.createdAt);
+      if (!ts) continue;
+      const qKey = getQuarterKey(ts);
+      if (!byQuarter.has(qKey)) byQuarter.set(qKey, []);
+      byQuarter.get(qKey)!.push(event);
+    }
+    const result = new Map<string, QuarterlySnapshotData[]>();
+    for (const [qKey, events] of byQuarter.entries()) {
+      const yearKey = qKey.split(" ")[1] || "";
+      const categorized = new Map<QuarterCategory, MedicalEvent[]>();
+      for (const event of events) {
+        const cat = categorizeEventForSnapshot(event);
+        if (!categorized.has(cat)) categorized.set(cat, []);
+        categorized.get(cat)!.push(event);
+      }
+      if (!result.has(yearKey)) result.set(yearKey, []);
+      result.get(yearKey)!.push({ quarterKey: qKey, quarterLabel: getQuarterLabel(qKey), categorized, totalEvents: events.length });
+    }
+    for (const snapshots of result.values()) {
+      snapshots.sort((a, b) => b.quarterKey.localeCompare(a.quarterKey));
+    }
+    return result;
+  }, [allEvents, historicalEpisodesEnabled]);
+
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
@@ -1154,35 +1180,37 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
               </div>
 
               <div className="space-y-3">
-                {historicalEpisodesEnabled && annualSummaryByYear.has(year) && (
-                  <div className="rounded-[24px] border border-[#074738]/15 bg-[#1A9B7D]/5 p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-wide text-[#1A9B7D]">Memoria de cuidados</p>
-                        <h3 className="text-[15px] font-black text-slate-900 mt-1">
-                          {annualSummaryByYear.get(year)!.headline}
-                        </h3>
+                {historicalEpisodesEnabled && (quarterlySnapshotsByYear.get(year) || []).map((snapshot) => (
+                  <div key={snapshot.quarterKey} className="rounded-[20px] border border-[#074738]/10 bg-white p-4 shadow-[0_1px_6px_rgba(0,0,0,0.04)]">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[11px] font-black uppercase tracking-wider text-[#1A9B7D]">{snapshot.quarterLabel}</p>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E0F2F1] text-[#074738]">{snapshot.totalEvents} evento{snapshot.totalEvents === 1 ? "" : "s"}</span>
+                    </div>
+                    {CATEGORY_ORDER.filter((cat) => snapshot.categorized.has(cat)).map((cat) => (
+                      <div key={cat} className="mb-3 last:mb-0">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{cat}</p>
+                        {snapshot.categorized.get(cat)!.map((event) => {
+                          const d = getExtractedData(event);
+                          const name = cleanText(event.title || d.diagnosis || d.suggestedTitle || "") || KIND_CONFIG[resolveClinicalRenderKind(event)]?.label || "Evento";
+                          const date = formatDateSafe(d.eventDate || event.createdAt, "es-AR", { day: "numeric", month: "short" }, "");
+                          const status = getSnapshotEventStatus(event);
+                          const nextBoosterTs = d.documentType === "vaccine" && d.nextAppointmentDate ? toTimestampSafe(d.nextAppointmentDate) : 0;
+                          const boosterOverdue = nextBoosterTs > 0 && nextBoosterTs < Date.now();
+                          const boosterSoon = nextBoosterTs > 0 && nextBoosterTs >= Date.now() && nextBoosterTs < Date.now() + 30 * 24 * 60 * 60 * 1000;
+                          return (
+                            <div key={event.id} className="flex items-start gap-2 py-1.5 border-b border-slate-50 last:border-0">
+                              <span className="text-[10px] text-slate-400 shrink-0 w-[46px] leading-snug">{date}</span>
+                              <span className="text-[11px] text-slate-800 flex-1 leading-snug">{name.substring(0, 55)}</span>
+                              <span className={`text-[10px] font-bold shrink-0 ${status.color}`}>{status.label}</span>
+                              {boosterOverdue && <span className="text-[10px] shrink-0">⚠️</span>}
+                              {boosterSoon && !boosterOverdue && <span className="text-[10px] shrink-0">📅</span>}
+                            </div>
+                          );
+                        })}
                       </div>
-                      <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-white text-[#1A9B7D]">
-                        {annualSummaryByYear.get(year)!.eventCount} eventos
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-slate-700 mt-2 leading-relaxed">
-                      {annualSummaryByYear.get(year)!.narrative}
-                    </p>
-
-                    <div className="flex flex-wrap gap-1.5 mt-3">
-                      {annualSummaryByYear.get(year)!.highlights.map((highlight, idx) => (
-                        <span
-                          key={`${year}-annual-highlight-${idx}`}
-                          className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white text-slate-600 border border-[#074738]/10">
-                          {highlight}
-                        </span>
-                      ))}
-                    </div>
+                    ))}
                   </div>
-                )}
+                ))}
 
                 {events.map((entry, index) => {
                   if (entry.kind === "episode") {
@@ -1226,10 +1254,6 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
 
                                 <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-1.5">
                                   {entry.threadLabel}
-                                </p>
-
-                                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3">
-                                  {entry.narrative}
                                 </p>
 
                                 <div className="flex gap-1.5 flex-wrap mt-3">

@@ -130,7 +130,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
   };
 
   const TITLE_MAP: Record<ReportType, string> = {
-    health: "Resumen Estructurado de Cuidado",
+    health: "Informe de Salud",
     vaccine: "Carnet de Vacunación",
     treatment: "Plan de Tratamiento",
   };
@@ -150,6 +150,16 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
 
       const newPage = () => { pdf.addPage(); y = 20; };
       const checkY = (need = 14) => { if (y + need> 278) newPage(); };
+      const pessyNote = (text: string) => {
+        checkY(8);
+        pdf.setFontSize(7.5);
+        pdf.setFont("helvetica", "italic");
+        pdf.setTextColor(13, 148, 136);
+        pdf.text(`★ ${text}`, M, y);
+        pdf.setTextColor(25, 25, 25);
+        pdf.setFont("helvetica", "normal");
+        y += 6;
+      };
 
       // ── HEADER ────────────────────────────────────────────────────────────
       pdf.setFillColor(13, 148, 136);
@@ -160,7 +170,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       pdf.text("PESSY", M, 17);
       pdf.setFontSize(8);
       pdf.setFont("helvetica", "normal");
-      pdf.text("Resumen certificado de tu mascota", M, 23);
+      pdf.text(`Resumen de salud de ${activePet.name}`, M, 23);
       pdf.setFontSize(9);
       pdf.setFont("helvetica", "bold");
       pdf.text(TITLE_MAP[selectedReport], PW - M, 15, { align: "right" });
@@ -379,6 +389,12 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           y += 5;
         }
 
+        pessyNote(
+          activeConditions.length > 0
+            ? `${activePet.name} tiene ${activeConditions.length} condición(es) activa(s) registrada(s).`
+            : `${activePet.name} no tiene condiciones activas registradas.`
+        );
+
         sectionTitle("3. Tratamientos activos vinculados");
         const colWidths = [34, 20, 20, 34, 18, 34, 18];
         const headers = ["Medicamento", "Dosis", "Frecuencia", "Condición", "Inicio", "Profesional", "Estado"];
@@ -428,6 +444,12 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             y += 9;
           }
         }
+
+        pessyNote(
+          treatmentRows.length > 0
+            ? `${treatmentRows.length} tratamiento(s) activo(s) en seguimiento.`
+            : "Sin tratamientos activos registrados."
+        );
 
         sectionTitle("4. Condiciones registradas");
         pdf.setFontSize(8.5);
@@ -599,6 +621,23 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             }
             y += rowH + 2;
           }
+        }
+
+        const overdueVaccines = vaccines.filter(v =>
+          v.extractedData.nextAppointmentDate &&
+          Date.parse(v.extractedData.nextAppointmentDate) < Date.now()
+        );
+        const upcomingVaccines = vaccines.filter(v =>
+          v.extractedData.nextAppointmentDate &&
+          Date.parse(v.extractedData.nextAppointmentDate) >= Date.now() &&
+          Date.parse(v.extractedData.nextAppointmentDate) < Date.now() + 30 * 24 * 60 * 60 * 1000
+        );
+        if (overdueVaccines.length > 0) {
+          pessyNote(`${overdueVaccines.length} refuerzo(s) vencido(s) — revisar con el veterinario.`);
+        } else if (upcomingVaccines.length > 0) {
+          pessyNote(`${upcomingVaccines.length} refuerzo(s) próximo(s) en los próximos 30 días.`);
+        } else {
+          pessyNote(`${vaccines.length} vacuna(s) registrada(s).`);
         }
       }
 
