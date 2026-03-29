@@ -10,7 +10,7 @@
  *   3. Default → quick mood emoji pick (10pts)
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { useAuth } from "../../contexts/AuthContext";
@@ -122,8 +122,16 @@ export default function PessyDailyCheckin({ petName, petId, medications, nextApp
   const [expanded, setExpanded] = useState(false);
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [celebrating, setCelebrating] = useState<"yes" | "no" | null>(null);
 
   const ctx = buildContext(petName, medications, nextAppointment);
+
+  // Auto-dismiss celebration → done
+  useEffect(() => {
+    if (!celebrating) return;
+    const t = setTimeout(() => { setCelebrating(null); setDone(true); }, celebrating === "yes" ? 2200 : 1400);
+    return () => clearTimeout(t);
+  }, [celebrating]);
 
   const save = async (payload: Record<string, unknown>, pts: number) => {
     if (!user || saving) return;
@@ -134,12 +142,49 @@ export default function PessyDailyCheckin({ petName, petId, medications, nextApp
       await setDoc(ref, { date: today, petId, ...payload, createdAt: new Date().toISOString() });
       const total = addPoints(pts);
       onPointsEarned?.(total);
-      setDone(true);
     } catch (e) {
       console.error("[PessyDailyCheckin]", e);
+      setCelebrating(null);
+    } finally {
       setSaving(false);
     }
   };
+
+  const handleMedResponse = (taken: boolean) => {
+    setCelebrating(taken ? "yes" : "no");
+    void save({ kind: "medication", medName: ctx.medLabel, takenToday: taken }, taken ? 20 : 5);
+  };
+
+  // ── Celebrating — stars + bouncing Cork ─────────────────────────────────────
+  if (celebrating) {
+    const isYes = celebrating === "yes";
+    return (
+      <div
+        className={`rounded-2xl p-4 transition-all duration-500 ${isYes ? "bg-[#074738]" : "bg-white border border-[#E5E7EB]"}`}
+        style={{ boxShadow: isYes ? "0 8px 24px rgba(7,71,56,0.3)" : "0 2px 8px rgba(0,0,0,0.04)" }}
+      >
+        {isYes && (
+          <div className="flex justify-around mb-3 pointer-events-none select-none">
+            {["⭐", "✨", "🌟", "⭐", "✨"].map((s, i) => (
+              <span key={i} className="animate-bounce text-xl inline-block"
+                style={{ animationDelay: `${i * 90}ms`, animationDuration: "0.6s" }}>{s}</span>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center gap-3">
+          <div className={isYes ? "animate-bounce" : ""} style={{ animationDuration: "0.7s" }}>
+            <CorkMascot size={44} />
+          </div>
+          <div>
+            <p className={`text-sm font-bold ${isYes ? "text-white" : "text-slate-700"}`}>
+              {isYes ? `¡Genial! ${petName} está al día 🌟` : "Sin problema, te recuerdo más tarde 🐾"}
+            </p>
+            {isYes && <p className="text-white/60 text-xs mt-0.5 font-medium">+20 pts ganados</p>}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ── Confirmed ────────────────────────────────────────────────────────────────
   if (done) {
@@ -198,13 +243,13 @@ export default function PessyDailyCheckin({ petName, petId, medications, nextApp
       </div>
 
       <div className="p-4">
-        {/* Medication: binary yes/no — gamification reward on yes */}
+        {/* Medication: binary yes/no — celebration on yes, gentle dismiss on no */}
         {ctx.kind === "medication" && (
           <>
             <p className="text-xs text-slate-500 mb-3">{ctx.subtext}</p>
             <div className="flex gap-3">
               <button
-                onClick={() => save({ kind: "medication", medName: ctx.medLabel, takenToday: true }, 20)}
+                onClick={() => handleMedResponse(true)}
                 disabled={saving}
                 className="flex-1 py-4 rounded-2xl bg-[#074738] text-white font-bold text-sm disabled:opacity-60 active:scale-[0.98] transition-transform"
               >
@@ -212,7 +257,7 @@ export default function PessyDailyCheckin({ petName, petId, medications, nextApp
                 <span className="block text-[10px] text-white/70 font-normal mt-0.5">+20 pts</span>
               </button>
               <button
-                onClick={() => save({ kind: "medication", medName: ctx.medLabel, takenToday: false }, 5)}
+                onClick={() => handleMedResponse(false)}
                 disabled={saving}
                 className="flex-1 py-4 rounded-2xl border-2 border-slate-200 text-slate-600 font-bold text-sm disabled:opacity-60 active:scale-[0.98] transition-transform"
               >

@@ -234,16 +234,82 @@ function saveCheckedItems(petId: string, items: string[]) {
   window.localStorage.setItem(getRoutineStorageKey(petId), JSON.stringify(items));
 }
 
+// ─── CONTEXTUAL TIPS FROM REAL DATA ──────────────────────────────────────────
+// These override generic tips — if there's real medication/appointment data,
+// it shows FIRST (kind: "alert") before breed/weather recommendations.
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildContextualTips(petName: string, medications: any[], appointments: any[]): PessyIntelligenceRecommendation[] {
+  const tips: PessyIntelligenceRecommendation[] = [];
+
+  // Active medications → always relevant, show name + dosage
+  medications.slice(0, 2).forEach((med, i) => {
+    const daysLeft = med.endDate
+      ? Math.ceil((new Date(med.endDate).getTime() - Date.now()) / 86_400_000)
+      : null;
+
+    if (daysLeft !== null && daysLeft <= 3 && daysLeft >= 0) {
+      // Treatment ending soon — urgent
+      const when = daysLeft === 0 ? "hoy" : daysLeft === 1 ? "mañana" : `en ${daysLeft} días`;
+      tips.push({
+        id: `med-ending-${i}`,
+        code: "med_ending",
+        title: `${med.name} termina ${when}`,
+        detail: `Consultá con el vet si ${petName} necesita continuar el tratamiento.`,
+        slot: "alert",
+        icon: "medication",
+        kind: "alert",
+        sourceModule: "contextual",
+      });
+    } else {
+      // Active treatment — informational
+      const dosageInfo = med.dosage ? `Dosis: ${med.dosage}${med.frequency ? ` · ${med.frequency}` : ""}` : "Mantené el horario del tratamiento.";
+      tips.push({
+        id: `med-active-${i}`,
+        code: "med_active",
+        title: `${petName} toma ${med.name}`,
+        detail: dosageInfo,
+        slot: "recommendation",
+        icon: "medication",
+        kind: "recommendation",
+        sourceModule: "contextual",
+      });
+    }
+  });
+
+  // Upcoming appointment within 7 days
+  const nextAppt = appointments[0];
+  if (nextAppt) {
+    const iso = nextAppt.dateTime || (nextAppt.date ? `${nextAppt.date}T${nextAppt.time || "09:00"}:00` : "");
+    if (iso) {
+      const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+      if (days >= 0 && days <= 7) {
+        const when = days === 0 ? "hoy" : days === 1 ? "mañana" : `en ${days} días`;
+        const dateLabel = new Date(iso).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+        tips.push({
+          id: "appt-upcoming",
+          code: "appt_upcoming",
+          title: `Cita con el vet ${when}`,
+          detail: dateLabel,
+          slot: days <= 1 ? "alert" : "recommendation",
+          icon: "event",
+          kind: days <= 1 ? "alert" : "recommendation",
+          sourceModule: "contextual",
+        });
+      }
+    }
+  }
+
+  return tips;
+}
+
 // ─── RECOMMENDATION COLOR MAPPING ────────────────────────────────────────────
 
 function mapRecToTipColor(rec: PessyIntelligenceRecommendation): "green" | "blue" | "orange" {
-  const segment = rec.slot?.toLowerCase() || "";
-  if (segment.includes("block") || segment.includes("alert") || rec.kind === "block" || rec.kind === "alert") {
-    return "orange";
-  }
-  if (segment.includes("training") || segment.includes("routine")) {
-    return "green";
-  }
+  if (rec.kind === "block" || rec.kind === "alert") return "orange";
+  // Contextual tips (real data: medications, appointments) show in green
+  if (rec.sourceModule === "contextual") return "green";
+  if (rec.slot?.includes("training") || rec.slot?.includes("routine")) return "green";
   return "blue";
 }
 
@@ -328,10 +394,14 @@ export function PetHomeView({
   }, [activePet?.id, activePet?.breed, activePet?.name, activePet?.age, activePet?.preferences, species, groupIds, weather, foodDaysLeft]);
 
   const sortedRecommendations = useMemo(() => {
-    if (!intelligenceResult) return [];
+    // Contextual tips from real data (meds, appointments) always come first
+    const contextual = buildContextualTips(activePet?.name || "", activeMedications, upcomingAppointments);
+    const intelligence = intelligenceResult?.recommendations || [];
     const order: Record<string, number> = { block: 0, alert: 1, recommendation: 2 };
-    return [...intelligenceResult.recommendations].sort((a, b) => (order[a.kind] ?? 2) - (order[b.kind] ?? 2));
-  }, [intelligenceResult]);
+    const all = [...contextual, ...intelligence].sort((a, b) => (order[a.kind] ?? 2) - (order[b.kind] ?? 2));
+    // Max 4 tips — show what matters, not everything
+    return all.slice(0, 4);
+  }, [activePet?.name, activeMedications, upcomingAppointments, intelligenceResult]);
 
   // ─── Walk safety (simplified for badge) ─────────────────────────────────────
   const walkSafety: WalkSafetyState = useMemo(() => {
