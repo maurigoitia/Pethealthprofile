@@ -54,11 +54,8 @@ const ExportReportModal = lazy(() =>
 const NearbyVetsScreen = lazy(() =>
   import("../nearby/NearbyVetsScreen.tsx").then((module) => ({ default: module.NearbyVetsScreen }))
 );
-const LostPetFeedScreen = lazy(() =>
-  import("../community/LostPetFeed.tsx").then((module) => ({ default: module.LostPetFeed }))
-);
-const ReportLostPetScreen = lazy(() =>
-  import("../community/ReportLostPet.tsx").then((module) => ({ default: module.ReportLostPet }))
+const CommunityHubScreen = lazy(() =>
+  import("../community/CommunityHub.tsx").then((module) => ({ default: module.CommunityHub }))
 );
 const RecommendationFeedScreen = lazy(() =>
   import("../lifestyle/RecommendationFeed.tsx").then((module) => ({ default: module.RecommendationFeed }))
@@ -88,7 +85,7 @@ export default function HomeScreen() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [showInviteFriends, setShowInviteFriends] = useState(false);
   const [currentTab, setCurrentTab] = useState<"home" | "settings">("home");
-  const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications" | "nearby-vets" | "lost-pets" | "report-lost" | "explore">("card");
+  const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications" | "nearby-vets" | "lost-pets" | "explore">("card");
   const [inviteNotice, setInviteNotice] = useState<{ type: "info" | "success" | "error"; message: string } | null>(null);
   const [inviteJoiningCode, setInviteJoiningCode] = useState("");
   const [inviteResolvedCode, setInviteResolvedCode] = useState("");
@@ -462,25 +459,14 @@ export default function HomeScreen() {
     );
   }
 
-  // Show Lost Pets Feed
+  // Show Community Hub (Perdidos + Encontrados + Adopción)
   if (viewMode === "lost-pets") {
     return withTermsNotice(
       <>
-        <Suspense fallback={<ScreenLoader label="Cargando reportes..." />}>
-          <LostPetFeedScreen onReport={() => setViewMode("report-lost")} onBack={() => setViewMode("card")} />
+        <Suspense fallback={<ScreenLoader label="Cargando comunidad..." />}>
+          <CommunityHubScreen onBack={() => setViewMode("card")} />
         </Suspense>
         <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} onNavigate={handleBottomNavNavigate} />
-      </>
-    );
-  }
-
-  // Show Report Lost Pet
-  if (viewMode === "report-lost") {
-    return withTermsNotice(
-      <>
-        <Suspense fallback={<ScreenLoader label="Cargando..." />}>
-          <ReportLostPetScreen onBack={() => setViewMode("lost-pets")} onSuccess={() => setViewMode("lost-pets")} />
-        </Suspense>
       </>
     );
   }

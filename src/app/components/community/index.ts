@@ -11,3 +11,6 @@ export { ReportLostPet } from "./ReportLostPet";
 export { AdoptionFeed } from "./AdoptionFeed";
 export { PostForAdoption } from "./PostForAdoption";
 export { AdoptionDetail } from "./AdoptionDetail";
+export { CommunityHub } from "./CommunityHub";
+export { FoundPetFeed } from "./FoundPetFeed";
+export { ReportFoundPet } from "./ReportFoundPet";

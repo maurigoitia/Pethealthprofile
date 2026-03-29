@@ -25,9 +25,9 @@ export function isFocusExperienceHost(): boolean {
 export function isFocusHistoryExperimentHost(): boolean {
   if (typeof window === "undefined") return false;
   const envFlag = import.meta.env.VITE_ENABLE_FOCUS_HISTORY_EXPERIMENT;
-  if (envFlag === "true") return true;
   if (envFlag === "false") return false;
-  return FOCUS_HISTORY_EXPERIMENT_HOSTS.has(window.location.hostname.toLowerCase());
+  // Episodic history is now enabled for all users
+  return true;
 }
 
 export function isPendingActionsEnabled(): boolean {

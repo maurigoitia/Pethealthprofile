@@ -15,6 +15,7 @@ import { distanceKm, type PessyGeoPoint } from "../../../domain/community/lostPe
 interface Props {
   onReport: () => void;
   onBack: () => void;
+  hideHeader?: boolean;
 }
 
 function timeAgo(date: Date): string {
@@ -25,7 +26,7 @@ function timeAgo(date: Date): string {
   return `hace ${Math.floor(hrs / 24)}d`;
 }
 
-export function LostPetFeed({ onReport, onBack }: Props) {
+export function LostPetFeed({ onReport, onBack, hideHeader }: Props) {
   const [reports, setReports] = useState<LostPetReport[]>([]);
   const [userLocation, setUserLocation] = useState<PessyGeoPoint | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +65,7 @@ export function LostPetFeed({ onReport, onBack }: Props) {
 
   return (
     <div className="min-h-screen bg-[#F0FAF9] dark:bg-[#101622]">
-      {/* Header */}
+      {!hideHeader && (
       <div className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center gap-3">
         <button onClick={onBack} className="size-[44px] flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" style={{ transition: "background 150ms ease" }}>
           <MaterialIcon name="arrow_back" className="text-[#074738] dark:text-emerald-400" />
@@ -75,6 +76,7 @@ export function LostPetFeed({ onReport, onBack }: Props) {
           Reportar
         </button>
       </div>
+      )}
 
       {/* Content */}
       <div className="max-w-md mx-auto px-4 py-4">

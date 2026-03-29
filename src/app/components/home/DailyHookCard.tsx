@@ -25,7 +25,7 @@ export default function DailyHookCard({
 }: DailyHookCardProps) {
   return (
     <div
-      className="relative overflow-hidden w-full p-6"
+      className="relative overflow-hidden w-full p-4"
       style={{
         backgroundColor: "#074738",
         borderRadius: 16,
@@ -90,28 +90,28 @@ export default function DailyHookCard({
       </p>
 
       {/* Footer */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 min-w-0">
           {/* Duration pill */}
           <span
-            className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-white/90 text-[11px] font-medium"
+            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-white/90 text-[10px] font-medium shrink-0"
             style={{ backgroundColor: "rgba(255,255,255,0.15)" }}
           >
             <MaterialIcon
               name="schedule"
-              className="text-white/70 !text-[13px]"
+              className="text-white/70 !text-[12px]"
             />
             {duration}
           </span>
 
           {/* Points */}
-          <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-amber-300">
+          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-300 shrink-0">
             <MaterialIcon
               name="star"
-              className="text-amber-300 !text-[13px]"
+              className="text-amber-300 !text-[12px]"
               filled
             />
-            +{points} pts
+            +{points}
           </span>
         </div>
 
@@ -123,10 +123,10 @@ export default function DailyHookCard({
               onStart(points);
             }
           }}
-          className="px-5 py-2.5 bg-white text-[12px] font-bold active:scale-95 transition-transform hover:bg-[#E0F2F1]"
+          className="shrink-0 px-4 py-2 bg-white text-[11px] font-bold active:scale-95 transition-transform hover:bg-[#E0F2F1]"
           style={{
             color: "#074738",
-            borderRadius: 14,
+            borderRadius: 12,
             fontFamily: "'Plus Jakarta Sans', sans-serif",
             fontWeight: 700,
           }}

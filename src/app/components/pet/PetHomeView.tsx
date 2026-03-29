@@ -24,6 +24,7 @@ import RoutineChecklist from "../home/RoutineChecklist";
 import ProfileNudge from "../home/ProfileNudge";
 import QuickActions from "../home/QuickActions";
 import PessyTip, { SectionTitle } from "../home/PessyTip";
+import PessyDailyCheckin from "../home/PessyDailyCheckin";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -664,24 +665,26 @@ export function PetHomeView({
 
         {/* 4. DAILY HOOK - swipeable suggestion carousel */}
         <SectionTitle>Hoy con {activePet.name}</SectionTitle>
-        <div className="mx-3">
+        <div className="overflow-hidden">
           {dailySuggestions.length === 1 ? (
-            <DailyHookCard
-              category={CATEGORY_LABELS[dailySuggestions[0].category] || dailySuggestions[0].category}
-              categoryIcon={dailySuggestions[0].icon}
-              title={dailySuggestions[0].title}
-              description={dailySuggestions[0].detail}
-              duration={dailySuggestions[0].duration}
-              points={dailySuggestions[0].points}
-              onStart={(pts) => { const total = addPoints(pts); setPoints(total); }}
-            />
+            <div className="mx-3">
+              <DailyHookCard
+                category={CATEGORY_LABELS[dailySuggestions[0].category] || dailySuggestions[0].category}
+                categoryIcon={dailySuggestions[0].icon}
+                title={dailySuggestions[0].title}
+                description={dailySuggestions[0].detail}
+                duration={dailySuggestions[0].duration}
+                points={dailySuggestions[0].points}
+                onStart={(pts) => { const total = addPoints(pts); setPoints(total); }}
+              />
+            </div>
           ) : (
             <div
-              className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide"
+              className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 px-3"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
             >
               {dailySuggestions.map((s, i) => (
-                <div key={i} className="min-w-[85%] snap-center flex-shrink-0">
+                <div key={i} className="w-[calc(100%-24px)] min-w-[280px] snap-start flex-shrink-0">
                   <DailyHookCard
                     category={CATEGORY_LABELS[s.category] || s.category}
                     categoryIcon={s.icon}
@@ -736,7 +739,17 @@ export function PetHomeView({
           </>
         )}
 
-        {/* 7. PESSY TE DICE - tips from intelligence engine */}
+        {/* 7. PESSY PIENSA - interactive daily check-in */}
+        <SectionTitle>Pessy piensa</SectionTitle>
+        <div className="mx-3">
+          <PessyDailyCheckin
+            petName={activePet.name}
+            petId={activePetId}
+            hasMedications={medicationCount > 0}
+          />
+        </div>
+
+        {/* 8. PESSY TE DICE - tips from intelligence engine */}
         {sortedRecommendations.length > 0 && (
           <>
             <SectionTitle>Pessy te dice</SectionTitle>

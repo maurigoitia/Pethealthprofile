@@ -16,6 +16,7 @@ interface Props {
   onPublish: () => void;
   onBack: () => void;
   onSelect?: (listing: AdoptionListing) => void;
+  hideHeader?: boolean;
 }
 
 function sizeLabel(size: string): string {
@@ -36,7 +37,7 @@ function energyLabel(energy: string): string {
   return labels[energy] || energy;
 }
 
-export function AdoptionFeed({ onPublish, onBack, onSelect }: Props) {
+export function AdoptionFeed({ onPublish, onBack, onSelect, hideHeader }: Props) {
   const [listings, setListings] = useState<AdoptionListing[]>([]);
   const [userLocation, setUserLocation] = useState<PessyGeoPoint | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,7 +78,7 @@ export function AdoptionFeed({ onPublish, onBack, onSelect }: Props) {
 
   return (
     <div className="min-h-screen bg-[#F0FAF9] dark:bg-[#101622]">
-      {/* Header */}
+      {!hideHeader && (
       <div className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center gap-3">
         <button
           onClick={onBack}
@@ -96,6 +97,7 @@ export function AdoptionFeed({ onPublish, onBack, onSelect }: Props) {
           Publicar
         </button>
       </div>
+      )}
 
       {/* Content */}
       <div className="max-w-md mx-auto px-4 py-4">

@@ -33,6 +33,7 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
   const [vets, setVets] = useState<VetClinic[]>([]);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"list" | "map">("list");
 
   const fetchNearbyVets = useCallback(async (lat: number, lng: number) => {
     setStatus("loading");
@@ -140,13 +141,29 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
                 {status === "success" ? `${filtered.length} cercanas` : "Buscando..."}
               </p>
             </div>
+            {/* View mode toggle */}
+            <div className="flex rounded-xl bg-[#E0F2F1] dark:bg-slate-800 p-1 gap-1">
+              <button
+                onClick={() => setViewMode("list")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${viewMode === "list" ? "bg-[#074738] text-white" : "text-[#074738]"}`}
+              >
+                Lista
+              </button>
+              <button
+                onClick={() => setViewMode("map")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${viewMode === "map" ? "bg-[#074738] text-white" : "text-[#074738]"}`}
+              >
+                Mapa
+              </button>
+            </div>
             <button onClick={requestLocation}
               className="size-10 rounded-full bg-[#E0F2F1] dark:bg-slate-800 flex items-center justify-center">
               <MaterialIcon name="my_location" className="text-[#074738] text-xl" />
             </button>
           </div>
 
-          {/* Buscador */}
+          {/* Buscador — only in list mode */}
+          {viewMode === "list" && (
           <div className="flex gap-2">
             <div className="flex-1 flex items-center gap-2 px-4 py-3 rounded-[12px] bg-[#E0F2F1] dark:bg-slate-800">
               <MaterialIcon name="search" className="text-slate-400 text-lg" />
@@ -160,10 +177,60 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
               Maps
             </button>
           </div>
+          )}
         </div>
 
-        {/* Estados */}
-        <div className="flex-1 overflow-y-auto p-4">
+        {/* Map view */}
+        {viewMode === "map" && (
+          <div className="flex-1 relative">
+            {userCoords ? (
+              <>
+                <iframe
+                  key={`map-${userCoords.lat}-${userCoords.lng}`}
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent("veterinaria clínica veterinaria")}&ll=${userCoords.lat},${userCoords.lng}&z=14&output=embed`}
+                  title="Veterinarias cerca"
+                  className="w-full h-full"
+                  style={{ border: 0, minHeight: "calc(100vh - 180px)" }}
+                  allowFullScreen
+                  loading="lazy"
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-t border-slate-200 dark:border-slate-800 px-4 py-2 flex items-center gap-2">
+                  <MaterialIcon name="my_location" className="text-[#1A9B7D] text-sm shrink-0" />
+                  <p className="text-xs text-slate-500">Veterinarias a menos de 5km</p>
+                  <button onClick={searchInMaps} className="ml-auto text-xs font-bold text-[#1A9B7D] flex items-center gap-1">
+                    <MaterialIcon name="open_in_new" className="!text-[12px]" />
+                    Maps
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full py-16 px-6">
+                {status === "loading" ? (
+                  <>
+                    <div className="size-12 rounded-full border-4 border-[#074738]/20 border-t-[#074738] animate-spin mb-4" />
+                    <p className="text-sm font-bold text-slate-700 dark:text-white">Obteniendo ubicación...</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="size-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
+                      <MaterialIcon name="location_off" className="text-3xl text-amber-600" />
+                    </div>
+                    <h3 className="font-black text-slate-900 dark:text-white mb-2">Sin ubicación</h3>
+                    <button onClick={requestLocation} className="px-5 py-3 rounded-[14px] bg-[#1A9B7D] text-white font-bold text-sm mt-2">
+                      Activar ubicación
+                    </button>
+                    <button onClick={searchInMaps} className="px-5 py-3 rounded-[14px] border-2 border-[#1A9B7D] text-[#1A9B7D] font-bold text-sm mt-2">
+                      Abrir Google Maps
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Estados — List view */}
+        {viewMode === "list" && <div className="flex-1 overflow-y-auto p-4">
 
           {status === "loading" && (
             <div className="text-center py-16">
@@ -285,7 +352,7 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
               </button>
             </div>
           )}
-        </div>
+        </div>}
       </div>
     </div>
   );

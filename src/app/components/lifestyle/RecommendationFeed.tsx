@@ -1,49 +1,175 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { useState, useEffect } from "react";
+import { MaterialIcon } from "../shared/MaterialIcon";
+
+type Category = {
+  id: string;
+  label: string;
+  query: string;
+  icon: string;
+  emoji: string;
+};
+
+const CATEGORIES: Category[] = [
+  { id: "parques", label: "Parques", query: "parques para perros", icon: "park", emoji: "🌳" },
+  { id: "cafes", label: "Cafés", query: "cafe pet friendly", icon: "local_cafe", emoji: "☕" },
+  { id: "veterinarias", label: "Veterinarias", query: "veterinaria clínica veterinaria", icon: "local_hospital", emoji: "🏥" },
+  { id: "grooming", label: "Grooming", query: "peluquería canina grooming mascotas", icon: "content_cut", emoji: "✂️" },
+];
+
 export function RecommendationFeed({ onBack }: { onBack?: () => void }) {
+  const [selected, setSelected] = useState<Category>(CATEGORIES[0]);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locStatus, setLocStatus] = useState<"loading" | "ready" | "denied" | "error">("loading");
+
+  useEffect(() => {
+    if (!navigator.geolocation) { setLocStatus("error"); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setLocStatus("ready");
+      },
+      (err) => setLocStatus(err.code === 1 ? "denied" : "error"),
+      { timeout: 12000, maximumAge: 60000 }
+    );
+  }, []);
+
+  const mapSrc = coords
+    ? `https://maps.google.com/maps?q=${encodeURIComponent(selected.query)}&ll=${coords.lat},${coords.lng}&z=14&output=embed`
+    : null;
+
   return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center px-6 py-12" style={{ background: "#F0FAF9" }}>
-      {/* Cork mascot */}
-      <svg viewBox="0 0 140 170" fill="none" width="120" height="140" className="mb-6 opacity-80">
-        <ellipse cx="70" cy="128" rx="36" ry="30" fill="#d4ede8" stroke="#074738" strokeWidth="2.5"/>
-        <circle cx="70" cy="70" r="30" fill="#d4ede8" stroke="#074738" strokeWidth="2.5"/>
-        <ellipse cx="44" cy="46" rx="12" ry="20" fill="#1A9B7D" stroke="#074738" strokeWidth="2.5" transform="rotate(-18,44,46)"/>
-        <ellipse cx="96" cy="46" rx="12" ry="20" fill="#1A9B7D" stroke="#074738" strokeWidth="2.5" transform="rotate(18,96,46)"/>
-        <circle cx="58" cy="66" r="5" fill="#074738"/>
-        <circle cx="82" cy="66" r="5" fill="#074738"/>
-        <circle cx="59.5" cy="64" r="2" fill="white"/>
-        <circle cx="83.5" cy="64" r="2" fill="white"/>
-        <ellipse cx="70" cy="78" rx="5.5" ry="4" fill="#074738"/>
-        <path d="M62 82 Q70 90 78 82" stroke="#074738" strokeWidth="2" fill="none" strokeLinecap="round"/>
-        <path d="M104 114 Q122 94 116 70" stroke="#074738" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-        <rect x="52" y="150" width="12" height="16" rx="6" fill="#d4ede8" stroke="#074738" strokeWidth="2.5"/>
-        <rect x="76" y="150" width="12" height="16" rx="6" fill="#d4ede8" stroke="#074738" strokeWidth="2.5"/>
-      </svg>
+    <div className="min-h-screen flex flex-col bg-[#F0FAF9]">
+      {/* Header */}
+      <div className="bg-white border-b border-slate-200 px-4 pt-6 pb-3">
+        <div className="flex items-center gap-3 mb-3">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="size-10 rounded-full bg-[#E0F2F1] flex items-center justify-center shrink-0"
+            >
+              <MaterialIcon name="arrow_back" className="text-[#074738]" />
+            </button>
+          )}
+          <div className="min-w-0">
+            <h1
+              className="text-2xl font-black text-slate-900 leading-tight"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              Explorar
+            </h1>
+            <p className="text-xs text-slate-500">Lugares pet-friendly cerca tuyo</p>
+          </div>
+        </div>
 
-      <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, color: "#074738", fontSize: "1.4rem", marginBottom: "0.5rem", textAlign: "center" }}>
-        Pronto vas a poder explorar
-      </h2>
-      <p style={{ fontFamily: "'Manrope', sans-serif", color: "#3d5a50", fontSize: "0.95rem", textAlign: "center", maxWidth: 320, lineHeight: 1.6, marginBottom: "1.5rem" }}>
-        Estamos armando una guía de lugares pet-friendly cerca tuyo: cafés, parques, veterinarias y más.
-      </p>
+        {/* Category tabs */}
+        <div
+          className="flex gap-2 overflow-x-auto pb-1"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelected(cat)}
+              className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-bold transition-colors ${
+                selected.id === cat.id
+                  ? "bg-[#074738] text-white"
+                  : "bg-[#E0F2F1] text-[#074738]"
+              }`}
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              <span role="img" aria-label={cat.label}>{cat.emoji}</span>
+              <span>{cat.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
 
-      <a
-        href="mailto:it@pessy.app?subject=Sugerir%20lugar%20pet-friendly"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          background: "#1A9B7D",
-          color: "white",
-          padding: "10px 24px",
-          borderRadius: 999,
-          fontSize: "0.85rem",
-          fontWeight: 700,
-          textDecoration: "none",
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
-        }}
-      >
-        Sugerir un lugar
-      </a>
+      {/* Map / Status area */}
+      <div className="flex-1 relative min-h-[400px]">
+        {locStatus === "loading" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#F0FAF9] z-10">
+            <div className="size-12 rounded-full border-4 border-[#074738]/20 border-t-[#074738] animate-spin mb-4" />
+            <p className="text-sm font-bold text-slate-700">Obteniendo ubicación...</p>
+            <p className="text-xs text-slate-400 mt-1">Un momento por favor</p>
+          </div>
+        )}
+
+        {locStatus === "denied" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-6 bg-[#F0FAF9] z-10">
+            <div className="size-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
+              <MaterialIcon name="location_off" className="text-3xl text-amber-600" />
+            </div>
+            <h3
+              className="font-black text-slate-900 mb-2 text-center"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              Ubicación bloqueada
+            </h3>
+            <p className="text-sm text-slate-500 text-center mb-5 max-w-xs">
+              Habilitá el acceso a la ubicación para ver {selected.label.toLowerCase()} cerca tuyo
+            </p>
+            <a
+              href={`https://maps.google.com/maps?q=${encodeURIComponent(selected.query)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-3 rounded-xl bg-[#1A9B7D] text-white font-bold text-sm shadow-lg shadow-[#1A9B7D]/25"
+            >
+              Abrir Google Maps
+            </a>
+          </div>
+        )}
+
+        {locStatus === "error" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center px-6 bg-[#F0FAF9] z-10">
+            <div className="size-16 rounded-full bg-[#E0F2F1] flex items-center justify-center mb-4">
+              <MaterialIcon name="map" className="text-3xl text-[#074738]" />
+            </div>
+            <h3
+              className="font-black text-slate-900 mb-2"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              No se pudo obtener la ubicación
+            </h3>
+            <a
+              href={`https://maps.google.com/maps?q=${encodeURIComponent(selected.query)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-3 rounded-xl bg-[#1A9B7D] text-white font-bold text-sm mt-4"
+            >
+              Abrir Google Maps
+            </a>
+          </div>
+        )}
+
+        {locStatus === "ready" && mapSrc && (
+          <iframe
+            key={`${selected.id}-${coords?.lat}-${coords?.lng}`}
+            src={mapSrc}
+            title={`${selected.label} cerca`}
+            className="w-full h-full"
+            style={{ border: 0, minHeight: "calc(100vh - 160px)" }}
+            allowFullScreen
+            loading="lazy"
+          />
+        )}
+      </div>
+
+      {/* Footer note */}
+      {locStatus === "ready" && (
+        <div className="bg-white border-t border-slate-100 px-4 py-2.5 flex items-center gap-2">
+          <MaterialIcon name="my_location" className="text-[#1A9B7D] text-sm shrink-0" />
+          <p className="text-xs text-slate-500">Mostrando {selected.label.toLowerCase()} a menos de 5km</p>
+          <a
+            href={mapSrc || "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-auto text-xs font-bold text-[#1A9B7D] flex items-center gap-1 shrink-0"
+          >
+            <MaterialIcon name="open_in_new" className="!text-[12px]" />
+            Maps
+          </a>
+        </div>
+      )}
     </div>
   );
 }
