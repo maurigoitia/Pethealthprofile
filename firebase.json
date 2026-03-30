@@ -19,6 +19,7 @@
     "rules": "storage.rules"
   },
   "hosting": {
+    "predeploy": ["bash pre-deploy-check.sh"],
     "public": "dist",
     "ignore": [
       "firebase.json",
