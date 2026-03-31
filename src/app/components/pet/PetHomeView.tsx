@@ -30,6 +30,7 @@ import QuickActions from "../home/QuickActions";
 import PessyTip from "../home/PessyTip";
 import PessyDailyCheckin from "../home/PessyDailyCheckin";
 import PersonalityOnboarding from "./PersonalityOnboarding";
+import { MissionDetailScreen } from "../home/MissionDetailScreen";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -466,6 +467,20 @@ function buildContextualTips(
     });
   }
 
+  // Kitchen safety mission — always shown (weekly habit)
+  tips.push({
+    id: "mission-kitchen",
+    code: "mission_kitchen",
+    title: `Chequeo de cocina y basura`,
+    detail: `¿Está la cocina segura para ${petName}?`,
+    slot: "recommendation",
+    icon: "kitchen",
+    kind: "recommendation",
+    sourceModule: "mission",
+    isMission: true,
+    missionPoints: 15,
+  });
+
   return tips;
 }
 
@@ -532,6 +547,8 @@ export function PetHomeView({
   const [checkedRoutineItems, setCheckedRoutineItems] = useState<string[]>([]);
   const [dismissedRecommendationIds, setDismissedRecommendationIds] = useState<string[]>([]);
   const [points, setPoints] = useState(() => getPoints());
+  const [activeMissionCode, setActiveMissionCode] = useState<string | null>(null);
+  const [completedMissionCodes, setCompletedMissionCodes] = useState<Set<string>>(new Set());
   const { getEventsByPetId, getActiveMedicationsByPetId, getAppointmentsByPetId, getPendingActionsByPetId } = useMedical();
 
   const currentIndex = pets.findIndex((pet) => pet.id === activePetId);
@@ -1096,7 +1113,13 @@ export function PetHomeView({
                   description={rec.detail}
                   isMission={enhanced.isMission}
                   missionPoints={enhanced.missionPoints}
+                  onMissionStart={
+                    enhanced.isMission && rec.code
+                      ? () => setActiveMissionCode(rec.code)
+                      : undefined
+                  }
                   onMissionComplete={(total) => setPoints(total)}
+                  isCompleted={rec.code ? completedMissionCodes.has(rec.code) : undefined}
                   actionLabel={actions.actionLabel}
                   onAction={actions.onAction}
                   dismissLabel={actions.dismissLabel}
@@ -1143,6 +1166,20 @@ export function PetHomeView({
             onClose={() => setShowPreferences(false)}
           />
         </Suspense>
+      )}
+
+      {/* ─── Mission Detail Screen ────────────────────────────────────────── */}
+      {activeMissionCode && activePet && (
+        <MissionDetailScreen
+          missionCode={activeMissionCode}
+          petName={activePet.name}
+          onComplete={(total) => {
+            setPoints(total);
+            setCompletedMissionCodes((prev) => new Set([...prev, activeMissionCode]));
+            setActiveMissionCode(null);
+          }}
+          onClose={() => setActiveMissionCode(null)}
+        />
       )}
     </div>
   );
