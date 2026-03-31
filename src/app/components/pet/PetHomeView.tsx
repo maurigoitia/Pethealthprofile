@@ -5,10 +5,9 @@ import { usePet, type PetPreferences } from "../../contexts/PetContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { toTimestampSafe } from "../../utils/dateUtils";
 import { PetPhoto } from "./PetPhoto";
-import { getPoints, addPoints } from "../../utils/gamification";
+import { getPoints, addPoints, isDailyActivityDone, markDailyActivityDone } from "../../utils/gamification";
 import { db } from "../../../lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
-import type { PendingAction } from "../../types/medical";
+import { collection, doc, getDocs, setDoc } from "firebase/firestore";
 
 const PetPreferencesEditor = lazy(() =>
   import("./PetPreferencesEditor.tsx").then((m) => ({ default: m.PetPreferencesEditor }))
@@ -27,10 +26,9 @@ import DailyHookCard from "../home/DailyHookCard";
 import RoutineChecklist from "../home/RoutineChecklist";
 import ProfileNudge from "../home/ProfileNudge";
 import QuickActions from "../home/QuickActions";
-import PessyTip from "../home/PessyTip";
+import PessyTip, { SectionTitle } from "../home/PessyTip";
 import PessyDailyCheckin from "../home/PessyDailyCheckin";
 import PersonalityOnboarding from "./PersonalityOnboarding";
-import { MissionDetailScreen } from "../home/MissionDetailScreen";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -100,14 +98,6 @@ const COMPANION_BREEDS = [
   "yorkshire", "yorkie", "caniche", "poodle", "coton",
 ];
 
-function getKnownBreedAliasesForGroup(groupId: WellbeingSpeciesGroupId): string[] {
-  const profileExamples =
-    WELLBEING_MASTER_BOOK.breed_profiles.groups.find((group) => group.id === groupId)?.exampleBreeds ?? [];
-  const thermalExamples =
-    WELLBEING_MASTER_BOOK.thermal_safety.groups.find((group) => group.id === groupId)?.appliesTo ?? [];
-  return [...profileExamples, ...thermalExamples];
-}
-
 function normalizeText(value?: string | null) {
   return (value || "")
     .toLowerCase()
@@ -127,26 +117,24 @@ function resolveSpecies(rawSpecies?: string, breed?: string): PetSpecies {
 function resolveGroupIds(species: PetSpecies, breed: string): WellbeingSpeciesGroupId[] {
   const normalizedBreed = normalizeText(breed);
   const matchesList = (list: string[]) => list.some((item) => normalizedBreed.includes(normalizeText(item)));
-  const matchesGroup = (groupId: WellbeingSpeciesGroupId, fallbackAliases: string[] = []) =>
-    matchesList([...getKnownBreedAliasesForGroup(groupId), ...fallbackAliases]);
 
   if (species === "cat") {
     const ids: WellbeingSpeciesGroupId[] = ["cat.general"];
-    if (matchesGroup("cat.brachycephalic", BRACHY_BREEDS)) ids.unshift("cat.brachycephalic");
-    return [...new Set(ids)];
+    if (matchesList(BRACHY_BREEDS)) ids.unshift("cat.brachycephalic");
+    return ids;
   }
 
   // Dogs: collect all matching groups, always include "dog.general" as fallback
   const ids: WellbeingSpeciesGroupId[] = [];
 
-  if (matchesGroup("dog.brachycephalic", BRACHY_BREEDS)) ids.push("dog.brachycephalic");
-  if (matchesGroup("dog.active_working", ACTIVE_WORKING_BREEDS)) ids.push("dog.active_working");
-  if (matchesGroup("dog.companion", COMPANION_BREEDS)) ids.push("dog.companion");
+  if (matchesList(BRACHY_BREEDS)) ids.push("dog.brachycephalic");
+  if (matchesList(ACTIVE_WORKING_BREEDS)) ids.push("dog.active_working");
+  if (matchesList(COMPANION_BREEDS)) ids.push("dog.companion");
 
   // Always include dog.general as fallback
   ids.push("dog.general");
 
-  return [...new Set(ids)];
+  return ids;
 }
 
 function resolveThermalProfile(species: PetSpecies, groupIds: WellbeingSpeciesGroupId[]): ThermalSafetyProfile | null {
@@ -182,63 +170,16 @@ function computeFoodDaysLeft(prefs: PetPreferences | undefined): number | null {
   return Math.max(0, Math.floor(gramsLeft / prefs.foodDailyGrams));
 }
 
-function hasHighEnergySignals(preferences?: PetPreferences): boolean {
-  const activities = new Set(preferences?.favoriteActivities || []);
-  const personality = new Set(preferences?.personality || []);
-  return (
-    activities.has("training") ||
-    activities.has("hiking") ||
-    activities.has("swim") ||
-    activities.has("park") ||
-    activities.has("playdate") ||
-    personality.has("energetic") ||
-    personality.has("playful") ||
-    personality.has("protective")
-  );
-}
-
-function hasReactiveSignals(preferences?: PetPreferences): boolean {
-  const fears = (preferences?.fears || []).map((fear) => normalizeText(fear));
-  return (
-    fears.some((fear) =>
-      fear.includes("otros perros") ||
-      fear.includes("autos") ||
-      fear.includes("aspiradora") ||
-      fear.includes("veterinario")
-    ) ||
-    (preferences?.personality || []).includes("shy")
-  );
-}
-
-function getFallbackSuggestionGroupIds(
-  species: PetSpecies,
-  preferences?: PetPreferences
-): WellbeingSpeciesGroupId[] {
-  if (species === "cat") return ["cat.general"];
-
-  const ids: WellbeingSpeciesGroupId[] = [];
-  if (hasReactiveSignals(preferences)) ids.push("dog.reactive");
-  if (hasHighEnergySignals(preferences)) ids.push("dog.active_working");
-  ids.push("dog.companion");
-  return [...new Set(ids)];
-}
-
 /** Map generic groupIds to the closest match in daily_suggestions/routines */
-function resolveRoutineGroupId(
-  groupIds: WellbeingSpeciesGroupId[],
-  species: PetSpecies,
-  preferences?: PetPreferences
-): WellbeingSpeciesGroupId {
+function resolveRoutineGroupId(groupIds: WellbeingSpeciesGroupId[], species: PetSpecies): WellbeingSpeciesGroupId {
   // If the groupId exists in routines, use it directly
   const routineGroupIds = WELLBEING_MASTER_BOOK.routines.map((r) => r.groupId);
   const direct = groupIds.find((id) => routineGroupIds.includes(id));
   if (direct) return direct;
 
-  const inferred = getFallbackSuggestionGroupIds(species, preferences).find((id) => routineGroupIds.includes(id));
-  if (inferred) return inferred;
-
+  // Fallback mapping
   if (species === "cat") return "cat.general";
-  return "dog.companion";
+  return "dog.companion"; // dog.general -> dog.companion
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -309,26 +250,6 @@ function saveCheckedItems(petId: string, items: string[]) {
   window.localStorage.setItem(getRoutineStorageKey(petId), JSON.stringify(items));
 }
 
-function getRecommendationStorageKey(petId: string): string {
-  const today = new Date().toISOString().slice(0, 10);
-  return `pessy_recommendations_${petId}_${today}`;
-}
-
-function loadDismissedRecommendationIds(petId: string): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(getRecommendationStorageKey(petId));
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveDismissedRecommendationIds(petId: string, ids: string[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(getRecommendationStorageKey(petId), JSON.stringify(ids));
-}
-
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
 /** Personality data stored in Firestore: users/{uid}/pets/{petId}/personality/{topic} */
@@ -345,13 +266,7 @@ type EnhancedTip = PessyIntelligenceRecommendation & {
 // it shows FIRST (kind: "alert") before breed/weather recommendations.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildContextualTips(
-  petName: string,
-  medications: any[],
-  appointments: any[],
-  pendingActions: PendingAction[],
-  personality?: Personality
-): EnhancedTip[] {
+function buildContextualTips(petName: string, medications: any[], appointments: any[], personality?: Personality): EnhancedTip[] {
   const tips: PessyIntelligenceRecommendation[] = [];
 
   // Active medications → always relevant, show name + dosage
@@ -371,6 +286,19 @@ function buildContextualTips(
         slot: "alert",
         icon: "medication",
         kind: "alert",
+        sourceModule: "contextual",
+      });
+    } else {
+      // Active treatment — informational
+      const dosageInfo = med.dosage ? `Dosis: ${med.dosage}${med.frequency ? ` · ${med.frequency}` : ""}` : "Mantené el horario del tratamiento.";
+      tips.push({
+        id: `med-active-${i}`,
+        code: "med_active",
+        title: `${petName} toma ${med.name}`,
+        detail: dosageInfo,
+        slot: "recommendation",
+        icon: "medication",
+        kind: "recommendation",
         sourceModule: "contextual",
       });
     }
@@ -397,36 +325,6 @@ function buildContextualTips(
         });
       }
     }
-  }
-
-  const proactivePending = pendingActions.find((action) =>
-    action.type === "vaccine_due" || action.type === "follow_up" || action.type === "checkup_due"
-  );
-  if (proactivePending) {
-    const dueDateLabel = proactivePending.dueDate
-      ? new Date(proactivePending.dueDate).toLocaleDateString("es-AR", { day: "numeric", month: "short" })
-      : null;
-    const detailParts = [proactivePending.subtitle, dueDateLabel ? `Vence ${dueDateLabel}` : null].filter(Boolean);
-    tips.push({
-      id: `pending-${proactivePending.id}`,
-      code:
-        proactivePending.type === "vaccine_due"
-          ? "pending_vaccine_due"
-          : proactivePending.type === "follow_up"
-            ? "pending_follow_up"
-            : "pending_checkup_due",
-      title:
-        proactivePending.type === "vaccine_due"
-          ? `Vacuna pendiente para ${petName}`
-          : proactivePending.type === "follow_up"
-            ? `Seguimiento pendiente de ${petName}`
-            : `Control pendiente para ${petName}`,
-      detail: detailParts.join(" · ") || proactivePending.title,
-      slot: "alert",
-      icon: proactivePending.type === "vaccine_due" ? "vaccines" : "event_repeat",
-      kind: "alert",
-      sourceModule: "contextual",
-    });
   }
 
   // Personality-aware mission tips (only if personality data exists)
@@ -467,20 +365,6 @@ function buildContextualTips(
     });
   }
 
-  // Kitchen safety mission — always shown (weekly habit)
-  tips.push({
-    id: "mission-kitchen",
-    code: "mission_kitchen",
-    title: `Chequeo de cocina y basura`,
-    detail: `¿Está la cocina segura para ${petName}?`,
-    slot: "recommendation",
-    icon: "kitchen",
-    kind: "recommendation",
-    sourceModule: "mission",
-    isMission: true,
-    missionPoints: 15,
-  });
-
   return tips;
 }
 
@@ -492,28 +376,6 @@ function mapRecToTipColor(rec: PessyIntelligenceRecommendation): "green" | "blue
   if (rec.sourceModule === "contextual") return "green";
   if (rec.slot?.includes("training") || rec.slot?.includes("routine")) return "green";
   return "blue";
-}
-
-function getRecommendationDisplayPriority(rec: PessyIntelligenceRecommendation): number {
-  if (rec.sourceModule === "contextual") return 0;
-  if (
-    rec.sourceModule === "daily_activity" ||
-    rec.sourceModule === "breed_profile" ||
-    rec.sourceModule === "weather_activity" ||
-    rec.sourceModule === "thermal_safety" ||
-    rec.sourceModule === "puppy_socialization" ||
-    rec.sourceModule === "routine_conflict" ||
-    rec.sourceModule === "fears_weather" ||
-    rec.sourceModule === "uv_index" ||
-    rec.sourceModule === "wind_alert"
-  ) {
-    return 1;
-  }
-  if (rec.sourceModule === "mission" || rec.sourceModule === "training_master_book" || rec.sourceModule === "time_of_day") {
-    return 2;
-  }
-  if (rec.sourceModule === "supply_tracker") return 3;
-  return 3;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -545,11 +407,14 @@ export function PetHomeView({
   });
   const [nudgedBreed, setNudgedBreed] = useState(false);
   const [checkedRoutineItems, setCheckedRoutineItems] = useState<string[]>([]);
-  const [dismissedRecommendationIds, setDismissedRecommendationIds] = useState<string[]>([]);
   const [points, setPoints] = useState(() => getPoints());
-  const [activeMissionCode, setActiveMissionCode] = useState<string | null>(null);
-  const [completedMissionCodes, setCompletedMissionCodes] = useState<Set<string>>(new Set());
-  const { getEventsByPetId, getActiveMedicationsByPetId, getAppointmentsByPetId, getPendingActionsByPetId } = useMedical();
+  const {
+    getEventsByPetId,
+    getActiveMedicationsByPetId,
+    getAppointmentsByPetId,
+    getClinicalConditionsByPetId,
+    getProfileSnapshotByPetId,
+  } = useMedical();
 
   const currentIndex = pets.findIndex((pet) => pet.id === activePetId);
   const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
@@ -559,7 +424,24 @@ export function PetHomeView({
   const petEvents = activePetId ? getEventsByPetId(activePetId) : [];
   const appointments = activePetId ? getAppointmentsByPetId(activePetId) : [];
   const activeMedications = activePetId ? getActiveMedicationsByPetId(activePetId) : [];
-  const pendingActions = activePetId ? getPendingActionsByPetId(activePetId) : [];
+
+  // ─── Medical intelligence summary ───────────────────────────────────────────
+  const profileSnapshot = activePetId ? getProfileSnapshotByPetId(activePetId) : null;
+  const clinicalConditions = activePetId ? getClinicalConditionsByPetId(activePetId) : [];
+
+  // Chronic/active conditions: prefer profile snapshot, fallback to raw clinical conditions
+  const chronicConditions: string[] = profileSnapshot?.activeConditions?.length
+    ? profileSnapshot.activeConditions
+    : profileSnapshot?.recurrentPathologies?.length
+      ? profileSnapshot.recurrentPathologies
+      : clinicalConditions
+          .filter((c) => c.status === "active" || c.pattern === "chronic")
+          .map((c) => c.normalizedName)
+          .slice(0, 4);
+
+  const hasMedicalSummary =
+    chronicConditions.length > 0 ||
+    activeMedications.length > 0;
 
   const upcomingAppointments = appointments.filter((appointment) => {
     const dateValue = appointment.dateTime || `${appointment.date || ""}T${appointment.time || "00:00"}:00`;
@@ -620,27 +502,13 @@ export function PetHomeView({
 
   const sortedRecommendations = useMemo(() => {
     // Contextual tips from real data (meds, appointments) always come first
-    const contextual = buildContextualTips(activePet?.name || "", activeMedications, upcomingAppointments, pendingActions, personality);
+    const contextual = buildContextualTips(activePet?.name || "", activeMedications, upcomingAppointments, personality);
     const intelligence = intelligenceResult?.recommendations || [];
     const order: Record<string, number> = { block: 0, alert: 1, recommendation: 2 };
-    const all = [...contextual, ...intelligence].sort((a, b) => {
-      const priorityDiff = getRecommendationDisplayPriority(a) - getRecommendationDisplayPriority(b);
-      if (priorityDiff !== 0) return priorityDiff;
-      const kindDiff = (order[a.kind] ?? 2) - (order[b.kind] ?? 2);
-      if (kindDiff !== 0) return kindDiff;
-      return a.title.localeCompare(b.title);
-    });
+    const all = [...contextual, ...intelligence].sort((a, b) => (order[a.kind] ?? 2) - (order[b.kind] ?? 2));
     // Max 4 tips — show what matters, not everything
     return all.slice(0, 4);
-  }, [activePet?.name, activeMedications, upcomingAppointments, pendingActions, intelligenceResult, personality]);
-
-  const visibleRecommendations = useMemo(
-    () =>
-      sortedRecommendations
-        .filter((rec) => !dismissedRecommendationIds.includes(rec.id))
-        .slice(0, 2),
-    [sortedRecommendations, dismissedRecommendationIds]
-  );
+  }, [activePet?.name, activeMedications, upcomingAppointments, intelligenceResult, personality]);
 
   // ─── Personality — load from Firestore, trigger onboarding if not done ──────
   useEffect(() => {
@@ -694,22 +562,12 @@ export function PetHomeView({
       (s) => groupIds.includes(s.groupId) && (s.weatherCondition === weatherCondition || s.weatherCondition === "any")
     );
 
-    const fallbackGroupIds = getFallbackSuggestionGroupIds(species, activePet?.preferences);
-    const speciesFallbackPool = WELLBEING_MASTER_BOOK.daily_suggestions.filter(
-      (s) => fallbackGroupIds.includes(s.groupId) && (s.weatherCondition === weatherCondition || s.weatherCondition === "any")
-    );
-    const strictSpeciesPool = WELLBEING_MASTER_BOOK.daily_suggestions.filter(
-      (s) =>
-        s.groupId.startsWith(species === "cat" ? "cat." : "dog.") &&
-        (s.weatherCondition === weatherCondition || s.weatherCondition === "any")
-    );
-
-    // If no direct candidates, fall back to profile signals for the same species.
+    // If no candidates for the matched groups, try all suggestions for weather condition
     const pool = candidates.length > 0
       ? candidates
-      : speciesFallbackPool.length > 0
-        ? speciesFallbackPool
-        : strictSpeciesPool;
+      : WELLBEING_MASTER_BOOK.daily_suggestions.filter(
+          (s) => s.weatherCondition === weatherCondition || s.weatherCondition === "any"
+        );
 
     const fallback = {
       category: "Actividad",
@@ -744,12 +602,12 @@ export function PetHomeView({
     }
 
     return results;
-  }, [groupIds, species, walkSafety.status, activePet?.name, activePet?.preferences]);
+  }, [groupIds, species, walkSafety.status, activePet?.name]);
 
   // ─── Routine items ──────────────────────────────────────────────────────────
   const currentHour = new Date().getHours();
   const currentRoutineItems = useMemo(() => {
-    const routineGroup = resolveRoutineGroupId(groupIds, species, activePet?.preferences);
+    const routineGroup = resolveRoutineGroupId(groupIds, species);
     const routine = WELLBEING_MASTER_BOOK.routines.find((r) => r.groupId === routineGroup);
     if (!routine) return null;
     // Before 14:00 → morning routine
@@ -760,7 +618,7 @@ export function PetHomeView({
       : currentHour < 21
         ? routine.eveningRoutine
         : null; // Sleep time - no routine
-  }, [groupIds, species, currentHour, activePet?.preferences]);
+  }, [groupIds, species, currentHour]);
 
   const routineTitle = currentHour < 14
     ? "Rutina de la mañana"
@@ -778,11 +636,7 @@ export function PetHomeView({
   useEffect(() => {
     if (activePetId) {
       setCheckedRoutineItems(loadCheckedItems(activePetId));
-      setDismissedRecommendationIds(loadDismissedRecommendationIds(activePetId));
-      return;
     }
-    setCheckedRoutineItems([]);
-    setDismissedRecommendationIds([]);
   }, [activePetId]);
 
   const handleRoutineToggle = useCallback(
@@ -800,61 +654,6 @@ export function PetHomeView({
       });
     },
     [activePetId]
-  );
-
-  const dismissRecommendation = useCallback(
-    (recommendationId: string) => {
-      if (!activePetId) return;
-      setDismissedRecommendationIds((prev) => {
-        if (prev.includes(recommendationId)) return prev;
-        const next = [...prev, recommendationId];
-        saveDismissedRecommendationIds(activePetId, next);
-        return next;
-      });
-    },
-    [activePetId]
-  );
-
-  const getTipActions = useCallback(
-    (rec: PessyIntelligenceRecommendation, isMission?: boolean) => {
-      if (isMission) return {};
-
-      const dismissConfig = {
-        dismissLabel: "Ocultar hoy",
-        onDismiss: () => dismissRecommendation(rec.id),
-      };
-
-      if (rec.code === "med_active" || rec.code === "med_ending") {
-        return {
-          actionLabel: "Ver medicación",
-          onAction: onMedicationsClick,
-          ...dismissConfig,
-        };
-      }
-
-      if (rec.code === "appt_upcoming") {
-        return {
-          actionLabel: "Ver turno",
-          onAction: onAppointmentsClick,
-          ...dismissConfig,
-        };
-      }
-
-      if (
-        rec.code === "pending_vaccine_due" ||
-        rec.code === "pending_follow_up" ||
-        rec.code === "pending_checkup_due"
-      ) {
-        return {
-          actionLabel: "Ver agenda",
-          onAction: onAppointmentsClick,
-          ...dismissConfig,
-        };
-      }
-
-      return dismissConfig;
-    },
-    [dismissRecommendation, onAppointmentsClick, onMedicationsClick]
   );
 
   // ─── Nudge for new user without breed ───────────────────────────────────────
@@ -1035,21 +834,77 @@ export function PetHomeView({
           </div>
         )}
 
+        {/* ── MEDICAL PROFILE SUMMARY ─────────────────────────────────────── */}
+        {hasMedicalSummary && (
+          <div className="mx-3 mt-4 rounded-[20px] border border-[#074738]/10 bg-white overflow-hidden"
+            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+            <div className="h-1 bg-[#074738]" />
+            <div className="px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <MaterialIcon name="local_hospital" className="text-[#074738] !text-[15px]" />
+                <p className="text-[11px] font-black uppercase tracking-widest text-[#074738]">
+                  Perfil médico
+                </p>
+              </div>
+
+              {profileSnapshot?.narrative ? (
+                <p className="text-[12px] text-slate-600 leading-relaxed mb-2.5 line-clamp-2">
+                  {profileSnapshot.narrative}
+                </p>
+              ) : null}
+
+              {chronicConditions.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                    Condiciones activas
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {chronicConditions.slice(0, 4).map((condition, i) => (
+                      <span
+                        key={i}
+                        className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-100"
+                      >
+                        {condition}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeMedications.length > 0 && (
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                    Medicación activa
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {activeMedications.slice(0, 3).map((med, i) => (
+                      <span
+                        key={i}
+                        className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100"
+                      >
+                        {med.name}{med.dosage ? ` · ${med.dosage}` : ""}
+                      </span>
+                    ))}
+                    {activeMedications.length > 3 && (
+                      <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500">
+                        +{activeMedications.length - 3}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── SECTION 2: Cork/Fizz — the ONE most important thing right now ── */}
         <div className="mx-3 mt-4">
           <PessyDailyCheckin
             petName={activePet.name}
             petId={activePetId}
             species={species}
-            medications={activeMedications.map((m) => ({
-              name: m.name,
-              dosage: m.dosage,
-              frequency: m.frequency,
-              startDate: m.startDate,
-              endDate: m.endDate,
-            }))}
+            medications={activeMedications.map((m) => ({ name: m.name, dosage: m.dosage }))}
             nextAppointment={upcomingAppointments[0] ?? null}
-            pendingActions={pendingActions}
             onPointsEarned={(total) => setPoints(total)}
           />
         </div>
@@ -1099,11 +954,10 @@ export function PetHomeView({
         )}
 
         {/* ── SECTION 4: Pessy te dice — 1-2 real tips ── */}
-        {visibleRecommendations.length > 0 && (
+        {sortedRecommendations.length > 0 && (
           <div className="mx-3 mt-3 space-y-2">
-            {visibleRecommendations.map((rec) => {
+            {sortedRecommendations.slice(0, 2).map((rec) => {
               const enhanced = rec as EnhancedTip;
-              const actions = getTipActions(rec, enhanced.isMission);
               return (
                 <PessyTip
                   key={rec.id}
@@ -1113,17 +967,7 @@ export function PetHomeView({
                   description={rec.detail}
                   isMission={enhanced.isMission}
                   missionPoints={enhanced.missionPoints}
-                  onMissionStart={
-                    enhanced.isMission && rec.code
-                      ? () => setActiveMissionCode(rec.code)
-                      : undefined
-                  }
                   onMissionComplete={(total) => setPoints(total)}
-                  isCompleted={rec.code ? completedMissionCodes.has(rec.code) : undefined}
-                  actionLabel={actions.actionLabel}
-                  onAction={actions.onAction}
-                  dismissLabel={actions.dismissLabel}
-                  onDismiss={actions.onDismiss}
                 />
               );
             })}
@@ -1166,20 +1010,6 @@ export function PetHomeView({
             onClose={() => setShowPreferences(false)}
           />
         </Suspense>
-      )}
-
-      {/* ─── Mission Detail Screen ────────────────────────────────────────── */}
-      {activeMissionCode && activePet && (
-        <MissionDetailScreen
-          missionCode={activeMissionCode}
-          petName={activePet.name}
-          onComplete={(total) => {
-            setPoints(total);
-            setCompletedMissionCodes((prev) => new Set([...prev, activeMissionCode]));
-            setActiveMissionCode(null);
-          }}
-          onClose={() => setActiveMissionCode(null)}
-        />
       )}
     </div>
   );

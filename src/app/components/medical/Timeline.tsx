@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { clsx } from "clsx";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { EmptyState } from "../shared/EmptyState";
-import { ClinicalProfileBlock } from "./ClinicalProfileBlock";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
 import type { ClinicalEpisode } from "../../contexts/MedicalContext";
@@ -151,13 +150,6 @@ function cleanDiagnosisText(value?: string | null): string {
     .trim();
 }
 
-function joinNarrativeList(values: string[]): string {
-  if (values.length === 0) return "";
-  if (values.length === 1) return values[0];
-  if (values.length === 2) return `${values[0]} y ${values[1]}`;
-  return `${values.slice(0, -1).join(", ")} y ${values[values.length - 1]}`;
-}
-
 function condenseClinicalSentence(value?: string | null, fallback = ""): string {
   const cleaned = cleanDiagnosisText(value || "");
   if (!cleaned) return fallback;
@@ -176,12 +168,19 @@ interface AppointmentNarrativeHints {
 
 function stripGenericEventTitle(value: string): string {
   return cleanText(value)
+    // Legacy ingestion artifacts — must never reach user-facing labels
     .replace(/^diagn[oó]stico detectado por correo$/i, "")
     .replace(/^estudio detectado por correo$/i, "")
-    .replace(/^receta detectada por correo$/i, "")
+    .replace(/^documento detectado por correo$/i, "")
+    .replace(/^documento$/i, "")
+    .replace(/^informe de estudio$/i, "")
+    .replace(/^resultado de laboratorio$/i, "")
+    .replace(/^diagn[oó]stico$/i, "")
     .replace(/^turno programado$/i, "")
     .replace(/^documento cl[ií]nico(?: de .*?)?$/i, "")
-    .replace(/^documento de .*$/i, "")
+    // Score/metadata artifacts
+    .replace(/\bscore de correo\b/gi, "")
+    .replace(/\bingesti[oó]n por correo\b/gi, "")
     .trim();
 }
 
@@ -498,8 +497,7 @@ function buildEventSummary(event: MedicalEvent, petName: string): string {
 
   if (kind === "treatment_plan") {
     const treatmentNarrative = cleanText(d.observations || d.aiGeneratedSummary);
-    const narrativePrefix = d.aiGeneratedSummary && !d.observations ? "Resumen IA (no canónico): " : "";
-    return `Plan terapéutico registrado el ${eventDate} para ${petName}${whoWhere ? `. Centro/profesional: ${whoWhere}` : ""}. ${narrativePrefix}${treatmentNarrative}`;
+    return `Plan terapéutico registrado el ${eventDate} para ${petName}${whoWhere ? `. Centro/profesional: ${whoWhere}` : ""}${treatmentNarrative ? `. ${treatmentNarrative}` : ""}`;
   }
 
   if (kind === "imaging_report") {
@@ -528,18 +526,7 @@ function buildEventSummary(event: MedicalEvent, petName: string): string {
   }
 
   const genericNarrative = cleanText(d.aiGeneratedSummary || d.observations);
-  if (d.aiGeneratedSummary) {
-    return `Resumen IA (no canónico): ${genericNarrative || `Documento de ${petName} registrado el ${eventDate}.`}`;
-  }
-  if (genericNarrative) return genericNarrative;
-
-  // Better fallback: include what we DO know
-  const parts: string[] = [`Documento registrado el ${eventDate}`];
-  if (whoWhere) parts.push(`en ${whoWhere}`);
-  const isEmail = Boolean((d as unknown as Record<string, unknown>).sourceSender);
-  if (isEmail) parts.push("· detectado por correo");
-  if (event.requiresManualConfirmation || event.status === "draft") parts.push("· pendiente de revisión");
-  return `${parts.join(" ")}.`;
+  return genericNarrative || `Documento de ${petName} registrado el ${eventDate}.`;
 }
 
 function buildMetaPills(event: MedicalEvent, kind: ClinicalRenderKind): string[] {
@@ -620,42 +607,20 @@ function buildMetaPills(event: MedicalEvent, kind: ClinicalRenderKind): string[]
 
 function buildSourceOriginPill(event: MedicalEvent): string | null {
   const d = getExtractedData(event) as unknown as Record<string, unknown>;
-  if (d.sourceSender || d.sourceSubject || d.sourceStorageSignedUrl || d.sourceFileName) {
-    const sender = cleanText(d.sourceSender as string | undefined);
-    if (sender && sender.includes("panda")) return "Correo · Panda";
-    if (sender && sender.includes("myvete")) return "Correo · MyVete";
-    return "Sincronizado por correo";
-  }
-  if (event.fileName || event.documentUrl) return "Escaneado";
+  if (d.sourceSender || d.sourceSubject || d.sourceStorageSignedUrl || d.sourceFileName) return "Correo";
+  if (event.fileName || event.documentUrl) return "Escaneo";
   return null;
 }
 
 function formatEventDate(event: MedicalEvent): string {
   const d = getExtractedData(event);
   const dateStr = d.eventDate || event.createdAt;
-  const isFromScan = !d.eventDate;
-  const formatted = formatDateSafe(
+  return formatDateSafe(
     dateStr,
     "es-AR",
     { day: "numeric", month: "short", year: "numeric" },
     "Sin fecha"
   );
-  return isFromScan ? `${formatted} · escaneo` : formatted;
-}
-
-function buildFlowLabel(event: MedicalEvent): string {
-  const source = getExtractedData(event) || {};
-  const isEmailFlow = Boolean(
-    source.sourceSender ||
-    source.sourceReceivedAt ||
-    source.sourceSubject ||
-    source.sourceFileName
-  );
-  if (isEmailFlow) return "Flujo: sincronización por correo";
-  if (event.requiresManualConfirmation || event.workflowStatus === "review_required" || event.status === "draft") {
-    return "Flujo: escáner + revisión manual";
-  }
-  return "Flujo: escáner de documento";
 }
 
 const normalizeReviewReason = (value?: string | null) =>
@@ -679,14 +644,7 @@ function getReviewReasonCopy(event: MedicalEvent): string {
   if (hasIncompleteTreatmentData(event)) {
     return "Detectamos medicación sin dosis o frecuencia completa. Pessy bloqueó la activación del tratamiento hasta que lo confirmes.";
   }
-  const reason = event.reviewReasons?.[0] || "";
-  const d = getExtractedData(event);
-  const isEmail = Boolean(d.sourceSender || d.sourceSubject);
-  if (isEmail && !d.diagnosis && !d.provider) {
-    return "Pessy detectó este estudio por correo pero no pudo extraer todos los datos automáticamente. Revisá que la información sea correcta antes de confirmarlo.";
-  }
-  if (reason) return reason;
-  return "Pessy necesita que revises este evento antes de incorporarlo al historial.";
+  return event.reviewReasons?.[0] || "Este evento quedó para revisión manual antes de consolidarlo.";
 }
 
 function matchesFilter(event: MedicalEvent, filter: TimelineFilter): boolean {
@@ -708,11 +666,6 @@ function getYearKey(event: MedicalEvent): string {
 
 function getEventTimestamp(event: MedicalEvent): number {
   return toTimestampSafe(getExtractedData(event)?.eventDate || event.createdAt);
-}
-
-function isEmailOriginEvent(event: MedicalEvent): boolean {
-  const d = getExtractedData(event);
-  return Boolean(d.sourceSender || d.sourceSubject || d.sourceReceivedAt || d.sourceFileName);
 }
 
 function monthsFromNow(timestamp: number, nowTimestamp: number): number {
@@ -831,28 +784,9 @@ function buildHistoricalNarrative(events: MedicalEvent[], _petName: string, _per
     (vaccineCount > 0 ? "seguimiento preventivo" : "") ||
     "seguimiento";
 
-  const storyBits: string[] = [];
-  if (diagnoses.length > 0) {
-    storyBits.push(`se registraron consultas o hallazgos vinculados con ${joinNarrativeList(diagnoses)}`);
-  }
-  if (medications.length > 0) {
-    storyBits.push(`hubo tratamiento con ${joinNarrativeList(medications)}`);
-  }
-  if (imagingCount > 0) {
-    storyBits.push(`se sumaron ${imagingCount} estudio${imagingCount === 1 ? "" : "s"} complementario${imagingCount === 1 ? "" : "s"}`);
-  }
-  if (vaccineCount > 0) {
-    storyBits.push(`también quedó registro preventivo de ${vaccineCount} vacuna${vaccineCount === 1 ? "" : "s"}`);
-  }
-
-  const narrative =
-    storyBits.length > 0
-      ? `En este período ${storyBits.join(". ")}.`
-      : "En este período quedaron registrados controles y documentos clínicos confirmados.";
-
   return {
     headline: capitalizeSpanish(dominantLabel),
-    narrative,
+    narrative: "",
     diagnoses,
     medications,
     providers,
@@ -882,34 +816,11 @@ function buildAnnualSummary(events: MedicalEvent[], _petName: string, yearKey: s
     const kind = resolveClinicalRenderKind(event);
     return kind === "imaging_report" || kind === "laboratory_report";
   }).length;
-  const appointmentEvents = events.filter((event) => resolveClinicalRenderKind(event) === "appointment_confirmation").length;
-  const treatmentEvents = events.filter((event) => {
-    const kind = resolveClinicalRenderKind(event);
-    return kind === "prescription" || kind === "treatment_plan";
-  }).length;
-
-  const storyBits: string[] = [];
-  if (diagnoses.length > 0) {
-    storyBits.push(`se trabajó sobre ${joinNarrativeList(diagnoses)}`);
-  }
-  if (treatmentEvents > 0 || medications.length > 0) {
-    const medsText = medications.length > 0 ? `con tratamiento como ${joinNarrativeList(medications)}` : "con seguimiento terapéutico";
-    storyBits.push(medsText);
-  }
-  if (imagingEvents > 0) {
-    storyBits.push(`se realizaron ${imagingEvents} estudio${imagingEvents === 1 ? "" : "s"} complementario${imagingEvents === 1 ? "" : "s"}`);
-  }
-  if (appointmentEvents > 0) {
-    storyBits.push(`hubo ${appointmentEvents} visita${appointmentEvents === 1 ? "" : "s"} o agenda${appointmentEvents === 1 ? "" : "s"} clínica${appointmentEvents === 1 ? "" : "s"}`);
-  }
 
   return {
     yearKey,
     headline: yearKey,
-    narrative:
-      storyBits.length > 0
-        ? `Durante ${yearKey}, ${storyBits.join(". ")}.`
-        : `Durante ${yearKey} quedaron eventos clínicos confirmados en el historial de PESSY.`,
+    narrative: "",
     highlights: [
       diagnoses[0] ? `Patología: ${diagnoses[0]}` : "",
       medications[0] ? `Medicación: ${medications[0]}` : "",
@@ -975,9 +886,8 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
 
   const { activePetId } = usePet();
-  const { getEventsByPetId, confirmEvent, deleteEvent, getClinicalEpisodesByPetId, getProfileSnapshotByPetId } = useMedical();
+  const { getEventsByPetId, confirmEvent, deleteEvent, getClinicalEpisodesByPetId } = useMedical();
   const historicalEpisodesEnabled = isFocusHistoryExperimentHost();
-  const profileSnapshot = getProfileSnapshotByPetId(activePetId);
 
   const allEvents = getEventsByPetId(activePetId);
 
@@ -1054,15 +964,6 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
 
       const periodMeta = buildHistoricalPeriodMeta(timestamp, Date.now());
       const threadLabel = episodeTypeToThreadLabel(ep);
-      const fallbackNarrative = buildHistoricalNarrative(
-        [],
-        cleanText(activePet?.name) || "tu mascota",
-        periodMeta.periodLabel
-      ).narrative;
-      const narrative =
-        cleanText(ep.summary).includes("PESSY los comprimió en episodios narrativos")
-          ? buildHistoricalNarrative([], cleanText(activePet?.name) || "tu mascota", periodMeta.periodLabel).narrative
-          : cleanText(ep.summary) || fallbackNarrative;
 
       entries.push({
         kind: "episode",
@@ -1073,7 +974,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
         periodLabel: periodMeta.periodLabel,
         threadLabel,
         headline: ep.headline,
-        narrative,
+        narrative: ep.summary,
         diagnoses: ep.diagnoses,
         medications: ep.medications.map((m) => m.name),
         providers: [ep.provider?.name, ep.provider?.clinic].filter(Boolean) as string[],
@@ -1254,9 +1155,6 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
         </div>
       ) : (
         <div className="space-y-8">
-          {profileSnapshot && activePet && (
-            <ClinicalProfileBlock snapshot={profileSnapshot} petName={activePet.name} />
-          )}
           {groupedByYear.map(([year, events], groupIndex) => (
             <div key={year} className="space-y-4">
               <div className="flex items-center gap-3">
@@ -1266,29 +1164,37 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
               </div>
 
               <div className="space-y-3">
-                {historicalEpisodesEnabled && annualSummaryByYear.get(year) && (
-                  <div className="rounded-[20px] border border-[#074738]/10 bg-white p-4 shadow-[0_1px_6px_rgba(0,0,0,0.04)]">
-                    <div className="flex items-center justify-between gap-3 mb-2">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#1A9B7D]">Lectura anual</p>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E0F2F1] text-[#074738]">
-                        {annualSummaryByYear.get(year)!.eventCount} evento{annualSummaryByYear.get(year)!.eventCount === 1 ? "" : "s"}
-                      </span>
+                {historicalEpisodesEnabled && (quarterlySnapshotsByYear.get(year) || []).map((snapshot) => (
+                  <div key={snapshot.quarterKey} className="rounded-[20px] border border-[#074738]/10 bg-white p-4 shadow-[0_1px_6px_rgba(0,0,0,0.04)]">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[11px] font-black uppercase tracking-wider text-[#1A9B7D]">{snapshot.quarterLabel}</p>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#E0F2F1] text-[#074738]">{snapshot.totalEvents} evento{snapshot.totalEvents === 1 ? "" : "s"}</span>
                     </div>
-                    <h3 className="text-[15px] font-black text-slate-900">{annualSummaryByYear.get(year)!.headline}</h3>
-                    <p className="text-[12px] text-slate-600 leading-relaxed mt-2">
-                      {annualSummaryByYear.get(year)!.narrative}
-                    </p>
-                    {annualSummaryByYear.get(year)!.highlights.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-3">
-                        {annualSummaryByYear.get(year)!.highlights.map((highlight) => (
-                          <span key={`${year}-${highlight}`} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                            {highlight}
-                          </span>
-                        ))}
+                    {CATEGORY_ORDER.filter((cat) => snapshot.categorized.has(cat)).map((cat) => (
+                      <div key={cat} className="mb-3 last:mb-0">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{cat}</p>
+                        {snapshot.categorized.get(cat)!.map((event) => {
+                          const d = getExtractedData(event);
+                          const name = cleanText(event.title || d.diagnosis || d.suggestedTitle || "") || KIND_CONFIG[resolveClinicalRenderKind(event)]?.label || "Evento";
+                          const date = formatDateSafe(d.eventDate || event.createdAt, "es-AR", { day: "numeric", month: "short" }, "");
+                          const status = getSnapshotEventStatus(event);
+                          const nextBoosterTs = d.documentType === "vaccine" && d.nextAppointmentDate ? toTimestampSafe(d.nextAppointmentDate) : 0;
+                          const boosterOverdue = nextBoosterTs > 0 && nextBoosterTs < Date.now();
+                          const boosterSoon = nextBoosterTs > 0 && nextBoosterTs >= Date.now() && nextBoosterTs < Date.now() + 30 * 24 * 60 * 60 * 1000;
+                          return (
+                            <div key={event.id} className="flex items-start gap-2 py-1.5 border-b border-slate-50 last:border-0">
+                              <span className="text-[10px] text-slate-400 shrink-0 w-[46px] leading-snug">{date}</span>
+                              <span className="text-[11px] text-slate-800 flex-1 leading-snug">{name.substring(0, 55)}</span>
+                              <span className={`text-[10px] font-bold shrink-0 ${status.color}`}>{status.label}</span>
+                              {boosterOverdue && <span className="text-[10px] shrink-0">⚠️</span>}
+                              {boosterSoon && !boosterOverdue && <span className="text-[10px] shrink-0">📅</span>}
+                            </div>
+                          );
+                        })}
                       </div>
-                    )}
+                    ))}
                   </div>
-                )}
+                ))}
 
                 {events.map((entry, index) => {
                   if (entry.kind === "episode") {
@@ -1318,7 +1224,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                       {entry.periodLabel}
                                     </p>
                                     <p className="text-[10px] font-bold uppercase tracking-wide text-[#1A9B7D] mt-1">
-                                      Relato clínico
+                                      Vista derivada del historial
                                     </p>
                                   </div>
                                   <span className="px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider bg-[#1A9B7D]/10 text-[#1A9B7D]">
@@ -1333,12 +1239,6 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                 <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-1.5">
                                   {entry.threadLabel}
                                 </p>
-
-                                {entry.narrative && (
-                                  <p className="text-[12px] text-slate-600 leading-relaxed">
-                                    {entry.narrative}
-                                  </p>
-                                )}
 
                                 <div className="flex gap-1.5 flex-wrap mt-3">
                                   {entry.diagnoses.map((diagnosis, chipIndex) => (
@@ -1382,9 +1282,18 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
 
                               {isExpanded && (<div className="overflow-hidden">
                                     <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-3 space-y-3">
-                                      {entry.sourceEvents.length > 0 && <div>
+                                      <div className="rounded-xl border border-[#074738]/15 bg-[#1A9B7D]/5 px-3 py-2.5">
+                                        <p className="text-[10px] font-black uppercase tracking-wide text-[#1A9B7D] mb-1">
+                                          Regla de lectura
+                                        </p>
+                                        <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                                          Este bloque resume hitos historicos confirmados para hacer legible la historia de cuidados de la mascota. Los eventos originales siguen siendo la fuente canonica.
+                                        </p>
+                                      </div>
+
+                                      <div>
                                         <p className="text-[10px] font-black uppercase tracking-wide text-slate-400 mb-2">
-                                          Documentos confirmados
+                                          Eventos originales
                                         </p>
                                         <div className="space-y-2">
                                           {entry.sourceEvents.map((sourceEvent) => {
@@ -1419,7 +1328,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                             );
                                           })}
                                         </div>
-                                      </div>}
+                                      </div>
                                     </div>
                                   </div>
                                 )}
@@ -1665,11 +1574,6 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                         </div>
                                       </div>
                                     )}
-
-                                    <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                                      <MaterialIcon name="hub" className="text-sm" />
-                                      <span>{buildFlowLabel(event)}</span>
-                                    </div>
 
                                     <div className="flex gap-2 pt-1">
                                       {documentUrl && canOpenDocument && (
