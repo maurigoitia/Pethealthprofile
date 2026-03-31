@@ -408,7 +408,13 @@ export function PetHomeView({
   const [nudgedBreed, setNudgedBreed] = useState(false);
   const [checkedRoutineItems, setCheckedRoutineItems] = useState<string[]>([]);
   const [points, setPoints] = useState(() => getPoints());
-  const { getEventsByPetId, getActiveMedicationsByPetId, getAppointmentsByPetId } = useMedical();
+  const {
+    getEventsByPetId,
+    getActiveMedicationsByPetId,
+    getAppointmentsByPetId,
+    getClinicalConditionsByPetId,
+    getProfileSnapshotByPetId,
+  } = useMedical();
 
   const currentIndex = pets.findIndex((pet) => pet.id === activePetId);
   const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
@@ -418,6 +424,24 @@ export function PetHomeView({
   const petEvents = activePetId ? getEventsByPetId(activePetId) : [];
   const appointments = activePetId ? getAppointmentsByPetId(activePetId) : [];
   const activeMedications = activePetId ? getActiveMedicationsByPetId(activePetId) : [];
+
+  // ─── Medical intelligence summary ───────────────────────────────────────────
+  const profileSnapshot = activePetId ? getProfileSnapshotByPetId(activePetId) : null;
+  const clinicalConditions = activePetId ? getClinicalConditionsByPetId(activePetId) : [];
+
+  // Chronic/active conditions: prefer profile snapshot, fallback to raw clinical conditions
+  const chronicConditions: string[] = profileSnapshot?.activeConditions?.length
+    ? profileSnapshot.activeConditions
+    : profileSnapshot?.recurrentPathologies?.length
+      ? profileSnapshot.recurrentPathologies
+      : clinicalConditions
+          .filter((c) => c.status === "active" || c.pattern === "chronic")
+          .map((c) => c.normalizedName)
+          .slice(0, 4);
+
+  const hasMedicalSummary =
+    chronicConditions.length > 0 ||
+    activeMedications.length > 0;
 
   const upcomingAppointments = appointments.filter((appointment) => {
     const dateValue = appointment.dateTime || `${appointment.date || ""}T${appointment.time || "00:00"}:00`;
@@ -807,6 +831,69 @@ export function PetHomeView({
                 {pet.name}
               </button>
             ))}
+          </div>
+        )}
+
+        {/* ── MEDICAL PROFILE SUMMARY ─────────────────────────────────────── */}
+        {hasMedicalSummary && (
+          <div className="mx-3 mt-4 rounded-[20px] border border-[#074738]/10 bg-white overflow-hidden"
+            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+            <div className="h-1 bg-[#074738]" />
+            <div className="px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <MaterialIcon name="local_hospital" className="text-[#074738] !text-[15px]" />
+                <p className="text-[11px] font-black uppercase tracking-widest text-[#074738]">
+                  Perfil médico
+                </p>
+              </div>
+
+              {profileSnapshot?.narrative ? (
+                <p className="text-[12px] text-slate-600 leading-relaxed mb-2.5 line-clamp-2">
+                  {profileSnapshot.narrative}
+                </p>
+              ) : null}
+
+              {chronicConditions.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                    Condiciones activas
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {chronicConditions.slice(0, 4).map((condition, i) => (
+                      <span
+                        key={i}
+                        className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-100"
+                      >
+                        {condition}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeMedications.length > 0 && (
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                    Medicación activa
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {activeMedications.slice(0, 3).map((med, i) => (
+                      <span
+                        key={i}
+                        className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100"
+                      >
+                        {med.name}{med.dosage ? ` · ${med.dosage}` : ""}
+                      </span>
+                    ))}
+                    {activeMedications.length > 3 && (
+                      <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500">
+                        +{activeMedications.length - 3}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

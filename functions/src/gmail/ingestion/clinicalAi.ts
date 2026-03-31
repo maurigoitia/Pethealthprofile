@@ -22,6 +22,7 @@ import {
   extractAppointmentSpecialtyFromText,
   inferImagingTypeFromSignals, inferStudySubtypeFromSignals,
   applyConstitutionalGuardrails,
+  MEDICATION_NAME_BLOCKLIST,
 } from "./clinicalNormalization";
 import {
   isTrustedClinicalSender, isVetDomain,
@@ -599,6 +600,190 @@ export function heuristicClinicalExtraction(extractedText: string, emailDate: st
   };
 }
 
+// ─── Structured heuristic extraction ────────────────────────────────────────
+// Runs BEFORE any AI call. Extracts structured fields from already-OCR'd text.
+// If heuristicConfidence >= 70, callers skip Gemini entirely.
+
+interface StructuredHeuristicResult extends ClinicalExtractionOutput {
+  heuristicConfidence: number;
+}
+
+export function structuredHeuristicExtraction(
+  text: string,
+  subject: string,
+  sender: string,
+  emailDate: string,
+  attachments: AttachmentMetadata[],
+): StructuredHeuristicResult {
+  const combined = `${subject}\n${sender}\n${text}`;
+  let fieldsFound = 0;
+  let totalFields = 0;
+
+  // ── Classify event type ──────────────────────────────────────────────────
+  const isVaccine = /\b(vacuna|vaccine|revacunaci[oó]n|leptospirosis|rabia|parvovirus|moquillo|bordetella|dhpp|antirrábica)\b/i.test(combined);
+  const isPrescription = /\b(receta|prescrip|comprimido|tableta|jarabe|gotas|inyecci[oó]n|pimobendan|furosemida|omeprazol|ursomax|amoxicilina|prednisolona|enalapril|metronidazol|dexametasona)\b/i.test(combined);
+  const isLab = /\b(hemograma|bioquímica|laboratorio|hematocrito|leucocitos|plaquetas|glucosa|creatinina|urea|koh\b|citolog[ií]a|resultado(s)? de laboratorio)\b/i.test(combined);
+  const isImaging = /\b(radiograf[ií]a|ecograf[ií]a|rx\b|ultrasonido|ecg\b|electrocardiograma|ecocardiograma|resonancia|placa(s)?|informe radiol[oó]gico)\b/i.test(combined);
+  const isAppointment = /\b(turno|consulta|cita|recordatorio|confirmaci[oó]n|cancelaci[oó]n|reprogramaci[oó]n|agendad)\b/i.test(combined);
+
+  // ── Date extraction ──────────────────────────────────────────────────────
+  totalFields++;
+  const datePatterns = [
+    /\b(\d{4}[-/]\d{2}[-/]\d{2})\b/,
+    /\b(\d{2}[-/]\d{2}[-/]\d{4})\b/,
+    /\b(\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\s+(?:de\s+)?\d{4})\b/i,
+  ];
+  let eventDate: string | null = null;
+  for (const pat of datePatterns) {
+    const m = combined.match(pat);
+    if (m) {
+      try {
+        const rawDate = m[1].replace(/(\d{2})[-/](\d{2})[-/](\d{4})/, "$3-$2-$1");
+        const parsed = new Date(rawDate);
+        if (!isNaN(parsed.getTime())) {
+          eventDate = toIsoDateOnly(parsed);
+          fieldsFound++;
+          break;
+        }
+      } catch { /* skip */ }
+    }
+  }
+  if (!eventDate) eventDate = toIsoDateOnly(new Date(emailDate));
+
+  // ── Time extraction (appointments) ───────────────────────────────────────
+  let appointmentTime: string | null = null;
+  if (isAppointment) {
+    totalFields++;
+    const timeM = combined.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+    if (timeM) { appointmentTime = timeM[0]; fieldsFound++; }
+  }
+
+  // ── Medication extraction ─────────────────────────────────────────────────
+  const medications: ClinicalMedication[] = [];
+  if (isPrescription) {
+    totalFields += 3;
+    const drugMatch = combined.match(
+      /\b(Pimobendan|Furosemida|Omeprazol|Ursomax|Ursomas|Amoxicilina|Prednisolona|Enalapril|Metronidazol|Dexametasona|Atenolol|Espironolactona|Ranitidina|Cetirizina|Ivermectina|Milbemax|Nexgard|Bravecto|Simparica|Frontline)\b/
+    );
+    const dose = combined.match(/\b(\d+(?:[.,]\d+)?\s*(?:mg|ml|mcg|g|cc|comp|comprimido|tableta)(?:\/(?:kg|día))?)\b/i);
+    const freq = combined.match(/\b(cada\s+\d+\s*(?:hora|h|hs)|(?:una\s*vez|bid|tid|sid)\s+(?:al|por)\s+día|diario|diaria|cada\s+\d+\s+días|c\/\d+hs?)\b/i);
+
+    if (drugMatch && !MEDICATION_NAME_BLOCKLIST.has(asString(drugMatch[0]).toLowerCase())) {
+      fieldsFound++;
+      if (dose) fieldsFound++;
+      if (freq) fieldsFound++;
+      medications.push({
+        name: drugMatch[0],
+        dose: dose ? dose[0] : null,
+        frequency: freq ? freq[0] : null,
+        duration_days: null,
+        is_active: true,
+      });
+    }
+  }
+
+  // ── Lab result extraction ─────────────────────────────────────────────────
+  const labResults: ClinicalLabResult[] = [];
+  if (isLab) {
+    totalFields += 2;
+    const labRowRegex = /([A-Za-záéíóúñÁÉÍÓÚÑ][A-Za-z\s/áéíóúñÁÉÍÓÚÑ]{2,30}):\s*(\d+(?:[.,]\d+)?)\s*(g\/dL|mg\/dL|U\/L|mmol\/L|%|fl|pg|[a-zA-Z/µ]+)?/g;
+    let labMatch;
+    let labCount = 0;
+    while ((labMatch = labRowRegex.exec(combined)) !== null && labCount < 12) {
+      const testName = labMatch[1].trim();
+      if (MEDICATION_NAME_BLOCKLIST.has(testName.toLowerCase())) continue;
+      labResults.push({
+        test_name: testName,
+        result: labMatch[2],
+        unit: labMatch[3] || null,
+        reference_range: null,
+      });
+      labCount++;
+    }
+    if (labResults.length > 0) fieldsFound += 2;
+  }
+
+  // ── Diagnosis extraction ──────────────────────────────────────────────────
+  totalFields++;
+  const diagMatch = combined.match(
+    /(?:diagnóstico|hallazgo|impresión|conclusión|se\s+observa|compatible\s+con|sospecha\s+de)[:\s]+([^.\n]{5,120})/i
+  );
+  const diagnosis = diagMatch ? diagMatch[1].trim().slice(0, 120) : null;
+  if (diagnosis) fieldsFound++;
+
+  // ── Provider / clinic extraction ──────────────────────────────────────────
+  const providerMatch = combined.match(/(?:dr\.?|dra\.?|doctor|doctora)\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){0,3})/i);
+  const clinicMatch = combined.match(/(?:clínica|veterinaria|hospital|centro|consultorio)\s+([A-ZÁÉÍÓÚÑ][^\n,.]{2,40})/i);
+
+  // ── Determine event type ──────────────────────────────────────────────────
+  let eventType: EventType = "clinical_report";
+  let studySubtype: StudySubtype = null;
+  let appointmentStatus: ClinicalEventExtraction["appointment_status"] = null;
+
+  if (isVaccine) {
+    eventType = "vaccination_record";
+  } else if (isLab && !isPrescription) {
+    eventType = "study_report";
+    studySubtype = "lab";
+  } else if (isImaging && !isPrescription) {
+    eventType = "study_report";
+    studySubtype = "imaging";
+  } else if (isPrescription) {
+    eventType = "prescription_record";
+  } else if (isAppointment) {
+    appointmentStatus = inferAppointmentStatusFromText(combined);
+    if (appointmentStatus === "cancelled") eventType = "appointment_cancellation";
+    else if (appointmentStatus === "reminder") eventType = "appointment_reminder";
+    else eventType = "appointment_confirmation";
+  }
+
+  // ── Confidence score ──────────────────────────────────────────────────────
+  const fieldRatio = totalFields > 0 ? fieldsFound / totalFields : 0;
+  const baseConfidence = Math.round(50 + fieldRatio * 35);
+  const hasAttachmentSignal = attachmentNamesContainClinicalSignal(attachments);
+  const heuristicConfidence = Math.min(90, baseConfidence + (hasAttachmentSignal ? 10 : 0));
+
+  const description = [
+    diagnosis,
+    medications[0] ? `Medicación: ${medications[0].name}${medications[0].dose ? ` ${medications[0].dose}` : ""}` : null,
+    labResults.length > 0 ? `${labResults.length} valores de laboratorio` : null,
+    isImaging ? "Informe por imágenes" : null,
+    isVaccine ? "Registro de vacunación" : null,
+  ].filter(Boolean).join(". ") || combined.slice(0, 160);
+
+  return {
+    is_clinical_content: true,
+    confidence_overall: heuristicConfidence,
+    detected_events: [
+      {
+        event_type: eventType,
+        event_date: eventDate,
+        date_confidence: eventDate ? 70 : 40,
+        description_summary: description,
+        diagnosis,
+        medications,
+        lab_results: labResults,
+        imaging_type: isImaging ? inferImagingTypeFromSignals(combined) : null,
+        study_subtype: studySubtype,
+        appointment_time: appointmentTime,
+        appointment_specialty: isAppointmentEventType(eventType)
+          ? extractAppointmentSpecialtyFromText(combined)
+          : null,
+        professional_name: providerMatch ? providerMatch[1].trim() : null,
+        clinic_name: clinicMatch ? clinicMatch[1].trim() : null,
+        appointment_status: appointmentStatus,
+        severity: null,
+        confidence_score: heuristicConfidence,
+      },
+    ],
+    narrative_summary: description,
+    requires_human_review: heuristicConfidence < 70,
+    reason_if_review_needed: heuristicConfidence < 70 ? "heuristic_low_confidence" : null,
+    extractionMethod: "heuristic",
+    heuristicConfidence,
+  };
+}
+
 export function heuristicClinicalClassification(input: ClinicalClassificationInput): ClinicalClassificationOutput {
   const normalized = normalizeForHash(
     [input.subject || "", input.fromEmail || "", input.bodyText || ""].filter(Boolean).join("\n")
@@ -759,6 +944,25 @@ export async function extractClinicalEventsWithAi(args: {
   if (!hasGemini) {
     return heuristicClinicalExtraction(`${args.sourceSubject}\n${args.extractedText}`, args.emailDate);
   }
+
+  // ── Heuristic-first: structured extraction runs BEFORE any Gemini call ──────
+  // Goal: 80%+ of documents processed without spending an AI token.
+  // Appointments, prescriptions, vaccines, and structured lab results
+  // can be reliably parsed with regex when key fields are present.
+  const heuristicResult = structuredHeuristicExtraction(
+    args.extractedText,
+    args.sourceSubject,
+    args.sourceSender,
+    args.emailDate,
+    args.attachmentMetadata,
+  );
+
+  if (heuristicResult.heuristicConfidence >= 70) {
+    // High confidence structural extraction — skip Gemini entirely
+    return heuristicResult;
+  }
+
+  // Below 70 confidence: fall through to Gemini for complex free-text cases.
 
   try {
     const context = await resolveClinicalKnowledgeContext({

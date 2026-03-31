@@ -168,9 +168,19 @@ interface AppointmentNarrativeHints {
 
 function stripGenericEventTitle(value: string): string {
   return cleanText(value)
+    // Legacy ingestion artifacts — must never reach user-facing labels
     .replace(/^diagn[oó]stico detectado por correo$/i, "")
+    .replace(/^estudio detectado por correo$/i, "")
+    .replace(/^documento detectado por correo$/i, "")
+    .replace(/^documento$/i, "")
+    .replace(/^informe de estudio$/i, "")
+    .replace(/^resultado de laboratorio$/i, "")
+    .replace(/^diagn[oó]stico$/i, "")
     .replace(/^turno programado$/i, "")
     .replace(/^documento cl[ií]nico(?: de .*?)?$/i, "")
+    // Score/metadata artifacts
+    .replace(/\bscore de correo\b/gi, "")
+    .replace(/\bingesti[oó]n por correo\b/gi, "")
     .trim();
 }
 
@@ -487,8 +497,7 @@ function buildEventSummary(event: MedicalEvent, petName: string): string {
 
   if (kind === "treatment_plan") {
     const treatmentNarrative = cleanText(d.observations || d.aiGeneratedSummary);
-    const narrativePrefix = d.aiGeneratedSummary && !d.observations ? "Resumen IA (no canónico): " : "";
-    return `Plan terapéutico registrado el ${eventDate} para ${petName}${whoWhere ? `. Centro/profesional: ${whoWhere}` : ""}. ${narrativePrefix}${treatmentNarrative}`;
+    return `Plan terapéutico registrado el ${eventDate} para ${petName}${whoWhere ? `. Centro/profesional: ${whoWhere}` : ""}${treatmentNarrative ? `. ${treatmentNarrative}` : ""}`;
   }
 
   if (kind === "imaging_report") {
@@ -517,9 +526,6 @@ function buildEventSummary(event: MedicalEvent, petName: string): string {
   }
 
   const genericNarrative = cleanText(d.aiGeneratedSummary || d.observations);
-  if (d.aiGeneratedSummary) {
-    return `Resumen IA (no canónico): ${genericNarrative || `Documento de ${petName} registrado el ${eventDate}.`}`;
-  }
   return genericNarrative || `Documento de ${petName} registrado el ${eventDate}.`;
 }
 
@@ -609,29 +615,12 @@ function buildSourceOriginPill(event: MedicalEvent): string | null {
 function formatEventDate(event: MedicalEvent): string {
   const d = getExtractedData(event);
   const dateStr = d.eventDate || event.createdAt;
-  const isFromScan = !d.eventDate;
-  const formatted = formatDateSafe(
+  return formatDateSafe(
     dateStr,
     "es-AR",
     { day: "numeric", month: "short", year: "numeric" },
     "Sin fecha"
   );
-  return isFromScan ? `${formatted} · escaneo` : formatted;
-}
-
-function buildFlowLabel(event: MedicalEvent): string {
-  const source = getExtractedData(event) || {};
-  const isEmailFlow = Boolean(
-    source.sourceSender ||
-    source.sourceReceivedAt ||
-    source.sourceSubject ||
-    source.sourceFileName
-  );
-  if (isEmailFlow) return "Flujo: sincronización por correo";
-  if (event.requiresManualConfirmation || event.workflowStatus === "review_required" || event.status === "draft") {
-    return "Flujo: escáner + revisión manual";
-  }
-  return "Flujo: escáner de documento";
 }
 
 const normalizeReviewReason = (value?: string | null) =>
@@ -677,11 +666,6 @@ function getYearKey(event: MedicalEvent): string {
 
 function getEventTimestamp(event: MedicalEvent): number {
   return toTimestampSafe(getExtractedData(event)?.eventDate || event.createdAt);
-}
-
-function isEmailOriginEvent(event: MedicalEvent): boolean {
-  const d = getExtractedData(event);
-  return Boolean(d.sourceSender || d.sourceSubject || d.sourceReceivedAt || d.sourceFileName);
 }
 
 function monthsFromNow(timestamp: number, nowTimestamp: number): number {
@@ -1590,11 +1574,6 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                         </div>
                                       </div>
                                     )}
-
-                                    <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                                      <MaterialIcon name="hub" className="text-sm" />
-                                      <span>{buildFlowLabel(event)}</span>
-                                    </div>
 
                                     <div className="flex gap-2 pt-1">
                                       {documentUrl && canOpenDocument && (
