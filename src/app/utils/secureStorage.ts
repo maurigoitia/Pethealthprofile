@@ -19,33 +19,35 @@
  * - Active pet ID (es un UUID, no PII directamente)
  */
 
-const ENCRYPTION_KEY_NAME = "pessy_storage_key";
+/**
+ * Clave de encriptación en memoria — no exportable, no persistida.
+ * Al cerrar el tab, la clave se pierde y los datos encriptados en localStorage
+ * se vuelven ilegibles (comportamiento deseado por seguridad).
+ */
+let _memoryKey: CryptoKey | null = null;
+let _keyPromise: Promise<CryptoKey> | null = null;
 
 /**
  * Genera o recupera una clave de encriptación.
- * La clave se almacena en la CryptoKey store del navegador (no en localStorage).
+ * La clave vive solo en memoria (module-scoped variable), no en sessionStorage.
+ * extractable: false → un atacante con XSS no puede exportar la clave.
  */
 async function getOrCreateKey(): Promise<CryptoKey> {
-  // Intentar recuperar la clave desde sessionStorage como fallback
-  const existingKeyData = sessionStorage.getItem(ENCRYPTION_KEY_NAME);
-  if (existingKeyData) {
-    const keyData = Uint8Array.from(atob(existingKeyData), c => c.charCodeAt(0));
-    return crypto.subtle.importKey("raw", keyData, "AES-GCM", true, ["encrypt", "decrypt"]);
-  }
+  if (_memoryKey) return _memoryKey;
+  // Si ya hay una promesa en vuelo, reutilizarla para evitar generar dos claves en paralelo
+  if (_keyPromise) return _keyPromise;
 
-  // Generar nueva clave
-  const key = await crypto.subtle.generateKey(
+  _keyPromise = crypto.subtle.generateKey(
     { name: "AES-GCM", length: 256 },
-    true,
+    false, // extractable: false — la clave no puede exportarse
     ["encrypt", "decrypt"]
-  );
+  ).then((key) => {
+    _memoryKey = key;
+    _keyPromise = null;
+    return key;
+  });
 
-  // Exportar y guardar en sessionStorage (se limpia al cerrar tab)
-  const exported = await crypto.subtle.exportKey("raw", key);
-  const b64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
-  sessionStorage.setItem(ENCRYPTION_KEY_NAME, b64);
-
-  return key;
+  return _keyPromise;
 }
 /**
  * Encripta y guarda un valor en localStorage.
@@ -131,5 +133,7 @@ export function clearAllSensitiveData(): void {
   for (const key of sensitiveKeys) {
     try { localStorage.removeItem(key); } catch { /* no-op */ }
   }
-  try { sessionStorage.removeItem(ENCRYPTION_KEY_NAME); } catch { /* no-op */ }
+  // Limpiar la clave en memoria (la nueva sesión generará una clave fresca)
+  _memoryKey = null;
+  _keyPromise = null;
 }

@@ -183,12 +183,13 @@ export function LoginScreen() {
         resetEmail.trim().toLowerCase(),
         createPasswordResetActionCodeSettings()
       );
-      setResetSuccess("¡Listo! Revisá tu correo para restablecer la contraseña.");
+      // Mensaje genérico — no confirma si el email existe (previene enumeración)
+      setResetSuccess("¡Listo! Si ese correo está registrado, vas a recibir un link para restablecer tu contraseña.");
     } catch (err: any) {
-      if (err?.code === "auth/user-not-found") {
-        setResetError("No encontramos una cuenta con ese correo.");
-      } else if (err?.code === "auth/invalid-email") {
+      if (err?.code === "auth/invalid-email") {
         setResetError("El correo ingresado no es válido.");
+      } else if (err?.code === "auth/too-many-requests") {
+        setResetError("Demasiados intentos. Esperá unos minutos.");
       } else if (err?.code === "auth/operation-not-allowed") {
         console.warn("Password reset blocked: Email/Password provider not enabled in Firebase Auth.", err);
         setResetError("La recuperación de contraseña no está disponible en este momento. Intentá más tarde.");
@@ -196,7 +197,8 @@ export function LoginScreen() {
         console.warn("Password reset blocked: continue URI not authorized in Firebase Auth.", err);
         setResetError("Hubo un problema al enviar el correo. Intentá de nuevo más tarde.");
       } else {
-        setResetError("No se pudo enviar el correo. Intentá nuevamente.");
+        // auth/user-not-found y otros errores → mostrar éxito genérico (previene enumeración de emails)
+        setResetSuccess("¡Listo! Si ese correo está registrado, vas a recibir un link para restablecer tu contraseña.");
       }
     } finally {
       setResetLoading(false);
