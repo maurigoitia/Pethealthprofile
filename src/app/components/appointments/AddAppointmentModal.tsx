@@ -11,12 +11,15 @@ interface AddAppointmentModalProps {
     initialValues?: Partial<Appointment>;
     sourceEventId?: string;
     onCreated?: (appointment: Appointment) => Promise<void> | void;
+    readOnly?: boolean;
 }
 
-export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEventId, onCreated }: AddAppointmentModalProps) {
-    const { activePet } = usePet();
+export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEventId, onCreated, readOnly = false }: AddAppointmentModalProps) {
+    const { activePet, canEditPet } = usePet();
     const { user } = useAuth();
     const { addAppointment } = useMedical();
+    const canEditActivePet = canEditPet(activePet);
+    const isReadOnly = readOnly || !canEditActivePet;
 
     const [type, setType] = useState<Appointment["type"]>("checkup");
     const [title, setTitle] = useState("");
@@ -43,6 +46,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitError("");
+        if (isReadOnly) return;
         if (!activePet) {
             setSubmitError("No hay mascota activa seleccionada.");
             return;
@@ -131,6 +135,12 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-4 pb-4">
+                                {isReadOnly && (
+                                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                        <p className="text-sm font-bold text-slate-700">Acceso de guardián temporal</p>
+                                        <p className="mt-1 text-xs text-slate-500">Podés ver la agenda de la mascota, pero no crear ni editar citas.</p>
+                                    </div>
+                                )}
                                 {/* Type Selection */}
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">Tipo de Cita</label>
@@ -140,10 +150,11 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                                 key={opt.id}
                                                 type="button"
                                                 onClick={() => setType(opt.id)}
+                                                disabled={isReadOnly}
                                                 className={`px-4 py-2.5 rounded-xl border-2 transition-all flex items-center gap-2 ${type === opt.id
                                                         ? "border-[#074738] bg-[#074738]/5 text-[#074738] font-bold"
                                                         : "border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-500"
-                                                    }`}
+                                                    } ${isReadOnly ? "opacity-60 cursor-not-allowed" : ""}`}
                                             >
                                                 <MaterialIcon name={opt.icon} className="text-xl" />
                                                 <span className="text-sm">{opt.label}</span>
@@ -159,6 +170,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                         type="text"
                                         value={title}
                                         onChange={(e) => setTitle(e.target.value)}
+                                        disabled={isReadOnly}
                                         placeholder="Ej: Control anual, Vacuna rabia..."
                                         className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#074738] outline-none"
                                         required
@@ -173,6 +185,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                             type="date"
                                             value={date}
                                             onChange={(e) => setDate(e.target.value)}
+                                            disabled={isReadOnly}
                                             className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#074738] outline-none"
                                             required
                                         />
@@ -183,6 +196,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                             type="time"
                                             value={time}
                                             onChange={(e) => setTime(e.target.value)}
+                                            disabled={isReadOnly}
                                             className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#074738] outline-none"
                                             required
                                         />
@@ -197,6 +211,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                         type="text"
                                         value={veterinarian}
                                         onChange={(e) => setVeterinarian(e.target.value)}
+                                        disabled={isReadOnly}
                                         placeholder="Ej: Dra. Pérez"
                                         className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#074738] outline-none"
                                     />
@@ -207,6 +222,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                         type="text"
                                         value={clinic}
                                         onChange={(e) => setClinic(e.target.value)}
+                                        disabled={isReadOnly}
                                         placeholder="Ej: Clínica Veterinaria Central"
                                         className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#074738] outline-none"
                                     />
@@ -219,6 +235,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                     <textarea
                                         value={notes}
                                         onChange={(e) => setNotes(e.target.value)}
+                                        disabled={isReadOnly}
                                         placeholder="Llevar estudios previos, en ayunas, etc..."
                                         rows={3}
                                         className="w-full px-4 py-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-[#074738] outline-none resize-none"
@@ -233,10 +250,10 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                 )}
                                 <button
                                     type="submit"
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || isReadOnly}
                                     className="w-full py-4 rounded-xl bg-[#074738] text-white font-bold text-lg shadow-lg shadow-[#074738]/30 hover:bg-[#1a9b7d] active:scale-[0.98] transition-all disabled:opacity-50"
                                 >
-                                    {isSubmitting ? "Agendando..." : "Confirmar Cita"}
+                                    {isReadOnly ? "Solo lectura" : isSubmitting ? "Agendando..." : "Confirmar Cita"}
                                 </button>
                             </form>
                         </div>

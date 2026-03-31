@@ -537,7 +537,7 @@ export function DocumentScannerModal({
                           Procesamiento inteligente automático
                         </p>
                         <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                          PESSY analizará el documento, extraerá información relevante y te mostrará sugerencias para confirmar.
+                          Pessy analizará el documento, extraerá información relevante y te mostrará sugerencias para confirmar.
                         </p>
                       </div>
                     </div>

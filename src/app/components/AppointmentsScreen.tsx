@@ -66,9 +66,10 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
   const [modalSourceEventId, setModalSourceEventId] = useState<string | undefined>(undefined);
 
   const { user } = useAuth();
-  const { activePetId, activePet } = usePet();
+  const { activePetId, activePet, canEditPet } = usePet();
   const { permission, requestPermission } = useNotifications();
   const { getAppointmentsByPetId, getEventsByPetId, addAppointment, updateAppointment, updateEvent } = useMedical();
+  const canEditActivePet = canEditPet(activePet);
 
   const getAppointmentTimestamp = (appointment: AppointmentView): number => {
     const normalizedTime = appointment.time && appointment.time.trim() ? appointment.time : "00:00";
@@ -78,6 +79,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
   };
 
   const openCreateAppointmentModal = (initialValues?: Partial<Appointment>, sourceEventId?: string) => {
+    if (!canEditActivePet) return;
     setModalInitialValues(initialValues);
     setModalSourceEventId(sourceEventId);
     setShowAddModal(true);
@@ -231,17 +233,20 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
   };
 
   const handleComplete = async (appointment: AppointmentView) => {
+    if (!canEditActivePet) return;
     if (appointment.isVirtual) return;
     await updateAppointment(appointment.id, { status: "completed" });
   };
 
   const handleCancel = async (appointment: AppointmentView) => {
+    if (!canEditActivePet) return;
     if (appointment.isVirtual) return;
     if (!confirm("¿Cancelar esta cita?")) return;
     await updateAppointment(appointment.id, { status: "cancelled" });
   };
 
   const handleDismissSuggestedAppointment = async (appointment: AppointmentView) => {
+    if (!canEditActivePet) return;
     if (!appointment.isVirtual || !appointment.sourceEventId) return;
     await updateEvent(appointment.sourceEventId, {
       dismissedNextAppointment: true,
@@ -250,6 +255,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
   };
 
   const handleEditSuggestedAppointment = (appointment: AppointmentView) => {
+    if (!canEditActivePet) return;
     openCreateAppointmentModal(
       {
         type: appointment.type,
@@ -266,6 +272,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
   };
 
   const handleAddSuggestedAppointment = async (appointment: AppointmentView) => {
+    if (!canEditActivePet) return;
     if (!appointment.isVirtual) return;
     const timestamp = getAppointmentTimestamp(appointment);
     if (timestamp < Date.now()) {
@@ -317,12 +324,15 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
               <h1 className="text-2xl font-black text-slate-900 dark:text-white">Citas</h1>
               <p className="text-sm text-slate-500">{upcoming.length} próximas · {past.length} pasadas</p>
             </div>
-            <button
-              onClick={() => openCreateAppointmentModal()}
-              className="size-10 rounded-full bg-[#2b6fee] text-white flex items-center justify-center shadow-lg shadow-[#2b6fee]/30"
-            >
-              <MaterialIcon name="add" className="text-2xl" />
-            </button>
+            {canEditActivePet && (
+              <button
+                type="button"
+                onClick={() => openCreateAppointmentModal()}
+                className="size-10 rounded-full bg-[#2b6fee] text-white flex items-center justify-center shadow-lg shadow-[#2b6fee]/30"
+              >
+                <MaterialIcon name="add" className="text-2xl" />
+              </button>
+            )}
           </div>
 
           <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
@@ -343,6 +353,12 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {!canEditActivePet && activePet && (
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+              <p className="text-sm font-bold text-slate-700">Acceso de guardián temporal</p>
+              <p className="mt-1 text-xs text-slate-500">Podés ver las citas de {activePet.name}, pero solo el tutor principal o un editor puede agregarlas o cambiarlas.</p>
+            </div>
+          )}
           {shown.length === 0 ? (
             <div className="text-center py-16">
               <div className="size-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -353,11 +369,14 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
               </h3>
               {activeTab === "upcoming" && (
                 <p className="text-sm text-slate-500 mb-6">
-                  Agendá la primera cita para {activePet?.name || "tu mascota"}
+                  {canEditActivePet
+                    ? `Agendá la primera cita para ${activePet?.name || "tu mascota"}`
+                    : `Todavía no hay citas cargadas para ${activePet?.name || "tu mascota"}`}
                 </p>
               )}
-              {activeTab === "upcoming" && (
+              {activeTab === "upcoming" && canEditActivePet && (
                 <button
+                  type="button"
                   onClick={() => openCreateAppointmentModal()}
                   className="px-6 py-3 rounded-xl bg-[#2b6fee] text-white font-bold shadow-lg shadow-[#2b6fee]/30"
                 >
@@ -460,46 +479,62 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                     {!pastAppointment && (
                       <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                         {appointment.isVirtual ? (
+                          canEditActivePet ? (
                           <div className="grid grid-cols-3 gap-2">
                             <button
+                              type="button"
                               onClick={() => handleDismissSuggestedAppointment(appointment)}
                               className="py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs active:scale-95 transition-transform"
                             >
                               Descartar
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleEditSuggestedAppointment(appointment)}
                               className="py-2.5 rounded-xl bg-amber-100 text-amber-700 font-bold text-xs active:scale-95 transition-transform"
                             >
                               Editar
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleAddSuggestedAppointment(appointment)}
                               className="py-2.5 rounded-xl bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-500/25 active:scale-95 transition-transform"
                             >
                               Agregar
                             </button>
                           </div>
+                          ) : (
+                            <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                              El tutor principal tiene que confirmar o editar esta sugerencia.
+                            </div>
+                          )
                         ) : (
-                          <div className="grid grid-cols-3 gap-2">
+                          <div className={`grid gap-2 ${canEditActivePet ? "grid-cols-3" : "grid-cols-1"}`}>
                             <button
+                              type="button"
                               onClick={() => addToCalendar(appointment)}
                               className="py-2.5 rounded-xl bg-[#2b6fee]/10 text-[#2b6fee] font-bold text-xs active:scale-95 transition-transform"
                             >
                               Calendario
                             </button>
-                            <button
-                              onClick={() => handleCancel(appointment)}
-                              className="py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs active:scale-95 transition-transform"
-                            >
-                              Cancelar
-                            </button>
-                            <button
-                              onClick={() => handleComplete(appointment)}
-                              className="py-2.5 rounded-xl bg-[#2b6fee] text-white font-bold text-xs shadow-lg shadow-[#2b6fee]/25 active:scale-95 transition-transform"
-                            >
-                              Completada
-                            </button>
+                            {canEditActivePet && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCancel(appointment)}
+                                  className="py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs active:scale-95 transition-transform"
+                                >
+                                  Cancelar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleComplete(appointment)}
+                                  className="py-2.5 rounded-xl bg-[#2b6fee] text-white font-bold text-xs shadow-lg shadow-[#2b6fee]/25 active:scale-95 transition-transform"
+                                >
+                                  Completada
+                                </button>
+                              </>
+                            )}
                           </div>
                         )}
                       </div>
@@ -511,15 +546,18 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
           )}
         </div>
 
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-          <button
-            onClick={() => openCreateAppointmentModal()}
-            className="w-full py-4 rounded-xl bg-[#2b6fee] text-white font-bold shadow-lg shadow-[#2b6fee]/30 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-          >
-            <MaterialIcon name="add_circle" className="text-xl" />
-            Agendar nueva cita
-          </button>
-        </div>
+        {canEditActivePet && (
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <button
+              type="button"
+              onClick={() => openCreateAppointmentModal()}
+              className="w-full py-4 rounded-xl bg-[#2b6fee] text-white font-bold shadow-lg shadow-[#2b6fee]/30 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            >
+              <MaterialIcon name="add_circle" className="text-xl" />
+              Agendar nueva cita
+            </button>
+          </div>
+        )}
       </div>
 
       <AddAppointmentModal
@@ -532,6 +570,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
         initialValues={modalInitialValues}
         sourceEventId={modalSourceEventId}
         onCreated={onAppointmentCreated}
+        readOnly={!canEditActivePet}
       />
     </div>
   );

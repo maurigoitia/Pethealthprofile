@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
 import { BottomNav } from "../shared/BottomNav";
 import { MaterialIcon } from "../shared/MaterialIcon";
@@ -10,6 +10,8 @@ import { useAuth } from "../../contexts/AuthContext";
 import { usePreferences } from "../../contexts/PreferenceContext";
 import { clearPendingCoTutorInvite, readPendingCoTutorInvite, rememberPendingCoTutorInvite, normalizeCoTutorInviteCode } from "../../utils/coTutorInvite";
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
+import { CorkMascot } from "../shared/CorkMascot";
+import { GmailSyncStatus, subscribeGmailSyncStatus } from "../../services/gmailSyncService";
 
 const RandomQuestionCard = lazy(() =>
   import("../preferences/RandomQuestionCard.tsx")
@@ -75,6 +77,93 @@ function ScreenLoader({ label = "Cargando..." }: { label?: string }) {
   );
 }
 
+const DEFAULT_GMAIL_SYNC_STATUS: GmailSyncStatus = {
+  connected: false,
+  accountEmail: null,
+  grantedScopes: [],
+  updatedAt: null,
+  syncStatus: "idle",
+  ingestionStatus: "idle",
+  inviteEnabled: true,
+  inviteStatus: "open_access",
+  inviteReason: null,
+};
+
+function getEmailSyncNarrative(
+  status: string,
+  petName?: string | null
+): { title: string; body: string; hint?: string } | null {
+  const displayPetName = petName?.trim() || "tu mascota";
+
+  if (status === "queued" || status === "processing" || status === "scanning_emails") {
+    return {
+      title: "Cork y Fritz están leyendo tu email",
+      body: "Esto se acomoda en segundo plano. En un rato tu historia clínica se va a ver más completa.",
+      hint: "No hace falta esperar acá. Pessy sigue ordenando la información aunque sigas usando la app.",
+    };
+  }
+  if (status === "analyzing_documents") {
+    return {
+      title: "Estamos separando turnos, estudios y recetas",
+      body: "Pessy está ordenando lo importante para no mezclar administrativos con datos clínicos.",
+      hint: "Esto puede tardar un poco si el mail tiene PDFs, imágenes o varios estudios juntos.",
+    };
+  }
+  if (status === "extracting_medical_events") {
+    return {
+      title: `Estamos acomodando la historia de ${displayPetName}`,
+      body: "Leemos cuerpo, adjuntos y estudios para transformar los mails en historia clínica útil.",
+      hint: "Primero ordenamos la evidencia clínica. Después se refleja en perfil, estudios e historial.",
+    };
+  }
+  if (status === "organizing_history") {
+    return {
+      title: "Ya casi queda listo",
+      body: "Ahora estamos ordenando la información para que después se vea clara en perfil, estudios e historial.",
+      hint: "Cuando termine, Pessy va a mostrar una versión más ordenada y menos cruda de la historia.",
+    };
+  }
+  return null;
+}
+
+function EmailSyncBackgroundCard({
+  status,
+  petName,
+}: {
+  status: GmailSyncStatus;
+  petName?: string | null;
+}) {
+  const syncStatus = status.ingestionStatus || status.syncStatus || "idle";
+  const narrative = getEmailSyncNarrative(syncStatus, petName);
+  if (!status.connected || !narrative) return null;
+
+  return (
+    <section className="px-4 pt-16 pb-2">
+      <div className="rounded-[24px] border border-[#D7EFE9] bg-white/95 shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="flex items-center gap-4 px-4 py-4">
+          <div className="shrink-0 size-20 rounded-[20px] bg-[#F0FAF9] border border-[#D7EFE9] flex items-center justify-center overflow-hidden">
+            <img
+              src="/blog/svg/cork_fizz_card.svg"
+              alt="Cork y Fizz leyendo tu email"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[15px] font-black text-[#074738] leading-5">{narrative.title}</p>
+            <p className="text-sm text-slate-600 leading-5 mt-1">{narrative.body}</p>
+            {narrative.hint ? (
+              <p className="text-[12px] text-[#0A5F4C] mt-2 leading-5">{narrative.hint}</p>
+            ) : null}
+            <p className="text-[12px] text-slate-400 mt-2">
+              Cuenta conectada: {status.accountEmail || "Gmail conectado"}
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function HomeScreen() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -84,15 +173,34 @@ export default function HomeScreen() {
   const [showPetSelector, setShowPetSelector] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showInviteFriends, setShowInviteFriends] = useState(false);
+  const [gmailSyncStatus, setGmailSyncStatus] = useState<GmailSyncStatus>(DEFAULT_GMAIL_SYNC_STATUS);
   const [currentTab, setCurrentTab] = useState<"home" | "settings">("home");
   const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications" | "nearby-vets" | "lost-pets" | "explore">("card");
   const [inviteNotice, setInviteNotice] = useState<{ type: "info" | "success" | "error"; message: string } | null>(null);
   const [inviteJoiningCode, setInviteJoiningCode] = useState("");
   const [inviteResolvedCode, setInviteResolvedCode] = useState("");
-  const { activePetId, setActivePetId, pets, activePet, loading: petsLoading, joinWithCode } = usePet();
+  const { activePetId, setActivePetId, pets, activePet, loading: petsLoading, joinWithCode, canEditPet } = usePet();
   const { user, loading: authLoading, userName, userRole, logout } = useAuth();
   const { currentQuestion, answerQuestion, dismissQuestion } = usePreferences();
   const focusExperienceEnabled = isFocusExperienceHost();
+  const joinWithCodeRef = useRef(joinWithCode);
+  const inviteJoiningCodeRef = useRef(inviteJoiningCode);
+
+  useEffect(() => {
+    joinWithCodeRef.current = joinWithCode;
+  }, [joinWithCode]);
+
+  useEffect(() => {
+    inviteJoiningCodeRef.current = inviteJoiningCode;
+  }, [inviteJoiningCode]);
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setGmailSyncStatus(DEFAULT_GMAIL_SYNC_STATUS);
+      return;
+    }
+    return subscribeGmailSyncStatus(user.uid, setGmailSyncStatus);
+  }, [user?.uid]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -133,7 +241,7 @@ export default function HomeScreen() {
     if (!user) return;
     const pendingInviteCode = readPendingCoTutorInvite();
     if (!pendingInviteCode) return;
-    if (pendingInviteCode === inviteJoiningCode || pendingInviteCode === inviteResolvedCode) return;
+    if (pendingInviteCode === inviteJoiningCodeRef.current || pendingInviteCode === inviteResolvedCode) return;
 
     let cancelled = false;
     setInviteJoiningCode(pendingInviteCode);
@@ -151,7 +259,7 @@ export default function HomeScreen() {
       setInviteNotice(null);
     }, 10_000);
 
-    void joinWithCode(pendingInviteCode)
+    void joinWithCodeRef.current(pendingInviteCode)
       .then(({ petName }) => {
         if (cancelled) return;
         window.clearTimeout(timeout);
@@ -159,7 +267,7 @@ export default function HomeScreen() {
         setInviteResolvedCode(pendingInviteCode);
         setInviteNotice({
           type: "success",
-          message: `Acceso confirmado. Ya sos co-tutor de ${petName}.`,
+          message: `Acceso confirmado. Ya tenés acceso a ${petName}.`,
         });
         window.setTimeout(() => {
           setInviteNotice((current) => (current?.type === "success" ? null : current));
@@ -196,7 +304,9 @@ export default function HomeScreen() {
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [user, inviteJoiningCode, inviteResolvedCode, joinWithCode]);
+  }, [user, inviteResolvedCode]);
+
+  const canEditActivePet = canEditPet(activePet);
 
   const safeUserName = (() => {
     const fromContext = (userName || "").trim();
@@ -261,6 +371,20 @@ export default function HomeScreen() {
     navigate("/register-pet");
   };
 
+  const handleOpenScanner = () => {
+    if (activePet && !canEditActivePet) {
+      setInviteNotice({
+        type: "info",
+        message: "Tu acceso es de guardián temporal. Podés ver la mascota, pero no subir ni editar información.",
+      });
+      window.setTimeout(() => {
+        setInviteNotice((current) => current?.type === "info" ? null : current);
+      }, 5000);
+      return;
+    }
+    setShowScanner(true);
+  };
+
   const withTermsNotice = (content: React.ReactNode) => (
     <>
       {inviteNotice && (
@@ -301,37 +425,59 @@ export default function HomeScreen() {
 
   // Empty state: No pets registered
   if (pets.length === 0) {
+    const justAcceptedSharedPet = !!inviteResolvedCode;
     return withTermsNotice(
       <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen">
         <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24">
           <div className="flex-1 flex items-center justify-center px-6">
             <div className="text-center space-y-6">
               <div className="size-32 mx-auto bg-[#074738]/10 rounded-full flex items-center justify-center">
-                <span className="material-symbols-outlined text-[#074738]" style={{ fontSize: "64px" }}>
-                  folder_shared
-                </span>
+                {justAcceptedSharedPet ? <CorkMascot size={74} /> : (
+                  <span className="material-symbols-outlined text-[#074738]" style={{ fontSize: "64px" }}>
+                    folder_shared
+                  </span>
+                )}
               </div>
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  ¡Bienvenido a PESSY!
+                  {justAcceptedSharedPet ? "Estamos terminando de sumar la mascota compartida" : "¡Bienvenido a PESSY!"}
                 </h2>
                 <p className="text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
-                  Agrega tu primera mascota. Pessy hace el resto.
+                  {justAcceptedSharedPet
+                    ? "Tu acceso ya fue confirmado. Si la mascota todavía no aparece, reintentá la carga antes de crear una nueva."
+                    : "Agrega tu primera mascota. Pessy hace el resto."}
                 </p>
               </div>
-              <button
-                onClick={handleAddNewPet}
-                className="px-6 py-3 bg-[#074738] text-white rounded-[14px] font-semibold transition-colors shadow-[0_4px_12px_rgba(26,155,125,0.3)]"
-              >
-                Agregar primera mascota
-              </button>
+              {justAcceptedSharedPet ? (
+                <div className="space-y-3">
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="w-full px-6 py-3 bg-[#074738] text-white rounded-[14px] font-semibold transition-colors shadow-[0_4px_12px_rgba(26,155,125,0.3)]"
+                  >
+                    Reintentar carga
+                  </button>
+                  <button
+                    onClick={() => setInviteResolvedCode("")}
+                    className="w-full px-6 py-3 border border-[#074738]/20 text-[#074738] rounded-[14px] font-semibold"
+                  >
+                    Cerrar este aviso
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleAddNewPet}
+                  className="px-6 py-3 bg-[#074738] text-white rounded-[14px] font-semibold transition-colors shadow-[0_4px_12px_rgba(26,155,125,0.3)]"
+                >
+                  Agregar primera mascota
+                </button>
+              )}
             </div>
           </div>
         </div>
         <BottomNav
           currentTab={currentTab}
           onTabChange={handleTabChange}
-          onAddDocument={() => setShowScanner(true)}
+          onAddDocument={handleOpenScanner}
           onNavigate={handleBottomNavNavigate}
         />
         <DocumentScannerModal
@@ -363,7 +509,7 @@ export default function HomeScreen() {
         <BottomNav
           currentTab={currentTab}
           onTabChange={handleTabChange}
-          onAddDocument={() => setShowScanner(true)}
+          onAddDocument={handleOpenScanner}
           onNavigate={handleBottomNavNavigate}
         />
         <DocumentScannerModal
@@ -393,7 +539,7 @@ export default function HomeScreen() {
         <BottomNav
           currentTab={currentTab}
           onTabChange={handleTabChange}
-          onAddDocument={() => setShowScanner(true)}
+          onAddDocument={handleOpenScanner}
           onNavigate={handleBottomNavNavigate}
         />
         <Suspense fallback={null}>
@@ -416,7 +562,7 @@ export default function HomeScreen() {
         <BottomNav
           currentTab={currentTab}
           onTabChange={handleTabChange}
-          onAddDocument={() => setShowScanner(true)}
+          onAddDocument={handleOpenScanner}
           onNavigate={handleBottomNavNavigate}
         />
         <Suspense fallback={null}>
@@ -436,7 +582,7 @@ export default function HomeScreen() {
         <Suspense fallback={<ScreenLoader label="Cargando tratamientos..." />}>
           <MedicationsScreen onBack={() => setViewMode("card")} />
         </Suspense>
-        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} onNavigate={handleBottomNavNavigate} />
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={handleOpenScanner} onNavigate={handleBottomNavNavigate} />
         <Suspense fallback={null}>
           <DocumentScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
         </Suspense>
@@ -451,7 +597,7 @@ export default function HomeScreen() {
         <Suspense fallback={<ScreenLoader label="Buscando veterinarias..." />}>
           <NearbyVetsScreen onBack={() => setViewMode("card")} />
         </Suspense>
-        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} onNavigate={handleBottomNavNavigate} />
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={handleOpenScanner} onNavigate={handleBottomNavNavigate} />
         <Suspense fallback={null}>
           <DocumentScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
         </Suspense>
@@ -466,7 +612,7 @@ export default function HomeScreen() {
         <Suspense fallback={<ScreenLoader label="Cargando comunidad..." />}>
           <CommunityHubScreen onBack={() => setViewMode("card")} />
         </Suspense>
-        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} onNavigate={handleBottomNavNavigate} />
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={handleOpenScanner} onNavigate={handleBottomNavNavigate} />
       </>
     );
   }
@@ -478,7 +624,7 @@ export default function HomeScreen() {
         <Suspense fallback={<ScreenLoader label="Descubriendo lugares..." />}>
           <RecommendationFeedScreen onBack={() => setViewMode("card")} />
         </Suspense>
-        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={() => setShowScanner(true)} onNavigate={handleBottomNavNavigate} />
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={handleOpenScanner} onNavigate={handleBottomNavNavigate} />
       </>
     );
   }
@@ -501,20 +647,8 @@ export default function HomeScreen() {
       />
 
       <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24">
-        {/* Hamburger Menu Button */}
-        {viewMode === "card" && (
-          <div className="fixed top-4 left-4 z-40">
-            <button
-              onClick={() => setShowSidebar(true)}
-              className="size-10 rounded-full bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center hover:scale-110 transition-transform"
-            >
-              <MaterialIcon
-                name="menu"
-                className="text-[#074738] dark:text-emerald-400 text-xl"
-              />
-            </button>
-          </div>
-        )}
+        {/* Hamburger removed — Sidebar access moved to profile/settings.
+            BottomNav covers all primary navigation. */}
 
         {/* View Mode Toggle Button */}
         {viewMode === "feed" && (
@@ -534,6 +668,7 @@ export default function HomeScreen() {
         {/* Card View */}
         {viewMode === "card" && (
           <>
+            <EmailSyncBackgroundCard status={gmailSyncStatus} petName={activePet?.name} />
             {focusExperienceEnabled ? (
               <Suspense fallback={<ScreenLoader label="Cargando inicio..." />}>
                 <FocusedHomeExperience
@@ -551,7 +686,7 @@ export default function HomeScreen() {
                   onOpenFeed={() => setViewMode("feed")}
                   onOpenAppointments={() => setViewMode("appointments")}
                   onOpenMedications={() => setViewMode("medications")}
-                  onOpenScanner={() => setShowScanner(true)}
+                  onOpenScanner={handleOpenScanner}
                   onExportReport={() => setShowExportReport(true)}
                 />
               </Suspense>
@@ -619,7 +754,7 @@ export default function HomeScreen() {
       <BottomNav
         currentTab={currentTab}
         onTabChange={handleTabChange}
-        onAddDocument={() => setShowScanner(true)}
+        onAddDocument={handleOpenScanner}
         onNavigate={handleBottomNavNavigate}
       />
 

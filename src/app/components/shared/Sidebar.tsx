@@ -69,7 +69,7 @@ export function Sidebar({
             {/* Logo */}
             <div className="px-5 pt-6 pb-4">
               <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                <span className="text-[#1A9B7D]">P</span>ESSY
+                <span className="text-[#1A9B7D]">Pessy</span>
               </h1>
             </div>
 

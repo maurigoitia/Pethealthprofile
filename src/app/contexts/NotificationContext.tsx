@@ -59,7 +59,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
         const newNotif: InAppNotification = {
           id: Date.now().toString(),
-          title: title || "PESSY",
+          title: title || "Pessy",
           body: body || "",
           type: (data.type as any) || "medication",
           timestamp: new Date(),

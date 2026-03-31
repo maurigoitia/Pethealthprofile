@@ -7,6 +7,8 @@ export interface GmailSyncStatus {
   accountEmail: string | null;
   grantedScopes: string[];
   updatedAt: string | null;
+  syncStatus: string;
+  ingestionStatus: string;
   inviteEnabled: boolean;
   inviteStatus: string;
   inviteReason: string | null;
@@ -17,6 +19,8 @@ const DEFAULT_STATUS: GmailSyncStatus = {
   accountEmail: null,
   grantedScopes: [],
   updatedAt: null,
+  syncStatus: "idle",
+  ingestionStatus: "idle",
   inviteEnabled: true,
   inviteStatus: "open_access",
   inviteReason: null,
@@ -78,6 +82,8 @@ export function subscribeGmailSyncStatus(
         ? gmailSync.grantedScopes.filter((scope): scope is string => typeof scope === "string")
         : [];
       const updatedAt = typeof gmailSync.updatedAt === "string" ? gmailSync.updatedAt : null;
+      const syncStatus = typeof gmailSync.syncStatus === "string" ? gmailSync.syncStatus : "idle";
+      const ingestionStatus = typeof gmailSync.ingestionStatus === "string" ? gmailSync.ingestionStatus : "idle";
 
       const inviteFromEmbedded = toInviteDecision({
         ...gmailSyncInvitation,
@@ -93,6 +99,8 @@ export function subscribeGmailSyncStatus(
         accountEmail,
         grantedScopes,
         updatedAt,
+        syncStatus,
+        ingestionStatus,
         inviteEnabled,
         inviteStatus,
         inviteReason,

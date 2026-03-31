@@ -103,7 +103,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(18);
       pdf.setFont("helvetica", "bold");
-      pdf.text("PESSY", M, 17);
+      pdf.text("Pessy", M, 17);
       pdf.setFontSize(8);
       pdf.setFont("helvetica", "normal");
       pdf.text("Expediente clinico certificado", M, 23);

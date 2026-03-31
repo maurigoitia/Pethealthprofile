@@ -46,7 +46,7 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(22);
     pdf.setFont("helvetica", "bold");
-    pdf.text("PESSY", margin, 16);
+    pdf.text("Pessy", margin, 16);
     pdf.setFontSize(9);
     pdf.setFont("helvetica", "normal");
     pdf.text("Carnet Oficial de Vacunación", margin, 23);

@@ -1,9 +1,9 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { auth, db } from "../../lib/firebase";
+import { createContext, useContext, useState, ReactNode, useEffect, useRef } from "react";
+import { auth, db, functions as firebaseFunctions } from "../../lib/firebase";
 import {
   collection, query, where, onSnapshot, doc, updateDoc, addDoc, arrayUnion, setDoc, getDoc,
 } from "firebase/firestore";
-// httpsCallable no longer needed — email sent via Firestore trigger
+import { httpsCallable } from "firebase/functions";
 import { useAuth } from "./AuthContext";
 import { buildCoTutorReferralUrl } from "../utils/coTutorInvite";
 import { isFocusHistoryExperimentHost } from "../utils/runtimeFlags";
@@ -13,11 +13,15 @@ export interface WeightEntry {
   weight: number;
 }
 
+export type SharedPetAccessRole = "editor" | "viewer";
+export type PetAccessLevel = "owner" | "editor" | "viewer" | "none";
+
 export interface CoTutor {
   uid: string;
   email?: string;
   name?: string;
   addedAt: string;
+  role?: SharedPetAccessRole;
 }
 
 export type BirthDatePrecision = "exact" | "month" | "year" | "unknown";
@@ -54,6 +58,7 @@ export interface Pet {
   weightHistory?: WeightEntry[];
   coTutors?: CoTutor[];
   coTutorUids?: string[];
+  sharedAccessByUid?: Record<string, SharedPetAccessRole>;
   preferences?: PetPreferences;
 }
 
@@ -67,21 +72,28 @@ interface PetContextType {
   loading: boolean;
   /** true si el loading lleva más de 4s — la UI puede mostrar un aviso */
   loadingSlow: boolean;
-  generateInviteCode: (petId: string, inviteEmail?: string) => Promise<string>;
-  sendCoTutorInviteEmail: (petId: string, email: string) => Promise<{ code: string; inviteLink: string; emailSent?: boolean }>;
+  generateInviteCode: (petId: string, inviteEmail?: string, accessRole?: SharedPetAccessRole) => Promise<string>;
+  sendCoTutorInviteEmail: (petId: string, email: string, accessRole?: SharedPetAccessRole) => Promise<{ code: string; inviteLink: string; emailSent?: boolean }>;
   joinWithCode: (code: string) => Promise<{ petName: string }>;
   removeCoTutor: (petId: string, coTutorUid: string) => Promise<void>;
   leaveAsTutor: (petId: string) => Promise<void>;
   isOwner: (pet: Pet) => boolean;
+  getPetAccessLevel: (pet?: Pet) => PetAccessLevel;
+  canEditPet: (pet?: Pet) => boolean;
 }
 
 const PetContext = createContext<PetContextType | undefined>(undefined);
+const acceptCoTutorInviteCallable = httpsCallable<
+  { code: string },
+  { petId: string; petName: string; accessRole: SharedPetAccessRole }
+>(firebaseFunctions, "acceptCoTutorInvite");
 
 export function PetProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();
   const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingSlow, setLoadingSlow] = useState(false);
+  const hydratedSharedPetsRef = useRef<Map<string, Pet>>(new Map());
   const [activePetId, setActivePetIdState] = useState<string>(() => {
     return localStorage.getItem("activePetId") || "";
   });
@@ -96,6 +108,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
+      hydratedSharedPetsRef.current.clear();
       setPets([]);
       setLoading(false);
       return;
@@ -112,7 +125,11 @@ export function PetProvider({ children }: { children: ReactNode }) {
     const merge = () => {
       // Solo terminar loading cuando ambos queries hayan respondido
       const bothReady = resolved.owner && resolved.cotutor;
-      const mergedRaw = Array.from(allPetsMap.values());
+      const mergedMap = new Map<string, Pet>([
+        ...Array.from(hydratedSharedPetsRef.current.entries()),
+        ...Array.from(allPetsMap.entries()),
+      ]);
+      const mergedRaw = Array.from(mergedMap.values());
       const useMauriSandbox =
         isFocusHistoryExperimentHost() &&
         (user?.email || "").trim().toLowerCase() === "mauriciogoitia@gmail.com";
@@ -146,13 +163,32 @@ export function PetProvider({ children }: { children: ReactNode }) {
           allPetsMap.delete(change.doc.id);
         } else {
           const data = change.doc.data();
-          // Auto-migrar mascotas viejas que no tienen coTutorUids
-          if (!data.coTutorUids) {
-            updateDoc(doc(db, "pets", change.doc.id), { coTutors: [], coTutorUids: [] }).catch((err) => {
-              console.warn(`[PETS] No se pudo auto-migrar coTutorUids para pet ${change.doc.id}:`, err?.message || err);
+          const normalizedCoTutors = Array.isArray(data.coTutors) ? data.coTutors : [];
+          const normalizedCoTutorUids = Array.isArray(data.coTutorUids) ? data.coTutorUids : [];
+          const normalizedSharedAccess = data.sharedAccessByUid && typeof data.sharedAccessByUid === "object"
+            ? data.sharedAccessByUid
+            : {};
+          const needsShareAccessMigration =
+            !Array.isArray(data.coTutors) ||
+            !Array.isArray(data.coTutorUids) ||
+            !data.sharedAccessByUid ||
+            typeof data.sharedAccessByUid !== "object";
+          if (needsShareAccessMigration) {
+            updateDoc(doc(db, "pets", change.doc.id), {
+              coTutors: normalizedCoTutors,
+              coTutorUids: normalizedCoTutorUids,
+              sharedAccessByUid: normalizedSharedAccess,
+            }).catch((err) => {
+              console.warn(`[PETS] No se pudo auto-migrar accesos compartidos para pet ${change.doc.id}:`, err?.message || err);
             });
           }
-          allPetsMap.set(change.doc.id, { id: change.doc.id, ...data } as Pet);
+          allPetsMap.set(change.doc.id, {
+            id: change.doc.id,
+            ...data,
+            coTutors: normalizedCoTutors,
+            coTutorUids: normalizedCoTutorUids,
+            sharedAccessByUid: normalizedSharedAccess,
+          } as Pet);
         }
       });
       resolved.owner = true;
@@ -176,7 +212,16 @@ export function PetProvider({ children }: { children: ReactNode }) {
         } else {
           // No sobreescribir si ya está (el owner query tiene más info actualizada)
           if (!allPetsMap.has(change.doc.id)) {
-            allPetsMap.set(change.doc.id, { id: change.doc.id, ...change.doc.data() } as Pet);
+            const data = change.doc.data();
+            allPetsMap.set(change.doc.id, {
+              id: change.doc.id,
+              ...data,
+              coTutors: Array.isArray(data.coTutors) ? data.coTutors : [],
+              coTutorUids: Array.isArray(data.coTutorUids) ? data.coTutorUids : [],
+              sharedAccessByUid: data.sharedAccessByUid && typeof data.sharedAccessByUid === "object"
+                ? data.sharedAccessByUid
+                : {},
+            } as Pet);
           }
         }
       });
@@ -218,6 +263,18 @@ export function PetProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("activePetId", id);
   };
 
+  const getPetAccessLevel = (pet?: Pet): PetAccessLevel => {
+    if (!user || !pet) return "none";
+    if (pet.ownerId === user.uid) return "owner";
+    if (!Array.isArray(pet.coTutorUids) || !pet.coTutorUids.includes(user.uid)) return "none";
+    return pet.sharedAccessByUid?.[user.uid] === "viewer" ? "viewer" : "editor";
+  };
+
+  const canEditPet = (pet?: Pet) => {
+    const accessLevel = getPetAccessLevel(pet);
+    return accessLevel === "owner" || accessLevel === "editor";
+  };
+
   const addPet = async (pet: Omit<Pet, "id" | "ownerId">) => {
     if (!user) throw new Error("No user logged in");
     const docRef = await addDoc(collection(db, "pets"), {
@@ -225,6 +282,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
       ownerId: user.uid,
       coTutors: [],
       coTutorUids: [],
+      sharedAccessByUid: {},
       createdAt: new Date().toISOString(),
     });
     // Al crear una mascota nueva, se selecciona automáticamente como activa.
@@ -233,7 +291,32 @@ export function PetProvider({ children }: { children: ReactNode }) {
     return docRef.id;
   };
 
+  const hydrateJoinedPet = async (petId: string) => {
+    const joinedPetSnap = await getDoc(doc(db, "pets", petId));
+    if (!joinedPetSnap.exists()) return;
+    const data = joinedPetSnap.data();
+    const normalizedPet = {
+      id: joinedPetSnap.id,
+      ...data,
+      coTutors: Array.isArray(data.coTutors) ? data.coTutors : [],
+      coTutorUids: Array.isArray(data.coTutorUids) ? data.coTutorUids : [],
+      sharedAccessByUid: data.sharedAccessByUid && typeof data.sharedAccessByUid === "object"
+        ? data.sharedAccessByUid
+        : {},
+    } as Pet;
+    hydratedSharedPetsRef.current.set(petId, normalizedPet);
+
+    setPets((current) => {
+      const next = current.filter((pet) => pet.id !== petId);
+      next.push(normalizedPet);
+      return next;
+    });
+  };
+
   const updatePet = async (id: string, updates: Partial<Pet> & { newWeightEntry?: WeightEntry }) => {
+    const targetPet = pets.find((pet) => pet.id === id);
+    if (!targetPet) throw new Error("Mascota no encontrada");
+    if (!canEditPet(targetPet)) throw new Error("Tu acceso es de solo lectura para esta mascota.");
     const petRef = doc(db, "pets", id);
     const { newWeightEntry, ...rest } = updates;
     const payload: any = { ...rest };
@@ -243,7 +326,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
     await updateDoc(petRef, payload);
   };
 
-  const generateInviteCode = async (petId: string, inviteEmail?: string): Promise<string> => {
+  const generateInviteCode = async (petId: string, inviteEmail?: string, accessRole: SharedPetAccessRole = "editor"): Promise<string> => {
     if (!user) throw new Error("No user logged in");
     const petRef = doc(db, "pets", petId);
     const petSnap = await getDoc(petRef);
@@ -260,6 +343,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
       petName: petData.name || "Mascota",
       createdBy: user.uid,
       inviteEmail: inviteEmail ? inviteEmail.trim().toLowerCase() : null,
+      accessRole,
       sendMethod: inviteEmail ? "email_magic_link" : "manual_code",
       expiresAt,
       used: false,
@@ -268,7 +352,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
     return code;
   };
 
-  const sendCoTutorInviteEmail = async (petId: string, email: string): Promise<{ code: string; inviteLink: string; emailSent?: boolean }> => {
+  const sendCoTutorInviteEmail = async (petId: string, email: string, accessRole: SharedPetAccessRole = "editor"): Promise<{ code: string; inviteLink: string; emailSent?: boolean }> => {
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail || !normalizedEmail.includes("@")) {
       throw new Error("Ingresá un email válido.");
@@ -281,7 +365,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
     const petDoc = await getDoc(doc(db, "pets", petId));
     const petName = petDoc.exists() ? (petDoc.data().name as string) || "tu mascota" : "tu mascota";
 
-    const code = await generateInviteCode(petId, normalizedEmail);
+    const code = await generateInviteCode(petId, normalizedEmail, accessRole);
     const inviteLink = buildCoTutorReferralUrl(code);
 
     // El email se envía automáticamente via Firestore trigger (onInvitationCreated)
@@ -313,6 +397,29 @@ export function PetProvider({ children }: { children: ReactNode }) {
     const currentUser = user || auth.currentUser;
     if (!currentUser) throw new Error("No user logged in");
     const normalizedCode = code.toUpperCase().trim();
+    try {
+      const result = await acceptCoTutorInviteCallable({ code: normalizedCode });
+      const petId = result.data?.petId || "";
+      const petName = result.data?.petName || "la mascota";
+      if (petId) {
+        await hydrateJoinedPet(petId);
+        setActivePetIdState(petId);
+        localStorage.setItem("activePetId", petId);
+      }
+      return { petName };
+    } catch (callableError: any) {
+      const callableCode = callableError?.code || "";
+      const callableMessage = callableError?.message || "";
+      const callableUnavailable =
+        callableCode === "functions/not-found" ||
+        callableCode === "functions/unavailable" ||
+        callableCode === "functions/internal";
+      if (!callableUnavailable) {
+        throw new Error(callableMessage || "No se pudo completar la invitación de co-tutor.");
+      }
+      console.warn("[joinWithCode] Fallback a flujo cliente porque la callable no está disponible:", callableMessage || callableCode);
+    }
+
     const invRef = doc(db, "invitations", normalizedCode);
     const invSnap = await getDoc(invRef);
     if (!invSnap.exists()) throw new Error("Código inválido o expirado");
@@ -325,6 +432,9 @@ export function PetProvider({ children }: { children: ReactNode }) {
     }
     if (inv.used) {
       if (inv.usedBy === currentUser.uid) {
+        await hydrateJoinedPet(inv.petId);
+        setActivePetIdState(inv.petId);
+        localStorage.setItem("activePetId", inv.petId);
         return { petName: inv.petName || "la mascota" };
       }
       throw new Error("Este código ya fue utilizado");
@@ -339,52 +449,42 @@ export function PetProvider({ children }: { children: ReactNode }) {
     if (inv.createdBy === currentUser.uid) throw new Error("No podés unirte a tu propia mascota con un código");
 
     const petRef = doc(db, "pets", inv.petId);
+    const petName = inv.petName || "la mascota";
+    const inviteAccessRole: SharedPetAccessRole = inv.accessRole === "viewer" ? "viewer" : "editor";
+    const joinAddedAt =
+      typeof inv.createdAt?.toDate === "function"
+        ? inv.createdAt.toDate().toISOString()
+        : typeof inv.createdAt === "string"
+          ? inv.createdAt
+          : new Date().toISOString();
 
-    // BUG-003 FIX: NO usar runTransaction para ambos writes juntos.
-    // Las Security Rules de invitaciones hacen get(pet) para verificar que el uid ya esté en
-    // coTutorUids — ese get() ve el estado PRE-transacción, por lo que si el pet update y el
-    // invite update van en la misma transacción, el get() siempre ve coTutorUids sin el usuario
-    // nuevo → PERMISSION_DENIED.
-    // Solución: escribir el pet primero (commit), luego marcar la invitación como usada.
-    const petSnap = await getDoc(petRef);
-    if (!petSnap.exists()) throw new Error("La mascota ya no está disponible");
-    const petData = petSnap.data();
-    const currentCoTutorUids: string[] = Array.isArray(petData.coTutorUids) ? petData.coTutorUids : [];
-    const currentCoTutors: CoTutor[] = Array.isArray(petData.coTutors) ? petData.coTutors : [];
+    const newCoTutor: CoTutor = {
+      uid: currentUser.uid,
+      email: currentUser.email || "",
+      name: currentUser.displayName || currentUser.email || "",
+      addedAt: joinAddedAt,
+      role: inviteAccessRole,
+    };
 
-    if (petData.ownerId === currentUser.uid) {
-      throw new Error("Ya sos tutor principal de esta mascota.");
-    }
-
-    const petName = inv.petName || petData.name || "la mascota";
-    const alreadyJoined = currentCoTutorUids.includes(currentUser.uid);
-
-    if (!alreadyJoined) {
-      const newCoTutor: CoTutor = {
-        uid: currentUser.uid,
-        email: currentUser.email || "",
-        name: currentUser.displayName || currentUser.email || "",
-        addedAt: new Date().toISOString(),
-      };
-      const nextCoTutorUids = [...currentCoTutorUids, currentUser.uid];
-      const nextCoTutors = [
-        ...currentCoTutors.filter((ct) => ct.uid !== currentUser.uid),
-        newCoTutor,
-      ];
-
-      // Paso 1: Actualizar mascota — Security Rules (canJoinPetWithInvite) verifican que
-      // invitation.used == false, que se cumple porque aún no marcamos la invitación.
+    let petJoinGranted = false;
+    try {
       await updateDoc(petRef, {
-        coTutors: nextCoTutors,
-        coTutorUids: nextCoTutorUids,
+        coTutors: arrayUnion(newCoTutor),
+        coTutorUids: arrayUnion(currentUser.uid),
+        [`sharedAccessByUid.${currentUser.uid}`]: inviteAccessRole,
         lastJoinInviteCode: normalizedCode,
       });
+      petJoinGranted = true;
+    } catch (joinError: any) {
+      const message = joinError?.message || "";
+      const code = joinError?.code || "";
+      const denied = code === "permission-denied" || code === "firestore/permission-denied" || /permission/i.test(message);
+      if (!denied) {
+        throw joinError;
+      }
+      console.warn("[joinWithCode] La unión a la mascota fue rechazada o ya estaba aplicada:", message || code);
     }
 
-    // Paso 2: Marcar invitación como usada — Security Rules verifican
-    // petData().coTutorUids.hasAny([uid]), que ahora es verdadero porque el paso 1 ya commitió.
-    // Si falla, reintentar 1 vez. Dejar el código sin marcar es un riesgo de seguridad (otro
-    // usuario podría usarlo), pero el acceso ya fue concedido — no lanzamos error al usuario.
     const invPayload = { used: true, usedBy: currentUser.uid, usedAt: new Date() };
     try {
       await updateDoc(invRef, invPayload);
@@ -393,9 +493,16 @@ export function PetProvider({ children }: { children: ReactNode }) {
       try {
         await updateDoc(invRef, invPayload);
       } catch (retryErr: any) {
+        if (!petJoinGranted) {
+          throw retryErr;
+        }
         console.error("[joinWithCode] No se pudo marcar el código como usado después de reintento. El código sigue activo.", retryErr?.message);
       }
     }
+
+    setActivePetIdState(inv.petId);
+    localStorage.setItem("activePetId", inv.petId);
+    await hydrateJoinedPet(inv.petId);
 
     return { petName };
   };
@@ -407,7 +514,15 @@ export function PetProvider({ children }: { children: ReactNode }) {
     const petData = petSnap.data();
     const updatedCoTutors = (petData.coTutors || []).filter((ct: CoTutor) => ct.uid !== coTutorUid);
     const updatedUids = (petData.coTutorUids || []).filter((uid: string) => uid !== coTutorUid);
-    await updateDoc(petRef, { coTutors: updatedCoTutors, coTutorUids: updatedUids });
+    const currentSharedAccessByUid = petData.sharedAccessByUid && typeof petData.sharedAccessByUid === "object"
+      ? petData.sharedAccessByUid as Record<string, SharedPetAccessRole>
+      : {};
+    const { [coTutorUid]: _removedAccess, ...updatedSharedAccessByUid } = currentSharedAccessByUid;
+    await updateDoc(petRef, {
+      coTutors: updatedCoTutors,
+      coTutorUids: updatedUids,
+      sharedAccessByUid: updatedSharedAccessByUid,
+    });
   };
 
   const leaveAsTutor = async (petId: string) => {
@@ -422,7 +537,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
   return (
     <PetContext.Provider value={{
       activePetId, setActivePetId, pets, activePet, addPet, updatePet, loading, loadingSlow,
-      generateInviteCode, sendCoTutorInviteEmail, joinWithCode, removeCoTutor, leaveAsTutor, isOwner,
+      generateInviteCode, sendCoTutorInviteEmail, joinWithCode, removeCoTutor, leaveAsTutor, isOwner, getPetAccessLevel, canEditPet,
     }}>
       {children}
     </PetContext.Provider>

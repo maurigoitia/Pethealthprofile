@@ -19,13 +19,36 @@ function ChipList({ items, tone }: { items: string[]; tone: string }) {
     );
 }
 
+function buildFallbackNarrative(snapshot: ClinicalProfileSnapshot, petName: string): string {
+    const parts: string[] = [];
+    if (snapshot.activeConditions.length > 0) {
+        parts.push(`${petName} tiene ${snapshot.activeConditions.length === 1 ? "un tema activo" : `${snapshot.activeConditions.length} temas activos`}: ${snapshot.activeConditions.join(", ")}`);
+    }
+    if (snapshot.currentMedications.length > 0) {
+        const medNames = snapshot.currentMedications.map((m) => m.name).join(", ");
+        parts.push(`${snapshot.currentMedications.length === 1 ? "Medicación actual" : "Medicaciones actuales"}: ${medNames}`);
+    }
+    if (snapshot.allergies.length > 0) {
+        parts.push(`Alergia conocida: ${snapshot.allergies.join(", ")}`);
+    }
+    if (snapshot.recurrentPathologies.length > 0) {
+        parts.push(`Patología recurrente: ${snapshot.recurrentPathologies.join(", ")}`);
+    }
+    if (parts.length === 0) return "";
+    return parts.join(". ") + ".";
+}
+
 export function ClinicalProfileBlock({ snapshot, petName }: ClinicalProfileBlockProps) {
     const hasData =
         snapshot.activeConditions.length > 0 ||
         snapshot.currentMedications.length > 0 ||
+        snapshot.allergies.length > 0 ||
+        snapshot.recurrentPathologies.length > 0 ||
         snapshot.narrative;
 
     if (!hasData) return null;
+
+    const displayNarrative = snapshot.narrative || buildFallbackNarrative(snapshot, petName);
 
     return (
         <div className="rounded-[20px] border border-[#074738]/20 bg-gradient-to-br from-[#074738]/8 to-[#074738]/3 p-4 mb-5 shadow-sm animate-fadeIn">
@@ -45,9 +68,9 @@ export function ClinicalProfileBlock({ snapshot, petName }: ClinicalProfileBlock
             </div>
 
             {/* Narrativa */}
-            {snapshot.narrative && (
+            {displayNarrative && (
                 <p className="text-[12px] text-slate-700 dark:text-slate-300 leading-relaxed mb-3">
-                    {snapshot.narrative}
+                    {displayNarrative}
                 </p>
             )}
 

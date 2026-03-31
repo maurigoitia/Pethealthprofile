@@ -5,6 +5,7 @@ import { useMedical } from "../../contexts/MedicalContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { formatDateSafe } from "../../utils/dateUtils";
 import { loadJsPdf, savePdfWithFallback } from "../../utils/pdfExport";
+import { buildClinicalNarrativeHighlights, buildClinicalNarrativeSummary } from "../../utils/clinicalNarrative";
 
 interface ExportReportModalProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
     getClinicalConditionsByPetId,
     getClinicalAlertsByPetId,
     getConsolidatedTreatmentsByPetId,
+    getProfileSnapshotByPetId,
     saveVerifiedReport,
   } = useMedical();
 
@@ -167,7 +169,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(18);
       pdf.setFont("helvetica", "bold");
-      pdf.text("PESSY", M, 17);
+      pdf.text("Pessy", M, 17);
       pdf.setFontSize(8);
       pdf.setFont("helvetica", "normal");
       pdf.text(`Resumen de salud de ${activePet.name}`, M, 23);
@@ -255,8 +257,20 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         const type = event.extractedData.documentType;
         return ["xray", "lab_test", "echocardiogram", "electrocardiogram"].includes(type);
       });
-      const narrativeClinicalProfile = buildNarrativeClinicalProfile({
+      const profileSnapshot = getProfileSnapshotByPetId(activePet.id);
+      const narrativeClinicalProfile = buildClinicalNarrativeSummary({
         petName: activePet.name,
+        speciesLabel: species,
+        breed: activePet.breed || null,
+        ageLabel: activePet.age || null,
+        snapshot: profileSnapshot,
+        activeConditions,
+        resolvedConditions,
+        treatmentRows,
+        studies,
+      });
+      const profileHighlights = buildClinicalNarrativeHighlights({
+        snapshot: profileSnapshot,
         activeConditions,
         resolvedConditions,
         treatmentRows,
@@ -295,12 +309,6 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         const profileLines = pdf.splitTextToSize(narrativeClinicalProfile || "Sin sintesis disponible.", CW - 2);
         pdf.text(profileLines, M, y + 1);
         y += profileLines.length * 4 + 2;
-
-        const profileHighlights = [
-          activeConditions[0] ? `Condición principal: ${clean(activeConditions[0].normalizedName)}` : "",
-          treatmentRows[0] ? `Tratamiento relevante: ${clean(treatmentRows[0].name)}` : "",
-          studies[0] ? `Estudio destacado: ${clean(studies[0].extractedData.studyType || studies[0].title || studies[0].extractedData.suggestedTitle)}` : "",
-        ].filter(Boolean);
 
         if (profileHighlights.length> 0) {
           for (const highlight of profileHighlights.slice(0, 3)) {
@@ -534,45 +542,37 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           }
         }
 
-        sectionTitle("6. Línea de tiempo (resumen)");
-        const timelineHeaders = ["Fecha", "Tipo", "Referencia", "Resumen"];
-        const timelineWidths = [24, 20, 48, 86];
-        checkY(9);
-        pdf.setFillColor(226, 232, 240);
-        pdf.roundedRect(M, y, CW, 8, 1.5, 1.5, "F");
-        pdf.setFontSize(7);
-        pdf.setFont("helvetica", "bold");
-        pdf.setTextColor(15, 23, 42);
-        let tx = M;
-        timelineHeaders.forEach((header, idx) => {
-          pdf.text(header, tx + 1.2, y + 5.2);
-          tx += timelineWidths[idx];
-        });
-        y += 9;
-
-        for (const event of sortedEvents.slice(0, 16)) {
-          checkY(8);
-          const extracted = event.extractedData;
-          pdf.setFillColor(248, 250, 252);
-          pdf.roundedRect(M, y, CW, 8, 1.5, 1.5, "F");
-          pdf.setFontSize(6.8);
+        sectionTitle("6. Hitos confirmados");
+        if (sortedEvents.length === 0) {
+          pdf.setFontSize(8.5);
           pdf.setFont("helvetica", "normal");
-          pdf.setTextColor(31, 41, 55);
-
-          const cells = [
-            fmt(extracted.eventDate || event.createdAt),
-            toTypeLabel(extracted.documentType),
-            clean(extracted.provider || extracted.clinic || "—"),
-            getCanonicalSummary(event),
-          ];
-
-          let cx = M;
-          cells.forEach((cell, idx) => {
-            const maxLen = idx === 3 ? 72 : idx === 2 ? 40 : 18;
-            pdf.text(cell.substring(0, maxLen), cx + 1.2, y + 5.2);
-            cx += timelineWidths[idx];
-          });
-          y += 9;
+          pdf.setTextColor(120, 120, 120);
+          pdf.text("No hay eventos confirmados para narrar en este reporte.", M, y + 2);
+          y += 8;
+        } else {
+          for (const event of sortedEvents.slice(0, 10)) {
+            checkY(14);
+            const extracted = event.extractedData;
+            const title = clean(
+              extracted.studyType ||
+              event.title ||
+              extracted.suggestedTitle ||
+              toTypeLabel(extracted.documentType)
+            );
+            const summary = getCanonicalSummary(event) || "Sin interpretación clínica confirmada.";
+            pdf.setFillColor(248, 250, 252);
+            pdf.roundedRect(M, y, CW, 12, 1.8, 1.8, "F");
+            pdf.setFontSize(8);
+            pdf.setFont("helvetica", "bold");
+            pdf.setTextColor(31, 41, 55);
+            pdf.text(`${fmt(extracted.eventDate || event.createdAt)} · ${title.substring(0, 74)}`, M + 2, y + 4.5);
+            pdf.setFont("helvetica", "normal");
+            pdf.setTextColor(71, 85, 105);
+            pdf.setFontSize(7.2);
+            const summaryLines = pdf.splitTextToSize(summary, CW - 6);
+            pdf.text(summaryLines.slice(0, 2), M + 2, y + 8);
+            y += Math.max(12, summaryLines.slice(0, 2).length * 4 + 6);
+          }
         }
       }
 
@@ -735,7 +735,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           petId: activePet.id, petName: activePet.name,
           petBreed: activePet.breed || "No registrada",
           ownerName: clean(userFullName || userName || user?.email) || "No registrado",
-          summary: reportSummaryForVerification || executiveSummary, reportType: selectedReport,
+          summary: narrativeClinicalProfile || reportSummaryForVerification, reportType: selectedReport,
           sourceEventCount: events.length, sourceMedicationCount: medications.length,
           sourceAppointmentCount: upcoming.length,
           sourceEventIds: events.map(e => e.id),

@@ -54,11 +54,12 @@ const GROUP_CONFIG = {
 };
 
 export function RemindersScreen({ onBack }: RemindersScreenProps) {
-  const { activePetId } = usePet();
+  const { activePetId, activePet, canEditPet } = usePet();
   const { getRemindersByPetId, completeReminder, dismissReminder, deleteReminder } = useReminders();
   const [showAdd, setShowAdd] = useState(false);
   const [tab, setTab] = useState<"pending" | "done">("pending");
   const [swipedId, setSwipedId] = useState<string | null>(null);
+  const canEditActivePet = canEditPet(activePet);
 
   const all = activePetId ? getRemindersByPetId(activePetId) : [];
   const pending = all.filter((r) => !r.completed && !r.dismissed);
@@ -91,10 +92,12 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                 {pending.length === 0 ? "Todo al día" : `${pending.filter(r => urgencyGroup(r) !== "upcoming").length} requieren atención`}
               </p>
             </div>
-            <button onClick={() => setShowAdd(true)}
-              className="size-10 rounded-full bg-[#2b6fee] flex items-center justify-center shadow-md shadow-[#2b6fee]/30">
-              <MaterialIcon name="add" className="text-white text-xl" />
-            </button>
+            {canEditActivePet && (
+              <button type="button" onClick={() => setShowAdd(true)}
+                className="size-10 rounded-full bg-[#2b6fee] flex items-center justify-center shadow-md shadow-[#2b6fee]/30">
+                <MaterialIcon name="add" className="text-white text-xl" />
+              </button>
+            )}
           </div>
 
           {/* Tabs */}
@@ -120,6 +123,12 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
             {tab === "pending" && (
               <motion.div key="pending" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className="p-4 space-y-6">
+                {!canEditActivePet && activePet && (
+                  <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                    <p className="text-sm font-bold text-slate-700">Acceso de guardián temporal</p>
+                    <p className="mt-1 text-xs text-slate-500">Podés ver los recordatorios de {activePet.name}, pero no completarlos, descartarlos ni crear nuevos.</p>
+                  </div>
+                )}
 
                 {pending.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -128,10 +137,12 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                     </div>
                     <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1">¡Todo al día!</h3>
                     <p className="text-sm text-slate-500 max-w-xs">No tenés recordatorios pendientes. Agregá uno para no olvidar nada.</p>
-                    <button onClick={() => setShowAdd(true)}
+                    {canEditActivePet && (
+                    <button type="button" onClick={() => setShowAdd(true)}
                       className="mt-5 px-6 py-3 rounded-2xl bg-[#2b6fee] text-white font-bold text-sm">
                       Agregar recordatorio
                     </button>
+                    )}
                   </div>
                 ) : (
                   shownGroups.map((group) => (
@@ -212,26 +223,34 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                                   </div>
 
                                   {/* Actions */}
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <button
-                                      onClick={() => completeReminder(r.id)}
-                                      className={`size-9 rounded-xl flex items-center justify-center transition-colors ${
-                                        isOverdue
-                                          ? "bg-red-50 dark:bg-red-950/30 text-red-500"
-                                          : isToday
-                                          ? "bg-[#2b6fee]/10 text-[#2b6fee]"
-                                          : "bg-slate-100 dark:bg-slate-800 text-slate-500"
-                                      }`}
-                                    >
-                                      <MaterialIcon name="check" className="text-lg" />
-                                    </button>
-                                    <button
-                                      onClick={() => setSwipedId(isSwiped ? null : r.id)}
-                                      className="size-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400"
-                                    >
-                                      <MaterialIcon name="more_horiz" className="text-lg" />
-                                    </button>
-                                  </div>
+                                  {canEditActivePet ? (
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => completeReminder(r.id)}
+                                        className={`size-9 rounded-xl flex items-center justify-center transition-colors ${
+                                          isOverdue
+                                            ? "bg-red-50 dark:bg-red-950/30 text-red-500"
+                                            : isToday
+                                            ? "bg-[#2b6fee]/10 text-[#2b6fee]"
+                                            : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                                        }`}
+                                      >
+                                        <MaterialIcon name="check" className="text-lg" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setSwipedId(isSwiped ? null : r.id)}
+                                        className="size-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400"
+                                      >
+                                        <MaterialIcon name="more_horiz" className="text-lg" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+                                      Solo lectura
+                                    </span>
+                                  )}
                                 </div>
 
                                 {/* Urgency strip for overdue/today */}
@@ -270,10 +289,12 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                         <p className="font-bold text-sm text-slate-700 dark:text-slate-300 line-through truncate">{r.title}</p>
                         <p className="text-xs text-slate-400">{formatDueDate(r.dueDate)}</p>
                       </div>
-                      <button onClick={() => deleteReminder(r.id)}
+                      {canEditActivePet && (
+                      <button type="button" onClick={() => deleteReminder(r.id)}
                         className="size-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                         <MaterialIcon name="close" className="text-sm text-slate-400" />
                       </button>
+                      )}
                     </div>
                   );
                 })}
@@ -285,12 +306,14 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
       </div>
 
       {/* FAB */}
-      <button onClick={() => setShowAdd(true)}
+      {canEditActivePet && (
+      <button type="button" onClick={() => setShowAdd(true)}
         className="fixed bottom-24 right-4 size-14 rounded-full bg-[#2b6fee] shadow-xl shadow-[#2b6fee]/40 flex items-center justify-center z-40 active:scale-95 transition-transform">
         <MaterialIcon name="add" className="text-white text-2xl" />
       </button>
+      )}
 
-      <AddReminderModal isOpen={showAdd} onClose={() => setShowAdd(false)} />
+      <AddReminderModal isOpen={showAdd} onClose={() => setShowAdd(false)} readOnly={!canEditActivePet} />
     </div>
   );
 }

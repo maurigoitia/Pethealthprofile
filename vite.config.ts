@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, configDefaults } from 'vitest/config'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
@@ -172,6 +172,13 @@ export default defineConfig({
     },
   },
   assetsInclude: ['**/*.svg', '**/*.csv'],
+  test: {
+    environment: 'jsdom',
+    exclude: [...configDefaults.exclude, '.claude/**'],
+    environmentMatchGlobs: [
+      ['functions/**', 'node'],
+    ],
+  },
   build: {
     rollupOptions: {
       input: path.resolve(__dirname, 'index.html'),

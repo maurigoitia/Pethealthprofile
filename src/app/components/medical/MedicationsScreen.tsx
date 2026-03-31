@@ -244,10 +244,11 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
     }
   }, [highlightEventId]);
 
-  const { activePetId, activePet } = usePet();
+  const { activePetId, activePet, canEditPet } = usePet();
   const { getEventsByPetId, updateEvent, confirmEvent, deleteEvent, activeMedications, updateMedication, addMedication } = useMedical();
   const { addReminder } = useReminders();
   const focusExperienceEnabled = isFocusExperienceHost();
+  const canEditActivePet = canEditPet(activePet);
 
   const extractTimeHHmm = (isoDate: string): string => {
     const parsed = parseDateSafe(isoDate);
@@ -379,6 +380,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
     .slice(0, 6) as { id: string; name: string; when: string }[];
 
   const saveNote = async (event: MedicalEvent) => {
+    if (!canEditActivePet) return;
     const text = (draftNoteByEvent[event.id] || "").trim();
     if (!text) return;
     setSavingNoteByEvent((prev) => ({ ...prev, [event.id]: true }));
@@ -398,6 +400,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   };
 
   const confirmMedicationEvent = async (event: MedicalEvent) => {
+    if (!canEditActivePet) return;
     setConfirmingByEvent((prev) => ({ ...prev, [event.id]: true }));
     try {
       await confirmEvent(event.id);
@@ -410,6 +413,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   };
 
   const openEdit = (item: MedicationCardItem) => {
+    if (!canEditActivePet) return;
     setEditingItem(item);
     setEditDosage(item.dosage === "Según receta" ? "" : item.dosage);
     setEditFrequency(item.frequency === "Frecuencia no especificada" ? "" : item.frequency);
@@ -418,7 +422,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   };
 
   const saveEdit = async () => {
-    if (!editingItem) return;
+    if (!editingItem || !canEditActivePet) return;
     setSavingEdit(true);
     try {
       const normalizedDosage = editDosage.trim();
@@ -523,7 +527,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   };
 
   const registerDoseNow = async (item: MedicationCardItem) => {
-    if (!activePet) return;
+    if (!activePet || !canEditActivePet) return;
 
     const nowIso = new Date().toISOString();
     const nextDose = computeNextDoseDate(nowIso, item.frequency);
@@ -621,6 +625,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   };
 
   const confirmDelete = async (item: MedicationCardItem, withReminder: boolean, withCalendar: boolean) => {
+    if (!canEditActivePet) return;
     setDeletingInProgress(true);
     try {
       // Crear recordatorio en la app si eligió esa opción
@@ -733,6 +738,11 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
               <p className="text-xs font-semibold text-emerald-700">{editFeedback}</p>
             </div>
           )}
+          {!canEditActivePet && activePet && (
+            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="text-xs font-semibold text-slate-700">Acceso de guardián temporal: podés ver los tratamientos de {activePet.name}, pero no editarlos.</p>
+            </div>
+          )}
         </div>
 
         {/* List */}
@@ -796,19 +806,24 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                         <span className={`text-[10px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full ${sc.bg} ${sc.color}`}>
                           {needsReview ? "Por confirmar" : sc.label}
                         </span>
-                        {/* Acciones editar / borrar */}
-                        <button
-                          onClick={() => openEdit(item)}
-                          className="size-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                          title="Editar">
-                          <MaterialIcon name="edit" className="text-sm text-slate-500" />
-                        </button>
-                        <button
-                          onClick={() => { setDeletingItem(item); setDeleteStage("confirm"); }}
-                          className="size-7 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
-                          title="Eliminar">
-                          <MaterialIcon name="delete" className="text-sm text-red-500" />
-                        </button>
+                        {canEditActivePet && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => openEdit(item)}
+                              className="size-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                              title="Editar">
+                              <MaterialIcon name="edit" className="text-sm text-slate-500" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setDeletingItem(item); setDeleteStage("confirm"); }}
+                              className="size-7 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                              title="Eliminar">
+                              <MaterialIcon name="delete" className="text-sm text-red-500" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -910,8 +925,9 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                           <span className="text-slate-500">Próxima dosis</span>
                           <span className="font-bold text-[#074738]">{nextDoseLabel(item.lastDoseAt || item.startDate, item.frequency)}</span>
                         </div>
-                        {!needsReview && (
+                        {!needsReview && canEditActivePet && (
                           <button
+                            type="button"
                             onClick={() => void registerDoseNow(item)}
                             className="w-full py-2 rounded-xl bg-[#074738] text-white text-xs font-bold hover:bg-[#245ecf] transition-colors">
                             Marcar dosis dada ahora
@@ -922,9 +938,10 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
 
                     {/* Treatment notes */}
                     <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
-                      {needsReview && (
+                      {needsReview && canEditActivePet && (
                         <div className="flex gap-2 mb-3">
                           <button
+                            type="button"
                             onClick={() => confirmMedicationEvent(item.event)}
                             disabled={Boolean(confirmingByEvent[item.event.id])}
                             className="flex-1 px-3 py-2 rounded-xl bg-[#1A9B7D] text-white text-xs font-bold disabled:opacity-60">
@@ -934,8 +951,9 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                       )}
 
                       {/* Botón rápido finalizar — solo en activos/crónicos */}
-                      {(item.status === "active" || item.status === "chronic") && !needsReview && (
+                      {(item.status === "active" || item.status === "chronic") && !needsReview && canEditActivePet && (
                         <button
+                          type="button"
                           onClick={async () => {
                             const note: TreatmentNote = {
                               id: `note_${Date.now()}`,
@@ -972,19 +990,23 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                                   <p className="text-xs text-slate-700 dark:text-slate-300">{note.text}</p>
                                 </div>
                               ))}
-                              <div className="flex gap-2">
-                                <input
-                                  value={draftNoteByEvent[item.event.id] || ""}
-                                  onChange={(e) => setDraftNoteByEvent((prev) => ({ ...prev, [item.event.id]: e.target.value }))}
-                                  placeholder="Ej: se redujo dosis por indicación veterinaria"
-                                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-[#074738]"
-                                />
-                                <button onClick={() => saveNote(item.event)}
-                                  disabled={Boolean(savingNoteByEvent[item.event.id])}
-                                  className="px-4 py-2 rounded-xl bg-[#074738] text-white text-xs font-bold disabled:opacity-60">
-                                  {savingNoteByEvent[item.event.id] ? "..." : "Agregar"}
-                                </button>
-                              </div>
+                              {canEditActivePet ? (
+                                <div className="flex gap-2">
+                                  <input
+                                    value={draftNoteByEvent[item.event.id] || ""}
+                                    onChange={(e) => setDraftNoteByEvent((prev) => ({ ...prev, [item.event.id]: e.target.value }))}
+                                    placeholder="Ej: se redujo dosis por indicación veterinaria"
+                                    className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-[#074738]"
+                                  />
+                                  <button type="button" onClick={() => saveNote(item.event)}
+                                    disabled={Boolean(savingNoteByEvent[item.event.id])}
+                                    className="px-4 py-2 rounded-xl bg-[#074738] text-white text-xs font-bold disabled:opacity-60">
+                                    {savingNoteByEvent[item.event.id] ? "..." : "Agregar"}
+                                  </button>
+                                </div>
+                              ) : (
+                                <p className="text-[11px] text-slate-400">Solo el tutor principal o un editor puede agregar notas clínicas.</p>
+                              )}
                             </div>
                           </div>
                         )}

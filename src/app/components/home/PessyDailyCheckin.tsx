@@ -11,15 +11,22 @@
  */
 
 import { useState, useEffect } from "react";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { useAuth } from "../../contexts/AuthContext";
+import { useMedical } from "../../contexts/MedicalContext";
+import type { PendingAction } from "../../types/medical";
 import { addPoints } from "../../utils/gamification";
+import { cleanText } from "../../utils/cleanText";
 import { MaterialIcon } from "../shared/MaterialIcon";
+import { CorkMascot } from "../shared/CorkMascot";
 
 interface Med {
   name: string;
   dosage: string;
+  frequency?: string;
+  startDate?: string;
+  endDate?: string | null;
 }
 
 interface ApptInfo {
@@ -34,35 +41,8 @@ interface Props {
   species?: "dog" | "cat";
   medications: Med[];
   nextAppointment: ApptInfo | null;
+  pendingActions: PendingAction[];
   onPointsEarned?: (total: number) => void;
-}
-
-// Cork — dog mascot (teal) with animated ears + tail
-function CorkMascot({ size = 40 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 60 72" width={size} height={size * 1.2} style={{ display: "block", overflow: "visible" }}>
-      <style>{`
-        .cork-ear-r { transform-box: fill-box; transform-origin: bottom center; transform: rotate(18deg); animation: corkEarWiggle 2.8s ease-in-out infinite; }
-        .cork-ear-l { transform-box: fill-box; transform-origin: bottom center; transform: rotate(-18deg); animation: corkEarWiggle 2.8s ease-in-out infinite 0.3s; }
-        .cork-tail  { transform-box: fill-box; transform-origin: 0% 100%; animation: corkTailWag 1.4s ease-in-out infinite; }
-        @keyframes corkEarWiggle { 0%,100% { transform: rotate(18deg); } 50% { transform: rotate(24deg); } }
-        @keyframes corkTailWag   { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(22deg); } 75% { transform: rotate(-14deg); } }
-      `}</style>
-      <ellipse cx="30" cy="56" rx="15" ry="11" fill="#d4ede8" stroke="#074738" strokeWidth="1.5" />
-      <path className="cork-tail" d="M44 52 Q54 43 51 36" stroke="#1A9B7D" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-      <circle cx="30" cy="30" r="14" fill="#d4ede8" stroke="#074738" strokeWidth="1.5" />
-      <ellipse className="cork-ear-l" cx="18" cy="18" rx="5.5" ry="9" fill="#1A9B7D" stroke="#074738" strokeWidth="1.5" />
-      <ellipse className="cork-ear-r" cx="42" cy="18" rx="5.5" ry="9" fill="#1A9B7D" stroke="#074738" strokeWidth="1.5" />
-      <circle cx="25" cy="28" r="2.5" fill="#074738" />
-      <circle cx="35" cy="28" r="2.5" fill="#074738" />
-      <circle cx="25.8" cy="27" r="1" fill="white" />
-      <circle cx="35.8" cy="27" r="1" fill="white" />
-      <ellipse cx="30" cy="35" rx="4" ry="3" fill="#074738" />
-      <path d="M24 38 Q30 44 36 38" stroke="#074738" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-      <rect x="22" y="60" width="6" height="8" rx="3" fill="#d4ede8" stroke="#074738" strokeWidth="1.5" />
-      <rect x="32" y="60" width="6" height="8" rx="3" fill="#d4ede8" stroke="#074738" strokeWidth="1.5" />
-    </svg>
-  );
 }
 
 // Fizz — cat mascot (warm peach/orange) with animated tail
@@ -113,17 +93,59 @@ function daysUntil(appt: ApptInfo): number {
   return Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
 }
 
-type Kind = "medication" | "appointment" | "mood";
+type Kind = "medication" | "appointment" | "pending" | "mood";
 
 interface Context {
   kind: Kind;
   headline: string;
   subtext: string;
+  medName?: string;
   medLabel?: string;
   apptDays?: number;
+  pendingActionId?: string;
+  pendingActionType?: PendingAction["type"];
 }
 
-function buildContext(petName: string, medications: Med[], nextAppointment: ApptInfo | null): Context {
+function parseFrequencyHours(value?: string | null): number | null {
+  if (!value) return null;
+  const normalized = value
+    .toLowerCase()
+    .replace(",", ".")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const eachMatch =
+    normalized.match(/(?:cada|c\/|q)\s*(\d+(?:\.\d+)?)\s*(?:h|hs|hora|horas)\b/) ||
+    normalized.match(/\b(\d+(?:\.\d+)?)\s*(?:h|hs|hora|horas)\b/);
+
+  if (eachMatch) {
+    const hours = Number(eachMatch[1]);
+    return Number.isFinite(hours) && hours > 0 ? hours : null;
+  }
+
+  const dailyMatch = normalized.match(/(\d+)\s*veces?\s*al\s*d[ií]a/);
+  if (dailyMatch) {
+    const times = Number(dailyMatch[1]);
+    return Number.isFinite(times) && times > 0 ? Math.round(24 / times) : null;
+  }
+
+  if (/diario|diaria|cada\s+24\s*h/.test(normalized)) return 24;
+  return null;
+}
+
+function computeNextDoseIso(frequency?: string | null): string | null {
+  const hours = parseFrequencyHours(frequency);
+  if (!hours) return null;
+  return new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+}
+
+function getProactivePendingAction(pendingActions: PendingAction[]): PendingAction | null {
+  return pendingActions.find((action) =>
+    action.type === "vaccine_due" || action.type === "follow_up" || action.type === "checkup_due"
+  ) ?? null;
+}
+
+function buildContext(petName: string, medications: Med[], nextAppointment: ApptInfo | null, pendingActions: PendingAction[]): Context {
   // Priority 1: active medication → ask if taken today
   if (medications.length > 0) {
     const med = medications[0];
@@ -131,7 +153,8 @@ function buildContext(petName: string, medications: Med[], nextAppointment: Appt
     return {
       kind: "medication",
       headline: `¿Ya tomó ${med.name} hoy?`,
-      subtext: `${petName} tiene tratamiento activo. Registrar la dosis mantiene el historial al día.`,
+      subtext: `Cuando la confirmás acá, también actualizamos el seguimiento del tratamiento.`,
+      medName: med.name,
       medLabel,
     };
   }
@@ -154,6 +177,27 @@ function buildContext(petName: string, medications: Med[], nextAppointment: Appt
     }
   }
 
+  const pendingAction = getProactivePendingAction(pendingActions);
+  if (pendingAction) {
+    const dueDateLabel = pendingAction.dueDate
+      ? new Date(pendingAction.dueDate).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "short" })
+      : null;
+    const headline =
+      pendingAction.type === "vaccine_due"
+        ? `Vacuna pendiente para ${petName}`
+        : pendingAction.type === "follow_up"
+          ? `Seguimiento pendiente de ${petName}`
+          : `Control pendiente para ${petName}`;
+    const summary = pendingAction.subtitle || pendingAction.title;
+    return {
+      kind: "pending",
+      headline,
+      subtext: dueDateLabel ? `${summary}. Vence ${dueDateLabel}. ¿Cómo está hoy?` : `${summary}. ¿Cómo está hoy?`,
+      pendingActionId: pendingAction.id,
+      pendingActionType: pendingAction.type,
+    };
+  }
+
   // Default: quick mood check
   return {
     kind: "mood",
@@ -168,19 +212,46 @@ const MOODS = [
   { emoji: "😟", label: "No tan bien", value: "mal" },
 ];
 
-export default function PessyDailyCheckin({ petName, petId, species, medications, nextAppointment, onPointsEarned }: Props) {
+export default function PessyDailyCheckin({ petName, petId, species, medications, nextAppointment, pendingActions, onPointsEarned }: Props) {
   const { user } = useAuth();
+  const { getActiveMedicationsByPetId, updateMedication } = useMedical();
   const [expanded, setExpanded] = useState(false);
-  const [done, setDone] = useState(false);
+  const [completedToday, setCompletedToday] = useState(false);
   const [saving, setSaving] = useState(false);
   const [celebrating, setCelebrating] = useState<"yes" | "no" | null>(null);
 
-  const ctx = buildContext(petName, medications, nextAppointment);
+  const ctx = buildContext(petName, medications, nextAppointment, pendingActions);
+
+  useEffect(() => {
+    let cancelled = false;
+    setExpanded(false);
+    setCompletedToday(false);
+
+    const loadTodayCheckin = async () => {
+      if (!user || !petId) return;
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        const ref = doc(db, "users", user.uid, "pets", petId, "dailyCheckins", today);
+        const snapshot = await getDoc(ref);
+        if (!cancelled && snapshot.exists()) {
+          setCompletedToday(true);
+        }
+      } catch (e) {
+        console.error("[PessyDailyCheckin] loadTodayCheckin", e);
+      }
+    };
+
+    void loadTodayCheckin();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.uid, petId]);
 
   // Auto-dismiss celebration → done
   useEffect(() => {
     if (!celebrating) return;
-    const t = setTimeout(() => { setCelebrating(null); setDone(true); }, celebrating === "yes" ? 2200 : 1400);
+    const t = setTimeout(() => { setCelebrating(null); setCompletedToday(true); }, celebrating === "yes" ? 2200 : 1400);
     return () => clearTimeout(t);
   }, [celebrating]);
 
@@ -191,8 +262,10 @@ export default function PessyDailyCheckin({ petName, petId, species, medications
       const today = new Date().toISOString().slice(0, 10);
       const ref = doc(db, "users", user.uid, "pets", petId, "dailyCheckins", today);
       await setDoc(ref, { date: today, petId, ...payload, createdAt: new Date().toISOString() });
-      const total = addPoints(pts);
-      onPointsEarned?.(total);
+      if (pts > 0) {
+        const total = addPoints(pts);
+        onPointsEarned?.(total);
+      }
     } catch (e) {
       console.error("[PessyDailyCheckin]", e);
       setCelebrating(null);
@@ -201,9 +274,42 @@ export default function PessyDailyCheckin({ petName, petId, species, medications
     }
   };
 
+  const syncCanonicalMedication = async () => {
+    if (!petId || !ctx.medName) return;
+
+    const normalizedTarget = cleanText(ctx.medName).toLowerCase();
+    if (!normalizedTarget) return;
+
+    const linkedMedication = getActiveMedicationsByPetId(petId).find((medication) => {
+      if (!medication.active) return false;
+      return cleanText(medication.name).toLowerCase() === normalizedTarget;
+    });
+
+    if (!linkedMedication) return;
+
+    const nowIso = new Date().toISOString();
+    await updateMedication(linkedMedication.id, {
+      lastDoseAt: nowIso,
+      nextDoseAt: computeNextDoseIso(linkedMedication.frequency),
+    });
+  };
+
   const handleMedResponse = (taken: boolean) => {
     setCelebrating(taken ? "yes" : "no");
-    void save({ kind: "medication", medName: ctx.medLabel, takenToday: taken }, taken ? 20 : 5);
+    void (async () => {
+      if (taken) {
+        try {
+          await syncCanonicalMedication();
+        } catch (error) {
+          console.error("[PessyDailyCheckin] syncCanonicalMedication", error);
+        }
+      }
+
+      await save(
+        { kind: "medication", medName: ctx.medLabel, takenToday: taken },
+        taken ? 20 : 0
+      );
+    })();
   };
 
   // ── Celebrating — stars + bouncing Cork ─────────────────────────────────────
@@ -228,27 +334,20 @@ export default function PessyDailyCheckin({ petName, petId, species, medications
           </div>
           <div>
             <p className={`text-sm font-bold ${isYes ? "text-white" : "text-slate-700"}`}>
-              {isYes ? `¡Genial! ${petName} está al día 🌟` : "Sin problema, te recuerdo más tarde 🐾"}
+              {isYes ? "Listo, registré la dosis de hoy." : "Entendido, la dejamos pendiente por hoy."}
             </p>
-            {isYes && <p className="text-white/60 text-xs mt-0.5 font-medium">+20 pts ganados</p>}
+            <p className={`text-xs mt-0.5 font-medium ${isYes ? "text-white/70" : "text-slate-500"}`}>
+              {isYes ? "También quedó actualizada en tratamientos." : "Mañana volvemos a preguntarlo."}
+            </p>
           </div>
         </div>
       </div>
     );
   }
 
-  // ── Confirmed ────────────────────────────────────────────────────────────────
-  if (done) {
-    return (
-      <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4 flex items-center gap-3"
-        style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
-        <PetMascot species={species} size={40} />
-        <div>
-          <p className="text-sm font-bold text-[#074738]">¡Listo! Anotado ✓</p>
-          <p className="text-xs text-slate-500 mt-0.5">Mañana vuelvo a preguntar 🐾</p>
-        </div>
-      </div>
-    );
+  // ── Completed for today — hide card until tomorrow ──────────────────────────
+  if (completedToday) {
+    return null;
   }
 
   // ── Collapsed ────────────────────────────────────────────────────────────────
@@ -271,7 +370,7 @@ export default function PessyDailyCheckin({ petName, petId, species, medications
             )}
             <p className="text-sm font-bold text-slate-800 leading-snug">{ctx.headline}</p>
             <p className="text-xs text-[#1A9B7D] font-bold mt-2 flex items-center gap-1">
-              <MaterialIcon name="touch_app" className="!text-[13px]" />
+              <MaterialIcon name="check_circle" className="!text-[13px]" />
               Responder
             </p>
           </div>
@@ -305,7 +404,6 @@ export default function PessyDailyCheckin({ petName, petId, species, medications
                 className="flex-1 py-4 rounded-2xl bg-[#074738] text-white font-bold text-sm disabled:opacity-60 active:scale-[0.98] transition-transform"
               >
                 ✓ Sí, ya la tomó
-                <span className="block text-[10px] text-white/70 font-normal mt-0.5">+20 pts</span>
               </button>
               <button
                 onClick={() => handleMedResponse(false)}
@@ -313,21 +411,20 @@ export default function PessyDailyCheckin({ petName, petId, species, medications
                 className="flex-1 py-4 rounded-2xl border-2 border-slate-200 text-slate-600 font-bold text-sm disabled:opacity-60 active:scale-[0.98] transition-transform"
               >
                 Todavía no
-                <span className="block text-[10px] text-slate-400 font-normal mt-0.5">+5 pts igual</span>
               </button>
             </div>
           </>
         )}
 
         {/* Appointment or mood: emoji picker — 1 tap done */}
-        {(ctx.kind === "appointment" || ctx.kind === "mood") && (
+        {(ctx.kind === "appointment" || ctx.kind === "pending" || ctx.kind === "mood") && (
           <>
             <p className="text-xs text-slate-500 mb-3">{ctx.subtext}</p>
             <div className="flex gap-2">
               {MOODS.map((m) => (
                 <button
                   key={m.value}
-                  onClick={() => save({ kind: ctx.kind, mood: m.value }, 10)}
+                  onClick={() => save({ kind: ctx.kind, mood: m.value, pendingActionId: ctx.pendingActionId, pendingActionType: ctx.pendingActionType }, 10)}
                   disabled={saving}
                   className="flex-1 py-3 rounded-2xl border-2 border-slate-200 flex flex-col items-center gap-1 disabled:opacity-60 active:scale-[0.97] transition-transform"
                 >

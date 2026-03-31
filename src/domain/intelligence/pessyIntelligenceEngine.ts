@@ -1,6 +1,7 @@
 import { TRAINING_MASTER_BOOK, type TrainingSegmentId } from "../training/training_master_book";
 import {
   WELLBEING_MASTER_BOOK,
+  type DailySuggestion,
   type ThermalSafetyProfile,
   type WellbeingSpeciesGroupId,
 } from "../wellbeing/wellbeingMasterBook";
@@ -61,6 +62,38 @@ function findThermalProfile(input: PessyIntelligenceInput): ThermalSafetyProfile
   }
 
   return WELLBEING_MASTER_BOOK.thermal_safety.groups.find((group) => group.id === "dog.general") ?? null;
+}
+
+function getOrderedSuggestionGroupIds(
+  groupIds: WellbeingSpeciesGroupId[],
+  species: PessyIntelligenceInput["species"]
+): WellbeingSpeciesGroupId[] {
+  const fallbackId = species === "cat" ? "cat.general" : "dog.general";
+  const ordered = groupIds.filter((groupId, index) => groupIds.indexOf(groupId) === index);
+  const specific = ordered.filter((groupId) => groupId !== fallbackId);
+  return specific.length > 0 ? [...specific, fallbackId] : [fallbackId];
+}
+
+function collectSuggestionsForGroups(
+  groupIds: WellbeingSpeciesGroupId[],
+  species: PessyIntelligenceInput["species"],
+  predicate: (suggestion: DailySuggestion) => boolean
+): DailySuggestion[] {
+  const orderedGroupIds = getOrderedSuggestionGroupIds(groupIds, species);
+  const suggestions: DailySuggestion[] = [];
+  const seen = new Set<string>();
+
+  orderedGroupIds.forEach((groupId) => {
+    WELLBEING_MASTER_BOOK.daily_suggestions.forEach((suggestion) => {
+      if (suggestion.groupId !== groupId || !predicate(suggestion) || seen.has(suggestion.id)) {
+        return;
+      }
+      seen.add(suggestion.id);
+      suggestions.push(suggestion);
+    });
+  });
+
+  return suggestions;
 }
 
 export function inferTrainingSegmentId(input: PessyIntelligenceInput): TrainingSegmentId | null {
@@ -249,22 +282,6 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
     });
   }
 
-  if (input.species === "dog") {
-    const foodRule = WELLBEING_MASTER_BOOK.food_safety.prohibited.find((item) => item.id === "spoiled_food");
-    if (foodRule) {
-      recommendations.push({
-        id: `${input.petName}_kitchen`,
-        code: "kitchen_trash_check",
-        title: "Chequeo de cocina y basura",
-        detail: `${foodRule.label}: ${foodRule.danger}. ${foodRule.action}.`,
-        slot: "Casa",
-        icon: "kitchen",
-        kind: foodRule.guardrailType === "block" ? "block" : "alert",
-        sourceModule: "food_safety",
-      });
-    }
-  }
-
   // ─── MODULE: Rain & Storm ─────────────────────────────────────────────────
   if (input.isRaining || input.isStormy) {
     const hasThunderFear = (input.fears || []).some((f) =>
@@ -285,15 +302,20 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
     }
 
     if (input.isRaining) {
-      // Find indoor activities for current breed group
-      let groupId = input.groupIds[0] || "dog.companion";
-      // Fallback: no master book entries exist for these generic groupIds
-      if (groupId === "dog.general") groupId = "dog.companion";
-      if (groupId === "cat.brachycephalic") groupId = "cat.general";
-      const indoorSuggestions = WELLBEING_MASTER_BOOK.daily_suggestions.filter(
-        (s) => s.groupId === groupId && s.category === "indoor"
+      const indoorSuggestions = collectSuggestionsForGroups(
+        input.groupIds,
+        input.species,
+        (suggestion) => suggestion.category === "indoor"
       );
-      const pick = indoorSuggestions.length > 0 ? indoorSuggestions[0] : null;
+      const indoorFallbackSuggestions =
+        indoorSuggestions.length > 0
+          ? []
+          : collectSuggestionsForGroups(
+              input.groupIds,
+              input.species,
+              (suggestion) => suggestion.category !== "outdoor" && suggestion.category !== "social"
+            );
+      const pick = indoorSuggestions[0] ?? indoorFallbackSuggestions[0] ?? null;
 
       recommendations.push({
         id: `${input.petName}_rain_indoor`,
@@ -311,7 +333,6 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
   // ─── MODULE: Time-of-day recommendations ──────────────────────────────────
   if (input.currentHour !== undefined) {
     const hour = input.currentHour;
-    const groupId = input.groupIds[0] || "dog.companion";
 
     if (hour >= 21 || hour < 6) {
       // Night — calm routines
@@ -414,16 +435,14 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
 
   // ─── MODULE: Daily activity suggestion (personalized) ─────────────────────
   {
-    let groupId = input.groupIds[0] || "dog.companion";
-    // Fallback: no master book entries exist for these generic groupIds
-    if (groupId === "dog.general") groupId = "dog.companion";
-    if (groupId === "cat.brachycephalic") groupId = "cat.general";
     const weatherCondition = (input.isRaining || (input.temperatureC !== null && thermalProfile && input.temperatureC > (thermalProfile.avoidExerciseAboveC ?? 999)))
       ? "blocked"
       : "safe";
 
-    const eligible = WELLBEING_MASTER_BOOK.daily_suggestions.filter(
-      (s) => s.groupId === groupId && (s.weatherCondition === weatherCondition || s.weatherCondition === "any")
+    const eligible = collectSuggestionsForGroups(
+      input.groupIds,
+      input.species,
+      (suggestion) => suggestion.weatherCondition === weatherCondition || suggestion.weatherCondition === "any"
     );
 
     // Prefer activities matching pet's favorites

@@ -25,6 +25,7 @@ const ALLOWED_HOSTS = new Set([
   "pessy-qa-app.web.app",
   "pessy-focus-qa.web.app",
   "itpessy.web.app",
+  "pessy-app-subdomain.web.app",
   "localhost",
 ]);
 

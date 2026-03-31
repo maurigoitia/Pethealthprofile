@@ -12,65 +12,7 @@ import { useState } from "react";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { useAuth } from "../../contexts/AuthContext";
-
-// ─── Animated Cork (dog) ───────────────────────────────────────────────────
-
-function AnimatedCork({ size = 56 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 60 72" width={size} height={size * 1.2} style={{ display: "block", overflow: "visible" }}>
-      <style>{`
-        .cork-ear-r {
-          transform-box: fill-box;
-          transform-origin: bottom center;
-          transform: rotate(18deg);
-          animation: corkEarWiggle 2.8s ease-in-out infinite;
-        }
-        .cork-ear-l {
-          transform-box: fill-box;
-          transform-origin: bottom center;
-          transform: rotate(-18deg);
-          animation: corkEarWiggle 2.8s ease-in-out infinite 0.3s;
-        }
-        .cork-tail {
-          transform-box: fill-box;
-          transform-origin: 0% 100%;
-          animation: corkTailWag 1.4s ease-in-out infinite;
-        }
-        @keyframes corkEarWiggle {
-          0%, 100% { transform: rotate(18deg); }
-          50% { transform: rotate(24deg); }
-        }
-        @keyframes corkTailWag {
-          0%, 100% { transform: rotate(0deg); }
-          25% { transform: rotate(22deg); }
-          75% { transform: rotate(-14deg); }
-        }
-      `}</style>
-      {/* Body */}
-      <ellipse cx="30" cy="56" rx="15" ry="11" fill="#d4ede8" stroke="#074738" strokeWidth="1.5" />
-      {/* Tail */}
-      <path className="cork-tail" d="M44 52 Q54 43 51 36" stroke="#1A9B7D" strokeWidth="3.5" fill="none" strokeLinecap="round" />
-      {/* Head */}
-      <circle cx="30" cy="30" r="14" fill="#d4ede8" stroke="#074738" strokeWidth="1.5" />
-      {/* Left ear */}
-      <ellipse className="cork-ear-l" cx="18" cy="18" rx="5.5" ry="9" fill="#1A9B7D" stroke="#074738" strokeWidth="1.5" />
-      {/* Right ear */}
-      <ellipse className="cork-ear-r" cx="42" cy="18" rx="5.5" ry="9" fill="#1A9B7D" stroke="#074738" strokeWidth="1.5" />
-      {/* Eyes */}
-      <circle cx="25" cy="28" r="2.5" fill="#074738" />
-      <circle cx="35" cy="28" r="2.5" fill="#074738" />
-      <circle cx="25.8" cy="27" r="1" fill="white" />
-      <circle cx="35.8" cy="27" r="1" fill="white" />
-      {/* Nose */}
-      <ellipse cx="30" cy="35" rx="4" ry="3" fill="#074738" />
-      {/* Smile */}
-      <path d="M24 38 Q30 44 36 38" stroke="#074738" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-      {/* Legs */}
-      <rect x="22" y="60" width="6" height="8" rx="3" fill="#d4ede8" stroke="#074738" strokeWidth="1.5" />
-      <rect x="32" y="60" width="6" height="8" rx="3" fill="#d4ede8" stroke="#074738" strokeWidth="1.5" />
-    </svg>
-  );
-}
+import { CorkMascot } from "../shared/CorkMascot";
 
 // ─── Animated Fizz (cat) ──────────────────────────────────────────────────
 
@@ -191,7 +133,7 @@ export default function PersonalityOnboarding({ petName, petId, species, onCompl
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  const Mascot = species === "cat" ? AnimatedFizz : AnimatedCork;
+  const Mascot = species === "cat" ? AnimatedFizz : CorkMascot;
   const totalQuestions = ONBOARDING_QUESTIONS.length;
   const questionStep = step - 1; // 0-indexed question index
 

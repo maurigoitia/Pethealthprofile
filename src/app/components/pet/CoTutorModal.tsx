@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { usePet, CoTutor } from "../../contexts/PetContext";
+import { usePet, CoTutor, SharedPetAccessRole } from "../../contexts/PetContext";
 import { buildCoTutorReferralUrl } from "../../utils/coTutorInvite";
 
 interface CoTutorModalProps {
@@ -10,7 +10,7 @@ interface CoTutorModalProps {
 }
 
 export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
-  const { activePet, activePetId, generateInviteCode, sendCoTutorInviteEmail, joinWithCode, removeCoTutor, leaveAsTutor, isOwner } = usePet();
+  const { activePet, activePetId, generateInviteCode, sendCoTutorInviteEmail, joinWithCode, removeCoTutor, leaveAsTutor, isOwner, getPetAccessLevel } = usePet();
 
   const [tab, setTab] = useState<"manage" | "join">("manage");
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
@@ -18,6 +18,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
   const [loadingCode, setLoadingCode] = useState(false);
   const [loadingJoin, setLoadingJoin] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteAccessRole, setInviteAccessRole] = useState<SharedPetAccessRole>("editor");
   const [loadingEmailInvite, setLoadingEmailInvite] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -25,6 +26,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
   const [copiedLink, setCopiedLink] = useState(false);
 
   const owner = activePet ? isOwner(activePet) : false;
+  const accessLevel = activePet ? getPetAccessLevel(activePet) : "none";
   const coTutors: CoTutor[] = activePet?.coTutors || [];
 
   const handleGenerateCode = async () => {
@@ -32,7 +34,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
     setLoadingCode(true);
     setError("");
     try {
-      const code = await generateInviteCode(activePetId);
+      const code = await generateInviteCode(activePetId, undefined, inviteAccessRole);
       setGeneratedCode(code);
     } catch (e: any) {
       setError(e.message || "Error generando código");
@@ -62,7 +64,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
     setSuccess("");
     try {
       const { petName } = await joinWithCode(joinCode);
-      setSuccess(`¡Te uniste como co-tutor de ${petName}!`);
+      setSuccess(`¡Ya tenés acceso a ${petName}!`);
       setJoinCode("");
     } catch (e: any) {
       setError(e.message || "Error al unirse");
@@ -78,12 +80,12 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
     setError("");
     setSuccess("");
     try {
-      const { code, emailSent } = await sendCoTutorInviteEmail(activePetId, inviteEmail);
+      const { code, emailSent } = await sendCoTutorInviteEmail(activePetId, inviteEmail, inviteAccessRole);
       setGeneratedCode(code);
       if (emailSent === false) {
         setSuccess(`Código generado pero no se pudo enviar el email. Compartí el código o link manualmente.`);
       } else {
-        setSuccess(`Invitación enviada a ${inviteEmail.trim().toLowerCase()}. Revisá el correo del co-tutor.`);
+        setSuccess(`Invitación enviada a ${inviteEmail.trim().toLowerCase()}. Va a entrar como ${inviteAccessRole === "viewer" ? "guardián temporal" : "co-tutor editor"}.`);
       }
       setInviteEmail("");
     } catch (e: any) {
@@ -170,8 +172,28 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                   {owner ? (
                     <>
                       <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4">
-                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Invitar co-tutor</p>
-                        <p className="text-xs text-slate-500 mb-3">Enviá magic link por email o compartí código manual de 6 caracteres válido por 48 horas.</p>
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Invitar acceso compartido</p>
+                        <p className="text-xs text-slate-500 mb-3">Elegí si entra como co-tutor editor o como guardián temporal de solo lectura.</p>
+                        <div className="grid grid-cols-2 gap-2 mb-3">
+                          {([
+                            { value: "editor", title: "Co-tutor editor", subtitle: "Ve y edita" },
+                            { value: "viewer", title: "Guardián temporal", subtitle: "Solo ve" },
+                          ] as const).map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setInviteAccessRole(option.value)}
+                              className={`rounded-xl border px-3 py-3 text-left transition-colors ${
+                                inviteAccessRole === option.value
+                                  ? "border-[#074738] bg-[#074738]/8"
+                                  : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+                              }`}
+                            >
+                              <p className="text-xs font-bold text-slate-900 dark:text-white">{option.title}</p>
+                              <p className="text-[11px] text-slate-500 mt-1">{option.subtitle}</p>
+                            </button>
+                          ))}
+                        </div>
                         <div className="flex gap-2 mb-3">
                           <input
                             type="email"
@@ -246,7 +268,12 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                                   <MaterialIcon name="person" className="text-[#074738] text-lg" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-bold text-sm text-slate-900 dark:text-white truncate">{ct.name || ct.email || ct.uid}</p>
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <p className="font-bold text-sm text-slate-900 dark:text-white truncate">{ct.name || ct.email || ct.uid}</p>
+                                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${ct.role === "viewer" ? "bg-slate-100 text-slate-600" : "bg-emerald-50 text-emerald-700"}`}>
+                                      {ct.role === "viewer" ? "Guardián" : "Editor"}
+                                    </span>
+                                  </div>
                                   {ct.email && ct.name && <p className="text-xs text-slate-500 truncate">{ct.email}</p>}
                                 </div>
                                 <button onClick={() => handleRemove(ct.uid, ct.name || ct.email || "este usuario")}
@@ -262,11 +289,13 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                   ) : (
                     <div className="space-y-3">
                       <p className="text-sm text-slate-600 dark:text-slate-400">
-                        Sos co-tutor de <strong>{activePet?.name}</strong>. Podés subir documentos, editar datos y agregar citas.
+                        {accessLevel === "viewer"
+                          ? <>Tenés acceso como <strong>guardián temporal</strong> de <strong>{activePet?.name}</strong>. Podés ver la información, pero no editarla.</>
+                          : <>Sos <strong>co-tutor editor</strong> de <strong>{activePet?.name}</strong>. Podés cargar documentos, editar datos y agregar citas.</>}
                       </p>
                       <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 rounded-xl text-xs text-amber-800 dark:text-amber-300">
                         <MaterialIcon name="info" className="text-sm inline mr-1 align-text-bottom" />
-                        Solo el dueño puede gestionar otros co-tutores o eliminar la mascota.
+                        Solo el dueño puede gestionar otros accesos o eliminar la mascota.
                       </div>
                       <button onClick={handleLeave}
                         className="w-full py-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 text-red-600 font-bold text-sm">
@@ -294,7 +323,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                       {loadingJoin
                         ? <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         : <MaterialIcon name="group_add" className="text-lg" />}
-                      Unirme como co-tutor
+                      Unirme a la mascota
                     </button>
                   </div>
                 </div>

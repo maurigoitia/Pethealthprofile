@@ -921,15 +921,22 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       return;
     }
     const q = query(collection(db, "medical_events"), where("petId", "==", activePet.id));
-    return onSnapshot(q, (snapshot) => {
-      // Filtrar soft-deleted en el listener para que nunca lleguen al estado.
-      // Sin esto, componentes que usen `events` directo ven fantasmas.
-      setEvents(
-        snapshot.docs
-          .map(d => ({ id: d.id, ...d.data() } as MedicalEvent))
-          .filter(e => !e.deletedAt)
-      );
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        // Filtrar soft-deleted en el listener para que nunca lleguen al estado.
+        // Sin esto, componentes que usen `events` directo ven fantasmas.
+        setEvents(
+          snapshot.docs
+            .map(d => ({ id: d.id, ...d.data() } as MedicalEvent))
+            .filter(e => !e.deletedAt)
+        );
+      },
+      (error) => {
+        console.warn("[MedicalContext] medical_events unavailable", error);
+        setEvents([]);
+      },
+    );
   }, [activePet]);
 
   // 2. Sync Pending Actions
@@ -939,9 +946,16 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       return;
     }
     const q = query(collection(db, "pending_actions"), where("petId", "==", activePet.id));
-    return onSnapshot(q, (snapshot) => {
-      setPendingActions(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as PendingAction)));
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        setPendingActions(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as PendingAction)));
+      },
+      (error) => {
+        console.warn("[MedicalContext] pending_actions unavailable", error);
+        setPendingActions([]);
+      },
+    );
   }, [activePet]);
 
   // 3. Sync Medications
@@ -951,9 +965,16 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       return;
     }
     const q = query(collection(db, "treatments"), where("petId", "==", activePet.id), where("subtype", "==", "medication"));
-    return onSnapshot(q, (snapshot) => {
-      setActiveMedications(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ActiveMedication)));
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        setActiveMedications(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ActiveMedication)));
+      },
+      (error) => {
+        console.warn("[MedicalContext] treatments.medication unavailable", error);
+        setActiveMedications([]);
+      },
+    );
   }, [activePet]);
 
   // 4. Sync Appointments
@@ -963,9 +984,16 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       return;
     }
     const q = query(collection(db, "appointments"), where("petId", "==", activePet.id));
-    return onSnapshot(q, (snapshot) => {
-      setAppointments(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Appointment)));
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        setAppointments(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Appointment)));
+      },
+      (error) => {
+        console.warn("[MedicalContext] appointments unavailable", error);
+        setAppointments([]);
+      },
+    );
   }, [activePet]);
 
   // 5. Sync Clinical Conditions
@@ -975,9 +1003,16 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       return;
     }
     const q = query(collection(db, "clinical_conditions"), where("petId", "==", activePet.id));
-    return onSnapshot(q, (snapshot) => {
-      setClinicalConditions(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as ClinicalCondition)));
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        setClinicalConditions(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as ClinicalCondition)));
+      },
+      (error) => {
+        console.warn("[MedicalContext] clinical_conditions unavailable", error);
+        setClinicalConditions([]);
+      },
+    );
   }, [activePet]);
 
   // 6. Sync Clinical Alerts
@@ -987,9 +1022,16 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       return;
     }
     const q = query(collection(db, "clinical_alerts"), where("petId", "==", activePet.id));
-    return onSnapshot(q, (snapshot) => {
-      setClinicalAlerts(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as ClinicalAlert)));
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        setClinicalAlerts(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as ClinicalAlert)));
+      },
+      (error) => {
+        console.warn("[MedicalContext] clinical_alerts unavailable", error);
+        setClinicalAlerts([]);
+      },
+    );
   }, [activePet]);
 
   // 7. Sync Consolidated Treatments
@@ -999,9 +1041,16 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       return;
     }
     const q = query(collection(db, "treatments"), where("petId", "==", activePet.id));
-    return onSnapshot(q, (snapshot) => {
-      setConsolidatedTreatments(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as TreatmentEntity)));
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        setConsolidatedTreatments(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as TreatmentEntity)));
+      },
+      (error) => {
+        console.warn("[MedicalContext] treatments unavailable", error);
+        setConsolidatedTreatments([]);
+      },
+    );
   }, [activePet]);
 
   // ─── Suscripciones episódicas (solo con flag experimental) ───────────────────
@@ -1015,12 +1064,19 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       where("petId", "==", activePet.id),
       where("userId", "==", user.uid),
     );
-    return onSnapshot(q, (snapshot) => {
-      const episodes = snapshot.docs
-        .map((d) => ({ id: d.id, ...d.data() } as ClinicalEpisode))
-        .filter((ep) => ep.status !== "needs_clean_upload" && ep.confidence >= 0.75);
-      setClinicalEpisodes(episodes);
-    });
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const episodes = snapshot.docs
+          .map((d) => ({ id: d.id, ...d.data() } as ClinicalEpisode))
+          .filter((ep) => ep.status !== "needs_clean_upload" && ep.confidence >= 0.75);
+        setClinicalEpisodes(episodes);
+      },
+      (error) => {
+        console.warn("[MedicalContext] clinical_episodes unavailable", error);
+        setClinicalEpisodes([]);
+      },
+    );
   }, [activePet, user?.uid]);
 
   useEffect(() => {
@@ -1033,17 +1089,24 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       where("petId", "==", activePet.id),
       where("userId", "==", user.uid),
     );
-    return onSnapshot(q, (snapshot) => {
-      if (snapshot.empty) {
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        if (snapshot.empty) {
+          setClinicalProfileSnapshot(null);
+          return;
+        }
+        // Tomar el snapshot más reciente
+        const sorted = snapshot.docs
+          .map((d) => ({ id: d.id, ...d.data() } as ClinicalProfileSnapshot))
+          .sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
+        setClinicalProfileSnapshot(sorted[0] ?? null);
+      },
+      (error) => {
+        console.warn("[MedicalContext] clinical_profile_snapshots unavailable", error);
         setClinicalProfileSnapshot(null);
-        return;
-      }
-      // Tomar el snapshot más reciente
-      const sorted = snapshot.docs
-        .map((d) => ({ id: d.id, ...d.data() } as ClinicalProfileSnapshot))
-        .sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime());
-      setClinicalProfileSnapshot(sorted[0] ?? null);
-    });
+      },
+    );
   }, [activePet, user?.uid]);
 
 

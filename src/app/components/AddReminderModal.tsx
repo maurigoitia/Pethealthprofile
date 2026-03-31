@@ -8,6 +8,7 @@ import { ReminderType, ReminderRepeat } from "../types/medical";
 interface AddReminderModalProps {
   isOpen: boolean;
   onClose: () => void;
+  readOnly?: boolean;
 }
 
 const TYPE_OPTIONS: { id: ReminderType; icon: string; label: string; color: string; bg: string }[] = [
@@ -27,9 +28,11 @@ const REPEAT_OPTIONS: { id: ReminderRepeat; label: string }[] = [
   { id: "yearly",  label: "Anual" },
 ];
 
-export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
+export function AddReminderModal({ isOpen, onClose, readOnly = false }: AddReminderModalProps) {
   const { addReminder } = useReminders();
-  const { activePet } = usePet();
+  const { activePet, canEditPet } = usePet();
+  const canEditActivePet = canEditPet(activePet);
+  const isReadOnly = readOnly || !canEditActivePet;
 
   const [type, setType] = useState<ReminderType>("vaccine");
   const [title, setTitle] = useState("");
@@ -57,7 +60,7 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
   const handleClose = () => { resetForm(); onClose(); };
 
   const handleSave = async () => {
-    if (!activePet) return;
+    if (!activePet || isReadOnly) return;
     if (!title.trim()) { setError("Agregá un título"); return; }
     if (!dueDate) { setError("Elegí una fecha"); return; }
 
@@ -129,18 +132,26 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+          {isReadOnly && (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <p className="text-sm font-bold text-slate-700">Acceso de guardián temporal</p>
+              <p className="mt-1 text-xs text-slate-500">Podés ver los recordatorios, pero no crear ni modificar nuevos.</p>
+            </div>
+          )}
           {/* Tipo */}
           <div>
             <p className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">Tipo</p>
             <div className="grid grid-cols-3 gap-2">
               {TYPE_OPTIONS.map(opt => (
                 <button key={opt.id}
+                  type="button"
                   onClick={() => { setType(opt.id); suggestDate(opt.id); }}
+                  disabled={isReadOnly}
                   className={`p-3 rounded-2xl border-2 flex flex-col items-center gap-1.5 transition-all ${
                     type === opt.id
                       ? `border-current ${opt.bg} ${opt.color}`
                       : "border-slate-200 dark:border-slate-700 text-slate-500"
-                  }`}>
+                  } ${isReadOnly ? "opacity-60 cursor-not-allowed" : ""}`}>
                   <MaterialIcon name={opt.icon} className="text-2xl" />
                   <span className="text-[10px] font-bold leading-tight text-center">{opt.label}</span>
                 </button>
@@ -156,6 +167,7 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
               value={title}
               onChange={e => setTitle(e.target.value)}
               onFocus={autoTitle}
+              disabled={isReadOnly}
               placeholder={`Ej: ${selectedType.label} de ${activePet?.name || "tu mascota"}`}
               className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-sm font-medium focus:outline-none focus:border-[#2b6fee]"
             />
@@ -167,6 +179,7 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
               <p className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">Fecha *</p>
               <input type="date" value={dueDate} min={today}
                 onChange={e => setDueDate(e.target.value)}
+                disabled={isReadOnly}
                 className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#2b6fee]"
               />
             </div>
@@ -174,6 +187,7 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
               <p className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">Hora (opcional)</p>
               <input type="time" value={dueTime}
                 onChange={e => setDueTime(e.target.value)}
+                disabled={isReadOnly}
                 className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#2b6fee]"
               />
             </div>
@@ -184,12 +198,12 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
             <p className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">Repetición</p>
             <div className="flex gap-2 flex-wrap">
               {REPEAT_OPTIONS.map(opt => (
-                <button key={opt.id} onClick={() => setRepeat(opt.id)}
+                <button key={opt.id} type="button" onClick={() => setRepeat(opt.id)} disabled={isReadOnly}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                     repeat === opt.id
                       ? "bg-[#2b6fee] text-white"
                       : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                  }`}>
+                  } ${isReadOnly ? "opacity-60 cursor-not-allowed" : ""}`}>
                   {opt.label}
                 </button>
               ))}
@@ -200,6 +214,7 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
           <div>
             <p className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">Notas (opcional)</p>
             <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)}
+              disabled={isReadOnly}
               placeholder="Ej: Llevar carnet de vacunación"
               className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-sm resize-none focus:outline-none focus:border-[#2b6fee]"
             />
@@ -214,7 +229,7 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
                 <p className="text-xs text-slate-500">Push notification el día indicado</p>
               </div>
             </div>
-            <button onClick={() => setNotifyEnabled(v => !v)}
+            <button type="button" onClick={() => setNotifyEnabled(v => !v)} disabled={isReadOnly}
               className={`w-12 h-6 rounded-full transition-all ${notifyEnabled ? "bg-[#2b6fee]" : "bg-slate-300 dark:bg-slate-600"}`}>
               <div className={`size-5 bg-white rounded-full shadow transition-transform ${notifyEnabled ? "translate-x-6" : "translate-x-0.5"}`} />
             </button>
@@ -227,11 +242,11 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
 
         {/* Botón guardar */}
         <div className="px-5 pb-8 pt-3 border-t border-slate-100 dark:border-slate-800">
-          <button onClick={handleSave} disabled={saving}
+          <button type="button" onClick={handleSave} disabled={saving || isReadOnly}
             className="w-full h-14 rounded-2xl bg-[#2b6fee] text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-[#2b6fee]/25 disabled:opacity-60 active:scale-[0.98] transition-transform">
             {saving
               ? <><div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>Guardando...</span></>
-              : <><MaterialIcon name="check_circle" className="text-xl" /><span>Guardar recordatorio</span></>}
+              : <><MaterialIcon name="check_circle" className="text-xl" /><span>{isReadOnly ? "Solo lectura" : "Guardar recordatorio"}</span></>}
           </button>
         </div>
       </motion.div>

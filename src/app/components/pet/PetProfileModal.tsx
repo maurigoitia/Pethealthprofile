@@ -12,6 +12,7 @@ import { DEFAULT_PET_PHOTO } from "../../constants/petDefaults";
 import { PetPhoto } from "./PetPhoto";
 import { getPetPhotoAcceptValue, preparePetPhotoForUpload } from "../../utils/petPhotoUpload";
 import { uploadPetPhotoWithFallback } from "../../services/petPhotoService";
+import { ClinicalProfileBlock } from "../medical/ClinicalProfileBlock";
 
 const VaccinationCardModal = lazy(() =>
   import("../medical/VaccinationCardModal.tsx").then((module) => ({ default: module.VaccinationCardModal }))
@@ -49,7 +50,7 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
   const [breedSuggestions, setBreedSuggestions] = useState<string[]>([]);
   const [showBreedSuggestions, setShowBreedSuggestions] = useState(false);
 
-  const { activePet, updatePet } = usePet();
+  const { activePet, updatePet, canEditPet } = usePet();
   const { user } = useAuth();
 
   const getBreedList = () => {
@@ -82,8 +83,10 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
   });
 
   const photo = activePet?.photo || DEFAULT_PET_PHOTO;
+  const canEditActivePet = canEditPet(activePet);
 
   const handleOpenEdit = () => {
+    if (!canEditActivePet) return;
     setEditData({
       name: activePet?.name || "",
       breed: activePet?.breed || "",
@@ -163,7 +166,7 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !activePet || !user) return;
+    if (!canEditActivePet || !file || !activePet || !user) return;
     setUploadingPhoto(true);
     try {
       const normalizedFile = await preparePetPhotoForUpload(file);
@@ -199,7 +202,8 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
     photoCameraInputRef.current?.click();
   };
 
-  const { getEventsByPetId } = useMedical();
+  const { getEventsByPetId, getProfileSnapshotByPetId } = useMedical();
+  const profileSnapshot = activePet?.id ? getProfileSnapshotByPetId(activePet.id) : null;
 
   // Vacunas reales desde medical_events procesados
   const vaccines = useMemo(() => {
@@ -358,51 +362,59 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                           />
                         </div>
                       </div>
-                      <input
-                        ref={photoGalleryInputRef}
-                        type="file"
-                        accept={getPetPhotoAcceptValue()}
-                        className="hidden"
-                        onChange={handlePhotoChange}
-                      />
-                      <input
-                        ref={photoCameraInputRef}
-                        type="file"
-                        accept={getPetPhotoAcceptValue()}
-                        capture="environment"
-                        className="hidden"
-                        onChange={handlePhotoChange}
-                      />
-                      <button
-                        onClick={() => setShowPhotoPicker((prev) => !prev)}
-                        disabled={uploadingPhoto}
-                        className="absolute bottom-0 right-0 size-10 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform">
-                        {uploadingPhoto
-                          ? <span className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          : <MaterialIcon name="photo_camera" className="text-xl" />}
-                      </button>
-                      {showPhotoPicker && !uploadingPhoto && (
-                        <div className="absolute bottom-12 right-0 z-20 w-44 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden">
+                      {canEditActivePet && (
+                        <>
+                          <input
+                            ref={photoGalleryInputRef}
+                            type="file"
+                            accept={getPetPhotoAcceptValue()}
+                            className="hidden"
+                            onChange={handlePhotoChange}
+                          />
+                          <input
+                            ref={photoCameraInputRef}
+                            type="file"
+                            accept={getPetPhotoAcceptValue()}
+                            capture="environment"
+                            className="hidden"
+                            onChange={handlePhotoChange}
+                          />
                           <button
-                            type="button"
-                            onClick={openCameraPicker}
-                            className="w-full px-3 py-2.5 text-left text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                          >
-                            Tomar foto
+                            onClick={() => setShowPhotoPicker((prev) => !prev)}
+                            disabled={uploadingPhoto}
+                            className="absolute bottom-0 right-0 size-10 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform">
+                            {uploadingPhoto
+                              ? <span className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              : <MaterialIcon name="photo_camera" className="text-xl" />}
                           </button>
-                          <button
-                            type="button"
-                            onClick={openGalleryPicker}
-                            className="w-full px-3 py-2.5 text-left text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 border-t border-slate-100 dark:border-slate-800"
-                          >
-                            Elegir del dispositivo
-                          </button>
-                        </div>
+                          {showPhotoPicker && !uploadingPhoto && (
+                            <div className="absolute bottom-12 right-0 z-20 w-44 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden">
+                              <button
+                                type="button"
+                                onClick={openCameraPicker}
+                                className="w-full px-3 py-2.5 text-left text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                              >
+                                Tomar foto
+                              </button>
+                              <button
+                                type="button"
+                                onClick={openGalleryPicker}
+                                className="w-full px-3 py-2.5 text-left text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 border-t border-slate-100 dark:border-slate-800"
+                              >
+                                Elegir del dispositivo
+                              </button>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                     <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-1 capitalize">{activePet?.name}</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400">{displayBreed}</p>
                   </div>
+
+                  {profileSnapshot && activePet && (
+                    <ClinicalProfileBlock snapshot={profileSnapshot} petName={activePet.name} />
+                  )}
 
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-3">
@@ -452,11 +464,17 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                     ))}
                   </div>
 
-                  <button onClick={handleOpenEdit}
-                    className="w-full py-3 rounded-xl bg-[#074738] text-white font-bold shadow-lg shadow-[#074738]/30 flex items-center justify-center gap-2">
-                    <MaterialIcon name="edit" className="text-xl" />
-                    Editar Perfil
-                  </button>
+                  {canEditActivePet ? (
+                    <button onClick={handleOpenEdit}
+                      className="w-full py-3 rounded-xl bg-[#074738] text-white font-bold shadow-lg shadow-[#074738]/30 flex items-center justify-center gap-2">
+                      <MaterialIcon name="edit" className="text-xl" />
+                      Editar Perfil
+                    </button>
+                  ) : (
+                    <div className="w-full py-3 px-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-600 dark:text-slate-300 text-center">
+                      Acceso de guardián temporal: podés ver esta mascota, pero no editar su perfil.
+                    </div>
+                  )}
                   <button
                     onClick={handleAddPet}
                     className="w-full py-3 rounded-xl bg-white dark:bg-slate-900 border-2 border-[#074738] text-[#074738] font-bold flex items-center justify-center gap-2 hover:bg-[#074738]/5 transition-colors"
@@ -484,9 +502,14 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                                 <p className="text-sm font-bold text-slate-900 dark:text-white">
                                   {ct.name || ct.email || "Co-tutor"}
                                 </p>
-                                {ct.email && ct.name && (
-                                  <p className="text-xs text-slate-500">{ct.email}</p>
-                                )}
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {ct.email && ct.name && (
+                                    <p className="text-xs text-slate-500">{ct.email}</p>
+                                  )}
+                                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${ct.role === "viewer" ? "bg-slate-100 text-slate-600" : "bg-emerald-50 text-emerald-700"}`}>
+                                    {ct.role === "viewer" ? "Guardián" : "Editor"}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           ))}

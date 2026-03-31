@@ -41,7 +41,7 @@ export function EmailLinkSignInScreen() {
       if (inviteCode) {
         try {
           const { petName } = await joinWithCode(inviteCode);
-          setSuccess(`Acceso confirmado. Ya sos co-tutor de ${petName}.`);
+          setSuccess(`Acceso confirmado. Ya tenés acceso a ${petName}.`);
         } catch (joinError: any) {
           setSuccess("Sesión iniciada correctamente.");
           setError(joinError?.message || "No se pudo completar la unión como co-tutor.");

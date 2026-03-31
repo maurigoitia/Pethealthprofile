@@ -189,7 +189,7 @@ export function FocusedHomeExperience({
             <div className="min-w-0 flex-1">
               <div className="flex flex-col gap-2">
                 <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#1A9B7D] px-3 py-1.5 text-white">
-                  <MaterialIcon name="pets" className="text-sm" />
+                  <MaterialIcon name="check_circle" className="text-sm" />
                   <span className="text-[11px] font-black uppercase tracking-[0.14em]">
                     Perfil activo
                   </span>

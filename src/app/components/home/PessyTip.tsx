@@ -25,6 +25,10 @@ interface PessyTipProps {
   isMission?: boolean;
   missionPoints?: number;
   onMissionComplete?: (earnedTotal: number) => void;
+  actionLabel?: string;
+  onAction?: () => void;
+  dismissLabel?: string;
+  onDismiss?: () => void;
 }
 
 const colorStyles = {
@@ -33,7 +37,19 @@ const colorStyles = {
   orange:{ bg: 'bg-[#FEF3C7]', text: 'text-[#D97706]' },
 };
 
-export default function PessyTip({ icon, color, title, description, isMission, missionPoints = 15, onMissionComplete }: PessyTipProps) {
+export default function PessyTip({
+  icon,
+  color,
+  title,
+  description,
+  isMission,
+  missionPoints = 15,
+  onMissionComplete,
+  actionLabel,
+  onAction,
+  dismissLabel,
+  onDismiss,
+}: PessyTipProps) {
   const styles = colorStyles[color];
   const [completed, setCompleted] = useState(false);
 
@@ -81,6 +97,27 @@ export default function PessyTip({ icon, color, title, description, isMission, m
           )}
           {isMission && completed && (
             <span className="mt-1 text-[11px] font-bold text-[#1A9B7D]">+{missionPoints} pts ganados 🎉</span>
+          )}
+
+          {(!completed || !isMission) && ((actionLabel && onAction) || (dismissLabel && onDismiss)) && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {actionLabel && onAction && (
+                <button
+                  onClick={onAction}
+                  className="px-3 py-1.5 rounded-full bg-[#074738] text-white text-[11px] font-bold active:scale-[0.96] transition-transform"
+                >
+                  {actionLabel}
+                </button>
+              )}
+              {dismissLabel && onDismiss && (
+                <button
+                  onClick={onDismiss}
+                  className="px-3 py-1.5 rounded-full border border-[#D1D5DB] text-[11px] font-bold text-[#6B7280] active:scale-[0.96] transition-transform"
+                >
+                  {dismissLabel}
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>
