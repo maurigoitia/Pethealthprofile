@@ -24,7 +24,11 @@ interface PessyTipProps {
   // Mission mode — turns the tip into a completable quest
   isMission?: boolean;
   missionPoints?: number;
+  /** If provided, tapping "Completar" opens the detail screen instead of awarding points directly */
+  onMissionStart?: () => void;
   onMissionComplete?: (earnedTotal: number) => void;
+  /** Controlled completion state — driven from parent after MissionDetailScreen finishes */
+  isCompleted?: boolean;
   actionLabel?: string;
   onAction?: () => void;
   dismissLabel?: string;
@@ -44,18 +48,27 @@ export default function PessyTip({
   description,
   isMission,
   missionPoints = 15,
+  onMissionStart,
   onMissionComplete,
+  isCompleted,
   actionLabel,
   onAction,
   dismissLabel,
   onDismiss,
 }: PessyTipProps) {
   const styles = colorStyles[color];
-  const [completed, setCompleted] = useState(false);
+  const [internalCompleted, setInternalCompleted] = useState(false);
+  const completed = isCompleted ?? internalCompleted;
 
   const handleComplete = () => {
     if (completed) return;
-    setCompleted(true);
+    // If a detail screen handler is provided, open it — points awarded there
+    if (onMissionStart) {
+      onMissionStart();
+      return;
+    }
+    // Fallback: award points directly (legacy behavior)
+    setInternalCompleted(true);
     const total = addPoints(missionPoints);
     onMissionComplete?.(total);
   };
