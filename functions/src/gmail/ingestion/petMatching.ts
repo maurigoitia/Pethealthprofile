@@ -70,6 +70,27 @@ export function isTrustedClinicalSender(emailHeader: string): boolean {
   return isTrustedClinicalDomain(emailHeader) || isTrustedClinicalSenderName(emailHeader);
 }
 
+export function isSelfGeneratedPessyEmail(args: {
+  subject?: string;
+  fromEmail?: string;
+  bodyText?: string;
+}): boolean {
+  const fromEmail = asString(args.fromEmail).toLowerCase();
+  const senderDomain = extractSenderDomain(fromEmail);
+  const normalizedSubject = normalizeTextForMatch(asString(args.subject));
+  const normalizedBody = normalizeTextForMatch(asString(args.bodyText));
+  if (senderDomain !== "pessy.app" && senderDomain !== "mail.pessy.app") return false;
+
+  return (
+    fromEmail.includes("noreply@pessy.app") ||
+    normalizedSubject.includes("pessy") ||
+    normalizedBody.includes("abrir pessy") ||
+    normalizedBody.includes("equipo pessy") ||
+    normalizedBody.includes("ya tenes acceso a pessy") ||
+    normalizedBody.includes("ya tenés acceso a pessy")
+  );
+}
+
 export function isBlockedClinicalDomain(email: string): boolean {
   const domain = extractSenderDomain(email);
   if (!domain) return false;
@@ -338,11 +359,8 @@ export function choosePetByHints(args: {
 export function attachmentNamesContainClinicalSignal(metadata: AttachmentMetadata[]): boolean {
   const joined = normalizeTextForMatch(metadata.map((row) => row.filename).join(" "));
   if (!joined) return false;
-  return (
-    joined.includes("receta") || joined.includes("prescrip") || joined.includes("estudio") ||
-    joined.includes("analisis") || joined.includes("informe") || joined.includes("laboratorio") ||
-    joined.includes("radiografia") || joined.includes("ecografia") || joined.includes("ultrasound") ||
-    joined.includes("ecg")
+  return /\b(receta|prescrip|estudio|analisis|informe|laboratorio|hemograma|bioquim|perfil\s+hep|perfil\s+renal|quimica\s+sanguinea|sangre|radiograf|ecograf|ecocard|doppler|ultrasound|ecg)\b/i.test(
+    joined
   );
 }
 
@@ -369,7 +387,39 @@ export function hasStrongVeterinaryEvidence(args: {
   if (!haystack) return false;
   if (attachmentNamesContainClinicalSignal(args.attachmentMetadata || [])) return true;
   if (isTrustedClinicalSender(asString(args.fromEmail)) || isVetDomain(asString(args.fromEmail))) return true;
-  return /\b(veterinari|vet\b|canino|canina|felino|felina|mascota|thor|loki|perro|gato|ecografia veterinaria|radiografia veterinaria|vacuna canina|vacuna felina|placa de torax|placa de tórax|ecocard|electrocard|rx)\b/.test(haystack);
+  return /\b(veterinari|vet\b|canino|canina|felino|felina|mascota|thor|loki|perro|gato|ecografia veterinaria|radiografia veterinaria|vacuna canina|vacuna felina|placa de torax|placa de tórax|ecocard|electrocard|rx|hemograma|bioquim|perfil hep|perfil renal|quimica sanguinea|analisis de sangre|extraccion de sangre|sangre|doppler)\b/i.test(
+    haystack
+  );
+}
+
+export function hasVeterinaryAdministrativeOnlySignal(args: {
+  subject?: string;
+  fromEmail?: string;
+  bodyText?: string;
+  attachmentMetadata?: AttachmentMetadata[];
+}): boolean {
+  const haystack = normalizeTextForMatch(
+    [
+      asString(args.subject),
+      asString(args.fromEmail),
+      asString(args.bodyText),
+      ...(args.attachmentMetadata || []).map((row) => row.filename),
+    ].join(" ")
+  );
+  if (!haystack) return false;
+
+  const administrativeSignal =
+    /\b(comprobante(?:s)?|comprobantes de cliente|factura|invoice|payment|pago|recibo|cae|iva|importe|subtotal|total|afip|encuesta|consumos)\b/.test(
+      haystack
+    );
+  if (!administrativeSignal) return false;
+
+  const clinicalSignal =
+    /\b(turno|consulta|control|recordatorio|confirmacion|confirmación|cancelacion|cancelación|estudio|resultado|radiograf|ecograf|ecocard|doppler|electrocard|ecg|rx\b|laboratorio|hemograma|bioquim|analisis de sangre|extraccion de sangre|perfil hep|perfil renal|sangre|receta|prescrip|medicaci[oó]n|tratamiento|vacuna)\b/i.test(
+      haystack
+    ) || attachmentNamesContainClinicalSignal(args.attachmentMetadata || []);
+
+  return !clinicalSignal;
 }
 
 export function hasStrongNonClinicalSignal(text: string): boolean {
@@ -398,11 +448,12 @@ export function isCandidateClinicalEmail(args: {
   const fullSearchCorpus = `${normalizedCorpus}\n${normalizedFrom}\n${attachmentNames}`;
 
   const keywordPattern =
-    /\b(appointment|turno|diagnosis|diagnostico|vaccine|vacuna|lab|laboratorio|rx|receta|veterinary|veterinaria|veterinario|radiograf|electrocardiograma|ultrasound|ecografia|tratamiento|medicacion|consulta|hospital)\b/;
+    /\b(appointment|turno|diagnosis|diagnostico|vaccine|vacuna|lab|laboratorio|hemograma|bioquim|analisis de sangre|extraccion de sangre|perfil hep|perfil renal|sangre|rx|receta|veterinary|veterinaria|veterinario|radiograf|ecocardiograma|ecocardiograma|electrocardiograma|doppler|ultrasound|ecografia|\beco\b|tratamiento|medicacion|consulta|hospital|nombre del paciente)\b/i;
   const hasClinicalKeywords = keywordPattern.test(fullSearchCorpus);
   const hasVetSender = isVetDomain(args.fromEmail);
   const hasTrustedSender = isTrustedClinicalSender(args.fromEmail);
   const hasBlockedSender = isBlockedClinicalDomain(args.fromEmail);
+  const isSelfGenerated = isSelfGeneratedPessyEmail(args);
   const hasAttachment = args.attachmentCount > 0;
   const hasClinicalAttachment = attachmentNamesContainClinicalSignal(args.attachmentMetadata);
   const MIN_LIGHTWEIGHT_BODY_LENGTH = 80;
@@ -434,6 +485,7 @@ export function isCandidateClinicalEmail(args: {
 
   const hasClinicalAnchor = hasClinicalKeywords || hasClinicalAttachment || hasVetSender || hasTrustedSender;
 
+  if (isSelfGenerated) return false;
   if (hasBlockedSender && !hasClinicalAttachment && !hasPetMention) return false;
   if (hasHumanHealthcareNoise && !hasVeterinaryEvidence && !hasPetMention) return false;
   if (hasNonClinicalNoise && !hasClinicalAttachment && !hasVetSender && !hasTrustedSender) return false;

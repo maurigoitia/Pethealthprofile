@@ -9,6 +9,7 @@ exports.inferAppointmentStatusFromText = inferAppointmentStatusFromText;
 exports.normalizeAppointmentStatusValue = normalizeAppointmentStatusValue;
 exports.sanitizeAppointmentTime = sanitizeAppointmentTime;
 exports.extractAppointmentTimeFromText = extractAppointmentTimeFromText;
+exports.extractAppointmentDateFromText = extractAppointmentDateFromText;
 exports.sanitizeExtractedEntity = sanitizeExtractedEntity;
 exports.extractProfessionalNameFromText = extractProfessionalNameFromText;
 exports.extractClinicNameFromText = extractClinicNameFromText;
@@ -139,13 +140,94 @@ function sanitizeAppointmentTime(value) {
     const raw = (0, utils_1.asString)(value);
     if (!raw)
         return null;
-    const match = raw.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+    const normalized = raw
+        .replace(/\b(\d{1,2})[.,](\d{2})\b/g, "$1:$2")
+        .replace(/\b(\d{1,2})\s*(?:hs?|h)\b/gi, "$1:00");
+    const match = normalized.match(/\b([01]?\d|2[0-3]):([0-5]\d)\s*(am|pm)?\b/i);
     if (!match)
         return null;
-    return `${match[1].padStart(2, "0")}:${match[2]}`;
+    let hour = Number(match[1]);
+    const minute = match[2];
+    const meridiem = (0, utils_1.asString)(match[3]).toLowerCase();
+    if (meridiem === "pm" && hour < 12)
+        hour += 12;
+    if (meridiem === "am" && hour === 12)
+        hour = 0;
+    return `${String(hour).padStart(2, "0")}:${minute}`;
 }
 function extractAppointmentTimeFromText(text) {
     return sanitizeAppointmentTime(text);
+}
+const SPANISH_MONTHS = {
+    enero: 1,
+    febrero: 2,
+    marzo: 3,
+    abril: 4,
+    mayo: 5,
+    junio: 6,
+    julio: 7,
+    agosto: 8,
+    septiembre: 9,
+    setiembre: 9,
+    octubre: 10,
+    noviembre: 11,
+    diciembre: 12,
+};
+function coerceAppointmentYear(yearValue, referenceDate, month, day) {
+    if (yearValue) {
+        const numericYear = Number(yearValue);
+        if (numericYear < 100)
+            return numericYear >= 70 ? 1900 + numericYear : 2000 + numericYear;
+        return numericYear;
+    }
+    const referenceYear = referenceDate.getUTCFullYear();
+    const candidate = new Date(Date.UTC(referenceYear, month - 1, day));
+    const referenceStart = new Date(Date.UTC(referenceYear, referenceDate.getUTCMonth(), referenceDate.getUTCDate()));
+    const diffMs = candidate.getTime() - referenceStart.getTime();
+    if (diffMs < -14 * 24 * 60 * 60 * 1000)
+        return referenceYear + 1;
+    return referenceYear;
+}
+function buildIsoDateCandidate(day, month, year) {
+    if (!Number.isInteger(day) || !Number.isInteger(month) || !Number.isInteger(year))
+        return null;
+    if (month < 1 || month > 12 || day < 1 || day > 31 || year < 2000 || year > 2100)
+        return null;
+    const candidate = new Date(Date.UTC(year, month - 1, day));
+    if (candidate.getUTCFullYear() !== year ||
+        candidate.getUTCMonth() !== month - 1 ||
+        candidate.getUTCDate() !== day) {
+        return null;
+    }
+    return (0, utils_1.toIsoDateOnly)(candidate);
+}
+function extractAppointmentDateFromText(text, referenceDateValue) {
+    const raw = (0, utils_1.cleanSentence)((0, utils_1.asString)(text));
+    if (!raw)
+        return null;
+    const referenceDate = (0, utils_1.parseIsoDate)(referenceDateValue) || new Date();
+    const slashMatches = Array.from(raw.matchAll(/\b(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?\b/g));
+    for (const match of slashMatches) {
+        const day = Number(match[1]);
+        const month = Number(match[2]);
+        const year = coerceAppointmentYear(match[3], referenceDate, month, day);
+        const iso = buildIsoDateCandidate(day, month, year);
+        if (iso)
+            return iso;
+    }
+    const normalized = (0, utils_1.normalizeClinicalToken)(raw);
+    const longFormMatches = Array.from(normalized.matchAll(/\b(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+de\s+(\d{2,4}))?\b/g));
+    for (const match of longFormMatches) {
+        const day = Number(match[1]);
+        const month = SPANISH_MONTHS[match[2] || ""];
+        if (!month)
+            continue;
+        const year = coerceAppointmentYear(match[3], referenceDate, month, day);
+        const iso = buildIsoDateCandidate(day, month, year);
+        if (iso)
+            return iso;
+    }
+    return null;
 }
 // ─── Entity extraction ──────────────────────────────────────────────────────
 function sanitizeExtractedEntity(value) {
@@ -160,15 +242,28 @@ function sanitizeExtractedEntity(value) {
     return trimmed || null;
 }
 function extractProfessionalNameFromText(text) {
+    const tupleMatch = text.match(/(?:centro\/profesional|profesional|veterinari[oa])\s*:\s*([^\n]+)/i);
+    if (tupleMatch === null || tupleMatch === void 0 ? void 0 : tupleMatch[1]) {
+        const firstSegment = tupleMatch[1].split("·")[0] || "";
+        const cleanedSegment = firstSegment
+            .replace(/\s+a\s+las\b.*$/i, "")
+            .replace(/\s+para\b.*$/i, "")
+            .trim();
+        const tupleEntity = sanitizeExtractedEntity(cleanedSegment.replace(/[.,]\s*$/g, ""));
+        if (tupleEntity)
+            return tupleEntity;
+    }
     const match = text.match(/(?:dr\.?|dra\.?|doctor|doctora)\s+([A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ' -]+(?:\s+[A-ZÁÉÍÓÚÑ][A-Za-zÁÉÍÓÚÑ' -]+){0,3})/i);
     return sanitizeExtractedEntity((0, utils_1.asString)(match === null || match === void 0 ? void 0 : match[1]) || null);
 }
 function extractClinicNameFromText(text, sourceSender = "") {
-    const centerMatch = text.match(/centro\/profesional:\s*([^.,]+(?:\s*·\s*[^.,]+)?)/i);
+    const centerMatch = text.match(/centro\/profesional:\s*([^\n]+)/i);
     if (centerMatch === null || centerMatch === void 0 ? void 0 : centerMatch[1]) {
         const parts = centerMatch[1]
+            .replace(/\s+a\s+las\b.*$/i, "")
+            .replace(/\s+para\b.*$/i, "")
             .split("·")
-            .map((part) => sanitizeExtractedEntity((0, utils_1.asString)(part)))
+            .map((part) => sanitizeExtractedEntity((0, utils_1.asString)(part).split(".")[0] || ""))
             .filter(Boolean);
         if (parts.length > 1)
             return parts[1];
@@ -571,10 +666,6 @@ function extractOperationalAppointmentCandidate(args) {
     const eventDate = (0, utils_1.asString)(args.eventDate) || null;
     const parsedEventDate = (0, utils_1.parseDateOnly)(eventDate || "");
     if (!parsedEventDate)
-        return null;
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    if (parsedEventDate.getTime() < startOfToday.getTime())
         return null;
     const sourceText = (0, utils_1.cleanSentence)(args.sourceText);
     const normalized = (0, utils_1.normalizeClinicalToken)(sourceText);

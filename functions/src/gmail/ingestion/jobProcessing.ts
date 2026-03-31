@@ -6,7 +6,7 @@ import {
 } from "./types";
 import {
   getNowIso, asRecord, asString, asNonNegativeNumber,
-  encryptText, decryptText,
+  encryptText, decryptText, sha256,
 } from "./utils";
 
 // ─── Firestore helpers ──────────────────────────────────────────────────────
@@ -19,6 +19,86 @@ export function sanitizeAttachmentMetadataForFirestore(rows: AttachmentMetadata[
     }
     return safe as unknown as AttachmentMetadata;
   });
+}
+
+export interface LoadedTemporaryRawDocument {
+  sessionId: string;
+  uid: string;
+  messageId: string;
+  threadId: string;
+  emailDate: string;
+  sourceSender: string;
+  sourceSubject: string;
+  bodyText: string;
+  attachmentMeta: AttachmentMetadata[];
+  hashSignatureRaw: string;
+}
+
+function hydrateAttachmentMetadata(rows: unknown[]): AttachmentMetadata[] {
+  return rows.map((row) => {
+    const item = asRecord(row);
+    return {
+      filename: asString(item.filename) || "attachment",
+      mimetype: asString(item.mimetype) || "application/octet-stream",
+      size_bytes: asNonNegativeNumber(item.size_bytes, 0),
+      ocr_success: item.ocr_success === true,
+      ocr_reason: asString(item.ocr_reason) || "",
+      ocr_detail: asString(item.ocr_detail) || null,
+      original_mimetype: asString(item.original_mimetype) || null,
+      normalized_mimetype: asString(item.normalized_mimetype) || null,
+      storage_uri: asString(item.storage_uri) || null,
+      storage_path: asString(item.storage_path) || null,
+      storage_bucket: asString(item.storage_bucket) || null,
+      storage_signed_url: asString(item.storage_signed_url) || null,
+      storage_success: item.storage_success === true,
+      storage_error: asString(item.storage_error) || null,
+    };
+  });
+}
+
+export function buildRecoveredRawDocumentFromIngestionDocument(args: {
+  ingestionDocument: Record<string, unknown>;
+  sessionId: string;
+  uid: string;
+  messageId: string;
+  sourceSender?: string;
+  sourceSubject?: string;
+}): LoadedTemporaryRawDocument | null {
+  const attachmentMeta = hydrateAttachmentMetadata(
+    Array.isArray(args.ingestionDocument.attachment_metadata) ? args.ingestionDocument.attachment_metadata : []
+  );
+  const sourceSender = asString(args.sourceSender) || asString(args.ingestionDocument.from_email);
+  const sourceSubject = asString(args.sourceSubject) || asString(args.ingestionDocument.subject);
+  const emailDate = asString(args.ingestionDocument.email_date) || getNowIso();
+  const threadId = asString(args.ingestionDocument.thread_id);
+  const hashSignatureRaw =
+    asString(args.ingestionDocument.hash_signature_raw) ||
+    sha256(
+      [
+        args.sessionId,
+        args.messageId,
+        emailDate,
+        sourceSender,
+        sourceSubject,
+        attachmentMeta.map((row) => row.filename).join("|"),
+      ].join("|")
+    );
+
+  const hasRecoverySignal = Boolean(sourceSender || sourceSubject || threadId || attachmentMeta.length > 0);
+  if (!hasRecoverySignal) return null;
+
+  return {
+    sessionId: args.sessionId,
+    uid: args.uid,
+    messageId: args.messageId,
+    threadId,
+    emailDate,
+    sourceSender,
+    sourceSubject,
+    bodyText: "",
+    attachmentMeta,
+    hashSignatureRaw,
+  };
 }
 
 // ─── Temporary raw document persistence ─────────────────────────────────────
@@ -88,25 +168,7 @@ export async function loadTemporaryRawDocument(docId: string): Promise<{
   }
 
   const attachmentMetaRaw = Array.isArray(data.attachment_meta) ? data.attachment_meta : [];
-  const attachmentMeta: AttachmentMetadata[] = attachmentMetaRaw.map((row) => {
-    const item = asRecord(row);
-    return {
-      filename: asString(item.filename) || "attachment",
-      mimetype: asString(item.mimetype) || "application/octet-stream",
-      size_bytes: asNonNegativeNumber(item.size_bytes, 0),
-      ocr_success: item.ocr_success === true,
-      ocr_reason: asString(item.ocr_reason) || "",
-      ocr_detail: asString(item.ocr_detail) || null,
-      original_mimetype: asString(item.original_mimetype) || null,
-      normalized_mimetype: asString(item.normalized_mimetype) || null,
-      storage_uri: asString(item.storage_uri) || null,
-      storage_path: asString(item.storage_path) || null,
-      storage_bucket: asString(item.storage_bucket) || null,
-      storage_signed_url: asString(item.storage_signed_url) || null,
-      storage_success: item.storage_success === true,
-      storage_error: asString(item.storage_error) || null,
-    };
-  });
+  const attachmentMeta = hydrateAttachmentMetadata(attachmentMetaRaw);
 
   return {
     sessionId: asString(data.session_id),
@@ -119,6 +181,48 @@ export async function loadTemporaryRawDocument(docId: string): Promise<{
     bodyText,
     attachmentMeta,
     hashSignatureRaw: asString(data.hash_signature_raw),
+  };
+}
+
+export async function loadTemporaryRawDocumentWithFallback(args: {
+  docId: string;
+  sessionId: string;
+  uid: string;
+  messageId: string;
+  sourceSender?: string;
+  sourceSubject?: string;
+}): Promise<{
+  document: LoadedTemporaryRawDocument;
+  source: "temporary_raw_document" | "ingestion_document_fallback";
+} | null> {
+  const direct = await loadTemporaryRawDocument(args.docId);
+  if (direct) {
+    return {
+      document: direct,
+      source: "temporary_raw_document",
+    };
+  }
+
+  const ingestionDocSnap = await admin
+    .firestore()
+    .collection("gmail_ingestion_documents")
+    .doc(`${args.sessionId}_${args.messageId}`)
+    .get();
+  if (!ingestionDocSnap.exists) return null;
+
+  const recovered = buildRecoveredRawDocumentFromIngestionDocument({
+    ingestionDocument: asRecord(ingestionDocSnap.data()),
+    sessionId: args.sessionId,
+    uid: args.uid,
+    messageId: args.messageId,
+    sourceSender: args.sourceSender,
+    sourceSubject: args.sourceSubject,
+  });
+  if (!recovered) return null;
+
+  return {
+    document: recovered,
+    source: "ingestion_document_fallback",
   };
 }
 
@@ -167,25 +271,7 @@ export async function loadTemporaryAttachmentExtraction(rawDocId: string): Promi
     }
   }
   const attachmentMetaRaw = Array.isArray(data.attachment_metadata) ? data.attachment_metadata : [];
-  const attachmentMetadata: AttachmentMetadata[] = attachmentMetaRaw.map((row) => {
-    const item = asRecord(row);
-    return {
-      filename: asString(item.filename) || "attachment",
-      mimetype: asString(item.mimetype) || "application/octet-stream",
-      size_bytes: asNonNegativeNumber(item.size_bytes, 0),
-      ocr_success: item.ocr_success === true,
-      ocr_reason: asString(item.ocr_reason) || "",
-      ocr_detail: asString(item.ocr_detail) || null,
-      original_mimetype: asString(item.original_mimetype) || null,
-      normalized_mimetype: asString(item.normalized_mimetype) || null,
-      storage_uri: asString(item.storage_uri) || null,
-      storage_path: asString(item.storage_path) || null,
-      storage_bucket: asString(item.storage_bucket) || null,
-      storage_signed_url: asString(item.storage_signed_url) || null,
-      storage_success: item.storage_success === true,
-      storage_error: asString(item.storage_error) || null,
-    };
-  });
+  const attachmentMetadata = hydrateAttachmentMetadata(attachmentMetaRaw);
   return {
     attachmentMetadata,
     extractedText,

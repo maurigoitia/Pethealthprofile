@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 import { createHash } from "crypto";
+import { isMedicalEventEligibleForEpisodeProjection } from "./canonicalEventPolicy";
 
 type EpisodeStatus = "confirmed" | "draft" | "needs_clean_upload";
 type EpisodeType =
@@ -726,9 +727,7 @@ async function runClinicalEpisodeBackfill(args: {
   for (const document of eventsSnap.docs) {
     const row = asRecord(document.data());
     if (asString(row.petId) !== args.petId) continue;
-    if (["processing", "draft"].includes(asString(row.status))) continue;
-    if (["review_required", "invalid_future_date"].includes(asString(row.workflowStatus))) continue;
-    if (asBoolean(row.requiresManualConfirmation)) continue;
+    if (!isMedicalEventEligibleForEpisodeProjection(row)) continue;
 
     const seed = buildEpisodeSeedFromEvent(row, document.id);
     if (!seed) continue;

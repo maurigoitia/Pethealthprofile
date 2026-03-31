@@ -222,8 +222,19 @@ export function decodeHtmlEntitiesBasic(value: string): string {
 export function stripHtmlToText(value: string): string {
   const withoutScript = value.replace(/<script[\s\S]*?<\/script>/gi, " ");
   const withoutStyle = withoutScript.replace(/<style[\s\S]*?<\/style>/gi, " ");
-  const withoutTags = withoutStyle.replace(/<[^>]+>/g, " ");
-  return decodeHtmlEntitiesBasic(withoutTags).replace(/\s+/g, " ").trim();
+  const withStructuralBreaks = withoutStyle
+    .replace(/<(?:br|hr)\s*\/?>/gi, "\n")
+    .replace(/<\/(?:p|div|section|article|header|footer|li|ul|ol|tr|table|h[1-6])>/gi, "\n")
+    .replace(/<(?:p|div|section|article|header|footer|li|tr|table|h[1-6])[^>]*>/gi, "\n")
+    .replace(/<\/(?:td|th)>/gi, " | ")
+    .replace(/<(?:td|th)[^>]*>/gi, " ");
+  const withoutTags = withStructuralBreaks.replace(/<[^>]+>/g, " ");
+  return decodeHtmlEntitiesBasic(withoutTags)
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 // ---------------------------------------------------------------------------

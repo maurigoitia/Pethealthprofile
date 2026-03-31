@@ -50,10 +50,10 @@ export const nearbyVets = functions
     // Set memory to handle requests
     memory: "256MB",
   })
-  .https.onCall(async (data: NearbyVetsRequest, context): Promise<NearbyVetsResponse> => {
+  .https.onCall(async (requestData: NearbyVetsRequest): Promise<NearbyVetsResponse> => {
     try {
       // Validate input
-      const { lat, lng, radius = 5000, type = "veterinary_care" } = data;
+      const { lat, lng, radius = 5000, type = "veterinary_care" } = requestData;
 
       if (typeof lat !== "number" || typeof lng !== "number") {
         return {
@@ -97,11 +97,11 @@ export const nearbyVets = functions
 
       // Call Google Places API
       const response = await fetch(url.toString());
-      const data = await response.json();
+      const placesResponse = await response.json();
 
       // Handle Google Places API response
-      if (data.status === "OK") {
-        const results: VetResult[] = (data.results || []).map((place: any) => ({
+      if (placesResponse.status === "OK") {
+        const results: VetResult[] = (placesResponse.results || []).map((place: any) => ({
           place_id: place.place_id,
           name: place.name,
           vicinity: place.vicinity,
@@ -124,28 +124,28 @@ export const nearbyVets = functions
           success: true,
           results,
         };
-      } else if (data.status === "ZERO_RESULTS") {
+      } else if (placesResponse.status === "ZERO_RESULTS") {
         return {
           success: true,
           results: [],
         };
-      } else if (data.status === "REQUEST_DENIED") {
-        console.error("[nearbyVets] API Key invalid or restricted:", data.error_message);
+      } else if (placesResponse.status === "REQUEST_DENIED") {
+        console.error("[nearbyVets] API Key invalid or restricted:", placesResponse.error_message);
         return {
           success: false,
           error: "API key configuration error.",
         };
-      } else if (data.status === "OVER_QUERY_LIMIT") {
+      } else if (placesResponse.status === "OVER_QUERY_LIMIT") {
         console.warn("[nearbyVets] Rate limit exceeded");
         return {
           success: false,
           error: "Too many requests. Please try again in a moment.",
         };
       } else {
-        console.error("[nearbyVets] Google Places API error:", data.status, data.error_message);
+        console.error("[nearbyVets] Google Places API error:", placesResponse.status, placesResponse.error_message);
         return {
           success: false,
-          error: `API error: ${data.status}`,
+          error: `API error: ${placesResponse.status}`,
         };
       }
     } catch (error) {

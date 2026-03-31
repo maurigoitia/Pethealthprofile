@@ -17,7 +17,7 @@ import {
   isAppointmentEventType, isStudyEventType,
   normalizeExtractedEventType,
   inferAppointmentStatusFromText, normalizeAppointmentStatusValue,
-  sanitizeAppointmentTime, extractAppointmentTimeFromText,
+  sanitizeAppointmentTime, extractAppointmentDateFromText, extractAppointmentTimeFromText,
   extractProfessionalNameFromText, extractClinicNameFromText,
   extractAppointmentSpecialtyFromText,
   inferImagingTypeFromSignals, inferStudySubtypeFromSignals,
@@ -26,10 +26,76 @@ import {
 import {
   isTrustedClinicalSender, isVetDomain,
   hasStrongHumanHealthcareSignal, hasStrongVeterinaryEvidence,
-  hasStrongNonClinicalSignal, attachmentNamesContainClinicalSignal,
+  hasStrongNonClinicalSignal, hasVeterinaryAdministrativeOnlySignal, attachmentNamesContainClinicalSignal,
+  isSelfGeneratedPessyEmail,
 } from "./petMatching";
 import { recordSessionStageMetric } from "./sessionQueue";
 import { resolveClinicalKnowledgeContext } from "../../clinical/knowledgeBase";
+import { buildFallbackClinicalExtraction, buildFallbackClinicalExtractions } from "./clinicalFallbacks";
+
+function buildEventDedupKey(event: ClinicalEventExtraction): string {
+  return [
+    event.event_type,
+    event.event_date || "no_date",
+    event.appointment_time || "no_time",
+    event.appointment_specialty || "no_specialty",
+    event.professional_name || "no_professional",
+    event.clinic_name || "no_clinic",
+    event.study_subtype || "no_study",
+    event.imaging_type || "no_imaging",
+    normalizeForHash(event.description_summary).slice(0, 120) || "no_summary",
+  ]
+    .map((value) => asString(value).toLowerCase())
+    .join("|");
+}
+
+function mergeDeterministicFallbackEvents(args: {
+  aiEvents: ClinicalEventExtraction[];
+  fallbackEvents: ClinicalEventExtraction[];
+}): ClinicalEventExtraction[] {
+  if (args.fallbackEvents.length === 0) return args.aiEvents;
+  if (args.aiEvents.length === 0) return args.fallbackEvents;
+
+  const merged = [...args.aiEvents];
+  const seen = new Set(merged.map((event) => buildEventDedupKey(event)));
+  const aiAppointmentCount = merged.filter((event) => isAppointmentEventType(event.event_type)).length;
+  const fallbackAppointmentCount = args.fallbackEvents.filter((event) => isAppointmentEventType(event.event_type)).length;
+
+  for (const event of args.fallbackEvents) {
+    const key = buildEventDedupKey(event);
+    if (seen.has(key)) continue;
+    if (isAppointmentEventType(event.event_type) && fallbackAppointmentCount <= aiAppointmentCount) continue;
+    seen.add(key);
+    merged.push(event);
+  }
+
+  return merged;
+}
+
+function hasStructuredOperationalAppointmentSignal(args: {
+  subject?: string;
+  bodyText?: string;
+  fromEmail?: string;
+}): boolean {
+  const sourceText = [asString(args.subject), asString(args.bodyText)].filter(Boolean).join("\n");
+  if (!sourceText.trim()) return false;
+
+  const hasAppointmentLexicon =
+    /\b(turno|consulta|control|recordatorio|confirmacion|confirmación|cita|especialidad|prestacion|prestación|centro de atencion|centro de atención|profesional)\b/i
+      .test(sourceText);
+  if (!hasAppointmentLexicon) return false;
+
+  const hasDate = Boolean(extractAppointmentDateFromText(sourceText, getNowIso()));
+  const hasTime = Boolean(extractAppointmentTimeFromText(sourceText));
+  const hasOperationalFields =
+    /\b(centro\/profesional|profesional|centro de atencion|centro de atención|especialidad|prestacion|prestación)\b/i
+      .test(sourceText) ||
+    Boolean(extractProfessionalNameFromText(sourceText)) ||
+    Boolean(extractClinicNameFromText(sourceText, asString(args.fromEmail))) ||
+    Boolean(extractAppointmentSpecialtyFromText(sourceText));
+
+  return hasDate && (hasTime || hasOperationalFields);
+}
 
 // ─── Rate limiting ──────────────────────────────────────────────────────────
 
@@ -327,7 +393,7 @@ export function deriveVeterinaryEvidenceHints(args: {
   });
   const preferStudyReport =
     preferredStudySubtype !== null ||
-    /\b(informe|resultado|estudio|radiograf|ecograf|ultrasound|ecg|electrocard|hemograma|bioquim|laboratorio|koh|citolog|microscop)\b/i.test(
+    /\b(informe|resultado|estudio|radiograf|ecograf|\beco\b|ultrasound|ecocard|doppler|ecg|electrocard|hemograma|bioquim|analisis de sangre|extraccion de sangre|perfil hep|perfil renal|quimica sanguinea|laboratorio|koh|citolog|microscop)\b/i.test(
       evidenceText
     ) ||
     attachmentNamesContainClinicalSignal(args.attachmentMetadata);
@@ -384,6 +450,7 @@ export function toClinicalOutput(
     extractedText: string;
     sourceSubject: string;
     sourceSender: string;
+    emailDate?: string;
     attachmentMetadata: AttachmentMetadata[];
   }
 ): ClinicalExtractionOutput {
@@ -454,10 +521,12 @@ export function toClinicalOutput(
       const descriptionSummary = asString(row.description_summary) || "Registro clínico detectado";
       const diagnosis = asString(row.diagnosis) || null;
       const eventTextContext = [
+        context?.sourceSubject,
         descriptionSummary,
         diagnosis,
         asString(row.professional_name),
         asString(row.clinic_name),
+        context?.extractedText,
       ]
         .filter(Boolean)
         .join(" ");
@@ -488,7 +557,10 @@ export function toClinicalOutput(
 
       return {
         event_type: eventType,
-        event_date: asString(row.event_date) || null,
+        event_date:
+          asString(row.event_date) ||
+          extractAppointmentDateFromText(eventTextContext, context?.emailDate) ||
+          null,
         date_confidence: clamp(asNonNegativeNumber(row.date_confidence, 0), 0, 100),
         description_summary: descriptionSummary,
         diagnosis,
@@ -536,7 +608,7 @@ export function toClinicalOutput(
 export function heuristicClinicalExtraction(extractedText: string, emailDate: string): ClinicalExtractionOutput {
   const normalized = normalizeForHash(extractedText);
   const keywordRegex =
-    /\b(veterinari|vet|receta|prescrip|dosis|vacuna|turno|diagn[oó]stic|laboratorio|ecograf|radiograf|electrocard|tratamiento)\b/i;
+    /\b(veterinari|vet|receta|prescrip|dosis|vacuna|turno|diagn[oó]stic|laboratorio|hemograma|bioquim|analisis de sangre|extraccion de sangre|perfil hep|perfil renal|sangre|ecograf|\beco\b|radiograf|ecocard|doppler|electrocard|tratamiento)\b/i;
   const isClinical = keywordRegex.test(normalized);
   if (!isClinical) {
     return {
@@ -546,6 +618,27 @@ export function heuristicClinicalExtraction(extractedText: string, emailDate: st
       narrative_summary: "",
       requires_human_review: false,
       reason_if_review_needed: null,
+    };
+  }
+
+  const fallbacks = buildFallbackClinicalExtractions({
+    sourceSubject: "",
+    sourceSender: "",
+    extractedText,
+    emailDate,
+    attachmentMetadata: [],
+    confidenceOverall: 62,
+  });
+  const fallbackEvents = fallbacks.flatMap((row) => (row.event ? [row.event] : []));
+  if (fallbackEvents.length > 0) {
+    return {
+      is_clinical_content: true,
+      confidence_overall: Math.max(...fallbacks.map((row) => row.confidenceOverall)),
+      detected_events: fallbackEvents,
+      narrative_summary:
+        "Se detectó contenido clínico en el correo. Pessy reconstruyó el evento con reglas y mantiene la trazabilidad.",
+      requires_human_review: fallbacks.some((row) => row.requiresHumanReview),
+      reason_if_review_needed: fallbacks.find((row) => row.reasonIfReviewNeeded)?.reasonIfReviewNeeded || null,
     };
   }
 
@@ -599,6 +692,38 @@ export function heuristicClinicalExtraction(extractedText: string, emailDate: st
   };
 }
 
+export function heuristicClinicalExtractionWithContext(args: {
+  extractedText: string;
+  emailDate: string;
+  sourceSubject?: string;
+  sourceSender?: string;
+  attachmentMetadata?: AttachmentMetadata[];
+}): ClinicalExtractionOutput {
+  const contextualText = [args.sourceSubject, args.extractedText].filter(Boolean).join("\n");
+  const fallbacks = buildFallbackClinicalExtractions({
+    sourceSubject: asString(args.sourceSubject),
+    sourceSender: asString(args.sourceSender),
+    extractedText: contextualText,
+    emailDate: args.emailDate,
+    attachmentMetadata: args.attachmentMetadata || [],
+    confidenceOverall: 72,
+  });
+  const fallbackEvents = fallbacks.flatMap((row) => (row.event ? [row.event] : []));
+  if (fallbackEvents.length > 0) {
+    return {
+      is_clinical_content: true,
+      confidence_overall: Math.max(...fallbacks.map((row) => row.confidenceOverall)),
+      detected_events: fallbackEvents,
+      narrative_summary:
+        "Se detectó contenido clínico en el correo y Pessy reconstruyó eventos a partir del cuerpo y los adjuntos.",
+      requires_human_review: fallbacks.some((row) => row.requiresHumanReview),
+      reason_if_review_needed: fallbacks.find((row) => row.reasonIfReviewNeeded)?.reasonIfReviewNeeded || null,
+    };
+  }
+
+  return heuristicClinicalExtraction(contextualText, args.emailDate);
+}
+
 export function heuristicClinicalClassification(input: ClinicalClassificationInput): ClinicalClassificationOutput {
   const normalized = normalizeForHash(
     [input.subject || "", input.fromEmail || "", input.bodyText || ""].filter(Boolean).join("\n")
@@ -608,7 +733,28 @@ export function heuristicClinicalClassification(input: ClinicalClassificationInp
   const hasClinicalAttachment = attachmentNamesContainClinicalSignal(input.attachmentMetadata || []);
   const hasNoise = hasStrongNonClinicalSignal(normalized);
   const hasHumanHealthcareNoise = hasStrongHumanHealthcareSignal(normalized);
+  const hasAdministrativeOnlySignal = hasVeterinaryAdministrativeOnlySignal(input);
   const hasVetEvidence = hasStrongVeterinaryEvidence(input);
+  const hasStructuredOperationalAppointment = hasStructuredOperationalAppointmentSignal(input);
+  const isSelfGenerated = isSelfGeneratedPessyEmail(input);
+  if (isSelfGenerated) {
+    return {
+      is_clinical: false,
+      confidence: 8,
+    };
+  }
+  if (hasAdministrativeOnlySignal && !hasClinicalAttachment) {
+    return {
+      is_clinical: false,
+      confidence: 14,
+    };
+  }
+  if (hasStructuredOperationalAppointment && hasVetEvidence) {
+    return {
+      is_clinical: true,
+      confidence: 86,
+    };
+  }
   const isClinical =
     (keywordRegex.test(normalized) || hasClinicalAttachment || hasVetEvidence) &&
     !(!hasClinicalAttachment && (hasNoise || hasHumanHealthcareNoise) && !hasVetEvidence);
@@ -630,7 +776,10 @@ export async function classifyClinicalContentWithAi(
   const fromEmail = asString(input.fromEmail).slice(0, 320);
   const hasClinicalAttachment = attachmentNamesContainClinicalSignal(input.attachmentMetadata || []);
   const hasHumanHealthcareNoise = hasStrongHumanHealthcareSignal(`${subject}\n${fromEmail}\n${bodyText}`);
+  const hasAdministrativeOnlySignal = hasVeterinaryAdministrativeOnlySignal(input);
   const hasVetEvidence = hasStrongVeterinaryEvidence(input);
+  const hasStructuredOperationalAppointment = hasStructuredOperationalAppointmentSignal(input);
+  const isSelfGenerated = isSelfGeneratedPessyEmail(input);
   const subjectLooksClinical =
     /\b(receta|prescrip|vacuna|diagn[oó]stic|laboratorio|ecograf|radiograf|electrocard|tratamiento|medicaci[oó]n|resultado|resultados)\b/i
       .test(subject);
@@ -640,14 +789,26 @@ export async function classifyClinicalContentWithAi(
   if (!hasBody && !subject && !hasClinicalAttachment) {
     return { is_clinical: false, confidence: 0 };
   }
+  if (isSelfGenerated) {
+    return { is_clinical: false, confidence: 8 };
+  }
   if (hasHumanHealthcareNoise && !hasVetEvidence && !hasClinicalAttachment) {
     return { is_clinical: false, confidence: 12 };
+  }
+  if (hasAdministrativeOnlySignal && !hasClinicalAttachment) {
+    return { is_clinical: false, confidence: 15 };
   }
 
   if (hasClinicalAttachment) {
     return {
       is_clinical: true,
       confidence: senderLooksClinical ? 92 : 82,
+    };
+  }
+  if (hasStructuredOperationalAppointment && (senderLooksClinical || hasVetEvidence)) {
+    return {
+      is_clinical: true,
+      confidence: senderLooksClinical ? 88 : 78,
     };
   }
   if (subjectLooksClinical) {
@@ -757,7 +918,13 @@ export async function extractClinicalEventsWithAi(args: {
 
   const hasGemini = Boolean(asString(process.env.GEMINI_API_KEY));
   if (!hasGemini) {
-    return heuristicClinicalExtraction(`${args.sourceSubject}\n${args.extractedText}`, args.emailDate);
+    return heuristicClinicalExtractionWithContext({
+      extractedText: args.extractedText,
+      emailDate: args.emailDate,
+      sourceSubject: args.sourceSubject,
+      sourceSender: args.sourceSender,
+      attachmentMetadata: args.attachmentMetadata,
+    });
   }
 
   try {
@@ -818,16 +985,29 @@ export async function extractClinicalEventsWithAi(args: {
             extractedText: chunk,
             sourceSubject: args.sourceSubject,
             sourceSender: args.sourceSender,
+            emailDate: args.emailDate,
             attachmentMetadata: args.attachmentMetadata,
           })
         );
       } else {
-        chunkOutputs.push(heuristicClinicalExtraction(chunk, args.emailDate));
+        chunkOutputs.push(heuristicClinicalExtractionWithContext({
+          extractedText: chunk,
+          emailDate: args.emailDate,
+          sourceSubject: args.sourceSubject,
+          sourceSender: args.sourceSender,
+          attachmentMetadata: args.attachmentMetadata,
+        }));
       }
     }
 
     if (chunkOutputs.length === 0) {
-      return heuristicClinicalExtraction(args.extractedText, args.emailDate);
+      return heuristicClinicalExtractionWithContext({
+        extractedText: args.extractedText,
+        emailDate: args.emailDate,
+        sourceSubject: args.sourceSubject,
+        sourceSender: args.sourceSender,
+        attachmentMetadata: args.attachmentMetadata,
+      });
     }
 
     const mergedEvents = chunkOutputs.flatMap((row) => row.detected_events).slice(0, 40);
@@ -842,29 +1022,73 @@ export async function extractClinicalEventsWithAi(args: {
       .slice(0, 2)
       .join(" ");
     const reason = chunkOutputs.find((row) => row.reason_if_review_needed)?.reason_if_review_needed || null;
+    const deterministicFallbacks = buildFallbackClinicalExtractions({
+      sourceSubject: args.sourceSubject,
+      sourceSender: args.sourceSender,
+      extractedText: args.extractedText,
+      emailDate: args.emailDate,
+      attachmentMetadata: args.attachmentMetadata,
+      confidenceOverall,
+    });
+    const deterministicFallbackEvents = deterministicFallbacks.flatMap((row) => (row.event ? [row.event] : []));
+    const finalEvents = mergeDeterministicFallbackEvents({
+      aiEvents: mergedEvents,
+      fallbackEvents: deterministicFallbackEvents,
+    });
+    const finalRequiresHumanReview =
+      chunkOutputs.some((row) => row.requires_human_review) ||
+      deterministicFallbacks.some((row) => row.requiresHumanReview) ||
+      finalEvents.length === 0;
+    const finalReason = reason || deterministicFallbacks.find((row) => row.reasonIfReviewNeeded)?.reasonIfReviewNeeded || null;
 
-    if (mergedEvents.length === 0 && isClinical) {
+    if (finalEvents.length === 0 && isClinical) {
+      const fallback = buildFallbackClinicalExtraction({
+        sourceSubject: args.sourceSubject,
+        sourceSender: args.sourceSender,
+        extractedText: args.extractedText,
+        emailDate: args.emailDate,
+        attachmentMetadata: args.attachmentMetadata,
+        confidenceOverall,
+      });
+      if (fallback?.event) {
+        return {
+          is_clinical_content: true,
+          confidence_overall: fallback.confidenceOverall,
+          detected_events: [fallback.event],
+          narrative_summary:
+            narrativeSummary ||
+            "Pessy detectó evidencia clínica en el correo y reconstruyó un evento operativo para no perder trazabilidad.",
+          requires_human_review: fallback.requiresHumanReview,
+          reason_if_review_needed: fallback.reasonIfReviewNeeded,
+        };
+      }
       return {
         is_clinical_content: true,
         confidence_overall: confidenceOverall,
         detected_events: [],
         narrative_summary: narrativeSummary,
         requires_human_review: true,
-        reason_if_review_needed: reason || "empty_events_from_ai",
+        reason_if_review_needed: finalReason || "empty_events_from_ai",
       };
     }
 
     return {
       is_clinical_content: isClinical,
       confidence_overall: confidenceOverall,
-      detected_events: mergedEvents,
+      detected_events: finalEvents,
       narrative_summary: narrativeSummary,
-      requires_human_review: requiresHumanReview,
-      reason_if_review_needed: reason,
+      requires_human_review: finalRequiresHumanReview,
+      reason_if_review_needed: finalReason,
     };
   } catch (error) {
     console.warn("[gmail-ingestion] AI extraction fallback:", error);
-    const result = heuristicClinicalExtraction(args.extractedText, args.emailDate);
+    const result = heuristicClinicalExtractionWithContext({
+      extractedText: args.extractedText,
+      emailDate: args.emailDate,
+      sourceSubject: args.sourceSubject,
+      sourceSender: args.sourceSender,
+      attachmentMetadata: args.attachmentMetadata,
+    });
     return { ...result, extractionMethod: "heuristic" };
   }
 }

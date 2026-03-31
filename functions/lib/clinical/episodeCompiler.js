@@ -4,6 +4,7 @@ exports.backfillClinicalEpisodes = void 0;
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
 const crypto_1 = require("crypto");
+const canonicalEventPolicy_1 = require("./canonicalEventPolicy");
 const RECENT_WINDOW_DAYS = 90;
 const MONTH_BUCKET_UNTIL_MONTHS = 18;
 const QA_ALLOWED_EMAILS_DEFAULT = ["mauriciogoitia@gmail.com"];
@@ -580,11 +581,7 @@ async function runClinicalEpisodeBackfill(args) {
         const row = asRecord(document.data());
         if (asString(row.petId) !== args.petId)
             continue;
-        if (["processing", "draft"].includes(asString(row.status)))
-            continue;
-        if (["review_required", "invalid_future_date"].includes(asString(row.workflowStatus)))
-            continue;
-        if (asBoolean(row.requiresManualConfirmation))
+        if (!(0, canonicalEventPolicy_1.isMedicalEventEligibleForEpisodeProjection)(row))
             continue;
         const seed = buildEpisodeSeedFromEvent(row, document.id);
         if (!seed)

@@ -27,7 +27,7 @@ import { randomUUID } from "crypto";
 
 // ─── Gmail Search ────────────────────────────────────────────────
 
-const GMAIL_MAX_QUERY_CHARS = 480;
+const GMAIL_MAX_QUERY_CHARS = 900;
 
 const GMAIL_OPERATOR_PREFIXES = [
   "from:", "to:", "subject:", "has:", "in:", "is:", "label:", "filename:",
@@ -87,7 +87,10 @@ export function buildGmailSearchQuery(args: {
     "hospital veterinario", "turno veterinario", "diagnosis", "diagnostico",
     "diagnóstico", "vacuna", "vaccine", "tratamiento", "medicacion",
     "medicación", "receta", "prescription", "laboratorio", "lab",
-    "ecografia", "ultrasound", "radiografia", "radiography",
+    "ecografia", "ecocardiograma", "ecocardiograma", "ultrasound", "doppler",
+    "radiografia", "radiography", "hemograma", "bioquimica", "bioquímica",
+    "analisis de sangre", "análisis de sangre", "quimica sanguinea",
+    "química sanguínea", "perfil hepatico", "perfil hepático", "perfil renal",
     "electrocardiograma", "ecg",
   ]
     .map((term) => `"${term}"`)
@@ -95,10 +98,30 @@ export function buildGmailSearchQuery(args: {
 
   const filenameTerms = [
     "receta", "prescription", "laboratorio", "analisis", "informe",
-    "radiografia", "ecografia", "ultrasound", "ecg",
+    "radiografia", "ecografia", "ecocard", "hemograma", "bioquim",
+    "sangre", "doppler", "ultrasound", "ecg",
   ]
     .map((term) => `filename:${term}`)
     .join(" OR ");
+  const compactClinicalTerms = [
+    "turno", "consulta", "receta", "laboratorio", "hemograma", "bioquimica",
+    "sangre", "ecografia", "eco", "ecocardiograma", "radiografia",
+    "electrocardiograma", "veterinaria",
+  ]
+    .map((term) => `"${term}"`)
+    .join(" OR ");
+  const compactFilenameTerms = [
+    "receta", "laboratorio", "hemograma", "bioquim", "sangre",
+    "radiografia", "ecografia", "ecocard", "eco", "ecg",
+  ]
+    .map((term) => `filename:${term}`)
+    .join(" OR ");
+  const petAnchoredStudyHints = [
+    "subject:eco", "subject:hemograma", "subject:bioquimica", "subject:bioquímica",
+    "subject:sangre", "subject:ecocardiograma", "subject:ecocardiograma",
+    "subject:doppler", "filename:eco", "filename:hemograma", "filename:bioquim",
+    "filename:sangre", "filename:ecocard", "filename:doppler",
+  ].join(" OR ");
 
   const petFilters: string[] = [];
   const petName = sanitizeGmailQueryTerm(asString(args.petName));
@@ -109,13 +132,22 @@ export function buildGmailSearchQuery(args: {
   const petClause = petFilters.length > 0 ? `(${petFilters.join(" OR ")})` : "";
   const senderHints = "(from:vet OR from:veterinaria OR from:veterinary OR from:clinic OR from:clinica)";
   const clinicalCore = `(${clinicalTerms} OR ${filenameTerms} OR ${senderHints})`;
-  const queryCore = petClause ? `${petClause} AND ${clinicalCore}` : clinicalCore;
+  const compactClinicalCore = `(${compactClinicalTerms} OR ${compactFilenameTerms} OR ${senderHints})`;
+  const petAnchoredCore = `(${clinicalCore} OR (${petAnchoredStudyHints}))`;
+  const queryCore = petClause ? `${petClause} AND ${petAnchoredCore}` : clinicalCore;
+  const selfMailExclusions = "-from:noreply@pessy.app -from:pessy.app";
 
   const dateClause = `after:${toGmailDate(args.afterDate)} before:${toGmailDate(args.beforeDate)}`;
-  const full = `${queryCore} ${dateClause}`;
+  const full = `${queryCore} ${selfMailExclusions} ${dateClause}`;
   if (full.length <= GMAIL_MAX_QUERY_CHARS) return full;
-  const minimal = `${clinicalCore} ${dateClause}`;
+  const petAnchoredCompact = petClause
+    ? `${petClause} AND (${compactClinicalCore} OR (${petAnchoredStudyHints})) ${selfMailExclusions} ${dateClause}`
+    : "";
+  if (petAnchoredCompact && petAnchoredCompact.length <= GMAIL_MAX_QUERY_CHARS) return petAnchoredCompact;
+  const minimal = `${clinicalCore} ${selfMailExclusions} ${dateClause}`;
   if (minimal.length <= GMAIL_MAX_QUERY_CHARS) return minimal;
+  const compactMinimal = `${compactClinicalCore} ${selfMailExclusions} ${dateClause}`;
+  if (compactMinimal.length <= GMAIL_MAX_QUERY_CHARS) return compactMinimal;
   return dateClause;
 }
 

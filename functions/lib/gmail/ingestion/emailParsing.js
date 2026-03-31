@@ -69,8 +69,9 @@ function extractBodyText(payload) {
             continue;
         if (mime === "text/plain" || mime === "text/html" || mime === "application/json") {
             const decoded = (0, utils_1.decodeBase64UrlToText)(data);
-            if (decoded.trim())
-                chunks.push(decoded.trim());
+            const normalized = mime === "text/html" ? (0, utils_1.stripHtmlToText)(decoded) : decoded.trim();
+            if (normalized.trim())
+                chunks.push(normalized.trim());
         }
     }
     return chunks.join("\n\n").slice(0, 120000);

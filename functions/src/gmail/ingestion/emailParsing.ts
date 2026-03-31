@@ -8,6 +8,7 @@ import {
   asString,
   asNonNegativeNumber,
   decodeBase64UrlToText,
+  stripHtmlToText,
 } from "./utils";
 
 // ─── MIME helpers ───────────────────────────────────────────────────────────
@@ -61,7 +62,8 @@ export function extractBodyText(payload: GmailMessagePart | undefined): string {
     if (!data) continue;
     if (mime === "text/plain" || mime === "text/html" || mime === "application/json") {
       const decoded = decodeBase64UrlToText(data);
-      if (decoded.trim()) chunks.push(decoded.trim());
+      const normalized = mime === "text/html" ? stripHtmlToText(decoded) : decoded.trim();
+      if (normalized.trim()) chunks.push(normalized.trim());
     }
   }
   return chunks.join("\n\n").slice(0, 120_000);

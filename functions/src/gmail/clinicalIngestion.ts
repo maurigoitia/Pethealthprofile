@@ -62,11 +62,16 @@ import {
   classifyClinicalContentWithAi, extractClinicalEventsWithAi,
 } from "./ingestion/clinicalAi";
 import {
+  resolveClinicalDocumentProcessingStatus,
+  shouldPersistCanonicalReviewDraft,
+} from "./ingestion/clinicalFallbacks";
+import { buildMailRoutingSummary } from "./ingestion/routingSummary";
+import {
   sanitizeAttachmentMetadataForFirestore,
   persistTemporaryRawDocument, deleteTemporaryRawDocument,
-  loadTemporaryRawDocument, saveTemporaryAttachmentExtraction,
+  saveTemporaryAttachmentExtraction,
   loadTemporaryAttachmentExtraction, deleteTemporaryAttachmentExtraction,
-  purgeExpiredRawDocuments,
+  purgeExpiredRawDocuments, loadTemporaryRawDocumentWithFallback,
 } from "./ingestion/jobProcessing";
 import {
   persistReviewEvent, buildDefaultExtractedData,
@@ -332,6 +337,296 @@ interface BootstrapResult {
   config: UserEmailConfig;
   sessionId: string;
 }
+
+interface EmailImportResetResult {
+  dry_run: boolean;
+  uid: string;
+  email: string | null;
+  pet_ids: string[];
+  source_email_ids: string[];
+  scanned_email_events: number;
+  collections_deleted: Record<string, number>;
+  deleted_total: number;
+  storage_prefixes_deleted: string[];
+}
+
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function recordDeleteCount(result: EmailImportResetResult, collection: string, count: number): void {
+  if (count <= 0) return;
+  result.collections_deleted[collection] = (result.collections_deleted[collection] || 0) + count;
+  result.deleted_total += count;
+}
+
+async function deleteDocRefsInBatches(
+  refs: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>[]
+): Promise<number> {
+  const uniqueRefs = Array.from(new Map(refs.map((ref) => [ref.path, ref])).values());
+  let deleted = 0;
+
+  for (let index = 0; index < uniqueRefs.length; index += 200) {
+    const batch = admin.firestore().batch();
+    const slice = uniqueRefs.slice(index, index + 200);
+    slice.forEach((ref) => batch.delete(ref));
+    await batch.commit();
+    deleted += slice.length;
+  }
+
+  return deleted;
+}
+
+async function deleteDocsByUserField(args: {
+  collection: string;
+  field: string;
+  uid: string;
+  filter?: (row: Record<string, unknown>, docId: string) => boolean;
+  dryRun: boolean;
+}): Promise<number> {
+  const snap = await admin.firestore().collection(args.collection).where(args.field, "==", args.uid).get();
+  const matches = snap.docs.filter((doc) => {
+    const row = asRecord(doc.data());
+    return args.filter ? args.filter(row, doc.id) : true;
+  });
+  if (args.dryRun) return matches.length;
+  return deleteDocRefsInBatches(matches.map((doc) => doc.ref));
+}
+
+async function deleteDocsByPetIds(args: {
+  collection: string;
+  petIds: string[];
+  dryRun: boolean;
+  filter?: (row: Record<string, unknown>, docId: string) => boolean;
+}): Promise<number> {
+  const petIds = uniqueStrings(args.petIds);
+  if (petIds.length === 0) return 0;
+
+  let deleted = 0;
+  for (const petId of petIds) {
+    const snap = await admin.firestore().collection(args.collection).where("petId", "==", petId).get();
+    const matches = snap.docs.filter((doc) => {
+      const row = asRecord(doc.data());
+      return args.filter ? args.filter(row, doc.id) : true;
+    });
+    if (args.dryRun) {
+      deleted += matches.length;
+      continue;
+    }
+    deleted += await deleteDocRefsInBatches(matches.map((doc) => doc.ref));
+  }
+  return deleted;
+}
+
+async function deleteStoragePrefixSafe(prefix: string): Promise<boolean> {
+  try {
+    await admin.storage().bucket().deleteFiles({ prefix });
+    return true;
+  } catch (error: any) {
+    const message = String(error?.message || error || "");
+    if (message.includes("No such object") || message.includes("no such object")) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+async function runEmailImportReset(args: {
+  uid: string;
+  email?: string | null;
+  petId?: string | null;
+  dryRun?: boolean;
+}): Promise<EmailImportResetResult> {
+  const dryRun = args.dryRun !== false;
+  const eventSnap = await admin.firestore().collection("medical_events").where("userId", "==", args.uid).get();
+  const emailEventDocs = eventSnap.docs.filter((doc) => {
+    const row = asRecord(doc.data());
+    if (args.petId && asString(row.petId) !== args.petId) return false;
+    return asString(row.source) === "email_import" || Boolean(asString(row.source_email_id));
+  });
+
+  const eventIds = emailEventDocs.map((doc) => doc.id);
+  const eventIdSet = new Set(eventIds);
+  const sourceEmailIds = uniqueStrings(
+    emailEventDocs.map((doc) => asString(asRecord(doc.data()).source_email_id)).filter(Boolean)
+  );
+  const sourceEmailIdSet = new Set(sourceEmailIds);
+  const eventPetIds = uniqueStrings(
+    emailEventDocs.map((doc) => asString(asRecord(doc.data()).petId)).filter(Boolean)
+  );
+
+  const result: EmailImportResetResult = {
+    dry_run: dryRun,
+    uid: args.uid,
+    email: args.email || null,
+    pet_ids: eventPetIds,
+    source_email_ids: sourceEmailIds,
+    scanned_email_events: emailEventDocs.length,
+    collections_deleted: {},
+    deleted_total: 0,
+    storage_prefixes_deleted: [],
+  };
+
+  const treatmentCount = await deleteDocsByUserField({
+    collection: "treatments",
+    field: "userId",
+    uid: args.uid,
+    dryRun,
+    filter: (row) =>
+      asString(row.source) === "email_import" ||
+      toStringArray(row.evidenceEventIds).some((eventId) => eventIdSet.has(eventId)),
+  });
+  recordDeleteCount(result, "treatments", treatmentCount);
+
+  const medicationSnap = await admin.firestore().collection("medications").where("userId", "==", args.uid).get();
+  const emailMedicationDocs = medicationSnap.docs.filter((doc) => {
+    const row = asRecord(doc.data());
+    if (args.petId && asString(row.petId) !== args.petId) return false;
+    return asString(row.source) === "email_import" || eventIdSet.has(asString(row.generatedFromEventId));
+  });
+  const emailMedicationIds = new Set(emailMedicationDocs.map((doc) => doc.id));
+  const medicationCount = dryRun
+    ? emailMedicationDocs.length
+    : await deleteDocRefsInBatches(emailMedicationDocs.map((doc) => doc.ref));
+  recordDeleteCount(result, "medications", medicationCount);
+
+  const appointmentCount = await deleteDocsByUserField({
+    collection: "appointments",
+    field: "userId",
+    uid: args.uid,
+    dryRun,
+    filter: (row) =>
+      asString(row.source) === "email_import" ||
+      eventIdSet.has(asString(row.sourceEventId)) ||
+      sourceEmailIdSet.has(asString(row.source_email_id)),
+  });
+  recordDeleteCount(result, "appointments", appointmentCount);
+
+  const pendingActionCount = await deleteDocsByUserField({
+    collection: "pending_actions",
+    field: "userId",
+    uid: args.uid,
+    dryRun,
+    filter: (row, docId) =>
+      asString(row.source) === "email_import" ||
+      docId.startsWith("incomplete_treatment_") ||
+      docId.startsWith("pending_sync_") ||
+      docId.startsWith("sync_review_") ||
+      asString(row.type) === "sync_review" ||
+      eventIdSet.has(asString(row.generatedFromEventId)) ||
+      eventIdSet.has(asString(row.sourceEventId)) ||
+      sourceEmailIdSet.has(asString(row.source_email_id)),
+  });
+  recordDeleteCount(result, "pending_actions", pendingActionCount);
+
+  const reviewDraftCount = await deleteDocsByUserField({
+    collection: "clinical_review_drafts",
+    field: "userId",
+    uid: args.uid,
+    dryRun,
+    filter: (row) =>
+      eventIdSet.has(asString(row.generatedFromEventId)) ||
+      sourceEmailIdSet.has(asString(row.sourceMessageId)) ||
+      sourceEmailIdSet.has(asString(row.source_message_id)),
+  });
+  recordDeleteCount(result, "clinical_review_drafts", reviewDraftCount);
+
+  const doseEventCount = await deleteDocsByUserField({
+    collection: "dose_events",
+    field: "userId",
+    uid: args.uid,
+    dryRun,
+    filter: (row) =>
+      emailMedicationIds.has(asString(row.medicationId)) ||
+      eventIdSet.has(asString(row.sourceEventId)),
+  });
+  recordDeleteCount(result, "dose_events", doseEventCount);
+
+  const emailEventCount = dryRun
+    ? emailEventDocs.length
+    : await deleteDocRefsInBatches(emailEventDocs.map((doc) => doc.ref));
+  recordDeleteCount(result, "medical_events", emailEventCount);
+
+  for (const collection of [
+    "gmail_ingestion_sessions",
+    "gmail_ingestion_documents",
+    "gmail_raw_documents_tmp",
+    "gmail_attachment_extract_tmp",
+    "gmail_event_reviews",
+    "gmail_event_fingerprints",
+    "gmail_document_hashes",
+    "gmail_ingestion_errors",
+    "structured_medical_dataset",
+  ]) {
+    const deleted = await deleteDocsByUserField({
+      collection,
+      field: "user_id",
+      uid: args.uid,
+      dryRun,
+      filter: (row) => {
+        if (!args.petId) return true;
+        const rowPetId = asString(row.pet_id) || asString(row.petId);
+        return !rowPetId || rowPetId === args.petId;
+      },
+    });
+    recordDeleteCount(result, collection, deleted);
+  }
+
+  for (const collection of [
+    "clinical_episodes",
+    "clinical_episode_buckets",
+    "clinical_profile_snapshots",
+    "clinical_alerts",
+  ]) {
+    const deleted = await deleteDocsByPetIds({
+      collection,
+      petIds: eventPetIds,
+      dryRun,
+    });
+    recordDeleteCount(result, collection, deleted);
+  }
+
+  if (!dryRun) {
+    const nowIso = getNowIso();
+    await admin.firestore().collection("user_email_config").doc(args.uid).set(
+      {
+        ingestion_status: "idle",
+        sync_status: "idle",
+        total_emails_scanned: 0,
+        clinical_candidates_detected: 0,
+        documents_processed: 0,
+        duplicates_removed: 0,
+        last_history_id: null,
+        last_sync_timestamp: nowIso,
+        updated_at: nowIso,
+      },
+      { merge: true }
+    );
+    await admin.firestore().collection("users").doc(args.uid).set(
+      {
+        gmailSync: {
+          syncStatus: "idle",
+          ingestionStatus: "idle",
+          lastHistoryId: null,
+          updatedAt: nowIso,
+        },
+      },
+      { merge: true }
+    );
+    if (await deleteStoragePrefixSafe(`gmail_ingestion/${args.uid}/`)) {
+      result.storage_prefixes_deleted.push(`gmail_ingestion/${args.uid}/`);
+    }
+  }
+
+  functions.logger.info("[gmail-email-import-reset] completed", result);
+  return result;
+}
+
 async function deleteLegacyEventArtifacts(eventId: string): Promise<number> {
   let deleted = 0;
   const collections = [
@@ -1865,12 +2160,108 @@ async function processScanQueueJob(
   const refreshedStatus = asString(refreshedData.status);
   const scanComplete = refreshedData.scan_complete === true;
   const hasNextPage = Boolean(asString(refreshedData.next_page_token));
+  await markJobCompleted(doc.ref);
   if (!scanComplete && (refreshedStatus === "queued" || refreshedStatus === "processing") && hasNextPage) {
     await ensurePendingScanJob(sessionId, uid);
   }
-
-  await markJobCompleted(doc.ref);
   await maybeFinalizeSession(sessionId);
+}
+
+async function markMessageRequiresReviewMissingRawContext(args: {
+  sessionId: string;
+  uid: string;
+  messageId: string;
+  sourceSender: string;
+  sourceSubject: string;
+}): Promise<void> {
+  const nowIso = getNowIso();
+  await admin.firestore().collection("gmail_ingestion_documents").doc(`${args.sessionId}_${args.messageId}`).set(
+    {
+      session_id: args.sessionId,
+      user_id: args.uid,
+      message_id: args.messageId,
+      from_email: args.sourceSender || null,
+      subject: args.sourceSubject.slice(0, 400) || null,
+      processing_status: "requires_review_missing_raw_context",
+      ai_result: {
+        requires_human_review: true,
+        reason_if_review_needed: "missing_raw_document_context",
+      },
+      processing_recovery: {
+        raw_context_source: "unavailable",
+        last_attempt_at: nowIso,
+      },
+      routing_summary: buildMailRoutingSummary({
+        processingStatus: "requires_review_missing_raw_context",
+        isClinicalContent: true,
+        ingestedEventTypes: [],
+        reviewEventTypes: [],
+        duplicatesRemoved: 0,
+        hasClinicalReviewDraft: false,
+      }),
+      updated_at: nowIso,
+    },
+    { merge: true }
+  );
+}
+
+async function loadProcessingRawContext(args: {
+  rawDocId: string;
+  sessionId: string;
+  uid: string;
+  messageId: string;
+  sourceSender: string;
+  sourceSubject: string;
+  stage: "attachment" | "classify" | "extract";
+}): Promise<{
+  sessionId: string;
+  uid: string;
+  messageId: string;
+  threadId: string;
+  emailDate: string;
+  sourceSender: string;
+  sourceSubject: string;
+  bodyText: string;
+  attachmentMeta: AttachmentMetadata[];
+  hashSignatureRaw: string;
+} | null> {
+  const recovered = await loadTemporaryRawDocumentWithFallback({
+    docId: args.rawDocId,
+    sessionId: args.sessionId,
+    uid: args.uid,
+    messageId: args.messageId,
+    sourceSender: args.sourceSender,
+    sourceSubject: args.sourceSubject,
+  });
+
+  if (!recovered) {
+    console.warn("[gmail-ingestion] raw context unavailable; routing to review", {
+      sessionId: args.sessionId,
+      messageId: args.messageId,
+      stage: args.stage,
+    });
+    await markMessageRequiresReviewMissingRawContext(args);
+    return null;
+  }
+
+  if (recovered.source === "ingestion_document_fallback") {
+    console.warn("[gmail-ingestion] recovered raw context from ingestion document", {
+      sessionId: args.sessionId,
+      messageId: args.messageId,
+      stage: args.stage,
+    });
+    await admin.firestore().collection("gmail_ingestion_documents").doc(`${args.sessionId}_${args.messageId}`).set(
+      {
+        processing_recovery: {
+          raw_context_source: "ingestion_document_fallback",
+          last_recovered_at: getNowIso(),
+        },
+      },
+      { merge: true }
+    );
+  }
+
+  return recovered.document;
 }
 
 async function processAttachmentQueueJob(
@@ -1887,7 +2278,15 @@ async function processAttachmentQueueJob(
     return;
   }
 
-  const rawDoc = await loadTemporaryRawDocument(rawDocId);
+  const rawDoc = await loadProcessingRawContext({
+    rawDocId,
+    sessionId,
+    uid,
+    messageId,
+    sourceSender: "",
+    sourceSubject: "",
+    stage: "attachment",
+  });
   if (!rawDoc) {
     await markJobCompleted(doc.ref);
     await maybeFinalizeSession(sessionId);
@@ -1983,7 +2382,15 @@ async function processAiQueueJob(
     return;
   }
 
-  const rawDoc = await loadTemporaryRawDocument(rawDocId);
+  const rawDoc = await loadProcessingRawContext({
+    rawDocId,
+    sessionId,
+    uid,
+    messageId,
+    sourceSender,
+    sourceSubject,
+    stage: mode,
+  });
   if (!rawDoc) {
     await markJobCompleted(doc.ref);
     await maybeFinalizeSession(sessionId);
@@ -2018,6 +2425,14 @@ async function processAiQueueJob(
           hash_signature_raw: rawDoc.hashSignatureRaw,
           ai_classification: classification,
           processing_status: "discarded_non_clinical",
+          routing_summary: buildMailRoutingSummary({
+            processingStatus: "discarded_non_clinical",
+            isClinicalContent: false,
+            ingestedEventTypes: [],
+            reviewEventTypes: [],
+            duplicatesRemoved: 0,
+            hasClinicalReviewDraft: false,
+          }),
           created_at: getNowIso(),
         },
         { merge: true }
@@ -2051,6 +2466,14 @@ async function processAiQueueJob(
         hash_signature_raw: rawDoc.hashSignatureRaw,
         ai_classification: classification,
         processing_status: "queued_attachment_ocr",
+        routing_summary: buildMailRoutingSummary({
+          processingStatus: "queued_attachment_ocr",
+          isClinicalContent: true,
+          ingestedEventTypes: [],
+          reviewEventTypes: [],
+          duplicatesRemoved: 0,
+          hasClinicalReviewDraft: false,
+        }),
         updated_at: getNowIso(),
       },
       { merge: true }
@@ -2141,30 +2564,42 @@ async function processAiQueueJob(
       identityConflictReason ||
       lowConfidenceReason ||
       (externalLinkRequiresLogin ? "external_link_login_required" : "low_confidence_external_reference");
+    const fallbackOperationalEvent =
+      heuristicClinicalExtraction(`${sourceSubject}\n${rawDoc.bodyText}`, rawDoc.emailDate).detected_events[0] || null;
+    const syntheticEvent: ClinicalEventExtraction = {
+      event_type: fallbackOperationalEvent?.event_type || "clinical_report",
+      event_date: toIsoDateOnly(parseIsoDate(rawDoc.emailDate) || new Date()),
+      date_confidence: 40,
+      description_summary:
+        lowConfidenceReason ||
+        "Contenido clínico potencial detectado con baja confianza. Requiere revisión manual.",
+      diagnosis: null,
+      medications: [],
+      lab_results: [],
+      imaging_type: null,
+      study_subtype: fallbackOperationalEvent?.study_subtype || null,
+      appointment_time: fallbackOperationalEvent?.appointment_time || null,
+      appointment_specialty: fallbackOperationalEvent?.appointment_specialty || null,
+      professional_name: fallbackOperationalEvent?.professional_name || null,
+      clinic_name: fallbackOperationalEvent?.clinic_name || null,
+      appointment_status: fallbackOperationalEvent?.appointment_status || null,
+      severity: null,
+      confidence_score: clamp(clinical.confidence_overall, 0, 100),
+    };
+    let canonicalEventIdForResolver: string | null = null;
+    const shouldPersistLowConfidenceCanonicalEvent =
+      shouldRouteToReview &&
+      Boolean(effectivePetId) &&
+      shouldPersistCanonicalReviewDraft({
+        event: syntheticEvent,
+        sourceSubject,
+        sourceSender,
+        extractedText,
+        reviewReason: lowConfidenceReviewReason,
+        attachmentMetadata,
+      });
 
     if (shouldRouteToReview) {
-      const fallbackOperationalEvent =
-        heuristicClinicalExtraction(`${sourceSubject}\n${rawDoc.bodyText}`, rawDoc.emailDate).detected_events[0] || null;
-      const syntheticEvent: ClinicalEventExtraction = {
-        event_type: fallbackOperationalEvent?.event_type || "clinical_report",
-        event_date: toIsoDateOnly(parseIsoDate(rawDoc.emailDate) || new Date()),
-        date_confidence: 40,
-        description_summary:
-          lowConfidenceReason ||
-          "Contenido clínico potencial detectado con baja confianza. Requiere revisión manual.",
-        diagnosis: null,
-        medications: [],
-        lab_results: [],
-        imaging_type: null,
-        study_subtype: fallbackOperationalEvent?.study_subtype || null,
-        appointment_time: fallbackOperationalEvent?.appointment_time || null,
-        appointment_specialty: fallbackOperationalEvent?.appointment_specialty || null,
-        professional_name: fallbackOperationalEvent?.professional_name || null,
-        clinic_name: fallbackOperationalEvent?.clinic_name || null,
-        appointment_status: fallbackOperationalEvent?.appointment_status || null,
-        severity: null,
-        confidence_score: clamp(clinical.confidence_overall, 0, 100),
-      };
       const gmailReviewId = await persistReviewEvent({
         uid,
         petId: effectivePetId,
@@ -2178,6 +2613,23 @@ async function processAiQueueJob(
         narrativeSummary: clinical.narrative_summary || lowConfidenceReason,
         reason: lowConfidenceReviewReason,
       });
+      if (shouldPersistLowConfidenceCanonicalEvent) {
+        const ingestionResult = await ingestEventToDomain({
+          uid,
+          petId: effectivePetId,
+          sourceEmailId: messageId,
+          sourceSubject,
+          sourceSender,
+          sourceDate: rawDoc.emailDate,
+          event: syntheticEvent,
+          narrativeSummary: clinical.narrative_summary || lowConfidenceReason || syntheticEvent.description_summary,
+          requiresConfirmation: true,
+          reviewReason: lowConfidenceReviewReason,
+          sourceAttachment: preferredAttachment,
+        });
+        canonicalEventIdForResolver = ingestionResult.canonicalEventId;
+        await incrementSessionCounters(sessionId, { new_medical_events_created: 1 });
+      }
       await upsertSyncReviewPendingAction({
         uid,
         petId: effectivePetId,
@@ -2187,7 +2639,7 @@ async function processAiQueueJob(
         narrativeSummary: clinical.narrative_summary,
         reason: lowConfidenceReviewReason,
         gmailReviewId,
-        generatedFromEventId: null,
+        generatedFromEventId: canonicalEventIdForResolver,
         sourceAttachment: preferredAttachment,
       });
       await incrementSessionCounters(sessionId, { events_requiring_review: 1 });
@@ -2214,7 +2666,7 @@ async function processAiQueueJob(
         from_email: sourceSender,
         source_date: rawDoc.emailDate,
         attachment_count: attachmentMetadata.length,
-        canonical_event_id: null,
+        canonical_event_id: canonicalEventIdForResolver,
         ui_hint: {
           image_fragment_url: preferredAttachment?.storage_signed_url || null,
           storage_uri: preferredAttachment?.storage_uri || null,
@@ -2256,6 +2708,14 @@ async function processAiQueueJob(
           links: externalLinkExtraction.metadata.slice(0, 8),
         },
         processing_status: shouldRouteToReview ? "requires_review_low_confidence" : "discarded_low_confidence",
+        routing_summary: buildMailRoutingSummary({
+          processingStatus: shouldRouteToReview ? "requires_review_low_confidence" : "discarded_low_confidence",
+          isClinicalContent: clinical.is_clinical_content,
+          ingestedEventTypes: shouldPersistLowConfidenceCanonicalEvent ? [syntheticEvent.event_type] : [],
+          reviewEventTypes: shouldRouteToReview ? [syntheticEvent.event_type] : [],
+          duplicatesRemoved: 0,
+          hasClinicalReviewDraft: false,
+        }),
         created_at: getNowIso(),
       },
       { merge: true }
@@ -2270,6 +2730,9 @@ async function processAiQueueJob(
   let createdForMessage = 0;
   let reviewsForMessage = 0;
   let duplicatesForMessage = 0;
+  let createdClinicalReviewDraft = false;
+  const ingestedEventTypes: EventType[] = [];
+  const reviewEventTypes: EventType[] = [];
   const preferredAttachment = selectBestAttachmentForReview(attachmentMetadata);
 
   for (const event of clinical.detected_events) {
@@ -2282,6 +2745,7 @@ async function processAiQueueJob(
       });
       if (semanticDuplicate.isLikelyDuplicate) {
         reviewsForMessage += 1;
+        reviewEventTypes.push(event.event_type);
         const gmailReviewId = await persistReviewEvent({
           uid,
           petId: effectivePetId,
@@ -2346,7 +2810,8 @@ async function processAiQueueJob(
         clinical.reason_if_review_needed ||
         (externalLinkRequiresLogin ? "external_link_login_required" : "") ||
         (missingDoseInTreatment ? "missing_treatment_dose_or_frequency" : "confidence_below_auto_ingest_threshold");
-      reviewsForMessage += 1;
+        reviewsForMessage += 1;
+      reviewEventTypes.push(event.event_type);
       let canonicalEventIdForResolver: string | null = null;
       const gmailReviewId = await persistReviewEvent({
         uid,
@@ -2361,7 +2826,18 @@ async function processAiQueueJob(
         narrativeSummary: clinical.narrative_summary,
         reason: reviewReason,
       });
-      if (missingDoseInTreatment) {
+      const shouldPersistCanonicalReviewEvent =
+        Boolean(effectivePetId) &&
+        (missingDoseInTreatment ||
+          shouldPersistCanonicalReviewDraft({
+            event,
+            sourceSubject,
+            sourceSender,
+            extractedText,
+            reviewReason,
+            attachmentMetadata,
+          }));
+      if (shouldPersistCanonicalReviewEvent) {
         const ingestionResult = await ingestEventToDomain({
           uid,
           petId: effectivePetId,
@@ -2376,7 +2852,7 @@ async function processAiQueueJob(
           sourceAttachment: preferredAttachment,
         });
         canonicalEventIdForResolver = ingestionResult.canonicalEventId;
-        if (effectivePetId && ingestionResult.blockedMedicationCount > 0) {
+        if (effectivePetId && missingDoseInTreatment && ingestionResult.blockedMedicationCount > 0) {
           const reviewId = await upsertClinicalReviewDraft({
             uid,
             petId: effectivePetId,
@@ -2400,22 +2876,23 @@ async function processAiQueueJob(
             reviewId,
             sourceAttachment: preferredAttachment,
           });
+          createdClinicalReviewDraft = true;
         }
         createdForMessage += 1;
-      } else {
-        await upsertSyncReviewPendingAction({
-          uid,
-          petId: effectivePetId,
-          sessionId,
-          sourceEmailId: messageId,
-          event,
-          narrativeSummary: clinical.narrative_summary,
-          reason: reviewReason,
-          gmailReviewId,
-          generatedFromEventId: canonicalEventIdForResolver,
-          sourceAttachment: preferredAttachment,
-        });
+        ingestedEventTypes.push(event.event_type);
       }
+      await upsertSyncReviewPendingAction({
+        uid,
+        petId: effectivePetId,
+        sessionId,
+        sourceEmailId: messageId,
+        event,
+        narrativeSummary: clinical.narrative_summary,
+        reason: reviewReason,
+        gmailReviewId,
+        generatedFromEventId: canonicalEventIdForResolver,
+        sourceAttachment: preferredAttachment,
+      });
       await mirrorBrainResolution({
         uid,
         petReference: asString(planAndPet.petContext.name) || null,
@@ -2505,12 +2982,25 @@ async function processAiQueueJob(
       requiresManualConfirmation: false,
     });
     createdForMessage += 1;
+    ingestedEventTypes.push(event.event_type);
   }
 
   await incrementSessionCounters(sessionId, {
     new_medical_events_created: createdForMessage,
     events_requiring_review: reviewsForMessage,
     duplicates_removed: duplicatesForMessage,
+  });
+
+  const finalProcessingStatus = resolveClinicalDocumentProcessingStatus({
+    createdForMessage,
+    reviewsForMessage,
+    isClinicalContent: clinical.is_clinical_content,
+    reasonIfReviewNeeded: identityConflictReason || clinical.reason_if_review_needed,
+    sourceSubject,
+    sourceSender,
+    extractedText,
+    emailDate: rawDoc.emailDate,
+    attachmentMetadata,
   });
 
   await admin.firestore().collection("gmail_ingestion_documents").doc(`${sessionId}_${messageId}`).set(
@@ -2547,7 +3037,15 @@ async function processAiQueueJob(
         links_with_text: externalLinkExtraction.extractedChunks.length,
         links: externalLinkExtraction.metadata.slice(0, 8),
       },
-      processing_status: reviewsForMessage > 0 ? "requires_review" : "ingested",
+      processing_status: finalProcessingStatus,
+      routing_summary: buildMailRoutingSummary({
+        processingStatus: finalProcessingStatus,
+        isClinicalContent: clinical.is_clinical_content,
+        ingestedEventTypes,
+        reviewEventTypes,
+        duplicatesRemoved: duplicatesForMessage,
+        hasClinicalReviewDraft: createdClinicalReviewDraft,
+      }),
       ingested_count: createdForMessage,
       review_count: reviewsForMessage,
       created_at: getNowIso(),
@@ -2842,6 +3340,14 @@ async function processSession(sessionId: string, options: ProcessOptions): Promi
             attachment_metadata: sanitizeAttachmentMetadataForFirestore(attachmentMetadata),
             hash_signature_raw: rawDocument.hash_signature_raw,
             processing_status: "queued_classification",
+            routing_summary: buildMailRoutingSummary({
+              processingStatus: "queued_classification",
+              isClinicalContent: true,
+              ingestedEventTypes: [],
+              reviewEventTypes: [],
+              duplicatesRemoved: 0,
+              hasClinicalReviewDraft: false,
+            }),
             created_at: getNowIso(),
           },
           { merge: true }
@@ -3391,6 +3897,31 @@ export const runEmailClinicalAiWorker = functions
     return null;
   });
 
+function getQaRequestKey(req: functions.https.Request): string {
+  const body = getQaRequestBody(req);
+  const incomingHeader = asString(req.headers["x-force-sync-key"]);
+  const webhookHeader = asString(req.headers["x-webhook-key"]);
+  const authHeader = asString(req.headers.authorization).replace(/^Bearer\s+/i, "");
+  const bodyKey = asString(body.forceSyncKey) || asString(body.force_sync_key) || asString(body.key);
+  return incomingHeader || webhookHeader || authHeader || bodyKey;
+}
+
+function getQaRequestBody(req: functions.https.Request): Record<string, unknown> {
+  const body = asRecord(req.body);
+  const nestedData = body.data;
+  if (typeof nestedData === "string") {
+    try {
+      return asRecord(JSON.parse(nestedData));
+    } catch {
+      return body;
+    }
+  }
+  if (nestedData && typeof nestedData === "object") {
+    return asRecord(nestedData);
+  }
+  return body;
+}
+
 export const forceRunEmailClinicalIngestion = functions
   .runWith({
     timeoutSeconds: 540,
@@ -3401,6 +3932,7 @@ export const forceRunEmailClinicalIngestion = functions
       "MAIL_TOKEN_ENCRYPTION_KEY",
       "GEMINI_API_KEY",
       "GMAIL_FORCE_SYNC_KEY",
+      "GMAIL_QA_ALLOWED_USER_EMAILS",
     ],
   })
   .region("us-central1")
@@ -3411,15 +3943,13 @@ export const forceRunEmailClinicalIngestion = functions
     }
 
     const configuredKey = asString(process.env.GMAIL_FORCE_SYNC_KEY);
-    const incomingHeader = asString(req.headers["x-force-sync-key"]);
-    const authHeader = asString(req.headers.authorization).replace(/^Bearer\s+/i, "");
-    const incomingKey = incomingHeader || authHeader;
+    const incomingKey = getQaRequestKey(req);
     if (!configuredKey || !incomingKey || incomingKey !== configuredKey) {
       res.status(401).json({ ok: false, error: "unauthorized" });
       return;
     }
 
-    const body = asRecord(req.body);
+    const body = getQaRequestBody(req);
     if (body.listConnected === true) {
       const tokenDocs = await admin.firestore().collectionGroup("mail_sync_tokens").limit(100).get();
       const connected: Array<Record<string, unknown>> = [];
@@ -3584,6 +4114,7 @@ export const forceRunEmailClinicalIngestion = functions
         maxWaitMs: drainTimeoutMs,
       });
     }
+    await maybeFinalizeSession(bootstrap.sessionId);
 
     const sessionSnap = await admin
       .firestore()
@@ -3624,6 +4155,7 @@ export const forceRunEmailClinicalIngestion = functions
             };
           });
           const extractedEvents = Array.isArray(aiResult.detected_events) ? aiResult.detected_events : [];
+          const detectedEventsCount = asNonNegativeNumber(aiResult.detected_events_count, extractedEvents.length);
           return {
             doc_id: doc.id,
             message_id: asString(row.message_id),
@@ -3637,7 +4169,7 @@ export const forceRunEmailClinicalIngestion = functions
             extraction: {
               is_clinical_content: aiResult.is_clinical_content === true,
               confidence_overall: asNonNegativeNumber(aiResult.confidence_overall, 0),
-              detected_events_count: extractedEvents.length,
+              detected_events_count: detectedEventsCount,
             },
             link_extraction: {
               links_detected: asNonNegativeNumber(linkExtraction.links_detected, 0),
@@ -3735,11 +4267,11 @@ export const forceRunEmailClinicalIngestion = functions
     });
   });
 
-export const backfillGmailTaxonomy = functions
+export const resetEmailImportClinicalData = functions
   .runWith({
     timeoutSeconds: 540,
     memory: "1GB",
-    secrets: ["GMAIL_FORCE_SYNC_KEY"],
+    secrets: ["GMAIL_FORCE_SYNC_KEY", "GMAIL_QA_ALLOWED_USER_EMAILS"],
   })
   .region("us-central1")
   .https.onRequest(async (req, res) => {
@@ -3749,15 +4281,82 @@ export const backfillGmailTaxonomy = functions
     }
 
     const configuredKey = asString(process.env.GMAIL_FORCE_SYNC_KEY);
-    const incomingHeader = asString(req.headers["x-force-sync-key"]);
-    const authHeader = asString(req.headers.authorization).replace(/^Bearer\s+/i, "");
-    const incomingKey = incomingHeader || authHeader;
+    const incomingKey = getQaRequestKey(req);
     if (!configuredKey || !incomingKey || incomingKey !== configuredKey) {
       res.status(401).json({ ok: false, error: "unauthorized" });
       return;
     }
 
-    const body = asRecord(req.body);
+    const body = getQaRequestBody(req);
+    let uid = asString(body.uid);
+    const byEmail = asString(body.email).toLowerCase();
+    if (!uid && byEmail) {
+      const userQuery = await admin.firestore().collection("users").where("email", "==", byEmail).limit(1).get();
+      if (!userQuery.empty) uid = userQuery.docs[0].id;
+    }
+    if (!uid) {
+      res.status(400).json({ ok: false, error: "uid_or_email_required" });
+      return;
+    }
+
+    const userSnap = await admin.firestore().collection("users").doc(uid).get();
+    const userData = asRecord(userSnap.data());
+    const targetEmail =
+      asString(asRecord(userData.gmailSync).accountEmail) ||
+      asString(userData.email) ||
+      byEmail;
+    if (!targetEmail) {
+      res.status(404).json({ ok: false, error: "user_email_not_found" });
+      return;
+    }
+    if (!isEmailAllowedForQa(targetEmail)) {
+      res.status(403).json({ ok: false, error: "qa_user_not_allowed" });
+      return;
+    }
+
+    try {
+      const result = await runEmailImportReset({
+        uid,
+        email: targetEmail,
+        petId: asString(body.petId) || null,
+        dryRun: body.dryRun !== false,
+      });
+
+      res.status(200).json({
+        ok: true,
+        uid,
+        email: targetEmail,
+        petId: asString(body.petId) || null,
+        dryRun: body.dryRun !== false,
+        result,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ ok: false, error: message });
+    }
+  });
+
+export const backfillGmailTaxonomy = functions
+  .runWith({
+    timeoutSeconds: 540,
+    memory: "1GB",
+    secrets: ["GMAIL_FORCE_SYNC_KEY", "GMAIL_QA_ALLOWED_USER_EMAILS"],
+  })
+  .region("us-central1")
+  .https.onRequest(async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({ ok: false, error: "method_not_allowed" });
+      return;
+    }
+
+    const configuredKey = asString(process.env.GMAIL_FORCE_SYNC_KEY);
+    const incomingKey = getQaRequestKey(req);
+    if (!configuredKey || !incomingKey || incomingKey !== configuredKey) {
+      res.status(401).json({ ok: false, error: "unauthorized" });
+      return;
+    }
+
+    const body = getQaRequestBody(req);
     let uid = asString(body.uid);
     const byEmail = asString(body.email).toLowerCase();
     if (!uid && byEmail) {
@@ -3807,7 +4406,7 @@ export const backfillNarrativeHistory = functions
   .runWith({
     timeoutSeconds: 540,
     memory: "1GB",
-    secrets: ["GMAIL_FORCE_SYNC_KEY"],
+    secrets: ["GMAIL_FORCE_SYNC_KEY", "GMAIL_QA_ALLOWED_USER_EMAILS"],
   })
   .region("us-central1")
   .https.onRequest(async (req, res) => {
@@ -3817,15 +4416,13 @@ export const backfillNarrativeHistory = functions
     }
 
     const configuredKey = asString(process.env.GMAIL_FORCE_SYNC_KEY);
-    const incomingHeader = asString(req.headers["x-force-sync-key"]);
-    const authHeader = asString(req.headers.authorization).replace(/^Bearer\s+/i, "");
-    const incomingKey = incomingHeader || authHeader;
+    const incomingKey = getQaRequestKey(req);
     if (!configuredKey || !incomingKey || incomingKey !== configuredKey) {
       res.status(401).json({ ok: false, error: "unauthorized" });
       return;
     }
 
-    const body = asRecord(req.body);
+    const body = getQaRequestBody(req);
     let uid = asString(body.uid);
     const byEmail = asString(body.email).toLowerCase();
     if (!uid && byEmail) {
@@ -3876,7 +4473,7 @@ export const cleanupLegacyMailsyncMedicalEvents = functions
   .runWith({
     timeoutSeconds: 540,
     memory: "1GB",
-    secrets: ["GMAIL_FORCE_SYNC_KEY"],
+    secrets: ["GMAIL_FORCE_SYNC_KEY", "GMAIL_QA_ALLOWED_USER_EMAILS"],
   })
   .region("us-central1")
   .https.onRequest(async (req, res) => {
@@ -3886,15 +4483,13 @@ export const cleanupLegacyMailsyncMedicalEvents = functions
     }
 
     const configuredKey = asString(process.env.GMAIL_FORCE_SYNC_KEY);
-    const incomingHeader = asString(req.headers["x-force-sync-key"]);
-    const authHeader = asString(req.headers.authorization).replace(/^Bearer\s+/i, "");
-    const incomingKey = incomingHeader || authHeader;
+    const incomingKey = getQaRequestKey(req);
     if (!configuredKey || !incomingKey || incomingKey !== configuredKey) {
       res.status(401).json({ ok: false, error: "unauthorized" });
       return;
     }
 
-    const body = asRecord(req.body);
+    const body = getQaRequestBody(req);
     let uid = asString(body.uid);
     const byEmail = asString(body.email).toLowerCase();
     if (!uid && byEmail) {
@@ -3952,6 +4547,7 @@ export const ingestClinicalEmailWebhook = functions
       "MAIL_TOKEN_ENCRYPTION_KEY",
       "GEMINI_API_KEY",
       "GMAIL_FORCE_SYNC_KEY",
+      "GMAIL_QA_ALLOWED_USER_EMAILS",
     ],
   })
   .region("us-central1")
@@ -3962,15 +4558,13 @@ export const ingestClinicalEmailWebhook = functions
     }
 
     const configuredKey = asString(process.env.GMAIL_FORCE_SYNC_KEY);
-    const incomingHeader = asString(req.headers["x-webhook-key"]) || asString(req.headers["x-force-sync-key"]);
-    const authHeader = asString(req.headers.authorization).replace(/^Bearer\s+/i, "");
-    const incomingKey = incomingHeader || authHeader;
+    const incomingKey = getQaRequestKey(req);
     if (!configuredKey || !incomingKey || incomingKey !== configuredKey) {
       res.status(401).json({ ok: false, error: "unauthorized" });
       return;
     }
 
-    const body = asRecord(req.body);
+    const body = getQaRequestBody(req);
     const previewOnly = body.preview === true || body.dryRun === true;
     const forceIngest = body.force === true;
 
@@ -4153,6 +4747,7 @@ export const ingestClinicalEmailWebhook = functions
       hardDeadlineMs: 5 * 60 * 1000,
       disableDedup: false,
     });
+    await maybeFinalizeSession(bootstrap.sessionId);
 
     const sessionSnap = await admin
       .firestore()

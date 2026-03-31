@@ -129,7 +129,15 @@ async function assertPetAccess(petId, uid) {
         ...collectUidCandidates(data.members),
         ...collectUidCandidates(data.accessUids),
     ]);
-    let canAccess = ownerCandidates.includes(uid) || coTutorUids.includes(uid) || sharedCandidates.includes(uid);
+    const sharedAccessByUid = data.sharedAccessByUid && typeof data.sharedAccessByUid === "object"
+        ? data.sharedAccessByUid
+        : {};
+    const ownerAccess = ownerCandidates.includes(uid);
+    const accessRole = asTrimmedString(sharedAccessByUid[uid]);
+    let canAccess = ownerAccess || coTutorUids.includes(uid) || sharedCandidates.includes(uid);
+    if (!ownerAccess && accessRole === "viewer") {
+        canAccess = false;
+    }
     let hasLegacyUserLink = false;
     if (!canAccess) {
         const legacyMembershipSnap = await admin

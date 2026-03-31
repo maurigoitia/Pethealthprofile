@@ -465,6 +465,7 @@ import {
   cleanupLegacyMailsyncMedicalEvents,
   forceRunEmailClinicalIngestion,
   ingestClinicalEmailWebhook,
+  resetEmailImportClinicalData,
   runEmailClinicalAiWorker,
   runEmailClinicalAttachmentWorker,
   runEmailClinicalIngestionQueue,
@@ -2525,6 +2526,119 @@ export const sendCoTutorInvite = functions
     return { ok: true };
   });
 
+export const acceptCoTutorInvite = functions
+  .region("us-central1")
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "Requiere sesión activa.");
+    }
+    const authData = context.auth;
+
+    const inviteCode = (data?.code || "").toString().trim().toUpperCase();
+    if (!inviteCode) {
+      throw new functions.https.HttpsError("invalid-argument", "Código de invitación requerido.");
+    }
+
+    const uid = authData.uid;
+    const userEmail = (authData.token.email || "").toString().trim().toLowerCase();
+
+    return db.runTransaction(async (tx) => {
+      const invRef = db.collection("invitations").doc(inviteCode);
+      const invSnap = await tx.get(invRef);
+      if (!invSnap.exists) {
+        throw new functions.https.HttpsError("not-found", "Código inválido o expirado");
+      }
+
+      const inv = invSnap.data() || {};
+      const inviteEmail = (inv.inviteEmail || "").toString().trim().toLowerCase();
+      if (inviteEmail && inviteEmail !== userEmail) {
+        throw new functions.https.HttpsError("permission-denied", "Este código fue emitido para otro correo.");
+      }
+
+      const accessRole = inv.accessRole === "viewer" ? "viewer" : "editor";
+      const petRef = db.collection("pets").doc((inv.petId || "").toString());
+      const petSnap = await tx.get(petRef);
+      if (!petSnap.exists) {
+        throw new functions.https.HttpsError("not-found", "La mascota de esta invitación ya no existe.");
+      }
+
+      const pet = petSnap.data() || {};
+      if ((pet.ownerId || "").toString() === uid) {
+        throw new functions.https.HttpsError("failed-precondition", "No podés unirte a tu propia mascota con un código");
+      }
+
+      const expiresAt =
+        typeof inv.expiresAt?.toDate === "function"
+          ? inv.expiresAt.toDate()
+          : inv.expiresAt
+            ? new Date(inv.expiresAt)
+            : null;
+      if (!expiresAt || !Number.isFinite(expiresAt.getTime()) || expiresAt < new Date()) {
+        throw new functions.https.HttpsError("failed-precondition", "El código expiró");
+      }
+
+      const petName = (inv.petName || pet.name || "la mascota").toString();
+      const coTutorUids = Array.isArray(pet.coTutorUids)
+        ? pet.coTutorUids.filter((value: unknown): value is string => typeof value === "string")
+        : [];
+      const existingCoTutors = Array.isArray(pet.coTutors)
+        ? pet.coTutors.filter((value: unknown) => value && typeof value === "object")
+        : [];
+      const sharedAccessByUid =
+        pet.sharedAccessByUid && typeof pet.sharedAccessByUid === "object"
+          ? { ...pet.sharedAccessByUid }
+          : {};
+
+      if (inv.used === true) {
+        if ((inv.usedBy || "").toString() !== uid) {
+          throw new functions.https.HttpsError("failed-precondition", "Este código ya fue utilizado");
+        }
+        return {
+          petId: petRef.id,
+          petName,
+          accessRole,
+        };
+      }
+
+      const nextCoTutorUids = coTutorUids.includes(uid) ? coTutorUids : [...coTutorUids, uid];
+      const nextCoTutors = existingCoTutors.filter((value: any) => value?.uid !== uid);
+      nextCoTutors.push({
+        uid,
+        email: authData.token.email || "",
+        name: authData.token.name || authData.token.email || "",
+        addedAt:
+          typeof inv.createdAt?.toDate === "function"
+            ? inv.createdAt.toDate().toISOString()
+            : typeof inv.createdAt === "string"
+              ? inv.createdAt
+              : new Date().toISOString(),
+        role: accessRole,
+      });
+
+      tx.update(petRef, {
+        coTutors: nextCoTutors,
+        coTutorUids: nextCoTutorUids,
+        sharedAccessByUid: {
+          ...sharedAccessByUid,
+          [uid]: accessRole,
+        },
+        lastJoinInviteCode: inviteCode,
+      });
+
+      tx.update(invRef, {
+        used: true,
+        usedBy: uid,
+        usedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      return {
+        petId: petRef.id,
+        petName,
+        accessRole,
+      };
+    });
+  });
+
 export {
   getGmailConnectUrl,
   gmailAuthCallback,
@@ -2536,6 +2650,7 @@ export {
   runEmailClinicalAttachmentWorker,
   runEmailClinicalAiWorker,
   forceRunEmailClinicalIngestion,
+  resetEmailImportClinicalData,
   backfillNarrativeHistory,
   backfillGmailTaxonomy,
   cleanupLegacyMailsyncMedicalEvents,

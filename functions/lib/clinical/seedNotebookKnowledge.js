@@ -4,11 +4,6 @@ exports.seedBrainKnowledge = void 0;
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
 const COLLECTION = "notebook_knowledge";
-// Admin emails allowed to run seed operations
-const ADMIN_EMAILS = new Set([
-    "mauri@pessy.app",
-    "mauriciogoitia@gmail.com",
-]);
 // ─── PESSY Brain Knowledge Sections ──────────────────────────────────────────
 // Extracted & structured from the 9 NotebookLM notebook sources
 const NOTEBOOK_SECTIONS = [
@@ -255,14 +250,9 @@ exports.seedBrainKnowledge = functions
 })
     .region("us-central1")
     .https.onCall(async (_data, context) => {
-    var _a;
-    // Only admin users can seed
+    // Only authenticated users can seed (or use admin check)
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "Must be authenticated");
-    }
-    const callerEmail = ((_a = context.auth.token.email) === null || _a === void 0 ? void 0 : _a.toLowerCase()) || "";
-    if (!ADMIN_EMAILS.has(callerEmail)) {
-        throw new functions.https.HttpsError("permission-denied", "Only admin users can seed brain knowledge");
     }
     const db = admin.firestore();
     const now = new Date().toISOString();

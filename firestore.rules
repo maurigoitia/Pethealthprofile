@@ -26,6 +26,20 @@ service cloud.firestore {
       );
     }
 
+    function canEditPetById(petId) {
+      return signedIn() && petExists(petId) && (
+        petData(petId).ownerId == request.auth.uid ||
+        (
+          petData(petId).coTutorUids is list &&
+          request.auth.uid in petData(petId).coTutorUids &&
+          (
+            !(petData(petId).sharedAccessByUid is map) ||
+            petData(petId).sharedAccessByUid[request.auth.uid] != "viewer"
+          )
+        )
+      );
+    }
+
     function isPetOwner(pet) {
       return signedIn() && pet.ownerId == request.auth.uid;
     }
@@ -34,28 +48,60 @@ service cloud.firestore {
       return signedIn() && pet.coTutorUids is list && request.auth.uid in pet.coTutorUids;
     }
 
+    function isPetEditor(pet) {
+      return signedIn() && (
+        pet.ownerId == request.auth.uid ||
+        (
+          pet.coTutorUids is list &&
+          request.auth.uid in pet.coTutorUids &&
+          (
+            !(pet.sharedAccessByUid is map) ||
+            pet.sharedAccessByUid[request.auth.uid] != "viewer"
+          )
+        )
+      );
+    }
+
     function canJoinPetWithInvite(petId) {
       return signedIn()
         && resource.data.coTutorUids is list
         && resource.data.coTutors is list
         && request.resource.data.coTutorUids is list
         && request.resource.data.coTutors is list
+        && request.resource.data.sharedAccessByUid is map
         && request.resource.data.ownerId == resource.data.ownerId
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
           'coTutors',
           'coTutorUids',
+          'sharedAccessByUid',
           'lastJoinInviteCode'
         ])
         && !resource.data.coTutorUids.hasAny([request.auth.uid])
         && request.resource.data.coTutorUids.hasAny([request.auth.uid])
-        && request.resource.data.coTutorUids.size() == resource.data.coTutorUids.size() + 1
         && request.resource.data.coTutorUids.hasAll(resource.data.coTutorUids)
-        && request.resource.data.coTutors.size() == resource.data.coTutors.size() + 1
         && request.resource.data.lastJoinInviteCode is string
+        && (
+          !(resource.data.sharedAccessByUid is map) ||
+          request.resource.data.sharedAccessByUid.keys().hasAll(resource.data.sharedAccessByUid.keys())
+        )
+        && request.resource.data.sharedAccessByUid.keys().hasAny([request.auth.uid])
         && exists(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode))
         && get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.petId == petId
         && get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.createdBy == resource.data.ownerId
         && get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.used == false
+        && (
+          get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.inviteEmail == null ||
+          (
+            request.auth.token.email != null &&
+            get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.inviteEmail is string &&
+            get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.inviteEmail == request.auth.token.email
+          )
+        )
+        && request.resource.data.sharedAccessByUid[request.auth.uid] == (
+          get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.accessRole is string
+            ? get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.accessRole
+            : "editor"
+        )
         && (
           !(get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.expiresAt is timestamp) ||
           get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.expiresAt > request.time
@@ -71,13 +117,22 @@ service cloud.firestore {
         && request.resource.data.ownerId == resource.data.ownerId
         && request.resource.data.diff(resource.data).changedKeys().hasOnly([
           'coTutors',
-          'coTutorUids'
+          'coTutorUids',
+          'sharedAccessByUid'
         ])
         && resource.data.coTutorUids.hasAny([request.auth.uid])
         && !request.resource.data.coTutorUids.hasAny([request.auth.uid])
         && request.resource.data.coTutorUids.size() == resource.data.coTutorUids.size() - 1
         && resource.data.coTutorUids.hasAll(request.resource.data.coTutorUids)
-        && request.resource.data.coTutors.size() == resource.data.coTutors.size() - 1;
+        && request.resource.data.coTutors.size() == resource.data.coTutors.size() - 1
+        && (
+          !(resource.data.sharedAccessByUid is map) ||
+          (
+            request.resource.data.sharedAccessByUid is map &&
+            !request.resource.data.sharedAccessByUid.keys().hasAny([request.auth.uid]) &&
+            resource.data.sharedAccessByUid.keys().hasAll(request.resource.data.sharedAccessByUid.keys())
+          )
+        );
     }
 
     match /users/{userId} {
@@ -89,6 +144,21 @@ service cloud.firestore {
 
       match /pets/{petId} {
         allow read, write: if signedIn() && request.auth.uid == userId;
+
+        match /dailyCheckins/{checkinId} {
+          allow read, write: if signedIn()
+            && request.auth.uid == userId
+            && canAccessPetById(petId);
+        }
+
+        match /personality/{docId} {
+          allow read: if signedIn()
+            && request.auth.uid == userId
+            && canAccessPetById(petId);
+          allow write: if signedIn()
+            && request.auth.uid == userId
+            && canEditPetById(petId);
+        }
       }
     }
 
@@ -98,10 +168,11 @@ service cloud.firestore {
       allow update: if
         isPetOwner(resource.data) ||
         (
-          isPetCoTutor(resource.data) &&
+          isPetEditor(resource.data) &&
           request.resource.data.ownerId == resource.data.ownerId &&
           request.resource.data.coTutorUids == resource.data.coTutorUids &&
-          request.resource.data.coTutors == resource.data.coTutors
+          request.resource.data.coTutors == resource.data.coTutors &&
+          request.resource.data.sharedAccessByUid == resource.data.sharedAccessByUid
         ) ||
         canJoinPetWithInvite(petId) ||
         canLeavePetAsCoTutor();
@@ -160,43 +231,51 @@ service cloud.firestore {
     }
 
     match /medical_events/{eventId} {
-      allow create: if canAccessPetById(request.resource.data.petId);
-      allow read, update, delete: if canAccessPetById(resource.data.petId);
+      allow create: if canEditPetById(request.resource.data.petId);
+      allow read: if canAccessPetById(resource.data.petId);
+      allow update, delete: if canEditPetById(resource.data.petId);
     }
 
     match /pending_actions/{actionId} {
-      allow create: if canAccessPetById(request.resource.data.petId);
-      allow read, update, delete: if canAccessPetById(resource.data.petId);
+      allow create: if canEditPetById(request.resource.data.petId);
+      allow read: if canAccessPetById(resource.data.petId);
+      allow update, delete: if canEditPetById(resource.data.petId);
     }
 
     match /medications/{medicationId} {
-      allow create: if canAccessPetById(request.resource.data.petId);
-      allow read, update, delete: if canAccessPetById(resource.data.petId);
+      allow create: if canEditPetById(request.resource.data.petId);
+      allow read: if canAccessPetById(resource.data.petId);
+      allow update, delete: if canEditPetById(resource.data.petId);
     }
 
     match /appointments/{appointmentId} {
-      allow create: if canAccessPetById(request.resource.data.petId);
-      allow read, update, delete: if canAccessPetById(resource.data.petId);
+      allow create: if canEditPetById(request.resource.data.petId);
+      allow read: if canAccessPetById(resource.data.petId);
+      allow update, delete: if canEditPetById(resource.data.petId);
     }
 
     match /clinical_conditions/{conditionId} {
-      allow create: if canAccessPetById(request.resource.data.petId);
-      allow read, update, delete: if canAccessPetById(resource.data.petId);
+      allow create: if canEditPetById(request.resource.data.petId);
+      allow read: if canAccessPetById(resource.data.petId);
+      allow update, delete: if canEditPetById(resource.data.petId);
     }
 
     match /diagnoses/{diagnosisId} {
-      allow create: if canAccessPetById(request.resource.data.petId);
-      allow read, update, delete: if canAccessPetById(resource.data.petId);
+      allow create: if canEditPetById(request.resource.data.petId);
+      allow read: if canAccessPetById(resource.data.petId);
+      allow update, delete: if canEditPetById(resource.data.petId);
     }
 
     match /treatments/{treatmentId} {
-      allow create: if canAccessPetById(request.resource.data.petId);
-      allow read, update, delete: if canAccessPetById(resource.data.petId);
+      allow create: if canEditPetById(request.resource.data.petId);
+      allow read: if canAccessPetById(resource.data.petId);
+      allow update, delete: if canEditPetById(resource.data.petId);
     }
 
     match /clinical_alerts/{alertId} {
-      allow create: if canAccessPetById(request.resource.data.petId);
-      allow read, update, delete: if canAccessPetById(resource.data.petId);
+      allow create: if canEditPetById(request.resource.data.petId);
+      allow read: if canAccessPetById(resource.data.petId);
+      allow update, delete: if canEditPetById(resource.data.petId);
     }
 
     match /reminders/{reminderId} {
@@ -206,9 +285,13 @@ service cloud.firestore {
 
     match /scheduled_notifications/{id} {
       allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow read, update, delete: if signedIn() && (
+      allow read: if signedIn() && (
         resource.data.userId == request.auth.uid ||
         (resource.data.petId != null && canAccessPetById(resource.data.petId))
+      );
+      allow update, delete: if signedIn() && (
+        resource.data.userId == request.auth.uid ||
+        (resource.data.petId != null && canEditPetById(resource.data.petId))
       );
     }
 
@@ -216,6 +299,16 @@ service cloud.firestore {
       allow read: if true;
       allow create: if signedIn();
       allow update, delete: if false;
+    }
+
+    match /clinical_episodes/{episodeId} {
+      allow read: if canAccessPetById(resource.data.petId);
+      allow create, update, delete: if false;
+    }
+
+    match /clinical_profile_snapshots/{snapshotId} {
+      allow read: if canAccessPetById(resource.data.petId);
+      allow create, update, delete: if false;
     }
   }
 }
