@@ -47,6 +47,21 @@ export interface SeparationAnxietyRule {
   guardrailType: WellbeingGuardrailType;
 }
 
+export interface AggressionPreventionRule {
+  id: string;
+  label: string;
+  detail: string;
+  kind: WellbeingKnowledgeKind;
+  guardrailType: WellbeingGuardrailType;
+}
+
+export interface AggressionStressSignal {
+  id: string;
+  level: "early" | "warning" | "imminent";
+  label: string;
+  detail: string;
+}
+
 export interface PuppySocializationProfile {
   criticalWindowWeeks: { start: number; end: number };
   dailySessionMinutes: { min: number; max: number };
@@ -115,6 +130,12 @@ export interface WellbeingMasterBook {
   separation_anxiety: {
     do_first: SeparationAnxietyRule[];
     never_do: SeparationAnxietyRule[];
+  };
+  aggression_prevention: {
+    stress_ladder: AggressionStressSignal[];
+    do_first: AggressionPreventionRule[];
+    never_do: AggressionPreventionRule[];
+    refer_professional_when: string[];
   };
   puppy_socialization: PuppySocializationProfile;
   impulse_control: {
@@ -426,6 +447,100 @@ export const WELLBEING_MASTER_BOOK: WellbeingMasterBook = {
         kind: "guardrail",
         guardrailType: "block",
       },
+    ],
+  },
+  aggression_prevention: {
+    stress_ladder: [
+      { id: "lip_lick", level: "early", label: "Se lame los labios", detail: "Senal de apaciguamiento. El perro esta incomodo pero intenta evitar conflicto." },
+      { id: "yawning", level: "early", label: "Bosteza sin sueno", detail: "Senal de estres. Indica que la situacion le genera tension." },
+      { id: "look_away", level: "early", label: "Desvía la mirada", detail: "Intenta cortar la interaccion. Respetar su espacio." },
+      { id: "freeze", level: "warning", label: "Se congela", detail: "El cuerpo se pone rigido. Alerta maxima: esta evaluando si pelea o huye." },
+      { id: "whale_eye", level: "warning", label: "Muestra el blanco de los ojos", detail: "Esclerótica visible ('ojo de ballena'). Advertencia seria de incomodidad." },
+      { id: "piloerection", level: "warning", label: "Pelo del lomo erizado", detail: "Activacion del sistema nervioso. Puede ser miedo o arousal alto." },
+      { id: "growl", level: "imminent", label: "Gruñido", detail: "Comunicacion valida. NUNCA castigar un grunido — es la ultima advertencia antes de morder." },
+      { id: "snap", level: "imminent", label: "Mordida al aire", detail: "Mordida intencional que no conecta. El perro avisa que la proxima si va a morder." },
+    ],
+    do_first: [
+      {
+        id: "identify_triggers",
+        label: "Identificar detonantes",
+        detail: "Registrar que situaciones provocan reactividad: otros perros, personas, ruidos, manipulacion. Sin saber el detonante no se puede trabajar.",
+        kind: "hard_fact",
+        guardrailType: "recommendation",
+      },
+      {
+        id: "increase_distance",
+        label: "Aumentar distancia al detonante",
+        detail: "Alejarse hasta que el perro pueda ver el estimulo sin reaccionar. Premiar la calma a esa distancia.",
+        kind: "hard_fact",
+        guardrailType: "recommendation",
+      },
+      {
+        id: "desensitization_protocol",
+        label: "Desensibilizacion gradual",
+        detail: "Exponer al estimulo a distancia segura + premio de alto valor. Acercar muy gradualmente solo si no hay reaccion.",
+        kind: "hard_fact",
+        guardrailType: "recommendation",
+      },
+      {
+        id: "muzzle_training",
+        label: "Entrenamiento de bozal positivo",
+        detail: "Ensenar al perro a aceptar el bozal con premios, sin forzar. Un bozal bien entrenado da seguridad a todos.",
+        kind: "hard_fact",
+        guardrailType: "recommendation",
+      },
+      {
+        id: "vet_pain_check",
+        label: "Descartar dolor con veterinario",
+        detail: "La agresividad subita en perros adultos suele estar ligada a dolor (articular, dental, abdominal). Descartar primero.",
+        kind: "hard_fact",
+        guardrailType: "alert",
+      },
+    ],
+    never_do: [
+      {
+        id: "no_punish_growl",
+        label: "NUNCA castigar un grunido",
+        detail: "El grunido es la advertencia. Si lo castigas, el perro aprendera a morder sin avisar.",
+        kind: "guardrail",
+        guardrailType: "block",
+      },
+      {
+        id: "no_alpha_roll",
+        label: "NUNCA hacer 'alpha roll' o dominancia",
+        detail: "Tirar al perro al suelo, agarrarlo del cuello o mirarlo fijo aumenta el miedo y la agresion. La teoria de dominancia esta refutada cientificamente.",
+        kind: "guardrail",
+        guardrailType: "block",
+      },
+      {
+        id: "no_confront_cornered",
+        label: "NUNCA acorralar a un perro asustado",
+        detail: "Un perro acorralado que no puede huir va a morder. Siempre dejar via de escape.",
+        kind: "guardrail",
+        guardrailType: "block",
+      },
+      {
+        id: "no_aversive_tools",
+        label: "NUNCA usar collares de ahorque, puas o electricos",
+        detail: "Herramientas aversivas aumentan el miedo, la ansiedad y la agresividad. Estan contraindicadas por toda la evidencia cientifica.",
+        kind: "guardrail",
+        guardrailType: "block",
+      },
+      {
+        id: "no_force_interaction",
+        label: "NUNCA forzar interaccion social",
+        detail: "No obligar al perro a 'saludar' a otros perros o personas. Respetar su distancia de seguridad.",
+        kind: "guardrail",
+        guardrailType: "block",
+      },
+    ],
+    refer_professional_when: [
+      "Mordida que rompe piel (a persona o animal)",
+      "Agresion hacia ninos o personas vulnerables",
+      "Agresion subita sin detonante aparente",
+      "Agresion por recursos (comida, juguetes) que escala",
+      "Historial de mas de una mordida",
+      "El tutor tiene miedo de su propio perro",
     ],
   },
   puppy_socialization: {

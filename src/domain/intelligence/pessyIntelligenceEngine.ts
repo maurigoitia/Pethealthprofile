@@ -17,6 +17,7 @@ export interface PessyIntelligenceInput {
   temperatureC: number | null;
   humidityPct: number | null;
   hasSeparationAnxiety?: boolean;
+  hasAggressionSigns?: boolean; // tutor reporta senales de agresividad
   isPuppy?: boolean;
   isUnvaccinated?: boolean;
   // ─── New interactive inputs ──────────────────────────────────────────
@@ -68,7 +69,7 @@ export function inferTrainingSegmentId(input: PessyIntelligenceInput): TrainingS
     return null;
   }
 
-  if (input.hasSeparationAnxiety || input.groupIds.includes("dog.reactive")) {
+  if (input.hasSeparationAnxiety || input.hasAggressionSigns || input.groupIds.includes("dog.reactive")) {
     return "reactive";
   }
 
@@ -86,6 +87,10 @@ export function inferTrainingSegmentId(input: PessyIntelligenceInput): TrainingS
 function getRecommendedTrainingCommand(input: PessyIntelligenceInput) {
   if (input.species !== "dog") {
     return null;
+  }
+
+  if (input.hasAggressionSigns) {
+    return TRAINING_MASTER_BOOK.command_library.find((command) => command.id === "leave_it") ?? null;
   }
 
   if (input.hasSeparationAnxiety) {
@@ -233,6 +238,83 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
         sourceModule: "separation_anxiety",
       });
     }
+  }
+
+  // ─── MODULE: Aggression Prevention ────────────────────────────────────────
+  if (input.species === "dog" && input.hasAggressionSigns) {
+    const aggressionRules = WELLBEING_MASTER_BOOK.aggression_prevention;
+
+    // Guardrail: identify triggers
+    const identifyTriggers = aggressionRules.do_first.find((r) => r.id === "identify_triggers");
+    if (identifyTriggers) {
+      recommendations.push({
+        id: `${input.petName}_aggression_triggers`,
+        code: "identify_aggression_triggers",
+        title: identifyTriggers.label,
+        detail: identifyTriggers.detail,
+        slot: "Primer paso",
+        icon: "search",
+        kind: "alert",
+        sourceModule: "aggression_prevention",
+      });
+    }
+
+    // Guardrail: vet pain check
+    const vetCheck = aggressionRules.do_first.find((r) => r.id === "vet_pain_check");
+    if (vetCheck) {
+      recommendations.push({
+        id: `${input.petName}_aggression_vet`,
+        code: "vet_pain_check_aggression",
+        title: vetCheck.label,
+        detail: vetCheck.detail,
+        slot: "Urgente",
+        icon: "medical_services",
+        kind: "alert",
+        sourceModule: "aggression_prevention",
+      });
+    }
+
+    // Recommendation: desensitization
+    const desensitization = aggressionRules.do_first.find((r) => r.id === "desensitization_protocol");
+    if (desensitization) {
+      recommendations.push({
+        id: `${input.petName}_aggression_desens`,
+        code: "desensitization_gradual",
+        title: desensitization.label,
+        detail: desensitization.detail,
+        slot: "Plan de trabajo",
+        icon: "psychology",
+        kind: "recommendation",
+        sourceModule: "aggression_prevention",
+      });
+    }
+
+    // Block: never punish growl
+    const noPunishGrowl = aggressionRules.never_do.find((r) => r.id === "no_punish_growl");
+    if (noPunishGrowl) {
+      recommendations.push({
+        id: `${input.petName}_no_punish_growl`,
+        code: "never_punish_growl",
+        title: noPunishGrowl.label,
+        detail: noPunishGrowl.detail,
+        slot: "Guardrail",
+        icon: "block",
+        kind: "block",
+        sourceModule: "aggression_prevention",
+      });
+    }
+
+    // Alert: refer professional
+    recommendations.push({
+      id: `${input.petName}_refer_etologo`,
+      code: "refer_professional_aggression",
+      title: "Consultar con etologo clinico veterinario",
+      detail: `Si ${input.petName} mordio, gruñe seguido o la situacion escala, un etologo clinico es el profesional indicado. No un adiestrador comun.`,
+      slot: "Profesional",
+      icon: "person_search",
+      kind: "alert",
+      sourceModule: "aggression_prevention",
+    });
   }
 
   const trainingCommand = getRecommendedTrainingCommand(input);
