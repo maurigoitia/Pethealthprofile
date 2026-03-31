@@ -78,6 +78,12 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
       onClick: () => setCurrentScreen("notifications"),
     },
     {
+      icon: "mail",
+      title: "Conectar Gmail",
+      subtitle: "Sincronizar emails veterinarios automáticamente",
+      onClick: () => setCurrentScreen("gmail-sync"),
+    },
+    {
       icon: "lock",
       title: "Privacidad y seguridad",
       subtitle: "Contraseña y configuración de datos",
@@ -109,6 +115,9 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
   }
   if (currentScreen === "notifications") {
     return <NotificationsScreen onBack={() => setCurrentScreen("main")} />;
+  }
+  if (currentScreen === "gmail-sync") {
+    return <PrivacySecurityScreen onBack={() => setCurrentScreen("main")} onLogout={handleLogout} autoOpenGmail />;
   }
   if (currentScreen === "privacy") {
     return <PrivacySecurityScreen onBack={() => setCurrentScreen("main")} onLogout={handleLogout} />;

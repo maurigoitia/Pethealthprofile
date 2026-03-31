@@ -22,9 +22,10 @@ import { GmailConsentScreen } from "../auth/GmailConsentScreen";
 interface PrivacySecurityScreenProps {
   onBack: () => void;
   onLogout: () => void;
+  autoOpenGmail?: boolean;
 }
 
-export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScreenProps) {
+export function PrivacySecurityScreen({ onBack, onLogout, autoOpenGmail }: PrivacySecurityScreenProps) {
   const { user } = useAuth();
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -41,7 +42,7 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
   });
   const [gmailLoading, setGmailLoading] = useState(true);
   const [gmailActionLoading, setGmailActionLoading] = useState(false);
-  const [showGmailConsent, setShowGmailConsent] = useState(false);
+  const [showGmailConsent, setShowGmailConsent] = useState(autoOpenGmail ?? false);
   const [clinicalDeleteLoading, setClinicalDeleteLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState("");
