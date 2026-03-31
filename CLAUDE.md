@@ -76,6 +76,8 @@
 - Running `firebase deploy` directly (use deploy-with-landing.sh)
 - Modifying firebase.json rewrites
 - Pushing to `pessy-website` without user approval
+- Touching website files when working on PWA: public/landing.html, public/blog/, public/team/, public/tailwind.css, public/og-cover.png, public/robots.txt, public/sitemap.xml
+- Deleting ANY file from public/ without explicit user approval
 - Removing or weakening the `predeploy` hook in firebase.json
 
 ## Incident Log
