@@ -289,18 +289,7 @@ function buildContextualTips(petName: string, medications: any[], appointments: 
         sourceModule: "contextual",
       });
     } else {
-      // Active treatment — informational
-      const dosageInfo = med.dosage ? `Dosis: ${med.dosage}${med.frequency ? ` · ${med.frequency}` : ""}` : "Mantené el horario del tratamiento.";
-      tips.push({
-        id: `med-active-${i}`,
-        code: "med_active",
-        title: `${petName} toma ${med.name}`,
-        detail: dosageInfo,
-        slot: "recommendation",
-        icon: "medication",
-        kind: "recommendation",
-        sourceModule: "contextual",
-      });
+      // Active treatment — already shown in Medical Profile card, skip duplicate tip
     }
   });
 
