@@ -414,6 +414,7 @@ export function PetHomeView({
     getAppointmentsByPetId,
     getClinicalConditionsByPetId,
     getProfileSnapshotByPetId,
+    getPendingActionsByPetId,
   } = useMedical();
 
   const currentIndex = pets.findIndex((pet) => pet.id === activePetId);
@@ -905,6 +906,7 @@ export function PetHomeView({
             species={species}
             medications={activeMedications.map((m) => ({ name: m.name, dosage: m.dosage }))}
             nextAppointment={upcomingAppointments[0] ?? null}
+            pendingActions={getPendingActionsByPetId(activePetId)}
             onPointsEarned={(total) => setPoints(total)}
           />
         </div>
