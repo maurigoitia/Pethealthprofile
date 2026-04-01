@@ -1,6 +1,8 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 import { Readable } from "stream";
+import * as rateLimiter from "../utils/rateLimiter";
+import { handleCors } from "../utils/helpers";
 import { pipeline } from "stream/promises";
 import * as mammoth from "mammoth/lib/index";
 import { assertGmailInvitationOrThrow } from "./invitation";
@@ -3479,6 +3481,8 @@ export const triggerEmailClinicalIngestion = functions
     if (!context.auth?.uid) {
       throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("triggerEmailClinicalIngestion", 100, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
 
     const uid = context.auth.uid;
     await assertGmailInvitationOrThrow(uid);
@@ -3937,6 +3941,7 @@ export const forceRunEmailClinicalIngestion = functions
   })
   .region("us-central1")
   .https.onRequest(async (req, res) => {
+    if (handleCors(req, res)) return;
     if (req.method !== "POST") {
       res.status(405).json({ ok: false, error: "method_not_allowed" });
       return;
@@ -4275,6 +4280,7 @@ export const resetEmailImportClinicalData = functions
   })
   .region("us-central1")
   .https.onRequest(async (req, res) => {
+    if (handleCors(req, res)) return;
     if (req.method !== "POST") {
       res.status(405).json({ ok: false, error: "method_not_allowed" });
       return;
@@ -4344,6 +4350,7 @@ export const backfillGmailTaxonomy = functions
   })
   .region("us-central1")
   .https.onRequest(async (req, res) => {
+    if (handleCors(req, res)) return;
     if (req.method !== "POST") {
       res.status(405).json({ ok: false, error: "method_not_allowed" });
       return;
@@ -4410,6 +4417,7 @@ export const backfillNarrativeHistory = functions
   })
   .region("us-central1")
   .https.onRequest(async (req, res) => {
+    if (handleCors(req, res)) return;
     if (req.method !== "POST") {
       res.status(405).json({ ok: false, error: "method_not_allowed" });
       return;
@@ -4477,6 +4485,7 @@ export const cleanupLegacyMailsyncMedicalEvents = functions
   })
   .region("us-central1")
   .https.onRequest(async (req, res) => {
+    if (handleCors(req, res)) return;
     if (req.method !== "POST") {
       res.status(405).json({ ok: false, error: "method_not_allowed" });
       return;
@@ -4552,6 +4561,7 @@ export const ingestClinicalEmailWebhook = functions
   })
   .region("us-central1")
   .https.onRequest(async (req, res) => {
+    if (handleCors(req, res)) return;
     if (req.method !== "POST") {
       res.status(405).json({ ok: false, error: "method_not_allowed" });
       return;

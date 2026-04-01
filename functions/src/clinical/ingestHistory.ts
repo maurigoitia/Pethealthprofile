@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
+import * as rateLimiter from "../utils/rateLimiter";
 
 // ──────────────────────────────────────────────
 // Constants
@@ -83,6 +84,8 @@ export const ingestHistory = functions
   .https.onCall(async (data, context) => {
     assertAuth(context.auth?.uid);
     assertRequest(data);
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("ingestHistory", 100, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
 
     const { petId, docs } = data;
     const uid = context.auth.uid;

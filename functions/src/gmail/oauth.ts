@@ -3,6 +3,7 @@ import * as functions from "firebase-functions";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
 import { initializeEmailIngestionAfterOauth } from "./clinicalIngestion";
 import { assertGmailInvitationOrThrow, getGmailInvitationAccess } from "./invitation";
+import * as rateLimiter from "../utils/rateLimiter";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -491,6 +492,8 @@ export const getGmailConnectUrl = functions
     if (!context.auth?.uid) {
       throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("getGmailConnectUrl", 100, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
 
     await assertGmailInvitationOrThrow(context.auth.uid);
 
@@ -837,6 +840,8 @@ export const syncAppointmentCalendarEvent = functions
     if (!context.auth?.uid) {
       throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("syncAppointmentCalendarEvent", 100, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
 
     const uid = context.auth.uid;
     const appointmentId = asNonEmptyString(data?.appointmentId);
@@ -1007,6 +1012,8 @@ export const disconnectGmailSync = functions
     if (!context.auth?.uid) {
       throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("disconnectGmailSync", 100, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
 
     const uid = context.auth.uid;
     const tokenRef = admin

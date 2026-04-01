@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 import { randomBytes } from "crypto";
+import * as rateLimiter from "../utils/rateLimiter";
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // 8 MB binary
 const ALLOWED_CONTENT_TYPES = new Set([
@@ -191,6 +192,7 @@ export const uploadPetPhoto = functions
 
     // Fallback para casos móviles/PWA donde el SDK no adjunta auth en callable.
     if (!uid && typeof rawData?.idToken === "string" && rawData.idToken.trim()) {
+
       try {
         const decoded = await admin.auth().verifyIdToken(rawData.idToken.trim());
         uid = decoded.uid || "";
@@ -210,6 +212,8 @@ export const uploadPetPhoto = functions
     if (!uid) {
       throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(uid, 10, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("uploadPetPhoto", 100, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
 
     const petId = typeof rawData?.petId === "string" ? rawData.petId.trim() : "";
     if (!petId) {

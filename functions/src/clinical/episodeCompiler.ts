@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 import { createHash } from "crypto";
+import { handleCors } from "../utils/helpers";
 import { isMedicalEventEligibleForEpisodeProjection } from "./canonicalEventPolicy";
 
 type EpisodeStatus = "confirmed" | "draft" | "needs_clean_upload";
@@ -875,6 +876,7 @@ export const backfillClinicalEpisodes = functions
   })
   .region("us-central1")
   .https.onRequest(async (req, res) => {
+    if (handleCors(req, res)) return;
     if (req.method !== "POST") {
       res.status(405).json({ ok: false, error: "method_not_allowed" });
       return;

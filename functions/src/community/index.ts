@@ -1,5 +1,6 @@
 import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
+import * as rateLimiter from "../utils/rateLimiter";
 
 function getDb() { return admin.firestore(); }
 
@@ -266,6 +267,8 @@ function getMatchLabel(score: number): string {
 
 export const computeAdoptionMatches = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Login required");
+  if (!rateLimiter.perUser(context.auth.uid, 10, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+  if (!rateLimiter.globalLimit("computeAdoptionMatches", 100, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
 
   const adopter = data as AdopterInput;
   if (!adopter.livingSpace || !adopter.experience || !adopter.activityLevel) {

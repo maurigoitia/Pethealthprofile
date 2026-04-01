@@ -8,6 +8,7 @@
 // ============================================================================
 
 import * as admin from "firebase-admin";
+import { handleCors } from "../utils/helpers";
 import * as functions from "firebase-functions";
 import { projectClinicalEvent } from "./projectionLayer";
 
@@ -92,6 +93,7 @@ export async function runBackfillProjection(opts?: {
 export const backfillClinicalProjection = functions
   .runWith({ timeoutSeconds: 540, memory: "1GB", secrets: ["BACKFILL_ADMIN_SECRET"] })
   .https.onRequest(async (req, res) => {
+    if (handleCors(req, res)) return;
     const expectedSecret = asString(process.env.BACKFILL_ADMIN_SECRET);
     const providedSecret = asString(req.headers[ADMIN_SECRET_HEADER]);
     if (!expectedSecret || providedSecret !== expectedSecret) {

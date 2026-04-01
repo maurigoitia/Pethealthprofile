@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 import { GoogleAuth } from "google-auth-library";
+import { handleCors } from "../utils/helpers";
 
 const DISCOVERY_ENGINE_BASE = "https://discoveryengine.googleapis.com/v1";
 const SERVICE_USAGE_BASE = "https://serviceusage.googleapis.com/v1";
@@ -217,6 +218,7 @@ export const provisionPessyVertexDatastore = functions
   })
   .region("us-central1")
   .https.onRequest(async (req, res) => {
+    if (handleCors(req, res)) return;
     if (req.method !== "POST") {
       res.status(405).json({ ok: false, error: "method_not_allowed" });
       return;

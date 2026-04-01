@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 import { VertexAI } from "@google-cloud/vertexai";
+import { handleCors } from "../utils/helpers";
 
 const DEFAULT_LOCATION = "us-central1";
 const DEFAULT_MODEL = "gemini-2.0-flash-001";
@@ -674,6 +675,7 @@ export const pessyClinicalBrainGrounding = functions
   })
   .region("us-central1")
   .https.onRequest(async (req, res) => {
+    if (handleCors(req, res)) return;
     if (req.method !== "POST") {
       res.status(405).json({ ok: false, error: "method_not_allowed" });
       return;

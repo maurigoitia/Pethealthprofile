@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
+import * as rateLimiter from "../utils/rateLimiter";
 
 const DELETE_BATCH_SIZE = 200;
 
@@ -252,6 +253,8 @@ export const deleteUserAccount = functions
     if (!context.auth?.uid) {
       throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 3, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("deleteUserAccount", 100, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
 
     const uid = context.auth.uid;
     functions.logger.warn("[deleteUserAccount] Starting account deletion", { uid });
@@ -281,6 +284,8 @@ export const deleteAllUserClinicalData = functions
     if (!context.auth?.uid) {
       throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 3, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("deleteAllUserClinicalData", 100, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
 
     const uid = context.auth.uid;
     functions.logger.warn("[deleteAllUserClinicalData] Starting clinical data deletion", { uid });
@@ -410,6 +415,12 @@ export const submitDataDeletionRequest = functions
 
     if (req.method !== "POST") {
       res.status(405).json({ ok: false, error: "method_not_allowed" });
+      return;
+    }
+
+    const ip = asString(req.headers["x-forwarded-for"] || req.ip || "unknown");
+    if (!rateLimiter.globalLimit(`submitDataDeletionRequest:${ip}`, 30, 60_000)) {
+      res.status(429).json({ ok: false, error: "too_many_requests" });
       return;
     }
 

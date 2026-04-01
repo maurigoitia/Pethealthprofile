@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
+import * as rateLimiter from "../utils/rateLimiter";
 
 const db = () => admin.firestore();
 const messagingClient = () => admin.messaging();
@@ -723,6 +724,8 @@ export const recordDoseEventV3 = functions
     if (!uid) {
       throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(uid, 10, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("recordDoseEventV3", 100, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
 
     const doseEventId = typeof data?.doseEventId === "string" ? data.doseEventId.trim() : "";
     const action = String(data?.action || "").trim() as DoseAction;
@@ -843,6 +846,8 @@ export const evaluateTreatmentDedupV3 = functions
     if (!context.auth?.uid) {
       throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("evaluateTreatmentDedupV3", 100, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
 
     const candidate = asRecord(data?.candidate);
     const existingList: Record<string, any>[] = Array.isArray(data?.existing)
@@ -887,6 +892,8 @@ export const syncTreatmentTimezoneV3 = functions
     if (!uid) {
       throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(uid, 10, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("syncTreatmentTimezoneV3", 100, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
 
     const timezone = typeof data?.timezone === "string" && data.timezone.trim()
       ? data.timezone.trim()

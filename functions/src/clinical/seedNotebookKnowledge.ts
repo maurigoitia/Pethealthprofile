@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
+import * as rateLimiter from "../utils/rateLimiter";
 
 const COLLECTION = "notebook_knowledge";
 
@@ -280,6 +281,8 @@ export const seedBrainKnowledge = functions
     if (!context.auth) {
       throw new functions.https.HttpsError("unauthenticated", "Must be authenticated");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("seedBrainKnowledge", 100, 60_000)) throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
 
     const db = admin.firestore();
     const now = new Date().toISOString();

@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
+import { handleCors } from "../utils/helpers";
 
 const COLLECTION = "notebook_knowledge";
 const SYNC_VERSION = "notebook_sync_v1";
@@ -34,6 +35,7 @@ export const syncNotebookKnowledge = functions
   })
   .region("us-central1")
   .https.onRequest(async (req, res) => {
+    if (handleCors(req, res)) return;
     if (req.method !== "POST") {
       res.status(405).json({ ok: false, error: "method_not_allowed" });
       return;
