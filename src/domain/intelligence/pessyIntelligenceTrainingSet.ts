@@ -100,6 +100,9 @@ export const PESSY_INTELLIGENCE_TRAINING_SET: PessyTrainingCase[] = [
       "departure_routine_predictable",
       "special_toy_departure",
       "camera_monitoring",
+      "anxiety_no_punishment",
+      "anxiety_no_companion_dog_fix",
+      "anxiety_no_crate_if_panic",
       "practice_watch_me",
       "segment_strict_no_aversives",
       "segment_loose_leash_only",
@@ -123,6 +126,26 @@ export const PESSY_INTELLIGENCE_TRAINING_SET: PessyTrainingCase[] = [
     expectedSegmentId: null,
   },
   {
+    id: "paco_cold",
+    label: "Paco · galgo en invierno",
+    input: {
+      petName: "Paco",
+      species: "dog",
+      breed: "Galgo",
+      ageLabel: "5 anos",
+      groupIds: ["dog.companion"],
+      temperatureC: 3,
+      humidityPct: 60,
+    },
+    expectedCodes: [
+      "cold_short_walk",
+      "practice_wait_signal",
+      "segment_short_daily_sessions",
+      "segment_same_words_in_household",
+    ],
+    expectedSegmentId: "companion",
+  },
+  {
     id: "kai_working",
     label: "Kai · border collie activo sin estimulo",
     input: {
@@ -135,6 +158,8 @@ export const PESSY_INTELLIGENCE_TRAINING_SET: PessyTrainingCase[] = [
       humidityPct: 45,
     },
     expectedCodes: [
+      "mental_stimulation_needed",
+      "frustration_risk_working",
       "practice_wait_signal",
       "segment_avoid_understimulation",
       "segment_avoid_inconsistent_commands",

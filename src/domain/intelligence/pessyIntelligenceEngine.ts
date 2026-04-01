@@ -345,6 +345,35 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
         });
       }
     }
+
+    // ─── Cold weather check (comfortableMinC data exists, was never used) ───
+    const comfortMin = thermalProfile.comfortableMinC;
+    if (comfortMin !== null && input.temperatureC < comfortMin) {
+      const isSevere = input.temperatureC <= comfortMin - 5;
+      if (input.species === "cat") {
+        recommendations.push({
+          id: `${input.petName}_cold_indoor`,
+          code: "cold_keep_indoor",
+          title: `Frío para ${input.petName} — mantener adentro`,
+          detail: `${input.breed} está más cómodo arriba de ${comfortMin}°C. Hoy hace ${input.temperatureC}°C. Verificar que tenga mantas y un lugar reparado.`,
+          slot: "Ahora",
+          icon: "ac_unit",
+          kind: isSevere ? "alert" : "recommendation",
+          sourceModule: "thermal_safety",
+        });
+      } else {
+        recommendations.push({
+          id: `${input.petName}_cold_walk`,
+          code: "cold_short_walk",
+          title: `Hace frío — paseo corto y abrigado`,
+          detail: `${input.temperatureC}°C es por debajo del rango cómodo (${comfortMin}°C+) para ${input.breed}. Paseo breve, evitar asfalto helado, y secar bien al volver.`,
+          slot: "Hoy",
+          icon: "ac_unit",
+          kind: isSevere ? "alert" : "recommendation",
+          sourceModule: "thermal_safety",
+        });
+      }
+    }
   }
 
   if (input.species === "dog" && (input.isPuppy || input.groupIds.includes("dog.puppy"))) {
@@ -419,6 +448,20 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
         slot: "Seguimiento",
         icon: "videocam",
         kind: "alert",
+        sourceModule: "separation_anxiety",
+      });
+    }
+
+    // Never-do guardrails (from master book)
+    for (const neverDo of WELLBEING_MASTER_BOOK.separation_anxiety.never_do) {
+      recommendations.push({
+        id: `${input.petName}_anxiety_${neverDo.id}`,
+        code: `anxiety_${neverDo.id}`,
+        title: neverDo.label,
+        detail: neverDo.detail,
+        slot: "Guardrail",
+        icon: "block",
+        kind: "block",
         sourceModule: "separation_anxiety",
       });
     }
@@ -501,6 +544,35 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
     });
   }
 
+  // ─── MODULE: Active/Working dog needs ──────────────────────────────────────
+  if (input.species === "dog" && input.groupIds.includes("dog.active_working") && !input.hasAggressionSigns) {
+    const segment = TRAINING_MASTER_BOOK.segments.active_working;
+
+    recommendations.push({
+      id: `${input.petName}_mental_stimulation`,
+      code: "mental_stimulation_needed",
+      title: `${input.petName} necesita desafío mental hoy`,
+      detail: "Olfateo, búsqueda de premios escondidos, juguetes interactivos o entrenamiento de obediencia avanzada. Sin esto, puede aparecer ansiedad o conducta destructiva.",
+      slot: "Diario",
+      icon: "psychology",
+      kind: "recommendation",
+      sourceModule: "active_working",
+    });
+
+    if (segment.risks && segment.risks.includes("destructive_behavior")) {
+      recommendations.push({
+        id: `${input.petName}_frustration_risk`,
+        code: "frustration_risk_working",
+        title: "Riesgo de frustración por falta de actividad",
+        detail: `Razas activas como ${input.breed} sin descarga cognitiva pueden romper objetos, ladrar en exceso o auto-estimularse. La actividad mental cansa más que el ejercicio físico.`,
+        slot: "Preventivo",
+        icon: "warning",
+        kind: "alert",
+        sourceModule: "active_working",
+      });
+    }
+  }
+
   const trainingCommand = getRecommendedTrainingCommand(input);
   if (trainingCommand) {
     recommendations.push({
@@ -515,17 +587,28 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
     });
   }
 
-  if (input.species === "dog") {
-    const foodRule = WELLBEING_MASTER_BOOK.food_safety.prohibited.find((item) => item.id === "spoiled_food");
-    if (foodRule) {
+  // ─── MODULE: Food safety (species-filtered, daily rotation) ──────────────
+  {
+    const speciesFilter = input.species;
+    const relevantItems = WELLBEING_MASTER_BOOK.food_safety.prohibited.filter(
+      (item) => item.appliesTo.includes(speciesFilter) || item.appliesTo.includes("general"),
+    );
+
+    if (relevantItems.length > 0) {
+      // Rotate by day of year — tutor learns 1 new toxic item daily
+      const dayOfYear = Math.floor(
+        (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24),
+      );
+      const todayItem = relevantItems[dayOfYear % relevantItems.length];
+
       recommendations.push({
-        id: `${input.petName}_kitchen`,
-        code: "kitchen_trash_check",
-        title: "Chequeo de cocina y basura",
-        detail: `${foodRule.label}: ${foodRule.danger}. ${foodRule.action}.`,
-        slot: "Casa",
-        icon: "kitchen",
-        kind: foodRule.guardrailType === "block" ? "block" : "alert",
+        id: `${input.petName}_food_safety_${todayItem.id}`,
+        code: `food_safety_${todayItem.id}`,
+        title: `⚠ ${todayItem.label}`,
+        detail: `${todayItem.danger}. ${todayItem.action}.`,
+        slot: "Sabías que...",
+        icon: todayItem.guardrailType === "block" ? "dangerous" : "warning",
+        kind: todayItem.guardrailType === "block" ? "block" : "alert",
         sourceModule: "food_safety",
       });
     }
