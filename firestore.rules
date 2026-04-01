@@ -89,7 +89,7 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return signedIn() && request.auth.token.email == 'mauri@pessy.app';
+      return signedIn() && request.auth.token.admin == true;
     }
 
     match /users/{userId} {
@@ -111,9 +111,14 @@ service cloud.firestore {
         isPetOwner(resource.data) ||
         (
           isPetCoTutor(resource.data) &&
-          request.resource.data.ownerId == resource.data.ownerId &&
-          request.resource.data.coTutorUids == resource.data.coTutorUids &&
-          request.resource.data.coTutors == resource.data.coTutors
+          request.resource.data.diff(resource.data).changedKeys().hasOnly([
+            'petNotes',
+            'weight',
+            'weightHistory',
+            'profilePhoto',
+            'preferences',
+            'lastActivityAt'
+          ])
         ) ||
         canJoinPetWithInvite(petId) ||
         canLeavePetAsCoTutor();

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
 import { auth, db } from "../../lib/firebase";
 import {
   collection, query, where, onSnapshot, doc, updateDoc, addDoc, arrayUnion, setDoc, getDoc,
@@ -419,11 +419,13 @@ export function PetProvider({ children }: { children: ReactNode }) {
 
   const activePet = pets.find((p) => p.id === activePetId);
 
+  const contextValue = useMemo(() => ({
+    activePetId, setActivePetId, pets, activePet, addPet, updatePet, loading, loadingSlow,
+    generateInviteCode, sendCoTutorInviteEmail, joinWithCode, removeCoTutor, leaveAsTutor, isOwner,
+  }), [activePetId, pets, activePet, loading, loadingSlow]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <PetContext.Provider value={{
-      activePetId, setActivePetId, pets, activePet, addPet, updatePet, loading, loadingSlow,
-      generateInviteCode, sendCoTutorInviteEmail, joinWithCode, removeCoTutor, leaveAsTutor, isOwner,
-    }}>
+    <PetContext.Provider value={contextValue}>
       {children}
     </PetContext.Provider>
   );

@@ -9,6 +9,7 @@ export interface PessyTrainingCase {
   label: string;
   input: PessyIntelligenceInput;
   expectedCodes: string[];
+  forbiddenCodes?: string[];
   expectedSegmentId: TrainingSegmentId | null;
 }
 
@@ -19,8 +20,13 @@ export interface PessyTrainingCaseResult {
   expectedCodes: string[];
   producedCodes: string[];
   missingCodes: string[];
+  extraCodes: string[];
+  forbiddenCodesFound: string[];
   expectedSegmentId: TrainingSegmentId | null;
   producedSegmentId: TrainingSegmentId | null;
+  segmentLabel: string | null;
+  primaryCount: number;
+  secondaryCount: number;
 }
 
 export interface PessyTrainingRunResult {
@@ -44,7 +50,13 @@ export const PESSY_INTELLIGENCE_TRAINING_SET: PessyTrainingCase[] = [
       temperatureC: 31,
       humidityPct: 74,
     },
-    expectedCodes: ["avoid_walk_heat", "indoor_play_heat", "practice_wait_signal"],
+    expectedCodes: [
+      "avoid_walk_heat",
+      "indoor_play_heat",
+      "practice_wait_signal",
+      "segment_short_daily_sessions",
+      "segment_same_words_in_household",
+    ],
     expectedSegmentId: "companion",
   },
   {
@@ -66,6 +78,8 @@ export const PESSY_INTELLIGENCE_TRAINING_SET: PessyTrainingCase[] = [
       "safe_socialization_session",
       "no_public_ground_unvaccinated",
       "practice_come",
+      "segment_no_punishment",
+      "segment_gradual_exposure",
     ],
     expectedSegmentId: "puppies",
   },
@@ -86,7 +100,13 @@ export const PESSY_INTELLIGENCE_TRAINING_SET: PessyTrainingCase[] = [
       "departure_routine_predictable",
       "special_toy_departure",
       "camera_monitoring",
+      "anxiety_no_punishment",
+      "anxiety_no_companion_dog_fix",
+      "anxiety_no_crate_if_panic",
       "practice_watch_me",
+      "segment_strict_no_aversives",
+      "segment_loose_leash_only",
+      "segment_trigger_management",
     ],
     expectedSegmentId: "reactive",
   },
@@ -105,6 +125,102 @@ export const PESSY_INTELLIGENCE_TRAINING_SET: PessyTrainingCase[] = [
     expectedCodes: ["indoor_cooling_now", "cooling_support"],
     expectedSegmentId: null,
   },
+  {
+    id: "paco_cold",
+    label: "Paco · galgo en invierno",
+    input: {
+      petName: "Paco",
+      species: "dog",
+      breed: "Galgo",
+      ageLabel: "5 anos",
+      groupIds: ["dog.companion"],
+      temperatureC: 3,
+      humidityPct: 60,
+    },
+    expectedCodes: [
+      "cold_short_walk",
+      "practice_wait_signal",
+      "segment_short_daily_sessions",
+      "segment_same_words_in_household",
+    ],
+    expectedSegmentId: "companion",
+  },
+  {
+    id: "kai_working",
+    label: "Kai · border collie activo sin estimulo",
+    input: {
+      petName: "Kai",
+      species: "dog",
+      breed: "Border Collie",
+      ageLabel: "2 anos",
+      groupIds: ["dog.active_working"],
+      temperatureC: 22,
+      humidityPct: 45,
+    },
+    expectedCodes: [
+      "mental_stimulation_needed",
+      "frustration_risk_working",
+      "practice_wait_signal",
+      "segment_avoid_understimulation",
+      "segment_avoid_inconsistent_commands",
+    ],
+    expectedSegmentId: "active_working",
+  },
+  {
+    id: "rocky_aggression_reactive",
+    label: "Rocky · mestizo adoptado con senales de agresividad",
+    input: {
+      petName: "Rocky",
+      species: "dog",
+      breed: "Mestizo adoptado",
+      ageLabel: "3 anos",
+      groupIds: ["dog.reactive"],
+      temperatureC: 22,
+      humidityPct: 50,
+      hasAggressionSigns: true,
+    },
+    expectedCodes: [
+      "identify_aggression_triggers",
+      "vet_pain_check_aggression",
+      "desensitization_gradual",
+      "never_punish_growl",
+      "refer_professional_aggression",
+      "practice_leave_it",
+      "segment_strict_no_aversives",
+      "segment_loose_leash_only",
+      "segment_trigger_management",
+    ],
+    expectedSegmentId: "reactive",
+  },
+  {
+    id: "luna_puppy_aggression",
+    label: "Luna · cachorra con senales de miedo-agresividad temprana",
+    input: {
+      petName: "Luna",
+      species: "dog",
+      breed: "Pastor Aleman",
+      ageLabel: "14 semanas",
+      ageWeeks: 14,
+      groupIds: ["dog.puppy", "dog.active_working"],
+      temperatureC: 18,
+      humidityPct: 45,
+      isPuppy: true,
+      hasAggressionSigns: true,
+    },
+    expectedCodes: [
+      "safe_socialization_session",
+      "identify_aggression_triggers",
+      "vet_pain_check_aggression",
+      "desensitization_gradual",
+      "never_punish_growl",
+      "refer_professional_aggression",
+      "practice_leave_it",
+      "segment_strict_no_aversives",
+      "segment_loose_leash_only",
+      "segment_trigger_management",
+    ],
+    expectedSegmentId: "reactive",
+  },
 ];
 
 export function runPessyIntelligenceTrainingSet(): PessyTrainingRunResult {
@@ -112,8 +228,10 @@ export function runPessyIntelligenceTrainingSet(): PessyTrainingRunResult {
     const result = runPessyIntelligence(trainingCase.input);
     const producedCodes = result.recommendations.map((recommendation) => recommendation.code);
     const missingCodes = trainingCase.expectedCodes.filter((code) => !producedCodes.includes(code));
+    const extraCodes = producedCodes.filter((code) => !trainingCase.expectedCodes.includes(code));
+    const forbiddenCodesFound = (trainingCase.forbiddenCodes || []).filter((code) => producedCodes.includes(code));
     const segmentMatches = result.segmentId === trainingCase.expectedSegmentId;
-    const passed = missingCodes.length === 0 && segmentMatches;
+    const passed = missingCodes.length === 0 && segmentMatches && forbiddenCodesFound.length === 0;
 
     return {
       id: trainingCase.id,
@@ -122,8 +240,13 @@ export function runPessyIntelligenceTrainingSet(): PessyTrainingRunResult {
       expectedCodes: trainingCase.expectedCodes,
       producedCodes,
       missingCodes,
+      extraCodes,
+      forbiddenCodesFound,
       expectedSegmentId: trainingCase.expectedSegmentId,
       producedSegmentId: result.segmentId,
+      segmentLabel: result.segmentLabel,
+      primaryCount: result.primary.length,
+      secondaryCount: result.secondary.length,
     };
   });
 

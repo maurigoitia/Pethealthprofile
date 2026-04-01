@@ -9,10 +9,14 @@ service firebase.storage {
       return request.resource == null || request.resource.size < 30 * 1024 * 1024;
     }
 
-    // SECURITY: Solo tipos de archivo permitidos (previene upload de ejecutables)
+    // SECURITY: Solo tipos de archivo permitidos (previene upload de ejecutables y SVG con JS)
     function isAllowedContentType() {
       return request.resource == null ||
-        request.resource.contentType.matches('image/.*') ||
+        request.resource.contentType == 'image/jpeg' ||
+        request.resource.contentType == 'image/png' ||
+        request.resource.contentType == 'image/webp' ||
+        request.resource.contentType == 'image/heic' ||
+        request.resource.contentType == 'image/heif' ||
         request.resource.contentType == 'application/pdf';
     }
 
