@@ -12,12 +12,17 @@ console.log(`\nTraining Set: ${result.passed}/${result.total} (${result.scorePct
 
 for (const c of result.cases) {
   const icon = c.passed ? "PASS" : "FAIL";
-  console.log(`  [${icon}] ${c.label}`);
+  const segLabel = c.segmentLabel ? ` [${c.segmentLabel}]` : "";
+  console.log(`  [${icon}] ${c.label}${segLabel}`);
   if (!c.passed) {
     if (c.missingCodes.length > 0) console.log(`    Missing: ${c.missingCodes.join(", ")}`);
+    if (c.forbiddenCodesFound.length > 0) console.log(`    Forbidden: ${c.forbiddenCodesFound.join(", ")}`);
     if (c.expectedSegmentId !== c.producedSegmentId) {
       console.log(`    Segment: expected=${c.expectedSegmentId}, got=${c.producedSegmentId}`);
     }
+  }
+  if (c.extraCodes.length > 0) {
+    console.log(`    Extra (${c.extraCodes.length}): ${c.extraCodes.join(", ")}`);
   }
 }
 

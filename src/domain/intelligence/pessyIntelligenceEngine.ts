@@ -46,8 +46,157 @@ export interface PessyIntelligenceRecommendation {
 
 export interface PessyIntelligenceResult {
   segmentId: TrainingSegmentId | null;
+  segmentLabel: string | null;
+  segmentDescription: string | null;
   recommendations: PessyIntelligenceRecommendation[];
   activatedModules: string[];
+}
+
+// ─── SEGMENT ROUTING LAYER ─────────────────────────────────────────────────
+// Turns segments from labels into active routers that control recommendation
+// priority, ordering, and guardrail injection.
+
+export interface SegmentStrategy {
+  id: TrainingSegmentId;
+  label: string;
+  description: string;
+  priorityModules: string[];
+  demoteModules: string[];
+  injectGuardrailCodes: string[];
+}
+
+export const SEGMENT_STRATEGIES: Record<TrainingSegmentId, SegmentStrategy> = {
+  reactive: {
+    id: "reactive",
+    label: "Reactivo / Sensible",
+    description: "Prioridad: seguridad, desensibilización y manejo de gatillos",
+    priorityModules: ["aggression_prevention", "separation_anxiety", "thermal_safety"],
+    demoteModules: ["daily_activity", "breed_profile", "supply_tracker", "fears_seasonal"],
+    injectGuardrailCodes: ["strict_no_aversives", "loose_leash_only", "trigger_management"],
+  },
+  puppies: {
+    id: "puppies",
+    label: "Cachorro",
+    description: "Prioridad: socialización segura y habituación gradual",
+    priorityModules: ["puppy_socialization", "thermal_safety"],
+    demoteModules: ["breed_profile", "supply_tracker"],
+    injectGuardrailCodes: ["no_punishment", "gradual_exposure"],
+  },
+  active_working: {
+    id: "active_working",
+    label: "Activo / Trabajo",
+    description: "Prioridad: estimulación cognitiva y control de impulsos",
+    priorityModules: ["thermal_safety", "daily_activity", "training_master_book"],
+    demoteModules: [],
+    injectGuardrailCodes: ["avoid_understimulation", "avoid_inconsistent_commands"],
+  },
+  companion: {
+    id: "companion",
+    label: "Compañero",
+    description: "Prioridad: rutina equilibrada y enriquecimiento diario",
+    priorityModules: ["thermal_safety", "training_master_book"],
+    demoteModules: [],
+    injectGuardrailCodes: ["short_daily_sessions", "same_words_in_household"],
+  },
+};
+
+// Guardrail definitions that the routing layer can inject per segment.
+// These are hardcoded rules from the training master book, surfaced as recommendations.
+const INJECTABLE_GUARDRAILS: Record<string, { title: string; detail: string; icon: string }> = {
+  strict_no_aversives: {
+    title: "Prohibido usar herramientas aversivas",
+    detail: "Ni collares de castigo, ni cadenas de ahogo, ni castigo físico. Perros reactivos empeoran con métodos aversivos.",
+    icon: "block",
+  },
+  loose_leash_only: {
+    title: "Solo correa floja y distancia segura",
+    detail: "Nunca tirar de la correa ni forzar cercanía al estímulo. Mantener distancia donde el perro pueda pensar.",
+    icon: "pets",
+  },
+  trigger_management: {
+    title: "Manejo activo de gatillos",
+    detail: "Identificar los gatillos (perros, personas, ruidos) y gestionar el entorno para evitar exposiciones no controladas.",
+    icon: "shield",
+  },
+  no_punishment: {
+    title: "Cero castigo en etapa cachorro",
+    detail: "El cachorro está aprendiendo el mundo. Castigar genera miedo, no obediencia. Solo refuerzo positivo.",
+    icon: "block",
+  },
+  gradual_exposure: {
+    title: "Exposición gradual a estímulos nuevos",
+    detail: "Presentar sonidos, superficies, personas y otros animales de forma controlada y positiva. Nunca forzar.",
+    icon: "school",
+  },
+  avoid_understimulation: {
+    title: "Evitar la falta de estímulo mental",
+    detail: "Perros activos/de trabajo necesitan desafíos cognitivos diarios. Sin ellos, aparecen conductas destructivas.",
+    icon: "psychology",
+  },
+  avoid_inconsistent_commands: {
+    title: "Comandos consistentes en todo el hogar",
+    detail: "Todos los tutores deben usar las mismas palabras y señales. La inconsistencia confunde al perro.",
+    icon: "group",
+  },
+  short_daily_sessions: {
+    title: "Sesiones cortas y diarias",
+    detail: "Mejor 5 minutos todos los días que 30 minutos una vez por semana. La consistencia es clave.",
+    icon: "schedule",
+  },
+  same_words_in_household: {
+    title: "Mismas palabras en todo el hogar",
+    detail: "Si uno dice 'vení' y otro dice 'come', el perro no aprende. Acordar un vocabulario familiar.",
+    icon: "group",
+  },
+};
+
+function applySegmentStrategy(
+  segmentId: TrainingSegmentId | null,
+  petName: string,
+  recommendations: PessyIntelligenceRecommendation[],
+): PessyIntelligenceRecommendation[] {
+  if (!segmentId) return recommendations;
+
+  const strategy = SEGMENT_STRATEGIES[segmentId];
+  if (!strategy) return recommendations;
+
+  // Inject segment guardrails that aren't already covered by existing recommendations
+  const existingCodes = new Set(recommendations.map((r) => r.code));
+  for (const guardrailCode of strategy.injectGuardrailCodes) {
+    if (existingCodes.has(`segment_${guardrailCode}`)) continue;
+    const guardrail = INJECTABLE_GUARDRAILS[guardrailCode];
+    if (!guardrail) continue;
+
+    recommendations.push({
+      id: `${petName}_segment_${guardrailCode}`,
+      code: `segment_${guardrailCode}`,
+      title: guardrail.title,
+      detail: guardrail.detail,
+      slot: "Guardrail",
+      icon: guardrail.icon,
+      kind: "block",
+      sourceModule: "segment_strategy",
+    });
+  }
+
+  // Sort: blocks first, then priority modules, then normal, then demoted
+  const kindOrder: Record<PessyRecommendationKind, number> = {
+    block: 0,
+    alert: 1,
+    recommendation: 2,
+  };
+
+  const moduleTier = (sourceModule: string): number => {
+    if (strategy.priorityModules.includes(sourceModule)) return 0;
+    if (strategy.demoteModules.includes(sourceModule)) return 2;
+    return 1;
+  };
+
+  return [...recommendations].sort((a, b) => {
+    const kindDiff = kindOrder[a.kind] - kindOrder[b.kind];
+    if (kindDiff !== 0) return kindDiff;
+    return moduleTier(a.sourceModule) - moduleTier(b.sourceModule);
+  });
 }
 
 function findThermalProfile(input: PessyIntelligenceInput): ThermalSafetyProfile | null {
@@ -593,9 +742,15 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
     }
   }
 
+  // ─── ROUTING LAYER: apply segment strategy ────────────────────────────────
+  const strategy = segmentId ? SEGMENT_STRATEGIES[segmentId] : null;
+  const routedRecommendations = applySegmentStrategy(segmentId, input.petName, recommendations);
+
   return {
     segmentId,
-    recommendations,
-    activatedModules: [...new Set(recommendations.map((item) => item.sourceModule))],
+    segmentLabel: strategy?.label ?? null,
+    segmentDescription: strategy?.description ?? null,
+    recommendations: routedRecommendations,
+    activatedModules: [...new Set(routedRecommendations.map((item) => item.sourceModule))],
   };
 }

@@ -9,6 +9,7 @@ export interface PessyTrainingCase {
   label: string;
   input: PessyIntelligenceInput;
   expectedCodes: string[];
+  forbiddenCodes?: string[];
   expectedSegmentId: TrainingSegmentId | null;
 }
 
@@ -19,8 +20,11 @@ export interface PessyTrainingCaseResult {
   expectedCodes: string[];
   producedCodes: string[];
   missingCodes: string[];
+  extraCodes: string[];
+  forbiddenCodesFound: string[];
   expectedSegmentId: TrainingSegmentId | null;
   producedSegmentId: TrainingSegmentId | null;
+  segmentLabel: string | null;
 }
 
 export interface PessyTrainingRunResult {
@@ -44,7 +48,13 @@ export const PESSY_INTELLIGENCE_TRAINING_SET: PessyTrainingCase[] = [
       temperatureC: 31,
       humidityPct: 74,
     },
-    expectedCodes: ["avoid_walk_heat", "indoor_play_heat", "practice_wait_signal"],
+    expectedCodes: [
+      "avoid_walk_heat",
+      "indoor_play_heat",
+      "practice_wait_signal",
+      "segment_short_daily_sessions",
+      "segment_same_words_in_household",
+    ],
     expectedSegmentId: "companion",
   },
   {
@@ -66,6 +76,8 @@ export const PESSY_INTELLIGENCE_TRAINING_SET: PessyTrainingCase[] = [
       "safe_socialization_session",
       "no_public_ground_unvaccinated",
       "practice_come",
+      "segment_no_punishment",
+      "segment_gradual_exposure",
     ],
     expectedSegmentId: "puppies",
   },
@@ -87,6 +99,9 @@ export const PESSY_INTELLIGENCE_TRAINING_SET: PessyTrainingCase[] = [
       "special_toy_departure",
       "camera_monitoring",
       "practice_watch_me",
+      "segment_strict_no_aversives",
+      "segment_loose_leash_only",
+      "segment_trigger_management",
     ],
     expectedSegmentId: "reactive",
   },
@@ -125,6 +140,9 @@ export const PESSY_INTELLIGENCE_TRAINING_SET: PessyTrainingCase[] = [
       "never_punish_growl",
       "refer_professional_aggression",
       "practice_leave_it",
+      "segment_strict_no_aversives",
+      "segment_loose_leash_only",
+      "segment_trigger_management",
     ],
     expectedSegmentId: "reactive",
   },
@@ -151,6 +169,9 @@ export const PESSY_INTELLIGENCE_TRAINING_SET: PessyTrainingCase[] = [
       "never_punish_growl",
       "refer_professional_aggression",
       "practice_leave_it",
+      "segment_strict_no_aversives",
+      "segment_loose_leash_only",
+      "segment_trigger_management",
     ],
     expectedSegmentId: "reactive",
   },
@@ -161,8 +182,10 @@ export function runPessyIntelligenceTrainingSet(): PessyTrainingRunResult {
     const result = runPessyIntelligence(trainingCase.input);
     const producedCodes = result.recommendations.map((recommendation) => recommendation.code);
     const missingCodes = trainingCase.expectedCodes.filter((code) => !producedCodes.includes(code));
+    const extraCodes = producedCodes.filter((code) => !trainingCase.expectedCodes.includes(code));
+    const forbiddenCodesFound = (trainingCase.forbiddenCodes || []).filter((code) => producedCodes.includes(code));
     const segmentMatches = result.segmentId === trainingCase.expectedSegmentId;
-    const passed = missingCodes.length === 0 && segmentMatches;
+    const passed = missingCodes.length === 0 && segmentMatches && forbiddenCodesFound.length === 0;
 
     return {
       id: trainingCase.id,
@@ -171,8 +194,11 @@ export function runPessyIntelligenceTrainingSet(): PessyTrainingRunResult {
       expectedCodes: trainingCase.expectedCodes,
       producedCodes,
       missingCodes,
+      extraCodes,
+      forbiddenCodesFound,
       expectedSegmentId: trainingCase.expectedSegmentId,
       producedSegmentId: result.segmentId,
+      segmentLabel: result.segmentLabel,
     };
   });
 
