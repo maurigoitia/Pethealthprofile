@@ -1,12 +1,14 @@
 /**
- * CI training set check — exits with code 1 if any case fails.
- * Run with: npx tsx src/domain/intelligence/__training_check__.ts
+ * CI gate: Intelligence training set.
+ * If ANY case fails, exit 1 → blocks deploy.
+ *
+ * Run: npx tsx scripts/run-training-set.ts
  */
-import { runPessyIntelligenceTrainingSet } from "./pessyIntelligenceTrainingSet";
+import { runPessyIntelligenceTrainingSet } from "../src/domain/intelligence/pessyIntelligenceTrainingSet";
 
 const result = runPessyIntelligenceTrainingSet();
 
-console.log(`Training Set: ${result.passed}/${result.total} (${result.scorePct}%)`);
+console.log(`\nTraining Set: ${result.passed}/${result.total} (${result.scorePct}%)\n`);
 
 for (const c of result.cases) {
   const icon = c.passed ? "PASS" : "FAIL";
@@ -20,8 +22,8 @@ for (const c of result.cases) {
 }
 
 if (result.failed > 0) {
-  console.error(`\nFAILED: ${result.failed} case(s) did not pass.`);
+  console.error(`\nBLOCKED: ${result.failed} case(s) failed. Deploy will not proceed.`);
   process.exit(1);
 }
 
-console.log("\nAll cases passed.");
+console.log("\nAll cases passed. Deploy gate open.");
