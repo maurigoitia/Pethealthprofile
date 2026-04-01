@@ -1,6 +1,5 @@
 import * as admin from "firebase-admin";
 
-const DEFAULT_REVIEW_THRESHOLD = 0.85;
 const RESOLVER_VERSION = "brain_resolver_v2";
 const DEFAULT_BRAIN_SCHEMA_VERSION = "brain_payload_v2";
 
@@ -54,7 +53,6 @@ export interface ResolveBrainOutputArgs {
   brainOutput: BrainOutputPayload;
   userId: string;
   sourceMetadata: BrainSourceMetadata;
-  reviewThreshold?: number;
 }
 
 export interface ResolveBrainOutputResult {
@@ -277,8 +275,7 @@ function computeContractReason(args: {
 function computeReviewReason(args: {
   reviewRequired: boolean;
   hasPet: boolean;
-  confidence: number;
-  threshold: number;
+  blockedOutOfRangeInference: boolean;
   providedReason?: string | null;
   contractReason?: string | null;
 }): string | null {
@@ -287,13 +284,12 @@ function computeReviewReason(args: {
   if (provided) return provided;
   if (!args.hasPet) return "pet_not_found";
   if (args.reviewRequired) return "review_required_by_brain";
-  if (args.confidence < args.threshold) return "low_confidence";
+  if (args.blockedOutOfRangeInference) return "blocked_out_of_range_inference";
   return null;
 }
 
 export async function resolveBrainOutput(args: ResolveBrainOutputArgs): Promise<ResolveBrainOutputResult> {
   const nowIso = new Date().toISOString();
-  const threshold = clamp(args.reviewThreshold ?? DEFAULT_REVIEW_THRESHOLD, 0, 1);
   const confidence = clamp(Number(args.brainOutput.confidence || 0), 0, 1);
   const reviewRequired = args.brainOutput.review_required === true;
 
@@ -323,14 +319,13 @@ export async function resolveBrainOutput(args: ResolveBrainOutputArgs): Promise<
     petIdHint: asString(args.sourceMetadata.pet_id_hint) || null,
   });
 
-  const needsManualReview = reviewRequired || !finalPetId || confidence < threshold || Boolean(contractReason);
+  const needsManualReview = reviewRequired || !finalPetId || Boolean(contractReason) || entityNormalization.blockedOutOfRangeInference;
   const targetCollection: BrainResolverCollection = needsManualReview ? "pending_reviews" : "clinical_events";
   const action: BrainResolverAction = needsManualReview ? "sent_to_review" : "added_to_timeline";
   const reason = computeReviewReason({
     reviewRequired,
     hasPet: Boolean(finalPetId),
-    confidence,
-    threshold,
+    blockedOutOfRangeInference: entityNormalization.blockedOutOfRangeInference,
     providedReason: asString(args.brainOutput.reason_if_review_needed) || null,
     contractReason,
   });

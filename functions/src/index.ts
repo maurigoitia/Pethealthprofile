@@ -2388,9 +2388,6 @@ export const resolveBrainPayload = functions
       ? payload.entities.map((item) => asRecord(item))
       : [];
     const sourceMetadata = asRecord(data?.sourceMetadata);
-    const reviewThresholdRaw = Number(data?.reviewThreshold ?? 0.85);
-    const reviewThreshold = Number.isFinite(reviewThresholdRaw) ? reviewThresholdRaw : 0.85;
-
     const result = await resolveBrainOutput({
       userId: context.auth.uid,
       brainOutput: {
@@ -2412,7 +2409,6 @@ export const resolveBrainPayload = functions
         source: typeof sourceMetadata.source === "string" ? sourceMetadata.source : "manual",
         ...sourceMetadata,
       },
-      reviewThreshold: Math.min(1, Math.max(0, reviewThreshold)),
     });
 
     return {
@@ -2642,4 +2638,58 @@ export const approveAccessRequest = functions
     }
 
     return { ok: true, accessToken };
+  });
+
+// ---------------------------------------------------------------------------
+// setAdminClaim — Callable function to manage admin custom claims
+//
+// Bootstrap first admin (run once via Firebase CLI):
+//   firebase functions:shell
+//   > const admin = require('firebase-admin'); admin.auth().setCustomUserClaims('USER_UID_HERE', { admin: true });
+//
+// After that, existing admins can promote/demote other admins via this function.
+// ---------------------------------------------------------------------------
+// Input:  { targetUid: string, admin: boolean }
+// Auth:   caller must already have admin custom claim
+// Action: sets { admin: true/false } on target user
+// Returns: { ok: true, targetUid, admin }
+// ---------------------------------------------------------------------------
+export const setAdminClaim = functions
+  .region("us-central1")
+  .https.onCall(async (data, context) => {
+    // Must be authenticated
+    if (!context.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "Requiere sesión activa.");
+    }
+
+    // Caller must have admin custom claim
+    if (context.auth.token.admin !== true) {
+      throw new functions.https.HttpsError("permission-denied", "Solo un admin puede asignar claims de admin.");
+    }
+
+    const targetUid = (data.targetUid || "").trim();
+    const makeAdmin = Boolean(data.admin);
+
+    if (!targetUid) {
+      throw new functions.https.HttpsError("invalid-argument", "targetUid requerido.");
+    }
+
+    // Prevent self-demotion to avoid lockout
+    if (targetUid === context.auth.uid && !makeAdmin) {
+      throw new functions.https.HttpsError(
+        "failed-precondition",
+        "No podés removerte el claim de admin. Pedile a otro admin que lo haga."
+      );
+    }
+
+    await admin.auth().setCustomUserClaims(targetUid, { admin: makeAdmin });
+
+    functions.logger.warn("setAdminClaim: claim actualizado", {
+      callerUid: context.auth.uid,
+      callerEmail: context.auth.token.email || "unknown",
+      targetUid,
+      admin: makeAdmin,
+    });
+
+    return { ok: true, targetUid, admin: makeAdmin };
   });

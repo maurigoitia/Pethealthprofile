@@ -1,0 +1,70 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: prod-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # ─── Frontend ──────────────────────────────────────────
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run intelligence training set (GATE)
+        run: npx tsx scripts/run-training-set.ts
+
+      - name: Verify build output
+        run: npx tsx scripts/verify-build.ts
+
+      # ─── Cloud Functions ───────────────────────────────────
+      - name: Install functions dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Build Cloud Functions
+        working-directory: functions
+        run: npm run build
+
+      # ─── Deploy ────────────────────────────────────────────
+      - name: Deploy Firestore rules
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: npx firebase deploy --only firestore --project polar-scene-488615-i0 --token "$FIREBASE_TOKEN"
+
+      - name: Deploy Storage rules
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: npx firebase deploy --only storage --project polar-scene-488615-i0 --token "$FIREBASE_TOKEN"
+
+      - name: Deploy Cloud Functions
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: npx firebase deploy --only functions --project polar-scene-488615-i0 --token "$FIREBASE_TOKEN"
+
+      # NOTE: Hosting is NOT deployed here.
+      # Production hosting deploys from the pessy-website branch only.
+      # See CLAUDE.md for incident history.

@@ -321,6 +321,14 @@ export interface ClinicalEventExtraction {
   appointment_status: AppointmentEventStatus;
   severity: "mild" | "moderate" | "severe" | null;
   confidence_score: number;
+  /**
+   * Golden rule: AI only writes human-facing messages; deterministic logic decides document_type.
+   * When applyVeterinaryEvidencePriority overrides the AI-inferred event_type with a
+   * deterministic classification, the original AI suggestion is stored here for
+   * auditability. This field MUST NOT be used to determine document_type in any
+   * downstream consumer.
+   */
+  ai_type_hint?: string;
 }
 
 export interface ClinicalExtractionOutput {

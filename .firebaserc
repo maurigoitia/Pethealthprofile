@@ -12,12 +12,6 @@
         "appqa": [
           "pessy-qa-app"
         ],
-        "appit": [
-          "itpessy"
-        ],
-        "appfocusqa": [
-          "pessy-focus-qa"
-        ],
         "appsubdomain": [
           "pessy-app-subdomain"
         ]

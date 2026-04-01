@@ -300,6 +300,14 @@ Return valid JSON only with this schema:
 
 // ─── Veterinary evidence inference ──────────────────────────────────────────
 
+/**
+ * Derive ALL classification hints from purely deterministic sources:
+ * email subject line patterns (regex), attachment filenames, and known sender
+ * domain mappings. No AI inference is used here.
+ *
+ * Golden rule: deterministic logic decides document_type; AI only writes
+ * the human-facing message (description_summary, narrative_summary, etc.).
+ */
 export function deriveVeterinaryEvidenceHints(args: {
   extractedText: string;
   sourceSubject: string;
@@ -310,6 +318,13 @@ export function deriveVeterinaryEvidenceHints(args: {
   preferredStudySubtype: StudySubtype;
   inferredImagingType: string | null;
   humanHealthcareNoise: boolean;
+  /**
+   * When non-null, this is the document_type determined entirely by regex /
+   * hardcoded rules on email metadata (subject, attachments, sender domain).
+   * applyVeterinaryEvidencePriority MUST use this value as the authoritative
+   * event_type; AI classification output is demoted to ai_type_hint metadata.
+   */
+  deterministicEventType: EventType | null;
 } {
   const evidenceText = [
     args.sourceSubject,
@@ -331,49 +346,115 @@ export function deriveVeterinaryEvidenceHints(args: {
       evidenceText
     ) ||
     attachmentNamesContainClinicalSignal(args.attachmentMetadata);
+
+  // ── Deterministic event_type derivation from email metadata only ──────────
+  // Priority order: study signals > vaccination > prescription > appointment.
+  // Each branch uses only regex on subject / filenames / sender — no AI output.
+  let deterministicEventType: EventType | null = null;
+  if (preferStudyReport) {
+    deterministicEventType = "study_report";
+  } else if (/\b(vacuna|vacunaci[oó]n|vaccine|vaccination)\b/i.test(evidenceText)) {
+    deterministicEventType = "vaccination_record";
+  } else if (/\b(receta|prescripci[oó]n|medicaci[oó]n|dosis|tratamiento|prescrip)\b/i.test(evidenceText)) {
+    deterministicEventType = "prescription_record";
+  } else if (
+    /\b(turno|recordatorio|confirmaci[oó]n|cancelaci[oó]n|reprogramaci[oó]n|cita|appointment|reminder|cancel)\b/i.test(
+      evidenceText
+    )
+  ) {
+    // Narrow down appointment subtype deterministically from subject keywords.
+    if (/\b(cancelaci[oó]n|cancelado|cancel)\b/i.test(args.sourceSubject)) {
+      deterministicEventType = "appointment_cancellation";
+    } else if (/\b(recordatorio|reminder)\b/i.test(args.sourceSubject)) {
+      deterministicEventType = "appointment_reminder";
+    } else {
+      deterministicEventType = "appointment_confirmation";
+    }
+  }
+  // If none of the above patterns match, deterministicEventType stays null —
+  // the caller should fall back to "clinical_report" as a safe default rather
+  // than trusting AI classification directly.
+
   return {
     preferStudyReport,
     preferredStudySubtype,
     inferredImagingType,
     humanHealthcareNoise: hasStrongHumanHealthcareSignal(evidenceText),
+    deterministicEventType,
   };
 }
 
 // ─── Evidence priority application ──────────────────────────────────────────
 
+/**
+ * Apply deterministic classification evidence to the event produced by the AI
+ * extractor.
+ *
+ * Golden rule (MUST NOT be violated):
+ *   "Logic is deterministic. AI only writes the human-facing message."
+ *
+ * This means `event_type` (document_type) MUST come from hardcoded regex
+ * patterns on email metadata — never from AI confidence scores or AI-inferred
+ * type labels.  The AI's original type suggestion is preserved in the
+ * `ai_type_hint` field for auditability but MUST NOT influence routing,
+ * storage, or any business logic.
+ *
+ * Precedence:
+ *   1. hints.deterministicEventType  — regex on subject / filenames / sender
+ *   2. "clinical_report"             — safe hardcoded fallback
+ *   (The AI-inferred event.event_type is NEVER used as the final event_type.)
+ */
 export function applyVeterinaryEvidencePriority(args: {
   event: ClinicalEventExtraction;
   hints: ReturnType<typeof deriveVeterinaryEvidenceHints>;
 }): ClinicalEventExtraction {
   const { event, hints } = args;
-  if (!hints.preferStudyReport) return event;
 
-  if (
-    event.event_type === "appointment_confirmation" ||
-    event.event_type === "appointment_reminder" ||
-    event.event_type === "appointment_cancellation" ||
-    event.event_type === "clinical_report"
-  ) {
+  // Store the AI-inferred type as metadata only — it must not decide the
+  // final document_type.  Downstream consumers MUST read `event_type`, not
+  // `ai_type_hint`, for any classification decisions.
+  const ai_type_hint: string = event.event_type;
+
+  // Resolve the authoritative event_type from deterministic sources only.
+  const deterministicType: EventType = hints.deterministicEventType ?? "clinical_report";
+
+  // When the deterministic type is study_report, enrich study-specific fields
+  // from the evidence hints (also deterministic — inferred from filenames /
+  // subject regex).
+  if (deterministicType === "study_report") {
     return {
       ...event,
       event_type: "study_report",
       study_subtype: event.study_subtype || hints.preferredStudySubtype,
       imaging_type: event.imaging_type || hints.inferredImagingType,
+      // Appointment fields are not applicable for study reports.
       appointment_time: null,
       appointment_specialty: null,
       appointment_status: null,
+      ai_type_hint,
     };
   }
 
-  if (event.event_type === "study_report") {
-    return {
-      ...event,
-      study_subtype: event.study_subtype || hints.preferredStudySubtype,
-      imaging_type: event.imaging_type || hints.inferredImagingType,
-    };
-  }
+  // For all other deterministic types, apply the resolved type directly.
+  // Appointment-specific enrichment is valid only for appointment event types.
+  const isAppointment =
+    deterministicType === "appointment_confirmation" ||
+    deterministicType === "appointment_reminder" ||
+    deterministicType === "appointment_cancellation";
 
-  return event;
+  // At this point deterministicType is guaranteed NOT to be "study_report"
+  // (that branch returned early above), so study fields are always cleared.
+  return {
+    ...event,
+    event_type: deterministicType,
+    study_subtype: null,
+    imaging_type: null,
+    // Clear appointment fields when the document is not an appointment.
+    appointment_time: isAppointment ? event.appointment_time : null,
+    appointment_specialty: isAppointment ? event.appointment_specialty : null,
+    appointment_status: isAppointment ? event.appointment_status : null,
+    ai_type_hint,
+  };
 }
 
 // ─── AI output → structured output ─────────────────────────────────────────
@@ -412,6 +493,7 @@ export function toClinicalOutput(
         preferredStudySubtype: null as StudySubtype,
         inferredImagingType: null,
         humanHealthcareNoise: false,
+        deterministicEventType: null as EventType | null,
       };
   const detectedEvents: ClinicalEventExtraction[] = eventsRaw
     .map((item) => {

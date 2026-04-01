@@ -1,0 +1,48 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run intelligence training set
+        run: npx tsx scripts/run-training-set.ts
+
+      - name: Install functions dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Build Cloud Functions
+        working-directory: functions
+        run: npm run build
+
+      - name: Verify build output
+        run: npx tsx scripts/verify-build.ts
