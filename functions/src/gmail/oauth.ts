@@ -539,6 +539,21 @@ export const gmailAuthCallback = functions
   })
   .region("us-central1")
   .https.onRequest(async (req, res) => {
+    // ─── CORS & Security headers ─────────────────────────────────────────
+    const requestOrigin = req.headers.origin || "";
+    const allowedOrigin = ALLOWED_RETURN_ORIGINS.has(requestOrigin) ? requestOrigin : "https://pessy.app";
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+    res.setHeader("Access-Control-Allow-Methods", "GET");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+
+    if (req.method === "OPTIONS") {
+      res.status(204).send("");
+      return;
+    }
+
     const state = pickSingleQueryParam(req.query.state);
     const code = pickSingleQueryParam(req.query.code);
     const authError = pickSingleQueryParam(req.query.error);

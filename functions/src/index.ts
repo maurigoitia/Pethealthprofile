@@ -2212,10 +2212,13 @@ async function callGeminiBackend(payload: GeminiRequestPayload): Promise<{
   }
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
       body: JSON.stringify(payload),
     }
   );
@@ -2236,7 +2239,7 @@ async function callGeminiBackend(payload: GeminiRequestPayload): Promise<{
 }
 
 export const analyzeDocument = functions
-  .runWith({ secrets: ["GEMINI_API_KEY"] })
+  .runWith({ secrets: ["GEMINI_API_KEY", "ANALYSIS_MODEL"] })
   .region("us-central1")
   .https.onCall(async (data, context) => {
   if (!context.auth?.uid) {
@@ -2318,7 +2321,7 @@ export const analyzeDocument = functions
   });
 
 export const generateClinicalSummary = functions
-  .runWith({ secrets: ["GEMINI_API_KEY"] })
+  .runWith({ secrets: ["GEMINI_API_KEY", "ANALYSIS_MODEL"] })
   .region("us-central1")
   .https.onCall(async (data, context) => {
   if (!context.auth?.uid) {
