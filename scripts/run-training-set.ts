@@ -13,7 +13,8 @@ console.log(`\nTraining Set: ${result.passed}/${result.total} (${result.scorePct
 for (const c of result.cases) {
   const icon = c.passed ? "PASS" : "FAIL";
   const segLabel = c.segmentLabel ? ` [${c.segmentLabel}]` : "";
-  console.log(`  [${icon}] ${c.label}${segLabel}`);
+  const split = `(${c.primaryCount} primary, ${c.secondaryCount} secondary)`;
+  console.log(`  [${icon}] ${c.label}${segLabel} ${split}`);
   if (!c.passed) {
     if (c.missingCodes.length > 0) console.log(`    Missing: ${c.missingCodes.join(", ")}`);
     if (c.forbiddenCodesFound.length > 0) console.log(`    Forbidden: ${c.forbiddenCodesFound.join(", ")}`);

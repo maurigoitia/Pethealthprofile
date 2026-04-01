@@ -48,7 +48,12 @@ export interface PessyIntelligenceResult {
   segmentId: TrainingSegmentId | null;
   segmentLabel: string | null;
   segmentDescription: string | null;
+  /** All recommendations, sorted by segment strategy (blocks → priority → normal → demoted) */
   recommendations: PessyIntelligenceRecommendation[];
+  /** Top priority items — what the tutor should see first ("Lo más importante hoy") */
+  primary: PessyIntelligenceRecommendation[];
+  /** Secondary items — collapsed/expandable in UI ("También podés hacer esto") */
+  secondary: PessyIntelligenceRecommendation[];
   activatedModules: string[];
 }
 
@@ -149,6 +154,36 @@ const INJECTABLE_GUARDRAILS: Record<string, { title: string; detail: string; ico
     icon: "group",
   },
 };
+
+// ─── TOP 3 PRIORITY SPLIT ───────────────────────────────────────────────────
+// Splits routed recommendations into primary (what the tutor sees first) and
+// secondary (collapsed/expandable). Rules:
+//   1. ALL blocks go to primary (safety is never hidden)
+//   2. ALL alerts go to primary (important signals)
+//   3. Fill remaining primary slots with top recommendations (up to softCap)
+//   4. Everything else → secondary
+const PRIMARY_SOFT_CAP = 5;
+
+function splitPrimarySecondary(
+  recommendations: PessyIntelligenceRecommendation[],
+): { primary: PessyIntelligenceRecommendation[]; secondary: PessyIntelligenceRecommendation[] } {
+  const primary: PessyIntelligenceRecommendation[] = [];
+  const secondary: PessyIntelligenceRecommendation[] = [];
+
+  for (const rec of recommendations) {
+    if (rec.kind === "block" || rec.kind === "alert") {
+      // Safety items ALWAYS go to primary — no cap
+      primary.push(rec);
+    } else if (primary.length < PRIMARY_SOFT_CAP) {
+      // Fill remaining primary slots with top recommendations
+      primary.push(rec);
+    } else {
+      secondary.push(rec);
+    }
+  }
+
+  return { primary, secondary };
+}
 
 function applySegmentStrategy(
   segmentId: TrainingSegmentId | null,
@@ -746,11 +781,16 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
   const strategy = segmentId ? SEGMENT_STRATEGIES[segmentId] : null;
   const routedRecommendations = applySegmentStrategy(segmentId, input.petName, recommendations);
 
+  // ─── TOP 3 SPLIT: primary (visible) vs secondary (collapsed) ─────────────
+  const { primary, secondary } = splitPrimarySecondary(routedRecommendations);
+
   return {
     segmentId,
     segmentLabel: strategy?.label ?? null,
     segmentDescription: strategy?.description ?? null,
     recommendations: routedRecommendations,
+    primary,
+    secondary,
     activatedModules: [...new Set(routedRecommendations.map((item) => item.sourceModule))],
   };
 }

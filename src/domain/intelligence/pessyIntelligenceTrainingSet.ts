@@ -25,6 +25,8 @@ export interface PessyTrainingCaseResult {
   expectedSegmentId: TrainingSegmentId | null;
   producedSegmentId: TrainingSegmentId | null;
   segmentLabel: string | null;
+  primaryCount: number;
+  secondaryCount: number;
 }
 
 export interface PessyTrainingRunResult {
@@ -121,6 +123,25 @@ export const PESSY_INTELLIGENCE_TRAINING_SET: PessyTrainingCase[] = [
     expectedSegmentId: null,
   },
   {
+    id: "kai_working",
+    label: "Kai · border collie activo sin estimulo",
+    input: {
+      petName: "Kai",
+      species: "dog",
+      breed: "Border Collie",
+      ageLabel: "2 anos",
+      groupIds: ["dog.active_working"],
+      temperatureC: 22,
+      humidityPct: 45,
+    },
+    expectedCodes: [
+      "practice_wait_signal",
+      "segment_avoid_understimulation",
+      "segment_avoid_inconsistent_commands",
+    ],
+    expectedSegmentId: "active_working",
+  },
+  {
     id: "rocky_aggression_reactive",
     label: "Rocky · mestizo adoptado con senales de agresividad",
     input: {
@@ -199,6 +220,8 @@ export function runPessyIntelligenceTrainingSet(): PessyTrainingRunResult {
       expectedSegmentId: trainingCase.expectedSegmentId,
       producedSegmentId: result.segmentId,
       segmentLabel: result.segmentLabel,
+      primaryCount: result.primary.length,
+      secondaryCount: result.secondary.length,
     };
   });
 
