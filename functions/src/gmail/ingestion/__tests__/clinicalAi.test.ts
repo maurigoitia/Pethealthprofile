@@ -5,7 +5,7 @@ import {
   classifyClinicalContentWithAi,
   heuristicClinicalClassification,
   heuristicClinicalExtraction,
-  heuristicClinicalExtractionWithContext,
+  heuristicClinicalExtraction,
 } from "../clinicalAi";
 
 describe("clinicalAi heuristics", () => {
@@ -90,7 +90,7 @@ describe("clinicalAi heuristics", () => {
   });
 
   it("usa adjuntos clínicos para rescatar estudios cuando AI no aporta evento", () => {
-    const result = heuristicClinicalExtractionWithContext({
+    const result = heuristicClinicalExtraction({
       sourceSubject: "Radiografias de Thor",
       sourceSender: "\"noreply@myvete.com\" <noreply@myvete.com>",
       extractedText: "Adjunto radiografias de Thor para control.",
@@ -118,7 +118,7 @@ describe("clinicalAi heuristics", () => {
   });
 
   it("rescata un mail attachment-first de eco aunque el body esté vacío", () => {
-    const result = heuristicClinicalExtractionWithContext({
+    const result = heuristicClinicalExtraction({
       sourceSubject: "ECO THOR",
       sourceSender: "laura diaz <lvdiazz@yahoo.com.ar>",
       extractedText: "",
