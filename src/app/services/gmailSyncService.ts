@@ -139,13 +139,30 @@ export async function startGmailConnectFlow(params?: { returnPath?: string; petI
     });
     window.location.assign(url);
   } catch (err: any) {
-    // Traducir errores de rate-limit/bloqueo del backend a mensajes legibles
+    // Traducir errores del backend a mensajes legibles
     const msg = err?.message || "";
+    const code = err?.code || "";
     if (msg.includes("oauth_temporarily_blocked")) {
       throw new Error("Demasiados intentos fallidos. Esperá una hora antes de volver a intentar.");
     }
     if (msg.includes("oauth_rate_limit_exceeded")) {
       throw new Error("Demasiados intentos en poco tiempo. Esperá unos minutos antes de reintentar.");
+    }
+    // Secret de OAuth no configurado en el servidor
+    if (code === "functions/failed-precondition" || msg.toLowerCase().includes("no configurada")) {
+      throw new Error(`Configuración de Gmail OAuth incompleta en el servidor (${msg}). Contactá a soporte.`);
+    }
+    // No autenticado
+    if (code === "functions/unauthenticated") {
+      throw new Error("Necesitás iniciar sesión para conectar Gmail.");
+    }
+    // Rate limit general del servidor
+    if (code === "functions/resource-exhausted") {
+      throw new Error("Demasiadas solicitudes. Esperá unos minutos y volvé a intentar.");
+    }
+    // Acceso no permitido (invitación requerida, bloqueado, etc.)
+    if (code === "functions/permission-denied") {
+      throw new Error(msg || "No tenés acceso a esta función. Verificá tu invitación.");
     }
     throw err;
   }
