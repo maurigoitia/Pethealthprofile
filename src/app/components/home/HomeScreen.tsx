@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
-import { BottomNav } from "../shared/BottomNav";
+import { BottomNav, type PillarTab } from "../shared/BottomNav";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { PetHomeView } from "../pet/PetHomeView";
 import { Sidebar } from "../shared/Sidebar";
@@ -12,6 +12,7 @@ import { clearPendingCoTutorInvite, readPendingCoTutorInvite, rememberPendingCoT
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 import { CorkMascot } from "../shared/CorkMascot";
 import { GmailSyncStatus, subscribeGmailSyncStatus } from "../../services/gmailSyncService";
+import { RutinasHub } from "../rutinas/RutinasHub";
 
 const RandomQuestionCard = lazy(() =>
   import("../preferences/RandomQuestionCard.tsx")
@@ -46,6 +47,9 @@ const AppointmentsScreen = lazy(() =>
 );
 const MedicationsScreen = lazy(() =>
   import("../medical/MedicationsScreen.tsx").then((module) => ({ default: module.MedicationsScreen }))
+);
+const RemindersScreen = lazy(() =>
+  import("../RemindersScreen.tsx").then((module) => ({ default: module.RemindersScreen }))
 );
 const FocusedHomeExperience = lazy(() =>
   import("./FocusedHomeExperience.tsx").then((module) => ({ default: module.FocusedHomeExperience }))
@@ -174,8 +178,8 @@ export default function HomeScreen() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [showInviteFriends, setShowInviteFriends] = useState(false);
   const [gmailSyncStatus, setGmailSyncStatus] = useState<GmailSyncStatus>(DEFAULT_GMAIL_SYNC_STATUS);
-  const [currentTab, setCurrentTab] = useState<"home" | "settings">("home");
-  const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications" | "nearby-vets" | "lost-pets" | "explore">("card");
+  const [currentTab, setCurrentTab] = useState<PillarTab>("dia-a-dia");
+  const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications" | "nearby-vets" | "lost-pets" | "explore" | "rutinas-hub" | "reminders">("card");
   const [inviteNotice, setInviteNotice] = useState<{ type: "info" | "success" | "error"; message: string } | null>(null);
   const [inviteJoiningCode, setInviteJoiningCode] = useState("");
   const [inviteResolvedCode, setInviteResolvedCode] = useState("");
@@ -208,17 +212,17 @@ export default function HomeScreen() {
     if (!review) return;
 
     if (review === "appointments") {
-      setCurrentTab("home");
+      setCurrentTab("dia-a-dia");
       setViewMode("appointments");
       return;
     }
     if (review === "medications") {
-      setCurrentTab("home");
+      setCurrentTab("dia-a-dia");
       setViewMode("medications");
       return;
     }
     if (review === "feed") {
-      setCurrentTab("home");
+      setCurrentTab("dia-a-dia");
       setViewMode("feed");
       return;
     }
@@ -340,24 +344,42 @@ export default function HomeScreen() {
     return <Navigate to="/login" replace />;
   }
 
-  // Handle tab change and reset viewMode to "card" when going to home tab
-  const handleTabChange = (tab: "home" | "settings") => {
+  // Handle pillar tab change — map each pillar to the correct viewMode
+  const handleTabChange = (tab: PillarTab) => {
     setCurrentTab(tab);
-    if (tab === "home") setViewMode("card");
+    switch (tab) {
+      case "dia-a-dia":
+        setViewMode("card");
+        break;
+      case "rutinas":
+        setViewMode("rutinas-hub");
+        break;
+      case "comunidad":
+        setViewMode("lost-pets");
+        break;
+      case "mi-pessy":
+        break; // handled by currentTab check below
+    }
   };
 
   // Handle sidebar navigation
   const handleSidebarNavigate = (screen: "home" | "appointments" | "medications" | "feed" | "settings" | "nearby-vets" | "lost-pets" | "explore") => {
     if (screen === "settings") {
-      setCurrentTab("settings");
+      setCurrentTab("mi-pessy");
+    } else if (screen === "lost-pets" || screen === "explore") {
+      setCurrentTab("comunidad");
+      setViewMode(screen);
+    } else if (screen === "appointments" || screen === "medications") {
+      setCurrentTab("rutinas");
+      setViewMode(screen);
     } else {
-      setCurrentTab("home");
+      setCurrentTab("dia-a-dia");
       setViewMode(screen === "home" ? "card" : screen);
     }
   };
 
   const handleBottomNavNavigate = (screen: "lost-pets" | "explore") => {
-    setCurrentTab("home");
+    setCurrentTab("comunidad");
     setViewMode(screen);
   };
 
@@ -530,12 +552,33 @@ export default function HomeScreen() {
   }
 
   // Render different screens based on tab
-  if (currentTab === "settings") {
+  if (currentTab === "mi-pessy") {
     return withTermsNotice(
       <>
         <Suspense fallback={<ScreenLoader label="Cargando perfil..." />}>
-          <UserProfileScreen onBack={() => handleTabChange("home")} />
+          <UserProfileScreen onBack={() => handleTabChange("dia-a-dia")} />
         </Suspense>
+        <BottomNav
+          currentTab={currentTab}
+          onTabChange={handleTabChange}
+          onAddDocument={handleOpenScanner}
+          onNavigate={handleBottomNavNavigate}
+        />
+        <Suspense fallback={null}>
+          <DocumentScannerModal
+            isOpen={showScanner}
+            onClose={() => setShowScanner(false)}
+          />
+        </Suspense>
+      </>
+    );
+  }
+
+  // Show Rutinas Hub
+  if (viewMode === "rutinas-hub") {
+    return withTermsNotice(
+      <>
+        <RutinasHub onNavigate={(screen) => { setViewMode(screen); }} />
         <BottomNav
           currentTab={currentTab}
           onTabChange={handleTabChange}
@@ -557,7 +600,7 @@ export default function HomeScreen() {
     return withTermsNotice(
       <>
         <Suspense fallback={<ScreenLoader label="Cargando turnos..." />}>
-          <AppointmentsScreen onBack={() => setViewMode("card")} />
+          <AppointmentsScreen onBack={() => setViewMode("rutinas-hub")} />
         </Suspense>
         <BottomNav
           currentTab={currentTab}
@@ -580,7 +623,22 @@ export default function HomeScreen() {
     return withTermsNotice(
       <>
         <Suspense fallback={<ScreenLoader label="Cargando tratamientos..." />}>
-          <MedicationsScreen onBack={() => setViewMode("card")} />
+          <MedicationsScreen onBack={() => setViewMode("rutinas-hub")} />
+        </Suspense>
+        <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={handleOpenScanner} onNavigate={handleBottomNavNavigate} />
+        <Suspense fallback={null}>
+          <DocumentScannerModal isOpen={showScanner} onClose={() => setShowScanner(false)} />
+        </Suspense>
+      </>
+    );
+  }
+
+  // Show Reminders Screen
+  if (viewMode === "reminders") {
+    return withTermsNotice(
+      <>
+        <Suspense fallback={<ScreenLoader label="Cargando recordatorios..." />}>
+          <RemindersScreen onBack={() => setViewMode("rutinas-hub")} />
         </Suspense>
         <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={handleOpenScanner} onNavigate={handleBottomNavNavigate} />
         <Suspense fallback={null}>

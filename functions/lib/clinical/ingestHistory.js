@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ingestHistory = void 0;
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
+const rateLimiter = require("../utils/rateLimiter");
 // ──────────────────────────────────────────────
 // Constants
 // ──────────────────────────────────────────────
@@ -54,6 +55,10 @@ exports.ingestHistory = functions
     var _a;
     assertAuth((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid);
     assertRequest(data);
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("ingestHistory", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const { petId, docs } = data;
     const uid = context.auth.uid;
     // SEC: Verify the calling user owns this pet or is a co-tutor

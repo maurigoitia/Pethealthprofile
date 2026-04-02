@@ -9,14 +9,27 @@ service firebase.storage {
       return request.resource == null || request.resource.size < 30 * 1024 * 1024;
     }
 
+    // SECURITY: Block SVG uploads (can contain embedded JavaScript).
+    // Only allow safe raster image formats and common document types.
+    function safeContentType() {
+      return request.resource == null ||
+        request.resource.contentType.matches('image/jpeg') ||
+        request.resource.contentType.matches('image/png') ||
+        request.resource.contentType.matches('image/webp') ||
+        request.resource.contentType.matches('application/pdf') ||
+        request.resource.contentType.matches('application/octet-stream');
+    }
+
     // Perfil de usuario y assets de mascotas por usuario
     match /users/{userId}/{allPaths=**} {
-      allow read, write: if isOwner(userId) && validWriteSize();
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && validWriteSize() && safeContentType();
     }
 
     // Documentos médicos subidos por el tutor
     match /documents/{userId}/{allPaths=**} {
-      allow read, write: if isOwner(userId) && validWriteSize();
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && validWriteSize() && safeContentType();
     }
   }
 }

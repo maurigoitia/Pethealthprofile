@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useMemo, ReactNode } from "react";
 import {
   collection, onSnapshot, addDoc, updateDoc, deleteDoc,
   doc, query, where, orderBy,
@@ -124,11 +124,14 @@ export function RemindersProvider({ children }: { children: ReactNode }) {
   const getPendingCount = (petId: string) =>
     reminders.filter((r) => r.petId === petId && !r.completed && !r.dismissed).length;
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const contextValue = useMemo(() => ({
+    reminders, loading, addReminder, completeReminder,
+    dismissReminder, deleteReminder, getRemindersByPetId, getPendingCount,
+  }), [reminders, loading]);
+
   return (
-    <RemindersContext.Provider value={{
-      reminders, loading, addReminder, completeReminder,
-      dismissReminder, deleteReminder, getRemindersByPetId, getPendingCount,
-    }}>
+    <RemindersContext.Provider value={contextValue}>
       {children}
     </RemindersContext.Provider>
   );

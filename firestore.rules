@@ -168,11 +168,22 @@ service cloud.firestore {
       allow update: if
         isPetOwner(resource.data) ||
         (
+          // Co-tutor editor: can only modify whitelisted fields.
+          // SECURITY: ownerId, coTutorUids, coTutors, sharedAccessByUid, name, breed,
+          // species, sex, isNeutered, birthDate, birthDatePrecision are immutable for co-tutors.
           isPetEditor(resource.data) &&
           request.resource.data.ownerId == resource.data.ownerId &&
           request.resource.data.coTutorUids == resource.data.coTutorUids &&
           request.resource.data.coTutors == resource.data.coTutors &&
-          request.resource.data.sharedAccessByUid == resource.data.sharedAccessByUid
+          request.resource.data.sharedAccessByUid == resource.data.sharedAccessByUid &&
+          request.resource.data.name == resource.data.name &&
+          request.resource.data.breed == resource.data.breed &&
+          request.resource.data.species == resource.data.species &&
+          request.resource.data.sex == resource.data.sex &&
+          request.resource.data.isNeutered == resource.data.isNeutered &&
+          request.resource.data.birthDate == resource.data.birthDate &&
+          request.resource.data.birthDatePrecision == resource.data.birthDatePrecision
+          // Co-tutor CAN change: weight, weightHistory, photo, preferences, age
         ) ||
         canJoinPetWithInvite(petId) ||
         canLeavePetAsCoTutor();

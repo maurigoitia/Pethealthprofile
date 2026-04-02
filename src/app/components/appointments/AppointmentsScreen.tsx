@@ -405,7 +405,8 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
             <div className="flex items-center gap-3 mb-4">
               <button
                 onClick={onBack}
-                className="size-10 rounded-full bg-white/80 dark:bg-slate-900/70 flex items-center justify-center shadow-sm"
+                aria-label="Volver"
+                className="size-10 rounded-full bg-white/80 dark:bg-slate-900/70 flex items-center justify-center shadow-sm focus-visible:ring-2 focus-visible:ring-[#074738] focus-visible:ring-offset-2"
               >
                 <MaterialIcon name="arrow_back" className="text-xl text-[#074738]" />
               </button>
@@ -732,7 +733,8 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
           <div className="flex items-center gap-3 mb-4">
             <button
               onClick={onBack}
-              className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center"
+              aria-label="Volver"
+              className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-[#074738] focus-visible:ring-offset-2"
             >
               <MaterialIcon name="arrow_back" className="text-xl" />
             </button>

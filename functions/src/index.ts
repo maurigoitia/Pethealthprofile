@@ -2403,8 +2403,7 @@ export const resolveBrainPayload = functions
       ? payload.entities.map((item) => asRecord(item))
       : [];
     const sourceMetadata = asRecord(data?.sourceMetadata);
-    const reviewThresholdRaw = Number(data?.reviewThreshold ?? 0.85);
-    const reviewThreshold = Number.isFinite(reviewThresholdRaw) ? reviewThresholdRaw : 0.85;
+    // GOLDEN RULE: reviewThreshold removed — always uses hardcoded DEFAULT_REVIEW_THRESHOLD.
 
     const result = await resolveBrainOutput({
       userId: context.auth.uid,
@@ -2427,7 +2426,6 @@ export const resolveBrainPayload = functions
         source: typeof sourceMetadata.source === "string" ? sourceMetadata.source : "manual",
         ...sourceMetadata,
       },
-      reviewThreshold: Math.min(1, Math.max(0, reviewThreshold)),
     });
 
     return {

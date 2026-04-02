@@ -3,6 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.nearbyVets = void 0;
 const functions = require("firebase-functions");
 const params_1 = require("firebase-functions/params");
+const rateLimiter = require("../utils/rateLimiter");
+const authGuard_1 = require("../utils/authGuard");
+const inputValidator_1 = require("../utils/inputValidator");
 // Define the Google Places API key as a secret
 const GOOGLE_PLACES_API_KEY = (0, params_1.defineSecret)("GOOGLE_PLACES_API_KEY");
 /**
@@ -19,8 +22,16 @@ exports.nearbyVets = functions
     // Set memory to handle requests
     memory: "256MB",
 })
-    .https.onCall(async (requestData) => {
+    .https.onCall(async (requestData, context) => {
+    const uid = (0, authGuard_1.requireCallableAuth)(context);
+    if (!rateLimiter.perUser(uid, 10, 60000)) {
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests. Try again later.");
+    }
+    if (!rateLimiter.globalLimit("nearbyVets", 100, 60000)) {
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy. Try again later.");
+    }
     try {
+        (0, inputValidator_1.validateRequired)(requestData, ["lat", "lng"]);
         // Validate input
         const { lat, lng, radius = 5000, type = "veterinary_care" } = requestData;
         if (typeof lat !== "number" || typeof lng !== "number") {

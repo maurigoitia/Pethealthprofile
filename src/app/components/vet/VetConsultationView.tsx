@@ -16,7 +16,7 @@ export function VetConsultationView({ consultationId, onBack }: Props) {
   return (
     <div className="min-h-screen" style={{background:"#F0FAF9",fontFamily:"'Manrope',sans-serif"}}><div className="max-w-md mx-auto pb-24">
       <div className="px-5 pt-12 pb-4 flex items-center gap-3">
-        <button onClick={onBack} className="size-10 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm"><span className="material-symbols-outlined text-slate-700" style={{fontSize:"20px"}}>arrow_back</span></button>
+        <button onClick={onBack} aria-label="Volver" className="size-10 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm focus-visible:ring-2 focus-visible:ring-[#074738] focus-visible:ring-offset-2"><span className="material-symbols-outlined text-slate-700" style={{fontSize:"20px"}}>arrow_back</span></button>
         <div className="flex-1"><h1 className="text-lg font-black text-slate-900" style={{fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{c.petName}</h1><p className="text-slate-500 text-xs">{c.species}{c.breed?` · ${c.breed}`:""}</p></div>
         <span className={`px-3 py-1 rounded-full text-xs font-bold ${sc[c.status]}`}>{sl[c.status]}</span>
       </div>

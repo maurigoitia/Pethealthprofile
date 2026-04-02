@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useEffect, useRef } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useRef, useMemo, useCallback } from "react";
 import { auth, db, functions as firebaseFunctions } from "../../lib/firebase";
 import {
   collection, query, where, onSnapshot, doc, updateDoc, addDoc, arrayUnion, setDoc, getDoc,
@@ -534,11 +534,16 @@ export function PetProvider({ children }: { children: ReactNode }) {
 
   const activePet = pets.find((p) => p.id === activePetId);
 
+  // PERFORMANCE: Memoize the context value to prevent re-renders in all consumers
+  // when PetProvider re-renders but none of the actual values changed.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const contextValue = useMemo(() => ({
+    activePetId, setActivePetId, pets, activePet, addPet, updatePet, loading, loadingSlow,
+    generateInviteCode, sendCoTutorInviteEmail, joinWithCode, removeCoTutor, leaveAsTutor, isOwner, getPetAccessLevel, canEditPet,
+  }), [activePetId, pets, activePet, loading, loadingSlow]);
+
   return (
-    <PetContext.Provider value={{
-      activePetId, setActivePetId, pets, activePet, addPet, updatePet, loading, loadingSlow,
-      generateInviteCode, sendCoTutorInviteEmail, joinWithCode, removeCoTutor, leaveAsTutor, isOwner, getPetAccessLevel, canEditPet,
-    }}>
+    <PetContext.Provider value={contextValue}>
       {children}
     </PetContext.Provider>
   );

@@ -9,26 +9,29 @@ import { RemindersProvider } from "./contexts/RemindersContext";
 import { PreferenceProvider } from "./contexts/PreferenceContext";
 import { GamificationProvider } from "./contexts/GamificationContext";
 import { AppErrorBoundary } from "./components/shared/AppErrorBoundary";
+import { AppEntryGate } from "./components/onboarding/AppEntryGate";
 
 export default function App() {
   return (
     <AppErrorBoundary>
-      <AuthProvider>
-        <PetProvider>
-          <MedicalProvider>
-            <NotificationProvider>
-              <RemindersProvider>
-                <PreferenceProvider>
-                  <GamificationProvider>
-                    <RouterProvider router={router} />
-                    <Toaster position="top-center" richColors />
-                  </GamificationProvider>
-                </PreferenceProvider>
-              </RemindersProvider>
-            </NotificationProvider>
-          </MedicalProvider>
-        </PetProvider>
-      </AuthProvider>
+      <AppEntryGate>
+        <AuthProvider>
+          <PetProvider>
+            <MedicalProvider>
+              <NotificationProvider>
+                <RemindersProvider>
+                  <PreferenceProvider>
+                    <GamificationProvider>
+                      <RouterProvider router={router} />
+                      <Toaster position="top-center" richColors />
+                    </GamificationProvider>
+                  </PreferenceProvider>
+                </RemindersProvider>
+              </NotificationProvider>
+            </MedicalProvider>
+          </PetProvider>
+        </AuthProvider>
+      </AppEntryGate>
     </AppErrorBoundary>
   );
 }

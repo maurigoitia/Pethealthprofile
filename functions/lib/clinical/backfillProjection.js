@@ -11,6 +11,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.backfillClinicalProjection = void 0;
 exports.runBackfillProjection = runBackfillProjection;
 const admin = require("firebase-admin");
+const helpers_1 = require("../utils/helpers");
 const functions = require("firebase-functions");
 const projectionLayer_1 = require("./projectionLayer");
 const ADMIN_SECRET_HEADER = "x-pessy-admin-secret";
@@ -79,6 +80,8 @@ exports.backfillClinicalProjection = functions
     .runWith({ timeoutSeconds: 540, memory: "1GB", secrets: ["BACKFILL_ADMIN_SECRET"] })
     .https.onRequest(async (req, res) => {
     var _a, _b, _c, _d;
+    if ((0, helpers_1.handleCors)(req, res))
+        return;
     const expectedSecret = asString(process.env.BACKFILL_ADMIN_SECRET);
     const providedSecret = asString(req.headers[ADMIN_SECRET_HEADER]);
     if (!expectedSecret || providedSecret !== expectedSecret) {

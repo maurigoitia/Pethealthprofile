@@ -19,6 +19,7 @@ exports.approveAccessRequest = exports.seedBrainKnowledge = exports.syncNotebook
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const resend_1 = require("resend");
+const rateLimiter = require("./utils/rateLimiter");
 __exportStar(require("./appointments"), exports);
 var ingestHistory_1 = require("./clinical/ingestHistory");
 Object.defineProperty(exports, "ingestHistory", { enumerable: true, get: function () { return ingestHistory_1.ingestHistory; } });
@@ -407,18 +408,30 @@ ${petDetail ? `<div style="font-size:13px;color:#666;margin-top:2px;">${petDetai
 exports.pessySendInvitationEmail = functions.https.onCall(async (data, context) => {
     if (!context.auth)
         throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("pessySendInvitationEmail", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     await sendInvitationEmail({ toEmail: data.toEmail, userName: data.userName });
     return { success: true };
 });
 exports.pessySendWelcomeEmail = functions.https.onCall(async (data, context) => {
     if (!context.auth)
         throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("pessySendWelcomeEmail", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     await sendWelcomeEmail({ toEmail: data.toEmail, userName: data.userName });
     return { success: true };
 });
 exports.pessySendCoTutorInvitation = functions.https.onCall(async (data, context) => {
     if (!context.auth)
         throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("pessySendCoTutorInvitation", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     await sendCoTutorInvitationEmail({
         toEmail: data.toEmail,
         inviterName: data.inviterName,
@@ -2011,6 +2024,10 @@ exports.analyzeDocument = functions
     if (!((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid)) {
         throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión para analizar documentos.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("analyzeDocument", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const requestedMimeType = typeof (data === null || data === void 0 ? void 0 : data.mimeType) === "string" ? data.mimeType.trim() : "";
     const fileName = typeof (data === null || data === void 0 ? void 0 : data.fileName) === "string" ? data.fileName.trim().slice(0, 260) : "";
     const base64 = typeof (data === null || data === void 0 ? void 0 : data.base64) === "string" ? data.base64.trim() : "";
@@ -2083,6 +2100,10 @@ exports.generateClinicalSummary = functions
     if (!((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid)) {
         throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión para generar resúmenes.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("generateClinicalSummary", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const prompt = typeof (data === null || data === void 0 ? void 0 : data.prompt) === "string" ? data.prompt.trim() : "";
     if (!prompt) {
         throw new functions.https.HttpsError("invalid-argument", "Falta prompt.");
@@ -2123,6 +2144,10 @@ exports.resolveBrainPayload = functions
     if (!((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid)) {
         throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión para resolver datos clínicos.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("resolveBrainPayload", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const payload = asRecord(data === null || data === void 0 ? void 0 : data.brainOutput);
     const category = String(payload.category || "").trim();
     if (!category) {
@@ -2167,6 +2192,10 @@ exports.sendCoTutorInvite = functions
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "Requiere sesión activa.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("sendCoTutorInvite", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const toEmail = (data.email || "").trim().toLowerCase();
     const inviteCode = (data.inviteCode || "").trim().toUpperCase();
     const petName = (data.petName || "tu mascota").trim();
@@ -2255,6 +2284,10 @@ exports.acceptCoTutorInvite = functions
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "Requiere sesión activa.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("acceptCoTutorInvite", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const authData = context.auth;
     const inviteCode = ((data === null || data === void 0 ? void 0 : data.code) || "").toString().trim().toUpperCase();
     if (!inviteCode) {
@@ -2352,6 +2385,10 @@ exports.approveAccessRequest = functions
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "Requiere sesión activa.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("approveAccessRequest", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const callerEmail = (context.auth.token.email || "").toLowerCase();
     if (callerEmail !== "mauriciogoitia@gmail.com") {
         throw new functions.https.HttpsError("permission-denied", "Solo admin puede aprobar.");

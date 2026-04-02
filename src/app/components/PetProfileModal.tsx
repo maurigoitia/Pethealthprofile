@@ -239,8 +239,8 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
             <div className="px-6 pb-4 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white">Perfil de Mascota</h2>
-                <button onClick={onClose}
-                  className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                <button onClick={onClose} aria-label="Cerrar perfil"
+                  className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-[#074738] focus-visible:ring-offset-2">
                   <MaterialIcon name="close" className="text-xl" />
                 </button>
               </div>

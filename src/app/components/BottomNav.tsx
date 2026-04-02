@@ -15,13 +15,15 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, reminderBadg
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-40">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-40" role="navigation" aria-label="Navegación principal">
       <div className="max-w-md mx-auto flex items-center justify-around px-1 py-2">
         {tabs.map((tab, idx) => (
           <div key={tab.id} className="contents">
             <button
               onClick={() => onTabChange(tab.id)}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all relative ${
+              aria-label={tab.label}
+              aria-current={currentTab === tab.id ? "page" : undefined}
+              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all relative focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2b6fee] focus-visible:ring-offset-2 ${
                 currentTab === tab.id
                   ? "text-[#2b6fee] bg-[#2b6fee]/10"
                   : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
@@ -46,7 +48,8 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, reminderBadg
             {idx === 0 && onAddDocument && (
               <button
                 onClick={onAddDocument}
-                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all text-[#2b6fee] hover:bg-[#2b6fee]/10"
+                aria-label="Agregar documento"
+                className="flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all text-[#2b6fee] hover:bg-[#2b6fee]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2b6fee] focus-visible:ring-offset-2"
               >
                 <div className="size-10 rounded-full bg-[#2b6fee] flex items-center justify-center -mt-3 shadow-lg shadow-[#2b6fee]/30">
                   <MaterialIcon name="add" className="text-white text-2xl" />

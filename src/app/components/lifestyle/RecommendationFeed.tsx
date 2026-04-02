@@ -45,7 +45,8 @@ export function RecommendationFeed({ onBack }: { onBack?: () => void }) {
           {onBack && (
             <button
               onClick={onBack}
-              className="size-10 rounded-full bg-[#E0F2F1] flex items-center justify-center shrink-0"
+              aria-label="Volver"
+              className="size-10 rounded-full bg-[#E0F2F1] flex items-center justify-center shrink-0 focus-visible:ring-2 focus-visible:ring-[#074738] focus-visible:ring-offset-2"
             >
               <MaterialIcon name="arrow_back" className="text-[#074738]" />
             </button>

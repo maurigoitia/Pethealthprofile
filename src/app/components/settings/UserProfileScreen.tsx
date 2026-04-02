@@ -140,7 +140,8 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
         <div className="sticky top-0 z-50 bg-[#F0FAF9]/80 dark:bg-[#101622]/80 backdrop-blur-md px-4 py-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
           <button
             onClick={onBack}
-            className="size-10 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
+            aria-label="Volver"
+            className="size-10 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-sm focus-visible:ring-2 focus-visible:ring-[#074738] focus-visible:ring-offset-2"
           >
             <MaterialIcon name="arrow_back" className="text-xl" />
           </button>

@@ -4,6 +4,7 @@ exports.pessyClinicalBrainGrounding = void 0;
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
 const vertexai_1 = require("@google-cloud/vertexai");
+const helpers_1 = require("../utils/helpers");
 const DEFAULT_LOCATION = "us-central1";
 const DEFAULT_MODEL = "gemini-2.0-flash-001";
 const DEFAULT_GEMINI_FALLBACK_MODEL = "gemini-2.5-flash";
@@ -573,6 +574,8 @@ exports.pessyClinicalBrainGrounding = functions
 })
     .region("us-central1")
     .https.onRequest(async (req, res) => {
+    if ((0, helpers_1.handleCors)(req, res))
+        return;
     if (req.method !== "POST") {
         res.status(405).json({ ok: false, error: "method_not_allowed" });
         return;

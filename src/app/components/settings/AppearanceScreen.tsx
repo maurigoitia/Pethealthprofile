@@ -53,7 +53,8 @@ export function AppearanceScreen({ onBack }: AppearanceScreenProps) {
           <div className="px-4 py-4 flex items-center gap-3">
             <button
               onClick={onBack}
-              className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              aria-label="Volver"
+              className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors focus-visible:ring-2 focus-visible:ring-[#074738] focus-visible:ring-offset-2"
             >
               <MaterialIcon name="arrow_back" className="text-xl" />
             </button>

@@ -54,7 +54,8 @@ export interface ResolveBrainOutputArgs {
   brainOutput: BrainOutputPayload;
   userId: string;
   sourceMetadata: BrainSourceMetadata;
-  reviewThreshold?: number;
+  // SECURITY: reviewThreshold removed — must always use DEFAULT_REVIEW_THRESHOLD (0.85).
+  // Allowing callers to lower the threshold would let AI-extracted data bypass review.
 }
 
 export interface ResolveBrainOutputResult {
@@ -293,7 +294,8 @@ function computeReviewReason(args: {
 
 export async function resolveBrainOutput(args: ResolveBrainOutputArgs): Promise<ResolveBrainOutputResult> {
   const nowIso = new Date().toISOString();
-  const threshold = clamp(args.reviewThreshold ?? DEFAULT_REVIEW_THRESHOLD, 0, 1);
+  // GOLDEN RULE: threshold is hardcoded, never overridable by callers.
+  const threshold = DEFAULT_REVIEW_THRESHOLD;
   const confidence = clamp(Number(args.brainOutput.confidence || 0), 0, 1);
   const reviewRequired = args.brainOutput.review_required === true;
 

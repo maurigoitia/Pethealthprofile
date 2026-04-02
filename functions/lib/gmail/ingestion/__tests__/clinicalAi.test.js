@@ -71,7 +71,7 @@ const clinicalAi_1 = require("../clinicalAi");
     });
     (0, vitest_1.it)("usa adjuntos clínicos para rescatar estudios cuando AI no aporta evento", () => {
         var _a;
-        const result = (0, clinicalAi_1.heuristicClinicalExtractionWithContext)({
+        const result = (0, clinicalAi_1.heuristicClinicalExtraction)({
             sourceSubject: "Radiografias de Thor",
             sourceSender: "\"noreply@myvete.com\" <noreply@myvete.com>",
             extractedText: "Adjunto radiografias de Thor para control.",
@@ -98,7 +98,7 @@ const clinicalAi_1 = require("../clinicalAi");
     });
     (0, vitest_1.it)("rescata un mail attachment-first de eco aunque el body esté vacío", () => {
         var _a;
-        const result = (0, clinicalAi_1.heuristicClinicalExtractionWithContext)({
+        const result = (0, clinicalAi_1.heuristicClinicalExtraction)({
             sourceSubject: "ECO THOR",
             sourceSender: "laura diaz <lvdiazz@yahoo.com.ar>",
             extractedText: "",

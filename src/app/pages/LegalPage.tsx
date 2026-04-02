@@ -14,6 +14,7 @@ import { SEO } from "../components/shared/SEO";
 const sections = [
   { id: 'privacidad', label: 'PRIVACIDAD' },
   { id: 'terminos', label: 'TERMINOS' },
+  { id: 'ia', label: 'USO DE IA' },
   { id: 'dpa', label: 'DPA' },
   { id: 'subencargados', label: 'SUBENCARGADOS' }
 ];
@@ -280,6 +281,30 @@ export default function LegalPage() {
             <strong className="text-[#074738] block mb-2 uppercase tracking-[0.2em] text-[10px]">Aviso Importante</strong>
             Pessy no es un servicio veterinario ni una herramienta de diagnostico. No sustituye la consulta con un profesional habilitado. Toda decision medica debe ser validada por un veterinario colegiado.
           </HighlightBox>
+        </DocSection>
+
+        <hr className="max-w-3xl mx-auto border-slate-100 my-20" />
+
+        {/* AI DISCLOSURE */}
+        <DocSection
+          id="ia"
+          title="Uso de Inteligencia Artificial"
+          meta="Declaracion de transparencia · Marzo 2026"
+          onBackTop={scrollToTop}>
+          <SectionTitle>1. Como usa Pessy la IA</SectionTitle>
+          <p>Pessy utiliza modelos de inteligencia artificial (Google Gemini) para estructurar y organizar la informacion de tu mascota. La IA procesa documentos, correos y datos ingresados para generar resumenes, recordatorios y sugerencias de seguimiento.</p>
+
+          <SectionTitle>2. Limitaciones</SectionTitle>
+          <HighlightBox>
+            <strong className="text-[#074738] block mb-2 uppercase tracking-[0.2em] text-[10px]">Importante</strong>
+            La IA de Pessy no diagnostica, no receta medicamentos, no proporciona tratamientos y no reemplaza la consulta con un veterinario profesional. Toda sugerencia generada por IA es orientativa y utiliza lenguaje condicional.
+          </HighlightBox>
+
+          <SectionTitle>3. Datos y privacidad de la IA</SectionTitle>
+          <p>Los datos procesados por la IA se utilizan exclusivamente para mejorar la experiencia dentro de Pessy. No se comparten con terceros para fines publicitarios. Los modelos de IA no se entrenan con datos personales de los usuarios de Pessy.</p>
+
+          <SectionTitle>4. Reporte de contenido inapropiado</SectionTitle>
+          <p>Si la IA genera contenido inexacto o inapropiado, podes reportarlo enviando un correo a <strong className="text-[#074738]">soporte@pessy.app</strong> con el detalle del caso. Pessy se compromete a investigar y corregir estos casos.</p>
         </DocSection>
 
         <hr className="max-w-3xl mx-auto border-slate-100 my-20" />

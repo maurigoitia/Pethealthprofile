@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from "react";
 import { User, onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
 import { auth, db } from "../../lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -167,8 +167,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => signOut(auth);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const contextValue = useMemo(() => ({
+    user, loading, userName, userFullName, userPhoto, userCountry, userRole, logout, refreshUser,
+  }), [user, loading, userName, userFullName, userPhoto, userCountry, userRole]);
+
   return (
-    <AuthContext.Provider value={{ user, loading, userName, userFullName, userPhoto, userCountry, userRole, logout, refreshUser }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

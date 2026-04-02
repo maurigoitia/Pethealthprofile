@@ -167,3 +167,22 @@ body::after {
 .pessy-gradient-radial-accent {
   background: radial-gradient(circle at 70% 30%, rgba(224, 242, 241, 0.6) 0%, rgba(240, 250, 249, 0) 60%);
 }
+
+/* ── Accessibility: Global focus-visible ring for all interactive elements ── */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #074738;
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* Remove default browser outline when NOT using keyboard */
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+[role="button"]:focus:not(:focus-visible) {
+  outline: none;
+}

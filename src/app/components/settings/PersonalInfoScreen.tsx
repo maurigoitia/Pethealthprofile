@@ -87,8 +87,8 @@ export function PersonalInfoScreen({ onBack }: PersonalInfoScreenProps) {
         {/* Header */}
         <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
           <div className="px-4 py-4 flex items-center gap-3">
-            <button onClick={onBack}
-              className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+            <button onClick={onBack} aria-label="Volver"
+              className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-[#074738] focus-visible:ring-offset-2">
               <MaterialIcon name="arrow_back" className="text-xl" />
             </button>
             <h1 className="text-xl font-black text-slate-900 dark:text-white">Información Personal</h1>

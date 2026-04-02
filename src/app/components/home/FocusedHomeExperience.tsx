@@ -1,4 +1,5 @@
 import { MaterialIcon } from "../shared/MaterialIcon";
+import { MedicalDisclaimer } from "../shared/MedicalDisclaimer";
 import { PetPhoto } from "../pet/PetPhoto";
 import { Timeline } from "../medical/Timeline";
 import { MonthSummary } from "../medical/MonthSummary";
@@ -387,6 +388,9 @@ export function FocusedHomeExperience({
             onExportReport={onExportReport}
           />
         </section>
+
+        {/* Medical disclaimer — required for store compliance */}
+        <MedicalDisclaimer compact />
       </main>
     </>
   );

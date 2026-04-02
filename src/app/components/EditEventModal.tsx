@@ -119,7 +119,8 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
                             <h2 className="text-xl font-black text-slate-900 dark:text-white">Editar Registro</h2>
                             <button
                                 onClick={onClose}
-                                className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center"
+                                aria-label="Cerrar"
+                                className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-[#074738] focus-visible:ring-offset-2"
                             >
                                 <MaterialIcon name="close" />
                             </button>

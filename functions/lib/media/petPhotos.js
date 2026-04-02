@@ -4,6 +4,7 @@ exports.uploadPetPhoto = void 0;
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
 const crypto_1 = require("crypto");
+const rateLimiter = require("../utils/rateLimiter");
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // 8 MB binary
 const ALLOWED_CONTENT_TYPES = new Set([
     "image/jpeg",
@@ -188,6 +189,10 @@ exports.uploadPetPhoto = functions
     if (!uid) {
         throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("uploadPetPhoto", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const petId = typeof (rawData === null || rawData === void 0 ? void 0 : rawData.petId) === "string" ? rawData.petId.trim() : "";
     if (!petId) {
         throw new functions.https.HttpsError("invalid-argument", "Falta petId.");

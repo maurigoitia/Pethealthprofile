@@ -7,7 +7,6 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
-  fetchSignInMethodsForEmail,
 } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
@@ -76,18 +75,11 @@ export function LoginScreen() {
       navigate("/home", { replace: true });
     } catch (err: any) {
       if (err?.code === "auth/user-not-found" || err?.code === "auth/wrong-password" || err?.code === "auth/invalid-credential") {
-        const genericCredentialError =
-          "Correo o contraseña incorrectos. Si te registraste con Google, ingresá con Google o usá recuperación de contraseña.";
-        try {
-          const methods = await fetchSignInMethodsForEmail(auth, cleanEmail);
-          if (methods.includes("google.com") && !methods.includes("password")) {
-            setError("Este correo está registrado con Google. Ingresá con el botón Google.");
-          } else {
-            setError(genericCredentialError);
-          }
-        } catch {
-          setError(genericCredentialError);
-        }
+        // SECURITY: Generic error message to prevent user enumeration.
+        // Never reveal whether an email exists or which auth method it uses.
+        setError(
+          "Correo o contraseña incorrectos. Si te registraste con Google, probá con el botón Google."
+        );
       } else if (err?.code === "auth/too-many-requests") {
         setError("Demasiados intentos. Esperá unos minutos o recuperá tu contraseña.");
       } else if (err?.code === "auth/network-request-failed") {
@@ -114,7 +106,8 @@ export function LoginScreen() {
       setResetSuccess("¡Listo! Revisá tu correo para restablecer la contraseña.");
     } catch (err: any) {
       if (err?.code === "auth/user-not-found") {
-        setResetError("No encontramos una cuenta con ese correo.");
+        // SECURITY: Don't reveal if email exists. Show same success message.
+        setResetSuccess("Si hay una cuenta con ese correo, vas a recibir un enlace para restablecer la contraseña.");
       } else if (err?.code === "auth/invalid-email") {
         setResetError("El correo ingresado no es válido.");
       } else if (err?.code === "auth/operation-not-allowed") {

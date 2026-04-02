@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.seedBrainKnowledge = void 0;
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
+const rateLimiter = require("../utils/rateLimiter");
 const COLLECTION = "notebook_knowledge";
 // ─── PESSY Brain Knowledge Sections ──────────────────────────────────────────
 // Extracted & structured from the 9 NotebookLM notebook sources
@@ -254,6 +255,10 @@ exports.seedBrainKnowledge = functions
     if (!context.auth) {
         throw new functions.https.HttpsError("unauthenticated", "Must be authenticated");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("seedBrainKnowledge", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const db = admin.firestore();
     const now = new Date().toISOString();
     // Deactivate all existing notebook_knowledge docs

@@ -21,7 +21,7 @@ export function VetNewConsultation() {
   return (
     <div className="min-h-screen" style={{background:"#F0FAF9",fontFamily:"'Manrope',sans-serif"}}><div className="max-w-md mx-auto pb-8">
       <div className="px-5 pt-12 pb-4 flex items-center gap-3">
-        <button onClick={()=>navigate("/vet/dashboard")} className="size-10 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm"><span className="material-symbols-outlined text-slate-700" style={{fontSize:"20px"}}>arrow_back</span></button>
+        <button onClick={()=>navigate("/vet/dashboard")} aria-label="Volver al dashboard" className="size-10 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm focus-visible:ring-2 focus-visible:ring-[#074738] focus-visible:ring-offset-2"><span className="material-symbols-outlined text-slate-700" style={{fontSize:"20px"}}>arrow_back</span></button>
         <h1 className="text-xl font-black text-slate-900" style={{fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Nueva consulta</h1>
       </div>
       <form onSubmit={handleCreate} className="px-5 space-y-4">

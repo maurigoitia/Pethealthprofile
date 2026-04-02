@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.submitDataDeletionRequest = exports.deleteAllUserClinicalData = exports.deleteUserAccount = void 0;
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
+const rateLimiter = require("../utils/rateLimiter");
 const DELETE_BATCH_SIZE = 200;
 const USER_SCOPED_DELETES = [
     { collection: "medical_events", field: "userId" },
@@ -204,6 +205,10 @@ exports.deleteUserAccount = functions
     if (!((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid)) {
         throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 3, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("deleteUserAccount", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const uid = context.auth.uid;
     functions.logger.warn("[deleteUserAccount] Starting account deletion", { uid });
     try {
@@ -229,6 +234,10 @@ exports.deleteAllUserClinicalData = functions
     if (!((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid)) {
         throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 3, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("deleteAllUserClinicalData", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const uid = context.auth.uid;
     functions.logger.warn("[deleteAllUserClinicalData] Starting clinical data deletion", { uid });
     try {
@@ -343,6 +352,11 @@ exports.submitDataDeletionRequest = functions
     }
     if (req.method !== "POST") {
         res.status(405).json({ ok: false, error: "method_not_allowed" });
+        return;
+    }
+    const ip = asString(req.headers["x-forwarded-for"] || req.ip || "unknown");
+    if (!rateLimiter.globalLimit(`submitDataDeletionRequest:${ip}`, 30, 60000)) {
+        res.status(429).json({ ok: false, error: "too_many_requests" });
         return;
     }
     const name = asString((_a = req.body) === null || _a === void 0 ? void 0 : _a.name);

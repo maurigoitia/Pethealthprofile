@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.syncTreatmentTimezoneV3 = exports.evaluateTreatmentDedupV3 = exports.recordDoseEventV3 = exports.markMissedTreatmentDosesV3 = exports.dispatchTreatmentRemindersV3 = exports.onTreatmentWriteScheduleV3 = exports.onMedicationWriteScheduleV3 = void 0;
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
+const rateLimiter = require("../utils/rateLimiter");
 const db = () => admin.firestore();
 const messagingClient = () => admin.messaging();
 const ONE_MINUTE_MS = 60 * 1000;
@@ -645,6 +646,10 @@ exports.recordDoseEventV3 = functions
     if (!uid) {
         throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("recordDoseEventV3", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const doseEventId = typeof (data === null || data === void 0 ? void 0 : data.doseEventId) === "string" ? data.doseEventId.trim() : "";
     const action = String((data === null || data === void 0 ? void 0 : data.action) || "").trim();
     const reason = typeof (data === null || data === void 0 ? void 0 : data.reason) === "string" ? data.reason.trim().slice(0, 500) : null;
@@ -743,6 +748,10 @@ exports.evaluateTreatmentDedupV3 = functions
     if (!((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid)) {
         throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("evaluateTreatmentDedupV3", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const candidate = asRecord(data === null || data === void 0 ? void 0 : data.candidate);
     const existingList = Array.isArray(data === null || data === void 0 ? void 0 : data.existing)
         ? data.existing.map((x) => asRecord(x))
@@ -783,6 +792,10 @@ exports.syncTreatmentTimezoneV3 = functions
     if (!uid) {
         throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("syncTreatmentTimezoneV3", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const timezone = typeof (data === null || data === void 0 ? void 0 : data.timezone) === "string" && data.timezone.trim()
         ? data.timezone.trim()
         : "UTC";

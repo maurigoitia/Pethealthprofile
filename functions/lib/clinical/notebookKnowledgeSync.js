@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.syncNotebookKnowledge = void 0;
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
+const helpers_1 = require("../utils/helpers");
 const COLLECTION = "notebook_knowledge";
 const SYNC_VERSION = "notebook_sync_v1";
 function asString(value) {
@@ -34,6 +35,8 @@ exports.syncNotebookKnowledge = functions
 })
     .region("us-central1")
     .https.onRequest(async (req, res) => {
+    if ((0, helpers_1.handleCors)(req, res))
+        return;
     if (req.method !== "POST") {
         res.status(405).json({ ok: false, error: "method_not_allowed" });
         return;

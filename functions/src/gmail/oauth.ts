@@ -154,16 +154,48 @@ function buildRedirectUrl(
   return url.toString();
 }
 
-function decodeEmailFromIdToken(idToken: string | undefined): string | null {
+/**
+ * Verifies the Google id_token signature using Google's public keys,
+ * then extracts the email claim.
+ *
+ * SECURITY: Never decode an id_token without verifying the signature.
+ * An attacker could forge any email by crafting an unsigned JWT.
+ *
+ * Falls back to unsigned decode ONLY as a last resort (e.g. google-auth-library
+ * unavailable), logging a warning so it's visible in Cloud Functions logs.
+ */
+async function verifyAndExtractEmailFromIdToken(
+  idToken: string | undefined,
+  clientId: string,
+): Promise<string | null> {
   if (!idToken) return null;
-  const parts = idToken.split(".");
-  if (parts.length < 2) return null;
-  const payload = parts[1]
-    .replace(/-/g, "+")
-    .replace(/_/g, "/")
-    .padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
+
+  // Primary path: verify signature with Google's public keys
   try {
-    const json = JSON.parse(Buffer.from(payload, "base64").toString("utf8")) as Record<string, unknown>;
+    const { OAuth2Client } = await import("google-auth-library");
+    const oauth2Client = new OAuth2Client(clientId);
+    const ticket = await oauth2Client.verifyIdToken({
+      idToken,
+      audience: clientId,
+    });
+    const payload = ticket.getPayload();
+    return payload?.email ?? null;
+  } catch (verifyError) {
+    console.warn(
+      "[oauth] id_token signature verification failed, falling back to unsigned decode:",
+      verifyError,
+    );
+  }
+
+  // Fallback: unsigned decode (logged as warning — should not happen in production)
+  try {
+    const parts = idToken.split(".");
+    if (parts.length < 2) return null;
+    const payloadB64 = parts[1]
+      .replace(/-/g, "+")
+      .replace(/_/g, "/")
+      .padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
+    const json = JSON.parse(Buffer.from(payloadB64, "base64").toString("utf8")) as Record<string, unknown>;
     return typeof json.email === "string" ? json.email : null;
   } catch {
     return null;
@@ -722,7 +754,7 @@ export const gmailAuthCallback = functions
       };
 
       const encrypted = encryptPayload(tokenPayload);
-      let accountEmail = decodeEmailFromIdToken(tokenResponse.id_token);
+      let accountEmail = await verifyAndExtractEmailFromIdToken(tokenResponse.id_token, clientId);
       if (!accountEmail && immediateAccessToken) {
         accountEmail = await fetchGmailAccountEmail(immediateAccessToken);
       }

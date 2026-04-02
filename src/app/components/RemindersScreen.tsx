@@ -81,8 +81,8 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
         <div className="bg-white dark:bg-slate-900 px-4 pt-6 pb-0 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3 mb-5">
             {onBack && (
-              <button onClick={onBack}
-                className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+              <button onClick={onBack} aria-label="Volver"
+                className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-[#074738] focus-visible:ring-offset-2">
                 <MaterialIcon name="arrow_back" className="text-xl" />
               </button>
             )}
@@ -176,8 +176,8 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                               {/* Swipe actions background */}
                               {isSwiped && (
                                 <div className="absolute inset-0 flex items-center justify-end gap-2 pr-3 bg-slate-100 dark:bg-slate-800 rounded-2xl">
-                                  <button onClick={() => { deleteReminder(r.id); setSwipedId(null); }}
-                                    className="size-10 rounded-xl bg-red-500 flex items-center justify-center">
+                                  <button onClick={() => { deleteReminder(r.id); setSwipedId(null); }} aria-label="Eliminar recordatorio"
+                                    className="size-10 rounded-xl bg-red-500 flex items-center justify-center focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2">
                                     <MaterialIcon name="delete" className="text-white text-lg" />
                                   </button>
                                 </div>

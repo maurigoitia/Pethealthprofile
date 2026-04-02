@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { NotificationService } from "../services/notificationService";
 import { useAuth } from "./AuthContext";
 
@@ -110,16 +110,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   const unreadCount = inAppNotifications.filter(n => !n.read).length;
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const contextValue = useMemo(() => ({
+    permission, hasToken, inAppNotifications, unreadCount,
+    requestPermission, markAllRead, dismiss,
+  }), [permission, hasToken, inAppNotifications, unreadCount]);
+
   return (
-    <NotificationContext.Provider value={{
-      permission,
-      hasToken,
-      inAppNotifications,
-      unreadCount,
-      requestPermission,
-      markAllRead,
-      dismiss,
-    }}>
+    <NotificationContext.Provider value={contextValue}>
       {children}
     </NotificationContext.Provider>
   );

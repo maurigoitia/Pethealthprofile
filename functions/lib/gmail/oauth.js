@@ -6,6 +6,7 @@ const functions = require("firebase-functions");
 const crypto_1 = require("crypto");
 const clinicalIngestion_1 = require("./clinicalIngestion");
 const invitation_1 = require("./invitation");
+const rateLimiter = require("../utils/rateLimiter");
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_REVOKE_URL = "https://oauth2.googleapis.com/revoke";
@@ -353,6 +354,10 @@ exports.getGmailConnectUrl = functions
     if (!((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid)) {
         throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("getGmailConnectUrl", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     await (0, invitation_1.assertGmailInvitationOrThrow)(context.auth.uid);
     const clientId = getEnvOrThrow("GMAIL_OAUTH_CLIENT_ID");
     const redirectUri = getEnvOrThrow("GMAIL_OAUTH_REDIRECT_URI");
@@ -626,6 +631,10 @@ exports.syncAppointmentCalendarEvent = functions
     if (!((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid)) {
         throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("syncAppointmentCalendarEvent", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const uid = context.auth.uid;
     const appointmentId = asNonEmptyString(data === null || data === void 0 ? void 0 : data.appointmentId);
     const status = (data === null || data === void 0 ? void 0 : data.status) || "upcoming";
@@ -781,6 +790,10 @@ exports.disconnectGmailSync = functions
     if (!((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid)) {
         throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("disconnectGmailSync", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const uid = context.auth.uid;
     const tokenRef = admin
         .firestore()

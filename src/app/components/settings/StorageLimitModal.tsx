@@ -78,8 +78,8 @@ export function StorageLimitModal({ isOpen, onClose, quota, triggerUpgrade }: St
                   <MaterialIcon name="workspace_premium" className="text-amber-300 text-2xl" />
                   <span className="text-white font-black text-xl">PESSY Premium</span>
                 </div>
-                <button onClick={onClose}
-                  className="size-8 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                <button onClick={onClose} aria-label="Cerrar"
+                  className="size-8 rounded-full bg-white/20 flex items-center justify-center shrink-0 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2">
                   <MaterialIcon name="close" className="text-white text-lg" />
                 </button>
               </div>

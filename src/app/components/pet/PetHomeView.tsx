@@ -24,6 +24,8 @@ import {
 
 import DailyHookCard from "../home/DailyHookCard";
 import RoutineChecklist from "../home/RoutineChecklist";
+import { MissionDetailScreen } from "../home/MissionDetailScreen";
+import { MISSIONS } from "../home/missionData";
 import ProfileNudge from "../home/ProfileNudge";
 import QuickActions from "../home/QuickActions";
 import PessyTip, { SectionTitle } from "../home/PessyTip";
@@ -397,7 +399,8 @@ export function PetHomeView({
   const [nudgedBreed, setNudgedBreed] = useState(false);
   const [checkedRoutineItems, setCheckedRoutineItems] = useState<string[]>([]);
   const [points, setPoints] = useState(() => getPoints());
-  const [completedMissionsToday, setCompletedMissionsToday] = useState<Set<string>>(new Set());
+  const [completedMissions, setCompletedMissions] = useState<Set<string>>(new Set());
+  const [activeMissionCode, setActiveMissionCode] = useState<string | null>(null);
   const {
     getEventsByPetId,
     getActiveMedicationsByPetId,
@@ -521,20 +524,42 @@ export function PetHomeView({
       .catch(() => {}); // Non-critical — graceful fallback
   }, [user, activePetId]);
 
-  // ─── Load completed missions from Firestore ──────────────────────────────────
+  // ─── Load mission completions from Firestore (daily, per pet) ───────────────
   useEffect(() => {
-    if (!user?.uid) return;
+    if (!user || !activePetId) return;
     const today = new Date().toISOString().slice(0, 10);
-    getDoc(doc(db, "user_gamification", user.uid)).then((snap) => {
-      if (!snap.exists()) return;
-      const data = snap.data();
-      const raw: Record<string, boolean> = data?.completedMissions ?? {};
-      const todayDone = new Set(
-        Object.keys(raw).filter((k) => k.startsWith(today + ".")).map((k) => k.split(".").slice(1).join("."))
-      );
-      setCompletedMissionsToday(todayDone);
-    }).catch(() => {});
-  }, [user?.uid]);
+    const codes = Object.keys(MISSIONS);
+    const completed = new Set<string>();
+    Promise.all(
+      codes.map(async (code) => {
+        const ref = doc(db, "users", user.uid, "pets", activePetId, "missions", code);
+        const snap = await getDoc(ref);
+        if (snap.exists() && snap.data().completedDate === today) completed.add(code);
+      })
+    ).then(() => setCompletedMissions(new Set(completed))).catch(() => {});
+  }, [user, activePetId]);
+
+  // ─── Handle mission complete — persist to Firestore, award points once ──────
+  const handleMissionComplete = useCallback(
+    async (missionCode: string) => {
+      if (completedMissions.has(missionCode)) {
+        setActiveMissionCode(null);
+        return;
+      }
+      const missionDef = MISSIONS[missionCode];
+      const pts = missionDef?.points ?? 0;
+      const today = new Date().toISOString().slice(0, 10);
+      if (user && activePetId) {
+        const ref = doc(db, "users", user.uid, "pets", activePetId, "missions", missionCode);
+        setDoc(ref, { completedDate: today, points: pts }).catch(() => {});
+      }
+      const total = addPoints(pts);
+      setPoints(total);
+      setCompletedMissions((prev) => new Set([...prev, missionCode]));
+      setActiveMissionCode(null);
+    },
+    [user, activePetId, completedMissions]
+  );
 
   // ─── Walk safety (simplified for badge) ─────────────────────────────────────
   const walkSafety: WalkSafetyState = useMemo(() => {
@@ -975,19 +1000,9 @@ export function PetHomeView({
                   description={rec.detail}
                   isMission={enhanced.isMission}
                   missionPoints={enhanced.missionPoints}
-                  isCompleted={missionCode ? completedMissionsToday.has(missionCode) : undefined}
-                  onMissionComplete={(total) => {
-                    setPoints(total);
-                    if (missionCode && user?.uid) {
-                      const today = new Date().toISOString().slice(0, 10);
-                      setDoc(
-                        doc(db, "user_gamification", user.uid),
-                        { completedMissions: { [`${today}.${missionCode}`]: true } },
-                        { merge: true }
-                      ).catch(() => {});
-                      setCompletedMissionsToday((prev) => new Set([...prev, missionCode]));
-                    }
-                  }}
+                  isCompleted={enhanced.isMission && enhanced.code ? completedMissions.has(enhanced.code) : false}
+                  onMissionStart={enhanced.isMission && enhanced.code ? () => setActiveMissionCode(enhanced.code!) : undefined}
+                  onMissionComplete={(total) => setPoints(total)}
                 />
               );
             })}
@@ -1014,6 +1029,16 @@ export function PetHomeView({
                 .catch(() => {});
             }
           }}
+        />
+      )}
+
+      {/* ─── Mission Detail Screen ────────────────────────────────────────── */}
+      {activeMissionCode && activePet && (
+        <MissionDetailScreen
+          missionCode={activeMissionCode}
+          petName={activePet.name}
+          onComplete={() => handleMissionComplete(activeMissionCode)}
+          onClose={() => setActiveMissionCode(null)}
         />
       )}
 

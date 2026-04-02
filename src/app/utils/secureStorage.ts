@@ -20,31 +20,78 @@
  */
 
 const ENCRYPTION_KEY_NAME = "pessy_storage_key";
+const IDB_NAME = "pessy_crypto";
+const IDB_STORE = "keys";
+
+/**
+ * IndexedDB helpers for persisting CryptoKey handles.
+ * IndexedDB can store CryptoKey objects directly (structured clone),
+ * so the raw key material never leaves the WebCrypto API.
+ */
+function openKeyDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+      req.result.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function getKeyFromIDB(): Promise<CryptoKey | null> {
+  try {
+    const db = await openKeyDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE, "readonly");
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.get(ENCRYPTION_KEY_NAME);
+      req.onsuccess = () => resolve(req.result ?? null);
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function saveKeyToIDB(key: CryptoKey): Promise<void> {
+  try {
+    const db = await openKeyDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.put(key, ENCRYPTION_KEY_NAME);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    // Silently fail — key will be regenerated next time
+  }
+}
 
 /**
  * Genera o recupera una clave de encriptación.
- * La clave se almacena en la CryptoKey store del navegador (no en localStorage).
+ * La clave se almacena como CryptoKey handle en IndexedDB (no exportable).
  */
 async function getOrCreateKey(): Promise<CryptoKey> {
-  // Intentar recuperar la clave desde sessionStorage como fallback
-  const existingKeyData = sessionStorage.getItem(ENCRYPTION_KEY_NAME);
-  if (existingKeyData) {
-    const keyData = Uint8Array.from(atob(existingKeyData), c => c.charCodeAt(0));
-    return crypto.subtle.importKey("raw", keyData, "AES-GCM", true, ["encrypt", "decrypt"]);
-  }
+  // SECURITY: Key is NOT extractable — it never leaves the WebCrypto API.
+  // This means if the tab is closed, a new key is generated and previously
+  // encrypted data becomes unreadable (acceptable for short-lived invite codes).
+  //
+  // We use IndexedDB (via a simple wrapper) to persist the key handle across
+  // page reloads within the same session, without ever exposing the raw key material.
+  const existingKey = await getKeyFromIDB();
+  if (existingKey) return existingKey;
 
-  // Generar nueva clave
+  // Generate a new non-extractable key
   const key = await crypto.subtle.generateKey(
     { name: "AES-GCM", length: 256 },
-    true,
+    false, // SECURITY: extractable = false — key material cannot be exported
     ["encrypt", "decrypt"]
   );
 
-  // Exportar y guardar en sessionStorage (se limpia al cerrar tab)
-  const exported = await crypto.subtle.exportKey("raw", key);
-  const b64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
-  sessionStorage.setItem(ENCRYPTION_KEY_NAME, b64);
-
+  // Store the CryptoKey handle (not raw bytes) in IndexedDB
+  await saveKeyToIDB(key);
   return key;
 }
 /**
@@ -131,5 +178,11 @@ export function clearAllSensitiveData(): void {
   for (const key of sensitiveKeys) {
     try { localStorage.removeItem(key); } catch { /* no-op */ }
   }
-  try { sessionStorage.removeItem(ENCRYPTION_KEY_NAME); } catch { /* no-op */ }
+  // Clear crypto key from IndexedDB
+  try {
+    openKeyDB().then(db => {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).delete(ENCRYPTION_KEY_NAME);
+    }).catch(() => {});
+  } catch { /* no-op */ }
 }

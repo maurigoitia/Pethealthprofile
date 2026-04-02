@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.computeAdoptionMatches = exports.onPetSighting = exports.onLostPetReport = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const rateLimiter = require("../utils/rateLimiter");
 function getDb() { return admin.firestore(); }
 // ─── HAVERSINE DISTANCE (km) ───
 function distanceKm(lat1, lon1, lat2, lon2) {
@@ -249,6 +250,10 @@ function getMatchLabel(score) {
 exports.computeAdoptionMatches = functions.https.onCall(async (data, context) => {
     if (!context.auth)
         throw new functions.https.HttpsError("unauthenticated", "Login required");
+    if (!rateLimiter.perUser(context.auth.uid, 10, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Too many requests.");
+    if (!rateLimiter.globalLimit("computeAdoptionMatches", 100, 60000))
+        throw new functions.https.HttpsError("resource-exhausted", "Service is busy.");
     const adopter = data;
     if (!adopter.livingSpace || !adopter.experience || !adopter.activityLevel) {
         throw new functions.https.HttpsError("invalid-argument", "Missing adopter profile fields");

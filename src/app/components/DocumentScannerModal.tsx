@@ -503,7 +503,8 @@ export function DocumentScannerModal({
                     </h2>
                     <button
                       onClick={handleClose}
-                      className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                      aria-label="Cerrar"
+                      className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors focus-visible:ring-2 focus-visible:ring-[#074738] focus-visible:ring-offset-2"
                     >
                       <MaterialIcon name="close" className="text-xl" />
                     </button>

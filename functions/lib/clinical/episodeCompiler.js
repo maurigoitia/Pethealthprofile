@@ -4,6 +4,7 @@ exports.backfillClinicalEpisodes = void 0;
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
 const crypto_1 = require("crypto");
+const helpers_1 = require("../utils/helpers");
 const canonicalEventPolicy_1 = require("./canonicalEventPolicy");
 const RECENT_WINDOW_DAYS = 90;
 const MONTH_BUCKET_UNTIL_MONTHS = 18;
@@ -723,6 +724,8 @@ exports.backfillClinicalEpisodes = functions
 })
     .region("us-central1")
     .https.onRequest(async (req, res) => {
+    if ((0, helpers_1.handleCors)(req, res))
+        return;
     if (req.method !== "POST") {
         res.status(405).json({ ok: false, error: "method_not_allowed" });
         return;

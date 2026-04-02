@@ -4,6 +4,7 @@ exports.provisionPessyVertexDatastore = void 0;
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
 const google_auth_library_1 = require("google-auth-library");
+const helpers_1 = require("../utils/helpers");
 const DISCOVERY_ENGINE_BASE = "https://discoveryengine.googleapis.com/v1";
 const SERVICE_USAGE_BASE = "https://serviceusage.googleapis.com/v1";
 const DEFAULT_LOCATION = "global";
@@ -177,6 +178,8 @@ exports.provisionPessyVertexDatastore = functions
 })
     .region("us-central1")
     .https.onRequest(async (req, res) => {
+    if ((0, helpers_1.handleCors)(req, res))
+        return;
     if (req.method !== "POST") {
         res.status(405).json({ ok: false, error: "method_not_allowed" });
         return;
