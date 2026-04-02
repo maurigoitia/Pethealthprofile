@@ -784,9 +784,22 @@ function buildHistoricalNarrative(events: MedicalEvent[], _petName: string, _per
     (vaccineCount > 0 ? "seguimiento preventivo" : "") ||
     "seguimiento";
 
+  // Build a concise narrative from the available data
+  const narrativeParts: string[] = [];
+  if (diagnoses.length > 0) {
+    narrativeParts.push(`Motivo principal: ${diagnoses.slice(0, 2).join(", ")}`);
+  }
+  if (medications.length > 0) {
+    narrativeParts.push(`tratamiento con ${medications.slice(0, 2).join(" y ")}`);
+  }
+  if (events.length > 1) {
+    narrativeParts.push(`${events.length} registros en este período`);
+  }
+  const narrative = narrativeParts.length > 0 ? capitalizeSpanish(narrativeParts.join(" · ")) + "." : "";
+
   return {
     headline: capitalizeSpanish(dominantLabel),
-    narrative: "",
+    narrative,
     diagnoses,
     medications,
     providers,
@@ -1239,6 +1252,12 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                 <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-1.5">
                                   {entry.threadLabel}
                                 </p>
+
+                                {entry.narrative && (
+                                  <p className="text-[12px] text-slate-600 dark:text-slate-400 leading-relaxed mb-1">
+                                    {entry.narrative}
+                                  </p>
+                                )}
 
                                 <div className="flex gap-1.5 flex-wrap mt-3">
                                   {entry.diagnoses.map((diagnosis, chipIndex) => (
