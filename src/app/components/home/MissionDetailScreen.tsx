@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { CorkMascot } from '../shared/CorkMascot';
-import { addPoints } from '../../utils/gamification';
 import { MISSIONS } from './missionData';
 
 // ─── Circular Timer ───────────────────────────────────────────────────────────
@@ -40,7 +39,7 @@ function CircularTimer({ seconds, total }: { seconds: number; total: number }) {
 interface MissionDetailScreenProps {
   missionCode: string;
   petName: string;
-  onComplete: (totalPoints: number) => void;
+  onComplete: () => void;
   onClose: () => void;
 }
 
@@ -97,12 +96,11 @@ export function MissionDetailScreen({
     return () => window.clearInterval(id);
   }, [timerActive, timeLeft]);
 
-  // Auto-close celebration after 1.4s
+  // Auto-close celebration after 1.4s — parent handles points + Firestore persistence
   useEffect(() => {
     if (!showCelebration) return;
     const id = window.setTimeout(() => {
-      const total = addPoints(mission.points);
-      onComplete(total);
+      onComplete();
     }, 1400);
     return () => window.clearTimeout(id);
   }, [showCelebration]); // eslint-disable-line react-hooks/exhaustive-deps
