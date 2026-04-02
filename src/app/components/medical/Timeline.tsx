@@ -880,6 +880,14 @@ function categorizeEventForSnapshot(event: MedicalEvent): QuarterCategory {
 }
 
 function getSnapshotEventStatus(event: MedicalEvent): { label: string; color: string } {
+  // Past appointments should never show as "Pendiente" — they already happened.
+  const d = getExtractedData(event);
+  const kind = resolveClinicalRenderKind(event);
+  if (kind === "appointment_confirmation") {
+    const appointmentDate = d.detectedAppointments?.[0]?.date || d.eventDate || event.createdAt;
+    const ts = toTimestampSafe(appointmentDate);
+    if (ts && ts < Date.now()) return { label: "Pasado", color: "text-slate-400" };
+  }
   if (event.workflowStatus === "confirmed") return { label: "✓ Confirmado", color: "text-emerald-600" };
   if (event.requiresManualConfirmation || event.workflowStatus === "review_required") return { label: "⏳ Pendiente", color: "text-amber-500" };
   return { label: "✓ Confirmado", color: "text-emerald-600" };
@@ -904,17 +912,33 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
 
   const allEvents = getEventsByPetId(activePetId);
 
-  const filteredSortedEvents = useMemo(
-    () =>
-      [...allEvents]
-        .filter((event) => matchesFilter(event, activeFilter))
-        .sort((a, b) => {
-          const da = toTimestampSafe(getExtractedData(a)?.eventDate || a.createdAt);
-          const db = toTimestampSafe(getExtractedData(b)?.eventDate || b.createdAt);
-          return db - da;
-        }),
-    [allEvents, activeFilter]
-  );
+  const filteredSortedEvents = useMemo(() => {
+    const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+
+    // Dedup: drop events where an earlier-sorted event shares the same
+    // documentType + date bucket (±2 days) + first 30 chars of normalized title.
+    const seen = new Set<string>();
+    const deduped: MedicalEvent[] = [];
+    for (const event of allEvents) {
+      if (!matchesFilter(event, activeFilter)) continue;
+      const d = getExtractedData(event);
+      const ts = toTimestampSafe(d?.eventDate || event.createdAt);
+      const bucket = ts ? Math.floor(ts / TWO_DAYS_MS) : 0;
+      const docType = d?.documentType || "other";
+      const titleSlug = cleanText(d?.studyType || d?.suggestedTitle || event.title || "")
+        .toLowerCase().slice(0, 30);
+      const key = `${docType}::${bucket}::${titleSlug}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(event);
+    }
+
+    return deduped.sort((a, b) => {
+      const da = toTimestampSafe(getExtractedData(a)?.eventDate || a.createdAt);
+      const db = toTimestampSafe(getExtractedData(b)?.eventDate || b.createdAt);
+      return db - da;
+    });
+  }, [allEvents, activeFilter]);
 
 
   // ─── Mapeo de episodeType a etiqueta en español ────────────────────────────────
@@ -1187,8 +1211,8 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                       <div key={cat} className="mb-3 last:mb-0">
                         <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{cat}</p>
                         {snapshot.categorized.get(cat)!.map((event) => {
-                          const d = getExtractedData(event);
-                          const name = cleanText(event.title || d.diagnosis || d.suggestedTitle || "") || KIND_CONFIG[resolveClinicalRenderKind(event)]?.label || "Evento";
+                          const snapshotPetName = cleanText(activePet?.name) || "tu mascota";
+                          const name = buildEventTitle(event, snapshotPetName) || KIND_CONFIG[resolveClinicalRenderKind(event)]?.label || "Evento";
                           const date = formatDateSafe(d.eventDate || event.createdAt, "es-AR", { day: "numeric", month: "short" }, "");
                           const status = getSnapshotEventStatus(event);
                           const nextBoosterTs = d.documentType === "vaccine" && d.nextAppointmentDate ? toTimestampSafe(d.nextAppointmentDate) : 0;

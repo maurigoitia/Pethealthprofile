@@ -204,7 +204,8 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       const events = getEventsByPetId(activePet.id);
       const medications = getActiveMedicationsByPetId(activePet.id);
       const appointments = getAppointmentsByPetId(activePet.id);
-      const upcoming = appointments.filter(a => a.status === "upcoming");
+      const todayDate = new Date().toISOString().slice(0, 10);
+      const upcoming = appointments.filter(a => a.status === "upcoming" && (!a.date || a.date >= todayDate));
       const conditions = getClinicalConditionsByPetId(activePet.id);
       const alerts = getClinicalAlertsByPetId(activePet.id);
       const treatments = getConsolidatedTreatmentsByPetId(activePet.id);
@@ -524,7 +525,10 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           for (const event of studies.slice(0, 12)) {
             checkY(11);
             const extracted = event.extractedData;
-            const studyTitle = clean(extracted.studyType || event.title || extracted.suggestedTitle || toTypeLabel(extracted.documentType));
+            const GENERIC_STUDY_RE = /^(diagn[oó]stico|estudio|documento)(?: detectado por correo)?$|^(informe de estudio|resultado de laboratorio|documento cl[ií]nico)$/i;
+            const rawStudyTitle = clean(extracted.studyType || extracted.suggestedTitle || event.title || "");
+            const studyTitle = (!rawStudyTitle || GENERIC_STUDY_RE.test(rawStudyTitle) ? "" : rawStudyTitle) ||
+              toTypeLabel(extracted.documentType);
             const detailSource = clean(extracted.provider || extracted.clinic || "Sin referencia");
             const summary = getCanonicalSummary(event).substring(0, 110);
             pdf.setFillColor(248, 250, 252);
@@ -553,12 +557,10 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           for (const event of sortedEvents.slice(0, 10)) {
             checkY(14);
             const extracted = event.extractedData;
-            const title = clean(
-              extracted.studyType ||
-              event.title ||
-              extracted.suggestedTitle ||
-              toTypeLabel(extracted.documentType)
-            );
+            const GENERIC_TITLE_RE = /^(diagn[oó]stico|estudio|documento)(?: detectado por correo)?$|^(informe de estudio|resultado de laboratorio|turno programado|documento cl[ií]nico)$/i;
+            const rawTitle = clean(extracted.studyType || extracted.suggestedTitle || event.title || "");
+            const title = (!rawTitle || GENERIC_TITLE_RE.test(rawTitle) ? "" : rawTitle) ||
+              toTypeLabel(extracted.documentType);
             const summary = getCanonicalSummary(event) || "Sin interpretación clínica confirmada.";
             pdf.setFillColor(248, 250, 252);
             pdf.roundedRect(M, y, CW, 12, 1.8, 1.8, "F");
