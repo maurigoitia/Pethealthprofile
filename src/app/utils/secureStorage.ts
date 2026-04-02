@@ -1,52 +1,89 @@
 /**
  * Secure Local Storage
- * 
+ *
  * Wrapper alrededor de localStorage que encripta datos sensibles.
  * Usa la Web Crypto API (SubtleCrypto) con AES-GCM.
- * 
+ *
+ * SCRUM-15 FIX: Clave con extractable:false almacenada en IndexedDB.
+ * La clave nunca sale del subsistema de crypto del navegador.
+ * Previene exfiltración vía XSS (antes: extractable:true + sessionStorage).
+ *
  * GDPR Art. 32 — Medidas técnicas apropiadas para proteger datos personales.
  * Ley 25.326 Art. 9 — Seguridad de los datos.
- * 
- * Datos que DEBEN usar secureStorage en vez de localStorage directo:
- * - Invite codes (coTutorInvite, platformInvite)
- * - Email para magic links
- * - Cualquier dato que identifique al usuario
- * 
- * Datos que pueden seguir en localStorage sin encriptar:
- * - Theme preferences (pessy_theme)
- * - Build version keys
- * - Gamification points (no son PII)
- * - Active pet ID (es un UUID, no PII directamente)
  */
 
 const ENCRYPTION_KEY_NAME = "pessy_storage_key";
+const IDB_DB_NAME = "pessy_crypto";
+const IDB_STORE_NAME = "keys";
+
+// Caché en memoria — evita roundtrips a IndexedDB en la misma sesión
+let _keyCache: CryptoKey | null = null;
+
+function openKeyDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE_NAME);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function loadKeyFromIDB(): Promise<CryptoKey | null> {
+  try {
+    const db = await openKeyDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(IDB_STORE_NAME, "readonly");
+      const req = tx.objectStore(IDB_STORE_NAME).get(ENCRYPTION_KEY_NAME);
+      req.onsuccess = () => resolve((req.result as CryptoKey) ?? null);
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function saveKeyToIDB(key: CryptoKey): Promise<void> {
+  try {
+    const db = await openKeyDB();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE_NAME, "readwrite");
+      tx.objectStore(IDB_STORE_NAME).put(key, ENCRYPTION_KEY_NAME);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch {
+    // No-op: si IndexedDB falla, la clave solo vive en memoria esta sesión
+  }
+}
 
 /**
- * Genera o recupera una clave de encriptación.
- * La clave se almacena en la CryptoKey store del navegador (no en localStorage).
+ * Genera o recupera la clave de encriptación.
+ * SCRUM-15: extractable:false — la clave nunca puede ser exportada.
+ * Se persiste en IndexedDB (soporta CryptoKey sin exportar).
  */
 async function getOrCreateKey(): Promise<CryptoKey> {
-  // Intentar recuperar la clave desde sessionStorage como fallback
-  const existingKeyData = sessionStorage.getItem(ENCRYPTION_KEY_NAME);
-  if (existingKeyData) {
-    const keyData = Uint8Array.from(atob(existingKeyData), c => c.charCodeAt(0));
-    return crypto.subtle.importKey("raw", keyData, "AES-GCM", true, ["encrypt", "decrypt"]);
+  // 1. Caché en memoria
+  if (_keyCache) return _keyCache;
+
+  // 2. Intentar recuperar de IndexedDB
+  const stored = await loadKeyFromIDB();
+  if (stored) {
+    _keyCache = stored;
+    return stored;
   }
 
-  // Generar nueva clave
+  // 3. Generar nueva clave — extractable:false (SCRUM-15 fix)
   const key = await crypto.subtle.generateKey(
     { name: "AES-GCM", length: 256 },
-    true,
+    false,  // extractable:false — no puede ser exportada ni robar via XSS
     ["encrypt", "decrypt"]
   );
 
-  // Exportar y guardar en sessionStorage (se limpia al cerrar tab)
-  const exported = await crypto.subtle.exportKey("raw", key);
-  const b64 = btoa(String.fromCharCode(...new Uint8Array(exported)));
-  sessionStorage.setItem(ENCRYPTION_KEY_NAME, b64);
-
+  _keyCache = key;
+  await saveKeyToIDB(key);
   return key;
 }
+
 /**
  * Encripta y guarda un valor en localStorage.
  */
@@ -60,17 +97,14 @@ export async function secureSet(key: string, value: string): Promise<void> {
       cryptoKey,
       encoded
     );
-
     const payload = {
       iv: btoa(String.fromCharCode(...iv)),
       data: btoa(String.fromCharCode(...new Uint8Array(ciphertext))),
       _encrypted: true,
     };
-
     localStorage.setItem(key, JSON.stringify(payload));
   } catch {
-    // Fallback: si crypto no está disponible, guardar sin encriptar
-    // Esto puede pasar en HTTP (no HTTPS) o navegadores muy viejos
+    // Fallback: si crypto no está disponible (HTTP / browser muy viejo)
     localStorage.setItem(key, value);
   }
 }
@@ -82,8 +116,6 @@ export async function secureGet(key: string): Promise<string | null> {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
-
-    // Check si está encriptado
     try {
       const parsed = JSON.parse(raw);
       if (parsed._encrypted) {
@@ -100,7 +132,6 @@ export async function secureGet(key: string): Promise<string | null> {
     } catch {
       // No es JSON o no se puede desencriptar — devolver raw
     }
-
     return raw;
   } catch {
     return null;
@@ -115,11 +146,11 @@ export function secureRemove(key: string): void {
 }
 
 /**
- * Limpia TODOS los datos sensibles de localStorage.
+ * Limpia TODOS los datos sensibles de localStorage e IndexedDB.
  * Usar al hacer logout o deleteAccount.
  * GDPR Art. 17 — Derecho de supresión.
  */
-export function clearAllSensitiveData(): void {
+export async function clearAllSensitiveData(): Promise<void> {
   const sensitiveKeys = [
     "pessy_pending_co_tutor_invite",
     "pessy_pending_platform_invite",
@@ -131,5 +162,11 @@ export function clearAllSensitiveData(): void {
   for (const key of sensitiveKeys) {
     try { localStorage.removeItem(key); } catch { /* no-op */ }
   }
-  try { sessionStorage.removeItem(ENCRYPTION_KEY_NAME); } catch { /* no-op */ }
+  // Limpiar clave de IndexedDB y caché en memoria
+  _keyCache = null;
+  try {
+    const db = await openKeyDB();
+    const tx = db.transaction(IDB_STORE_NAME, "readwrite");
+    tx.objectStore(IDB_STORE_NAME).delete(ENCRYPTION_KEY_NAME);
+  } catch { /* no-op */ }
 }

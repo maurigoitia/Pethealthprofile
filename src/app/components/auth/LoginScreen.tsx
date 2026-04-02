@@ -7,7 +7,6 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   signInWithRedirect,
-  fetchSignInMethodsForEmail,
   getRedirectResult,
 } from "firebase/auth";
 import { auth } from "../../../lib/firebase";
@@ -148,18 +147,8 @@ export function LoginScreen() {
       navigate("/home", { replace: true });
     } catch (err: any) {
       if (err?.code === "auth/user-not-found" || err?.code === "auth/wrong-password" || err?.code === "auth/invalid-credential") {
-        const genericCredentialError =
-          "Correo o contraseña incorrectos. Si te registraste con Google, ingresá con Google o usá recuperación de contraseña.";
-        try {
-          const methods = await fetchSignInMethodsForEmail(auth, cleanEmail);
-          if (methods.includes("google.com") && !methods.includes("password")) {
-            setError("Este correo está registrado con Google. Ingresá con el botón Google.");
-          } else {
-            setError(genericCredentialError);
-          }
-        } catch {
-          setError(genericCredentialError);
-        }
+        // SCRUM-14: Error genérico — no revelar si el email existe o método de auth
+        setError("Correo o contraseña incorrectos. Revisá tus datos e intentá nuevamente.");
       } else if (err?.code === "auth/too-many-requests") {
         setError("Demasiados intentos. Esperá unos minutos o recuperá tu contraseña.");
       } else if (err?.code === "auth/network-request-failed") {
