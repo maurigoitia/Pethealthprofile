@@ -208,9 +208,10 @@ export function PrivacySecurityScreen({ onBack, onLogout, autoOpenGmail }: Priva
     setShowGmailConsent(false);
     try {
       await startGmailConnectFlow();
-    } catch (error) {
+    } catch (error: any) {
       console.error("No se pudo iniciar OAuth Gmail:", error);
-      alert("No se pudo iniciar la conexión con Gmail. Revisá configuración de OAuth y dominios autorizados.");
+      const msg = error?.message || "Error desconocido al iniciar la conexión.";
+      alert(`No se pudo conectar Gmail: ${msg}`);
       setGmailActionLoading(false);
     }
   };
