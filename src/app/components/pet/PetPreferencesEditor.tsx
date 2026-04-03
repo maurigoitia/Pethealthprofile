@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { MaterialIcon } from "../shared/MaterialIcon";
 import type { PetPreferences } from "../../contexts/PetContext";
+import { usePet } from "../../contexts/PetContext";
 
 interface PetPreferencesEditorProps {
   petName: string;
@@ -35,6 +36,8 @@ const FEAR_OPTIONS = ["Truenos", "Fuegos artificiales", "Otros perros", "Autos",
 
 export function PetPreferencesEditor({ petName, preferences, onSave, onClose }: PetPreferencesEditorProps) {
   const [prefs, setPrefs] = useState<PetPreferences>({ ...preferences });
+  const { activePet } = usePet();
+  const petSpecies = activePet?.species;
   const [section, setSection] = useState<"personality" | "activities" | "fears" | "food">("personality");
 
   const toggleArrayItem = <T extends string>(arr: T[] | undefined, item: T): T[] => {
@@ -232,7 +235,7 @@ export function PetPreferencesEditor({ petName, preferences, onSave, onClose }: 
                 </div>
 
                 {prefs.foodBagKg && prefs.foodDailyGrams && prefs.foodLastPurchase && (
-                  <SupplyForecast bagKg={prefs.foodBagKg} dailyGrams={prefs.foodDailyGrams} lastPurchase={prefs.foodLastPurchase} />
+                  <SupplyForecast bagKg={prefs.foodBagKg} dailyGrams={prefs.foodDailyGrams} lastPurchase={prefs.foodLastPurchase} foodBrand={prefs.foodBrand} petSpecies={petSpecies} />
                 )}
 
                 <div>
@@ -267,7 +270,7 @@ export function PetPreferencesEditor({ petName, preferences, onSave, onClose }: 
 
 // ─── Supply Forecast Widget ──────────────────────────────────────────────────
 
-function SupplyForecast({ bagKg, dailyGrams, lastPurchase }: { bagKg: number; dailyGrams: number; lastPurchase: string }) {
+function SupplyForecast({ bagKg, dailyGrams, lastPurchase, foodBrand, petSpecies }: { bagKg: number; dailyGrams: number; lastPurchase: string; foodBrand?: string; petSpecies?: string }) {
   const totalGrams = bagKg * 1000;
   const purchaseDate = new Date(lastPurchase);
   const today = new Date();
@@ -304,6 +307,23 @@ function SupplyForecast({ bagKg, dailyGrams, lastPurchase }: { bagKg: number; da
             ? `Conviene reponer esta semana. Queda hasta el ${runOutDate.toLocaleDateString("es-AR")}.`
             : `Próxima compra estimada: ${runOutDate.toLocaleDateString("es-AR")}`}
       </p>
+
+      {/* Connection Rule — cerrar el loop con acción de compra */}
+      {urgency !== "emerald" && (
+        <a
+          href={`https://listado.mercadolibre.com.ar/${encodeURIComponent(
+            foodBrand
+              ? `${foodBrand} ${petSpecies === "cat" ? "gato" : "perro"}`
+              : `alimento ${petSpecies === "cat" ? "gato" : "perro"}`
+          )}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#074738] text-white text-xs font-black active:scale-[0.98] transition-transform"
+        >
+          <MaterialIcon name="shopping_cart" className="text-sm" />
+          {daysLeft <= 3 ? "Comprar ahora — queda poco" : "Reponer esta semana"}
+        </a>
+      )}
     </div>
   );
 }

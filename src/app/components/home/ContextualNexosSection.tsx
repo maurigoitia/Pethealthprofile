@@ -45,11 +45,13 @@ function FoodRecommendationSheet({
   petName,
   foodLabel,
   suggestion,
+  petSpecies,
   onClose,
 }: {
   petName: string;
   foodLabel: string;
   suggestion: string;
+  petSpecies?: string;
   onClose: () => void;
 }) {
   return (
@@ -82,7 +84,7 @@ function FoodRecommendationSheet({
         </div>
 
         <a
-          href={`https://listado.mercadolibre.com.ar/${encodeURIComponent(`alimento ${foodLabel} perro`)}`}
+          href={`https://listado.mercadolibre.com.ar/${encodeURIComponent(`alimento ${foodLabel} ${petSpecies === "cat" ? "gato" : "perro"}`)}`}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#074738] text-white font-black text-sm"
@@ -280,6 +282,7 @@ export function ContextualNexosSection({
           petName={petName}
           foodLabel={foodLabel}
           suggestion={foodSuggestion}
+          petSpecies={petSpecies}
           onClose={() => setShowFoodSheet(false)}
         />
       )}
