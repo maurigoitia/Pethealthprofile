@@ -87,6 +87,10 @@ const acceptCoTutorInviteCallable = httpsCallable<
   { code: string },
   { petId: string; petName: string; accessRole: SharedPetAccessRole }
 >(firebaseFunctions, "acceptCoTutorInvite");
+const sendCoTutorInviteCallable = httpsCallable<
+  { email: string; inviteCode: string; petName: string },
+  { ok: boolean }
+>(firebaseFunctions, "sendCoTutorInvite");
 
 export function PetProvider({ children }: { children: ReactNode }) {
   const { user, loading: authLoading } = useAuth();
@@ -368,29 +372,16 @@ export function PetProvider({ children }: { children: ReactNode }) {
     const code = await generateInviteCode(petId, normalizedEmail, accessRole);
     const inviteLink = buildCoTutorReferralUrl(code);
 
-    // El email se envía automáticamente via Firestore trigger (onInvitationCreated)
-    // Esperamos brevemente para detectar si el email fue enviado
-    let emailSent: boolean | undefined;
+    // Llamar directamente a la callable de Firebase que envía el email vía Resend
+    let emailSent: boolean;
     try {
-      const invRef = doc(db, "invitations", code);
-      // Poll up to 8 seconds for the trigger to update the emailSent field
-      emailSent = await new Promise<boolean | undefined>((resolve) => {
-        const unsub = onSnapshot(invRef, (snap) => {
-          const d = snap.data();
-          if (d && typeof d.emailSent === "boolean") {
-            unsub();
-            resolve(d.emailSent);
-          }
-        });
-        setTimeout(() => { unsub(); resolve(undefined); }, 8000);
-      });
-    } catch {
-      // Si falla el polling, asumimos que se está enviando
-      emailSent = undefined;
+      await sendCoTutorInviteCallable({ email: normalizedEmail, inviteCode: code, petName });
+      emailSent = true;
+    } catch (emailErr: any) {
+      console.warn("[sendCoTutorInviteEmail] No se pudo enviar el email:", emailErr?.message);
+      emailSent = false;
     }
-
-    // Si no obtuvimos respuesta del trigger, asumimos éxito (el código y link ya sirven)
-    return { code, inviteLink, emailSent: emailSent !== false };
+    return { code, inviteLink, emailSent };
   };
 
   const joinWithCode = async (code: string): Promise<{ petName: string }> => {
