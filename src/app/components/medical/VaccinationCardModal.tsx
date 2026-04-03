@@ -1,6 +1,9 @@
+import { useRef, useEffect } from "react";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { PetPhoto } from "../pet/PetPhoto";
 import { loadJsPdf, savePdfWithFallback } from "../../utils/pdfExport";
+import { useReminders } from "../../contexts/RemindersContext";
+import { usePet } from "../../contexts/PetContext";
 
 interface Vaccine {
   id: number;
@@ -34,6 +37,48 @@ const STATUS_CONFIG = {
 };
 
 export function VaccinationCardModal({ isOpen, onClose, onOpenNearbyVets, petData, vaccines }: VaccinationCardModalProps) {
+
+  const { addReminder } = useReminders();
+  const { activePet } = usePet();
+  const didCallRef = useRef(false);
+
+  // Reset "did call" flag each time modal opens
+  useEffect(() => {
+    if (isOpen) didCallRef.current = false;
+  }, [isOpen]);
+
+  // Auto-reminder: if modal closes without calling, remind tomorrow at 10am
+  useEffect(() => {
+    if (isOpen) return; // only fire on close
+    const hasAlert = vaccines.some(v => v.status === "overdue" || v.status === "due-soon");
+    if (!hasAlert || didCallRef.current || !activePet?.id) return;
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dueDate = tomorrow.toISOString().slice(0, 10);
+
+    addReminder({
+      petId: activePet.id,
+      type: "vaccine",
+      title: `Llamar al vet — vacuna pendiente de ${petData.name}`,
+      notes: vaccines.some(v => v.status === "overdue")
+        ? "Tiene vacunas vencidas — coordinar turno urgente"
+        : "Tiene refuerzos próximos — coordinar turno",
+      dueDate,
+      dueTime: "10:00",
+      repeat: "none",
+      notifyEnabled: true,
+    }).catch(() => { /* silencioso — no bloquear al usuario */ });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  const handleCallVet = () => {
+    didCallRef.current = true;
+    // Abre Google Maps con veterinarias cercanas — el usuario puede llamar directo desde ahí
+    window.open("https://www.google.com/maps/search/veterinaria+cercana", "_blank", "noopener,noreferrer");
+    onOpenNearbyVets?.();
+    onClose();
+  };
 
   const handleDownloadPDF = async () => {
     const JsPdf = await loadJsPdf();
@@ -185,23 +230,23 @@ export function VaccinationCardModal({ isOpen, onClose, onOpenNearbyVets, petDat
             {/* Vet Booking Bridge — Connection Rule */}
         {(hasOverdue || hasDueSoon) && (
           <button
-            onClick={() => { onOpenNearbyVets?.(); onClose(); }}
+            onClick={handleCallVet}
             className="mx-4 mt-3 w-[calc(100%-2rem)] bg-[#074738] rounded-xl px-4 py-3 flex items-center justify-between active:scale-[0.97] transition-all"
           >
             <div className="flex items-center gap-3">
               <div className="size-9 rounded-full bg-[#1A9B7D]/20 flex items-center justify-center shrink-0">
-                <MaterialIcon name="local_hospital" className="text-[#1A9B7D] text-lg" />
+                <MaterialIcon name="phone" className="text-[#1A9B7D] text-lg" />
               </div>
               <div className="text-left">
                 <p className="text-white text-sm font-bold">
-                  {hasOverdue ? "Vacunas vencidas — atención urgente" : "Refuerzo próximo"}
+                  {hasOverdue ? "Vacunas vencidas — llamá ahora" : "Refuerzo próximo — coordiná el turno"}
                 </p>
-                <p className="text-white/70 text-xs mt-0.5">Ver veterinarias con turno disponible</p>
+                <p className="text-white/70 text-xs mt-0.5">Abre Maps con veterinarias y sus teléfonos</p>
               </div>
             </div>
             <div className="flex items-center gap-1 bg-[#1A9B7D] rounded-lg px-3 py-1.5 shrink-0">
-              <p className="text-white text-xs font-bold">Agendar</p>
-              <MaterialIcon name="arrow_forward" className="text-white text-sm" />
+              <MaterialIcon name="phone" className="text-white text-sm" />
+              <p className="text-white text-xs font-bold">Llamar</p>
             </div>
           </button>
         )}
