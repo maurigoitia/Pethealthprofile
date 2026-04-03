@@ -80,6 +80,41 @@
 - Deleting ANY file from public/ without explicit user approval
 - Removing or weakening the `predeploy` hook in firebase.json
 
+
+## 🎯 PRODUCT VISION — Conexiones Contextuales (Mauri, 2026-04-03)
+
+Pessy NO es un marketplace genérico. El diferencial es que Pessy YA conoce a la mascota
+y usa ese conocimiento para conectar en el momento justo, sin que el usuario tenga que buscar.
+
+### Los 3 escenarios que deben existir en el producto:
+
+1. **Análisis clínico detecta algo → veterinarios cercanos**
+   - Cuando el motor clínico detecta una condición o riesgo, la app muestra 2-3 veterinarios
+     cercanos que atienden ese tipo de caso → botón "Agendar"
+   - NO es un directorio. Es una recomendación contextual disparada por datos reales.
+
+2. **Mascota come X → sugerencia de alimento específico con link de compra**
+   - Cuando el tutor carga la alimentación de su mascota, Pessy sugiere el alimento
+     específico más adecuado → con link de compra directo
+   - Sin búsqueda, sin catálogo. Solo "para Thor, esto."
+
+3. **Vence una vacuna → veterinaria más cercana con turno disponible**
+   - Cuando se acerca el vencimiento de una vacuna, Pessy conecta directamente con
+     la clínica más cercana con disponibilidad → botón "Pedir turno"
+   - No es un recordatorio vacío. Es un recordatorio con acción.
+
+### Reglas de diseño para estas conexiones:
+- SIEMPRE se disparan desde datos clínicos/perfil reales de la mascota, NUNCA genérico
+- SIEMPRE tienen una acción concreta (botón, link)
+- NUNCA reemplazar al veterinario (módulo vet = beta, NO conectar aún)
+- Los pagos = NO por ahora, se habilitan en etapa siguiente
+- La UI debe comunicar estas conexiones desde el HomeScreen de forma clara y visible
+
+### Comunicación de marketing:
+- Esta visión es el corazón del pitch de Pessy
+- El landing page DEBE comunicar esto: "Pessy no te da info, te da el siguiente paso"
+- Si el producto no hace esto → el marketing no tiene sustancia
+
 ## Incident Log
 - 2026-03-27: Agent deployed from `main` instead of `pessy-website`. main has different SPA
   architecture without landing page. Result: blank page in production. Fixed by redeploying from pessy-website.

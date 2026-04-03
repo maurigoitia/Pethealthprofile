@@ -5,6 +5,7 @@ import { Timeline } from "../medical/Timeline";
 import { MonthSummary } from "../medical/MonthSummary";
 import { ActionTray } from "../medical/ActionTray";
 import { ClinicalProfileBlock } from "../medical/ClinicalProfileBlock";
+import { ContextualNexosSection } from "./ContextualNexosSection";
 import { useMedical } from "../../contexts/MedicalContext";
 import { formatDateSafe, toTimestampSafe } from "../../utils/dateUtils";
 import { isFocusHistoryExperimentHost } from "../../utils/runtimeFlags";
@@ -26,6 +27,7 @@ interface FocusedHomeExperienceProps {
   onOpenMedications: () => void;
   onOpenScanner: () => void;
   onExportReport: () => void;
+  onOpenNearbyVets: () => void;
 }
 
 const getVaccineStatus = (
@@ -70,6 +72,7 @@ export function FocusedHomeExperience({
   onOpenMedications,
   onOpenScanner,
   onExportReport,
+  onOpenNearbyVets,
 }: FocusedHomeExperienceProps) {
   const {
     getEventsByPetId,
@@ -368,6 +371,14 @@ export function FocusedHomeExperience({
           </div>
           <ActionTray />
         </section>
+
+        <ContextualNexosSection
+          activePetId={activePetId}
+          petName={activePet.name}
+          petSpecies={activePet.species}
+          vaccineStatus={vaccineStatus}
+          onOpenNearbyVets={onOpenNearbyVets}
+        />
 
         <section className="space-y-4">
           <div className="flex items-center justify-between">

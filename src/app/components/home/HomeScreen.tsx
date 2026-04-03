@@ -746,6 +746,7 @@ export default function HomeScreen() {
                   onOpenMedications={() => setViewMode("medications")}
                   onOpenScanner={handleOpenScanner}
                   onExportReport={() => setShowExportReport(true)}
+                  onOpenNearbyVets={() => setViewMode("nearby-vets")}
                 />
               </Suspense>
             ) : (
