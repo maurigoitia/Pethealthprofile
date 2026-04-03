@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { MaterialIcon } from "../shared/MaterialIcon";
+import { usePet } from "../../contexts/PetContext";
+import { useMedical } from "../../contexts/MedicalContext";
 
 type Category = {
   id: string;
@@ -7,19 +9,92 @@ type Category = {
   query: string;
   icon: string;
   emoji: string;
+  urgent?: boolean; // auto-seleccionado por alerta activa
 };
 
-const CATEGORIES: Category[] = [
-  { id: "parques", label: "Parques", query: "parques para perros", icon: "park", emoji: "🌳" },
-  { id: "cafes", label: "Cafés", query: "cafe pet friendly", icon: "local_cafe", emoji: "☕" },
-  { id: "veterinarias", label: "Veterinarias", query: "veterinaria clínica veterinaria", icon: "local_hospital", emoji: "🏥" },
-  { id: "grooming", label: "Grooming", query: "peluquería canina grooming mascotas", icon: "content_cut", emoji: "✂️" },
-];
+function buildCategories(species?: string, hasUrgentAlert?: boolean, hasDogActivities?: boolean): Category[] {
+  const isDog = !species || species === "dog";
+  const isCat = species === "cat";
+
+  const cats: Category[] = [
+    {
+      id: "veterinarias",
+      label: "Veterinarias",
+      query: isCat ? "veterinaria felina gatos" : isDog ? "veterinaria canina clínica veterinaria" : "veterinaria mascotas exóticas",
+      icon: "local_hospital",
+      emoji: "🏥",
+      urgent: hasUrgentAlert,
+    },
+    {
+      id: "grooming",
+      label: "Grooming",
+      query: isCat ? "grooming gatos peluquería felina" : "peluquería canina grooming perros",
+      icon: "content_cut",
+      emoji: "✂️",
+    },
+    {
+      id: "tiendas",
+      label: "Tiendas",
+      query: isCat ? "tienda mascotas alimento gatos accesorios" : "tienda mascotas alimento perros pet shop",
+      icon: "storefront",
+      emoji: "🛍️",
+    },
+  ];
+
+  // Categorías solo para perros con actividades outdoors
+  if (isDog) {
+    cats.splice(1, 0, {
+      id: "parques",
+      label: "Parques",
+      query: "parque perros área canina",
+      icon: "park",
+      emoji: "🌳",
+    });
+    if (hasDogActivities) {
+      cats.push({
+        id: "cafes",
+        label: "Cafés",
+        query: "café restaurante pet friendly perros",
+        icon: "local_cafe",
+        emoji: "☕",
+      });
+    }
+  }
+
+  return cats;
+}
 
 export function RecommendationFeed({ onBack }: { onBack?: () => void }) {
-  const [selected, setSelected] = useState<Category>(CATEGORIES[0]);
+  const { activePet, activePetId } = usePet();
+  const { getClinicalAlertsByPetId } = useMedical();
+
+  const species = activePet?.species;
+  const favoriteActivities = activePet?.preferences?.favoriteActivities || [];
+  const hasDogActivities = favoriteActivities.some(a => ["walk","park","beach","hiking"].includes(a));
+
+  const hasUrgentAlert = useMemo(() => {
+    if (!activePetId) return false;
+    const alerts = getClinicalAlertsByPetId(activePetId).filter(a => a.status === "active");
+    return alerts.some(a => a.severity === "high" || a.severity === "medium");
+  }, [activePetId, getClinicalAlertsByPetId]);
+
+  const CATEGORIES = useMemo(
+    () => buildCategories(species, hasUrgentAlert, hasDogActivities),
+    [species, hasUrgentAlert, hasDogActivities]
+  );
+
+  const defaultCategory = CATEGORIES.find(c => c.urgent) || CATEGORIES[0];
+  const [selected, setSelected] = useState<Category>(defaultCategory);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locStatus, setLocStatus] = useState<"loading" | "ready" | "denied" | "error">("loading");
+
+  // Si cambia el pet o las alertas, actualizar la categoría seleccionada si hay urgencia
+  useEffect(() => {
+    if (hasUrgentAlert) {
+      const urgentCat = CATEGORIES.find(c => c.id === "veterinarias");
+      if (urgentCat) setSelected(urgentCat);
+    }
+  }, [hasUrgentAlert, CATEGORIES]);
 
   useEffect(() => {
     if (!navigator.geolocation) { setLocStatus("error"); return; }
@@ -58,7 +133,9 @@ export function RecommendationFeed({ onBack }: { onBack?: () => void }) {
             >
               Explorar
             </h1>
-            <p className="text-xs text-slate-500">Lugares pet-friendly cerca tuyo</p>
+            <p className="text-xs text-slate-500">
+              {activePet?.name ? `Lugares para ${activePet.name} cerca tuyo` : "Lugares pet-friendly cerca tuyo"}
+            </p>
           </div>
         </div>
 
@@ -84,6 +161,30 @@ export function RecommendationFeed({ onBack }: { onBack?: () => void }) {
           ))}
         </div>
       </div>
+
+      {/* Banner urgencia — Connection Rule */}
+      {hasUrgentAlert && selected.id === "veterinarias" && (
+        <div className="mx-4 mt-3 mb-1 bg-[#074738] rounded-xl px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <MaterialIcon name="warning" className="text-amber-400 text-lg shrink-0" />
+            <div>
+              <p className="text-white text-xs font-black">Alerta activa — {activePet?.name || "tu mascota"} necesita atención</p>
+              <p className="text-white/60 text-[11px] mt-0.5">Encontrá una veterinaria abajo y llamá directo</p>
+            </div>
+          </div>
+          <a
+            href={coords
+              ? `https://www.google.com/maps/search/veterinaria/@${coords.lat},${coords.lng},14z`
+              : "https://www.google.com/maps/search/veterinaria"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 flex items-center gap-1 bg-[#1A9B7D] rounded-lg px-3 py-1.5"
+          >
+            <MaterialIcon name="phone" className="text-white text-sm" />
+            <span className="text-white text-xs font-black">Llamar</span>
+          </a>
+        </div>
+      )}
 
       {/* Map / Status area */}
       <div className="flex-1 relative min-h-[400px]">
