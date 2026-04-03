@@ -3,8 +3,14 @@ import { auth, db } from "../../lib/firebase";
 import {
   collection, query, where, onSnapshot, doc, updateDoc, addDoc, arrayUnion, setDoc, getDoc,
 } from "firebase/firestore";
-// httpsCallable no longer needed — email sent via Firestore trigger
+import { httpsCallable } from "firebase/functions";
+import { functions as firebaseFunctions } from "../../lib/firebase";
 import { useAuth } from "./AuthContext";
+
+const sendCoTutorInviteCallable = httpsCallable<
+  { email: string; inviteCode: string; petName: string },
+  { ok: boolean }
+>(firebaseFunctions, "sendCoTutorInvite");
 import { buildCoTutorReferralUrl } from "../utils/coTutorInvite";
 import { isFocusHistoryExperimentHost } from "../utils/runtimeFlags";
 
@@ -284,29 +290,16 @@ export function PetProvider({ children }: { children: ReactNode }) {
     const code = await generateInviteCode(petId, normalizedEmail);
     const inviteLink = buildCoTutorReferralUrl(code);
 
-    // El email se envía automáticamente via Firestore trigger (onInvitationCreated)
-    // Esperamos brevemente para detectar si el email fue enviado
-    let emailSent: boolean | undefined;
+    // Llamar directamente a la callable de Firebase que envía el email vía Resend
+    let emailSent: boolean;
     try {
-      const invRef = doc(db, "invitations", code);
-      // Poll up to 8 seconds for the trigger to update the emailSent field
-      emailSent = await new Promise<boolean | undefined>((resolve) => {
-        const unsub = onSnapshot(invRef, (snap) => {
-          const d = snap.data();
-          if (d && typeof d.emailSent === "boolean") {
-            unsub();
-            resolve(d.emailSent);
-          }
-        });
-        setTimeout(() => { unsub(); resolve(undefined); }, 8000);
-      });
-    } catch {
-      // Si falla el polling, asumimos que se está enviando
-      emailSent = undefined;
+      await sendCoTutorInviteCallable({ email: normalizedEmail, inviteCode: code, petName });
+      emailSent = true;
+    } catch (emailErr: any) {
+      console.warn("[sendCoTutorInviteEmail] No se pudo enviar el email:", emailErr?.message);
+      emailSent = false;
     }
-
-    // Si no obtuvimos respuesta del trigger, asumimos éxito (el código y link ya sirven)
-    return { code, inviteLink, emailSent: emailSent !== false };
+    return { code, inviteLink, emailSent };
   };
 
   const joinWithCode = async (code: string): Promise<{ petName: string }> => {
