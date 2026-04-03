@@ -16,6 +16,7 @@ interface Vaccine {
 interface VaccinationCardModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenNearbyVets?: () => void;
   petData: {
     name: string;
     breed: string;
@@ -32,7 +33,7 @@ const STATUS_CONFIG = {
   overdue:  { label: "Vencida",  bg: "bg-red-500",      text: "text-red-700",     dot: "#dc2626" },
 };
 
-export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: VaccinationCardModalProps) {
+export function VaccinationCardModal({ isOpen, onClose, onOpenNearbyVets, petData, vaccines }: VaccinationCardModalProps) {
 
   const handleDownloadPDF = async () => {
     const JsPdf = await loadJsPdf();
@@ -181,7 +182,31 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
               </div>
             )}
 
-            {/* Card preview + list */}
+            {/* Vet Booking Bridge — Connection Rule */}
+        {(hasOverdue || hasDueSoon) && (
+          <button
+            onClick={() => { onOpenNearbyVets?.(); onClose(); }}
+            className="mx-4 mt-3 w-[calc(100%-2rem)] bg-[#074738] rounded-xl px-4 py-3 flex items-center justify-between active:scale-[0.97] transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="size-9 rounded-full bg-[#1A9B7D]/20 flex items-center justify-center shrink-0">
+                <MaterialIcon name="local_hospital" className="text-[#1A9B7D] text-lg" />
+              </div>
+              <div className="text-left">
+                <p className="text-white text-sm font-bold">
+                  {hasOverdue ? "Vacunas vencidas — atención urgente" : "Refuerzo próximo"}
+                </p>
+                <p className="text-white/70 text-xs mt-0.5">Ver veterinarias con turno disponible</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 bg-[#1A9B7D] rounded-lg px-3 py-1.5 shrink-0">
+              <p className="text-white text-xs font-bold">Agendar</p>
+              <MaterialIcon name="arrow_forward" className="text-white text-sm" />
+            </div>
+          </button>
+        )}
+
+        {/* Card preview + list */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
 
               {/* Mini card oficial */}

@@ -821,6 +821,7 @@ export default function HomeScreen() {
       <Suspense fallback={null}>
         <PetProfileModal
           isOpen={showPetProfile}
+          onOpenNearbyVets={() => { setShowPetProfile(false); setViewMode("nearby-vets"); }}
           onClose={() => setShowPetProfile(false)}
         />
       </Suspense>

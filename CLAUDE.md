@@ -81,6 +81,43 @@
 - Removing or weakening the `predeploy` hook in firebase.json
 
 
+
+## The Connection Rule (CORE — Non-Negotiable)
+
+**Pessy conecta a tu mascota con lo que necesita, sin que tengas que buscar.**
+
+This is not a feature. It is the product identity. Every screen, every copy line, every CTA
+must close the loop — from detected need to concrete action.
+
+### The Loop (must always close)
+```
+Detected need  →  Pessy processes  →  Concrete next step with ONE tap
+```
+
+### Correct vs Incorrect Examples
+
+| ❌ WRONG (organizar/sugerir) | ✅ CORRECT (conectar/ejecutar) |
+|-----------------------------|-------------------------------|
+| "Vacuna vence pronto" | "Vence el 15. 3 vets tienen turno → [Agendar]" |
+| "Te recomendamos este alimento" | "Thor come Royal Canin → [Comprar ahora]" |
+| "Ver veterinarios cercanos" | "[2 vets near you → Agendar ahora]" |
+| "Riesgo detectado: MEDIUM" | "Riesgo detectado → [Conectar con vet que atiende esto]" |
+| "Medicamento por agotar" | "Quedan 3 días → [Reponer en farmacia cercana]" |
+
+### Agent Rules derived from The Connection Rule
+1. NEVER end a detected-need flow without a CTA that closes it
+2. NEVER use passive verbs: organizar, sugerir, ver, guiar — use: agendar, comprar, conectar, ejecutar
+3. NEVER show a risk/alert without a booking or purchase bridge
+4. Tagline: "Tu mascota conectada con lo que necesita" — NOT "Ecosistema digital para mascotas"
+5. The Services/Vets screen is NOT a directory — it's a booking engine
+6. Módulo veterinario = BETA. Do NOT wire vet consultations yet. Use NearbyVetsScreen instead.
+7. Payments = NOT YET. Connection flows go to external links (MercadoLibre, vet booking) for now.
+
+### Reference Documents
+- `PESSY_CONEXION_AUDIT.md` — Full gap analysis by area (copy, UX, social, skills)
+- `PESSY_IDENTIDAD_PRODUCTO.md` — Product identity and positioning
+- `PESSY_REDESIGN_MASTER.md` — UI redesign rules including Rule #11
+
 ## 🎯 PRODUCT VISION — Conexiones Contextuales (Mauri, 2026-04-03)
 
 Pessy NO es un marketplace genérico. El diferencial es que Pessy YA conoce a la mascota

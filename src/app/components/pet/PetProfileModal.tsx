@@ -21,6 +21,7 @@ const VaccinationCardModal = lazy(() =>
 interface PetProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenNearbyVets?: () => void;
 }
 
 type ViewMode = "profile" | "vaccination";
@@ -34,7 +35,7 @@ interface Vaccine {
   status: "current" | "due-soon" | "overdue";
 }
 
-export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
+export function PetProfileModal({ isOpen, onClose, onOpenNearbyVets }: PetProfileModalProps) {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("profile");
   const [isEditing, setIsEditing] = useState(false);
@@ -748,6 +749,7 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
           <Suspense fallback={null}>
             <VaccinationCardModal
               isOpen={showVaccinationCard}
+            onOpenNearbyVets={onOpenNearbyVets ? () => { setShowVaccinationCard(false); onClose(); onOpenNearbyVets!(); } : undefined}
               onClose={() => setShowVaccinationCard(false)}
               petData={{
                 name: activePet?.name || "",

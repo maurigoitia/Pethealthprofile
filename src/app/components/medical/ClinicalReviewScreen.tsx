@@ -323,6 +323,26 @@ export function ClinicalReviewScreen() {
             >
               {saving ? "Guardando..." : "Confirmar y mover al historial"}
             </button>
+
+            {/* Vet Booking Bridge — Connection Rule */}
+            <button
+              onClick={() => navigate("/home?viewmode=nearby-vets")}
+              className="mt-3 w-full rounded-xl bg-[#074738] px-4 py-3 flex items-center justify-between active:scale-[0.97] transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="size-9 rounded-full bg-[#1A9B7D]/20 flex items-center justify-center shrink-0">
+                  <MaterialIcon name="local_hospital" className="text-[#1A9B7D] text-lg" />
+                </div>
+                <div className="text-left">
+                  <p className="text-white text-sm font-bold">¿Necesitás turno veterinario?</p>
+                  <p className="text-white/70 text-xs mt-0.5">Ver veterinarias con turno disponible</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 bg-[#1A9B7D] rounded-lg px-3 py-1.5 shrink-0">
+                <p className="text-white text-xs font-bold">Agendar</p>
+                <MaterialIcon name="arrow_forward" className="text-white text-sm" />
+              </div>
+            </button>
           </section>
         </div>
       </div>
