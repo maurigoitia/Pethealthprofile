@@ -3,7 +3,6 @@ import { Navigate, useLocation, useNavigate } from "react-router";
 import { BottomNav, type PillarTab } from "../shared/BottomNav";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { PetHomeView } from "../pet/PetHomeView";
-import { Sidebar } from "../shared/Sidebar";
 import { TermsAcceptanceNotice } from "../settings/TermsAcceptanceNotice";
 import { usePet } from "../../contexts/PetContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -11,7 +10,6 @@ import { usePreferences } from "../../contexts/PreferenceContext";
 import { clearPendingCoTutorInvite, readPendingCoTutorInvite, rememberPendingCoTutorInvite, normalizeCoTutorInviteCode } from "../../utils/coTutorInvite";
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 import { CorkMascot } from "../shared/CorkMascot";
-import { GmailSyncStatus, subscribeGmailSyncStatus } from "../../services/gmailSyncService";
 import { RutinasHub } from "../rutinas/RutinasHub";
 
 const RandomQuestionCard = lazy(() =>
@@ -81,92 +79,6 @@ function ScreenLoader({ label = "Cargando..." }: { label?: string }) {
   );
 }
 
-const DEFAULT_GMAIL_SYNC_STATUS: GmailSyncStatus = {
-  connected: false,
-  accountEmail: null,
-  grantedScopes: [],
-  updatedAt: null,
-  syncStatus: "idle",
-  ingestionStatus: "idle",
-  inviteEnabled: true,
-  inviteStatus: "open_access",
-  inviteReason: null,
-};
-
-function getEmailSyncNarrative(
-  status: string,
-  petName?: string | null
-): { title: string; body: string; hint?: string } | null {
-  const displayPetName = petName?.trim() || "tu mascota";
-
-  if (status === "queued" || status === "processing" || status === "scanning_emails") {
-    return {
-      title: "Cork y Fizz están leyendo tu email",
-      body: "Esto se acomoda en segundo plano. En un rato tu historia clínica se va a ver más completa.",
-      hint: "No hace falta esperar acá. Pessy sigue ordenando la información aunque sigas usando la app.",
-    };
-  }
-  if (status === "analyzing_documents") {
-    return {
-      title: "Estamos separando turnos, estudios y recetas",
-      body: "Pessy está ordenando lo importante para no mezclar administrativos con datos clínicos.",
-      hint: "Esto puede tardar un poco si el mail tiene PDFs, imágenes o varios estudios juntos.",
-    };
-  }
-  if (status === "extracting_medical_events") {
-    return {
-      title: `Estamos acomodando la historia de ${displayPetName}`,
-      body: "Leemos cuerpo, adjuntos y estudios para transformar los mails en historia clínica útil.",
-      hint: "Primero ordenamos la evidencia clínica. Después se refleja en perfil, estudios e historial.",
-    };
-  }
-  if (status === "organizing_history") {
-    return {
-      title: "Ya casi queda listo",
-      body: "Ahora estamos ordenando la información para que después se vea clara en perfil, estudios e historial.",
-      hint: "Cuando termine, Pessy va a mostrar una versión más ordenada y menos cruda de la historia.",
-    };
-  }
-  return null;
-}
-
-function EmailSyncBackgroundCard({
-  status,
-  petName,
-}: {
-  status: GmailSyncStatus;
-  petName?: string | null;
-}) {
-  const syncStatus = status.ingestionStatus || status.syncStatus || "idle";
-  const narrative = getEmailSyncNarrative(syncStatus, petName);
-  if (!status.connected || !narrative) return null;
-
-  return (
-    <section className="px-4 pt-16 pb-2">
-      <div className="rounded-[24px] border border-[#D7EFE9] bg-white/95 shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div className="flex items-center gap-4 px-4 py-4">
-          <div className="shrink-0 size-20 rounded-[20px] bg-[#F0FAF9] border border-[#D7EFE9] flex items-center justify-center overflow-hidden">
-            <img
-              src="/blog/svg/cork_fizz_card.svg"
-              alt="Cork y Fizz leyendo tu email"
-              className="w-full h-full object-contain"
-            />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[15px] font-black text-[#074738] leading-5">{narrative.title}</p>
-            <p className="text-sm text-slate-600 leading-5 mt-1">{narrative.body}</p>
-            {narrative.hint ? (
-              <p className="text-[12px] text-[#0A5F4C] mt-2 leading-5">{narrative.hint}</p>
-            ) : null}
-            <p className="text-[12px] text-slate-400 mt-2">
-              Cuenta conectada: {status.accountEmail || "Gmail conectado"}
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 export default function HomeScreen() {
   const navigate = useNavigate();
@@ -175,9 +87,7 @@ export default function HomeScreen() {
   const [showExportReport, setShowExportReport] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showPetSelector, setShowPetSelector] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(false);
   const [showInviteFriends, setShowInviteFriends] = useState(false);
-  const [gmailSyncStatus, setGmailSyncStatus] = useState<GmailSyncStatus>(DEFAULT_GMAIL_SYNC_STATUS);
   const [currentTab, setCurrentTab] = useState<PillarTab>("dia-a-dia");
   const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications" | "nearby-vets" | "lost-pets" | "explore" | "rutinas-hub" | "reminders">("card");
   const [inviteNotice, setInviteNotice] = useState<{ type: "info" | "success" | "error"; message: string } | null>(null);
@@ -198,13 +108,6 @@ export default function HomeScreen() {
     inviteJoiningCodeRef.current = inviteJoiningCode;
   }, [inviteJoiningCode]);
 
-  useEffect(() => {
-    if (!user?.uid) {
-      setGmailSyncStatus(DEFAULT_GMAIL_SYNC_STATUS);
-      return;
-    }
-    return subscribeGmailSyncStatus(user.uid, setGmailSyncStatus);
-  }, [user?.uid]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -372,21 +275,6 @@ export default function HomeScreen() {
     }
   };
 
-  // Handle sidebar navigation
-  const handleSidebarNavigate = (screen: "home" | "appointments" | "medications" | "feed" | "settings" | "nearby-vets" | "lost-pets" | "explore") => {
-    if (screen === "settings") {
-      setCurrentTab("mi-pessy");
-    } else if (screen === "lost-pets" || screen === "explore") {
-      setCurrentTab("comunidad");
-      setViewMode(screen);
-    } else if (screen === "appointments" || screen === "medications") {
-      setCurrentTab("rutinas");
-      setViewMode(screen);
-    } else {
-      setCurrentTab("dia-a-dia");
-      setViewMode(screen === "home" ? "card" : screen);
-    }
-  };
 
   const handleBottomNavNavigate = (screen: "lost-pets" | "explore") => {
     setCurrentTab("comunidad");
@@ -699,24 +587,7 @@ export default function HomeScreen() {
 
   return withTermsNotice(
     <div className="bg-[#F0FAF9] dark:bg-[#101622] text-slate-900 dark:text-slate-100 min-h-screen font-['Manrope',sans-serif]">
-      {/* Sidebar */}
-      <Sidebar
-        isOpen={showSidebar}
-        onClose={() => setShowSidebar(false)}
-        userName={safeUserName}
-        userEmail={user?.email || undefined}
-        pets={pets.map((p) => ({ id: p.id, name: p.name, photo: p.photo, breed: p.breed }))}
-        activePetId={activePetId}
-        onPetChange={handlePetChange}
-        onAddPet={handleAddNewPet}
-        onInviteFriends={() => setShowInviteFriends(true)}
-        onNavigate={handleSidebarNavigate}
-        onLogout={logout}
-      />
-
       <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24">
-        {/* Hamburger removed — Sidebar access moved to profile/settings.
-            BottomNav covers all primary navigation. */}
 
         {/* View Mode Toggle Button */}
         {viewMode === "feed" && (
@@ -736,7 +607,6 @@ export default function HomeScreen() {
         {/* Card View */}
         {viewMode === "card" && (
           <>
-            <EmailSyncBackgroundCard status={gmailSyncStatus} petName={activePet?.name} />
             {focusExperienceEnabled ? (
               <Suspense fallback={<ScreenLoader label="Cargando inicio..." />}>
                 <FocusedHomeExperience
