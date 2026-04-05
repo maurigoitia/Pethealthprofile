@@ -3,12 +3,15 @@ import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { readFileSync } from 'fs'
 
 const buildId = new Date().toISOString()
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'))
 
 export default defineConfig({
   define: {
     __PESSY_BUILD_ID__: JSON.stringify(buildId),
+    __APP_VERSION__: JSON.stringify(pkg.version),
   },
   plugins: [
     react(),

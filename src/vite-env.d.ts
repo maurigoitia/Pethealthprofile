@@ -23,3 +23,4 @@ interface ImportMeta {
 }
 
 declare const __PESSY_BUILD_ID__: string
+declare const __APP_VERSION__: string

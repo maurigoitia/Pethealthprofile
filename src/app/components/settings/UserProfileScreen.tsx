@@ -13,6 +13,11 @@ import { useAuth } from "../../contexts/AuthContext";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
 import { StorageUsageWidget } from "./StorageUsageWidget";
+import { useGamification } from "../../contexts/GamificationContext";
+import { PetPhoto } from "../pet/PetPhoto";
+
+// Version injected at build time via Vite define
+const APP_VERSION = (typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "1.0.0") as string;
 
 interface UserProfileScreenProps {
   onBack: () => void;
@@ -31,8 +36,9 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
   const [currentScreen, setCurrentScreen] = useState<SubScreen>("main");
   const [showCoTutorModal, setShowCoTutorModal] = useState(false);
   const { user, logout, userFullName, userPhoto } = useAuth();
-  const { pets } = usePet();
+  const { pets, setActivePetId } = usePet();
   const { events } = useMedical();
+  const { totalPoints, level } = useGamification();
   const navigate = useNavigate();
 
   // Datos del usuario desde AuthContext — una sola fuente de verdad
@@ -103,8 +109,8 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
     },
     {
       icon: "info",
-      title: "Acerca de PESSY",
-      subtitle: "Versión 1.0.0",
+      title: "Acerca de Pessy",
+      subtitle: `Versión ${APP_VERSION}`,
       onClick: () => setCurrentScreen("about"),
     },
   ];
@@ -200,25 +206,77 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
             </div>
           </div>
 
+          {/* Gamification badge */}
+          {totalPoints > 0 && (
+            <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 text-amber-700 dark:text-amber-400 px-4 py-2 rounded-full mt-3">
+              <MaterialIcon name="star" className="!text-base text-amber-400" />
+              <span className="text-xs font-black">{totalPoints} pts</span>
+              <span className="text-xs text-amber-500/70">·</span>
+              <span className="text-xs font-bold">Nivel {level}</span>
+            </div>
+          )}
+
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-3 mt-6">
+          <div className="grid grid-cols-3 gap-3 mt-5">
             <div className="bg-white dark:bg-slate-900 rounded-[16px] p-3 text-center border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-slate-800">
               <p className="text-2xl font-black text-[#074738]">{userData.petsCount}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
-                Mascotas
-              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">Mascotas</p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-[16px] p-3 text-center border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-slate-800">
               <p className="text-2xl font-black text-[#074738]">{userData.recordsCount}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
-                Registros
-              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">Registros</p>
             </div>
             <div className="bg-white dark:bg-slate-900 rounded-[16px] p-3 text-center border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-slate-800">
               <p className="text-2xl font-black text-[#074738]">{userData.daysActive}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
-                Días
-              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">Días</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Mis Mascotas ─────────────────────────────────────────────── */}
+        <div className="px-6 mb-4">
+          <div className="bg-white dark:bg-slate-900 rounded-[20px] border border-[#E5E7EB] dark:border-slate-800 overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+            <div className="h-1 bg-[#1A9B7D]" />
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <MaterialIcon name="pets" className="text-[#1A9B7D] !text-lg" />
+                  <p className="text-sm font-black text-slate-900 dark:text-white">Mis mascotas</p>
+                </div>
+                <button
+                  onClick={() => navigate("/register-pet")}
+                  className="flex items-center gap-1 text-xs font-bold text-[#1A9B7D] px-3 py-1.5 rounded-full bg-[#E0F2F1] hover:bg-[#c8ebe7] transition-colors"
+                >
+                  <MaterialIcon name="add" className="!text-sm" />
+                  Agregar
+                </button>
+              </div>
+              {pets.length === 0 ? (
+                <p className="text-xs text-slate-400 py-2">No tenés mascotas registradas aún.</p>
+              ) : (
+                <div className="space-y-2">
+                  {pets.map((pet) => (
+                    <div key={pet.id} className="flex items-center gap-3 py-2 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                      <PetPhoto
+                        src={pet.photo}
+                        alt={pet.name}
+                        className="size-10 rounded-full object-cover"
+                        fallbackClassName="size-10"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{pet.name}</p>
+                        <p className="text-xs text-slate-400 truncate">{pet.breed || pet.species || "Mascota"}</p>
+                      </div>
+                      <button
+                        onClick={() => { setActivePetId(pet.id); onBack(); }}
+                        className="text-xs font-bold text-[#1A9B7D] px-2 py-1 rounded-lg bg-[#E0F2F1] hover:bg-[#c8ebe7] transition-colors shrink-0"
+                      >
+                        Ver
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -280,7 +338,7 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
         {/* Footer */}
         <div className="text-center px-6 mt-8 pb-8">
           <p className="text-xs text-slate-400">
-            PESSY v1.0.0 • © 2026 Todos los derechos reservados
+            Pessy v{APP_VERSION} · © 2026 Todos los derechos reservados
           </p>
         </div>
       </div>
