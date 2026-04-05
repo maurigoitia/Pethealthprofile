@@ -904,6 +904,27 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                       )}
                     </div>
 
+                    {/* CONNECTION RULE: medicamento por agotar → CTA de compra */}
+                    {item.status === "active" && item.daysLeft !== null && item.daysLeft <= 7 && item.daysLeft > 0 && (
+                      <div className="mb-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 p-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <MaterialIcon name="warning" className="text-amber-500 text-base shrink-0" />
+                          <p className="text-xs font-bold text-amber-800 dark:text-amber-200 truncate">
+                            Quedan {item.daysLeft} día{item.daysLeft !== 1 ? "s" : ""} de tratamiento
+                          </p>
+                        </div>
+                        <a
+                          href={`https://www.mercadolibre.com.ar/search?q=${encodeURIComponent(item.medicationName)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 transition-colors"
+                        >
+                          <MaterialIcon name="shopping_bag" className="text-sm" />
+                          Reponer
+                        </a>
+                      </div>
+                    )}
+
                     {/* Source chip */}
                     <div className="flex items-center gap-2 mb-3">
                       <MaterialIcon
