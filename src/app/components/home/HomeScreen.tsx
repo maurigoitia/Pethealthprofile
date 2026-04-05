@@ -101,7 +101,7 @@ function getEmailSyncNarrative(
 
   if (status === "queued" || status === "processing" || status === "scanning_emails") {
     return {
-      title: "Cork y Fritz están leyendo tu email",
+      title: "Cork y Fizz están leyendo tu email",
       body: "Esto se acomoda en segundo plano. En un rato tu historia clínica se va a ver más completa.",
       hint: "No hace falta esperar acá. Pessy sigue ordenando la información aunque sigas usando la app.",
     };

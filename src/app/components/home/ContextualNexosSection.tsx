@@ -175,9 +175,9 @@ export function ContextualNexosSection({
       id: "vaccine",
       icon: "vaccines",
       badge: isOverdue ? "Vacuna vencida" : "Vacuna próxima",
-      title: `Pedir turno para ${petName}`,
-      subtitle: "Encontramos veterinarias cercanas con disponibilidad",
-      cta: "Pedir turno",
+      title: `Veterinarias para ${petName}`,
+      subtitle: "Veterinarias cerca tuyo",
+      cta: "Ver veterinarias",
       cardBg: isOverdue
         ? "bg-red-50 dark:bg-red-950/20"
         : "bg-amber-50 dark:bg-amber-950/20",

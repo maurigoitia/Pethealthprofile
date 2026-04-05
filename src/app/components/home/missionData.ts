@@ -78,21 +78,21 @@ export const MISSIONS: Record<string, MissionDefinition> = {
     completionMessage: (petName) => `Una noche tranquila para ${petName}. Esta rutina reduce el estrés a largo plazo.`,
   },
 
-  mission_kitchen: {
-    code: 'mission_kitchen',
-    type: 'checklist',
-    heroEmoji: '🔍',
-    title: (petName) => `Chequeo de seguridad para ${petName}`,
-    subtitle: 'Revisá que no haya riesgos en cocina y basura. Un tick a la vez.',
-    checklist: [
-      { id: 'trash', emoji: '🗑️', text: 'Basura con tapa o fuera de alcance' },
-      { id: 'chocolate', emoji: '🍫', text: 'Chocolates, uvas y pasas guardados' },
-      { id: 'cleaning', emoji: '🧴', text: 'Productos de limpieza en armario cerrado' },
-      { id: 'bags', emoji: '🛍️', text: 'Bolsas plásticas fuera del alcance' },
-      { id: 'counter', emoji: '🍗', text: 'Sin comida suelta en mesada o mesas bajas' },
-    ],
-    youtubeSearchQuery: 'alimentos peligrosos toxicos perros chocolate uvas',
-    points: 15,
-    completionMessage: (petName) => `Cocina segura, ${petName} protegido/a. Hacé este chequeo cada semana.`,
-  },
+  // mission_kitchen: {
+  //   code: 'mission_kitchen',
+  //   type: 'checklist',
+  //   heroEmoji: '🔍',
+  //   title: (petName) => `Chequeo de seguridad para ${petName}`,
+  //   subtitle: 'Revisá que no haya riesgos en cocina y basura. Un tick a la vez.',
+  //   checklist: [
+  //     { id: 'trash', emoji: '🗑️', text: 'Basura con tapa o fuera de alcance' },
+  //     { id: 'chocolate', emoji: '🍫', text: 'Chocolates, uvas y pasas guardados' },
+  //     { id: 'cleaning', emoji: '🧴', text: 'Productos de limpieza en armario cerrado' },
+  //     { id: 'bags', emoji: '🛍️', text: 'Bolsas plásticas fuera del alcance' },
+  //     { id: 'counter', emoji: '🍗', text: 'Sin comida suelta en mesada o mesas bajas' },
+  //   ],
+  //   youtubeSearchQuery: 'alimentos peligrosos toxicos perros chocolate uvas',
+  //   points: 15,
+  //   completionMessage: (petName) => `Cocina segura, ${petName} protegido/a. Hacé este chequeo cada semana.`,
+  // },
 };
