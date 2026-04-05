@@ -3,6 +3,7 @@
  *
  * Muestra mascotas perdidas en la zona ordenadas por cercanía y recencia.
  * Cada card muestra foto, nombre, raza, distancia y tiempo desde que se perdió.
+ * Empty state includes action CTA: "Todavía no hay reportes en tu zona. ¿Perdiste una mascota?" + [Reportar mascota perdida] button
  */
 
 import { useEffect, useState } from "react";
@@ -86,9 +87,16 @@ export function LostPetFeed({ onReport, onBack, hideHeader }: Props) {
           </div>
         ) : sorted.length === 0 ? (
           <div className="text-center py-12">
-            <MaterialIcon name="pets" className="text-5xl text-[#1A9B7D]/30 mb-3" />
-            <p className="text-base font-semibold text-slate-700 dark:text-slate-300">No hay reportes en tu zona</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">¡Buena noticia! Todas las mascotas están a salvo.</p>
+            <MaterialIcon name="pets" className="text-5xl text-[#1A9B7D]/30 mb-4" />
+            <p className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-2">Todavía no hay reportes en tu zona</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">¿Perdiste una mascota?</p>
+            <button
+              onClick={onReport}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-colors"
+            >
+              <MaterialIcon name="add_alert" className="text-lg" />
+              Reportar mascota perdida
+            </button>
           </div>
         ) : (
           <div className="flex flex-col gap-4">

@@ -3,6 +3,7 @@
  *
  * Muestra mascotas disponibles para adopción ordenadas por cercanía y recencia.
  * Cada card muestra fotos, nombre, raza, edad, tamaño, ubicación.
+ * Empty state includes action CTA: "No hay mascotas en adopción cerca. ¿Querés dar una en adopción?" + [Publicar adopción] button
  */
 
 import { useEffect, useState } from "react";
@@ -107,11 +108,16 @@ export function AdoptionFeed({ onPublish, onBack, onSelect, hideHeader }: Props)
           </div>
         ) : sorted.length === 0 ? (
           <div className="text-center py-12">
-            <MaterialIcon name="favorite_outline" className="text-5xl text-[#1A9B7D]/30 mb-3" />
-            <p className="text-base font-semibold text-slate-700 dark:text-slate-300">Sin mascotas disponibles</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Vuelve pronto para ver nuevas mascotas para adoptar
-            </p>
+            <MaterialIcon name="favorite_outline" className="text-5xl text-[#1A9B7D]/30 mb-4" />
+            <p className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-2">No hay mascotas en adopción cerca</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">¿Querés dar una en adopción?</p>
+            <button
+              onClick={onPublish}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#074738] text-white font-bold text-sm hover:bg-[#0a5d47] transition-colors"
+            >
+              <MaterialIcon name="add" className="text-lg" />
+              Publicar adopción
+            </button>
           </div>
         ) : (
           <div className="flex flex-col gap-4">

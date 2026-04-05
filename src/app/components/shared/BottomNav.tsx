@@ -1,4 +1,4 @@
-import { Sun, HeartPulse, Plus, Users, Fingerprint } from "lucide-react";
+import { Sun, HeartPulse, Plus, Users, Fingerprint, CalendarCheck } from "lucide-react";
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 
 export type PillarTab = "dia-a-dia" | "rutinas" | "comunidad" | "mi-pessy";

@@ -1,10 +1,11 @@
 /**
  * CommunityHub — Comunidad PESSY
  *
- * Unified community hub with 3 tabs:
- * 1. Perdidos — Lost pet reports + "Perdí mi mascota" form
- * 2. Encontrados — Found pet reports + "Encontré una mascota" form
- * 3. Adopción — Adoption feed + post for adoption form
+ * Optimized community hub with 2 tabs (purpose-driven, not generic social):
+ * 1. Mascotas Perdidas — Lost pet reports + "Reportar mascota perdida" form
+ * 2. Adopción — Adoption feed + post for adoption form
+ *
+ * NOTE: "Encontrados" tab removed (deprioritized). Lost pets already show found status.
  */
 
 import { lazy, Suspense, useState } from "react";
@@ -12,13 +13,11 @@ import { MaterialIcon } from "../shared/MaterialIcon";
 
 const LostPetFeed = lazy(() => import("./LostPetFeed").then((m) => ({ default: m.LostPetFeed })));
 const ReportLostPet = lazy(() => import("./ReportLostPet").then((m) => ({ default: m.ReportLostPet })));
-const ReportFoundPet = lazy(() => import("./ReportFoundPet").then((m) => ({ default: m.ReportFoundPet })));
 const AdoptionFeed = lazy(() => import("./AdoptionFeed").then((m) => ({ default: m.AdoptionFeed })));
 const PostForAdoption = lazy(() => import("./PostForAdoption").then((m) => ({ default: m.PostForAdoption })));
-const FoundPetFeed = lazy(() => import("./FoundPetFeed").then((m) => ({ default: m.FoundPetFeed })));
 
-type Tab = "lost" | "found" | "adopt";
-type SubView = "feed" | "report-lost" | "report-found" | "post-adoption";
+type Tab = "lost" | "adopt";
+type SubView = "feed" | "report-lost" | "post-adoption";
 
 interface Props {
   onBack: () => void;
@@ -33,8 +32,7 @@ function Spinner() {
 }
 
 const TABS: { id: Tab; label: string; icon: string; emoji: string }[] = [
-  { id: "lost", label: "Perdidos", icon: "search", emoji: "🔍" },
-  { id: "found", label: "Encontrados", icon: "location_on", emoji: "📍" },
+  { id: "lost", label: "Mascotas Perdidas", icon: "search", emoji: "🔍" },
   { id: "adopt", label: "Adopción", icon: "favorite", emoji: "🐾" },
 ];
 
@@ -52,13 +50,6 @@ export function CommunityHub({ onBack }: Props) {
     return (
       <Suspense fallback={<Spinner />}>
         <ReportLostPet onBack={() => setSubView("feed")} onSuccess={() => { setActiveTab("lost"); setSubView("feed"); }} />
-      </Suspense>
-    );
-  }
-  if (subView === "report-found") {
-    return (
-      <Suspense fallback={<Spinner />}>
-        <ReportFoundPet onBack={() => setSubView("feed")} onSuccess={() => { setActiveTab("found"); setSubView("feed"); }} />
       </Suspense>
     );
   }
@@ -88,7 +79,7 @@ export function CommunityHub({ onBack }: Props) {
             >
               Comunidad
             </h1>
-            <p className="text-xs text-slate-500">Pets perdidos, encontrados y en adopción</p>
+            <p className="text-xs text-slate-500">Mascotas perdidas y adopción en tu zona</p>
           </div>
           {/* Action button per tab */}
           {activeTab === "lost" && (
@@ -97,16 +88,7 @@ export function CommunityHub({ onBack }: Props) {
               className="h-[40px] px-3 rounded-2xl bg-red-500 text-white text-xs font-bold flex items-center gap-1.5 shrink-0"
             >
               <MaterialIcon name="add_alert" className="text-sm" />
-              Perdí mi mascota
-            </button>
-          )}
-          {activeTab === "found" && (
-            <button
-              onClick={() => setSubView("report-found")}
-              className="h-[40px] px-3 rounded-2xl bg-[#1A9B7D] text-white text-xs font-bold flex items-center gap-1.5 shrink-0"
-            >
-              <MaterialIcon name="location_on" className="text-sm" />
-              Encontré una
+              Reportar
             </button>
           )}
           {activeTab === "adopt" && (
@@ -146,13 +128,6 @@ export function CommunityHub({ onBack }: Props) {
           {activeTab === "lost" && (
             <LostPetFeed
               onReport={() => setSubView("report-lost")}
-              onBack={onBack}
-              hideHeader
-            />
-          )}
-          {activeTab === "found" && (
-            <FoundPetFeed
-              onReport={() => setSubView("report-found")}
               onBack={onBack}
               hideHeader
             />

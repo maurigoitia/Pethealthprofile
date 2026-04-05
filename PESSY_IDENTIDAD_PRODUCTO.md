@@ -82,7 +82,10 @@ Necesidad detectada  →  Pessy procesa  →  Acción concreta en 1 tap
 ## Audiencia
 
 - **Pet parents urbanos** con 1-2 mascotas (perro o gato)
+  - **Mercados iniciales:** Argentina, México, Chile, Colombia, Uruguay, Brasil (portugués), USA
+  - **Perfil:** Usuarios smartphone-first en LatAm + USA. Higher willingness-to-pay en USA; market size compensation en LatAm
 - **Dolor central**: la carga cognitiva de cuidar bien — recordar, buscar, coordinar
+  - **Consistente en todos los mercados:** Fragmentación de servicios, necesidad de billetera integrada, búsqueda manual
 - **Promesa**: Pessy elimina el "tenés que buscar" — detecta y conecta
 
 ---
@@ -129,6 +132,34 @@ Necesidad detectada  →  Pessy procesa  →  Acción concreta en 1 tap
 3. **El copy nunca termina en "buscá" o "consultá"** — siempre termina en un verbo ejecutado.
 4. **Si no hay backend para cerrar el loop** (ej: sin marketplace aún), no prometer la conexión — mostrar el estado real.
 5. **NUNCA dar consejos médicos o interpretar resultados clínicos.** Pessy CONECTA con veterinarios, no DIAGNOSTICA. Si algo requiere interpretación médica, el copy dice "Compartí esto con tu veterinario" — siempre dejando la decisión clínica al profesional.
+
+---
+
+## Alcance de Mercado
+
+**Pessy no es un producto solo para Argentina.** El TAM real es LatAm + USA:
+
+| Mercado | Pet Owners | Gasto Anual (USD) | Fase de Entrada |
+|---------|-----------|------------------|-----------------|
+| Argentina | 10M | $200-400 | Ahora (Q2 2026) |
+| México | 20M | $300-600 | Q3-Q4 2026 |
+| Chile | 4M | $400-800 | Q4 2026 |
+| Colombia | 8M | $150-350 | Q1 2027 |
+| Uruguay | 1.5M | $400-800 | Q1 2027 |
+| **LatAm Spanish** | **43.5M** | **$200-600** | **Fase 1** |
+| Brasil | 45M | $250-500 | Q2 2027 (portugués) |
+| USA | 90M+ | $1,200-1,500 | Q3-Q4 2027 (English) |
+| **TOTAL** | **~178M** | **$50B+** | **3 años** |
+
+**Estrategia de ejecución:**
+1. **Argentina primero:** Menor complejidad regulatoria, densidad de early adopters, validación de product-market fit
+2. **LatAm Spanish:** México, Chile, Colombia — escala rápida una vez validado
+3. **Brasil:** Mismo producto, localización a portugués, partnerships con fintechs locales
+4. **USA:** Expansión final (pero mayor TAM y willingness-to-pay)
+
+**Diferenciador geográfico:**
+- Pessy entra cada mercado con diferentes mensajes de marketing y partnerships, pero el producto core es el mismo
+- En USA: enfoque en "Pet Financial Hub" (tarjeta + seguros). En LatAm: enfoque en "Conexión sin buscar"
 
 ---
 
