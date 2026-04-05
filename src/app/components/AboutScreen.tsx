@@ -56,8 +56,8 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
               ¿Qué es PESSY?
             </h3>
             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
-              PESSY es una plataforma de gestión de salud veterinaria que te ayuda a
-              mantener organizado el historial médico de tus mascotas.
+              PESSY es una plataforma para cuidar a tus mascotas que te ayuda a
+              mantener organizado el historial de tus mascotas.
             </p>
             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
               Procesamos documentos médicos para ordenar el historial,

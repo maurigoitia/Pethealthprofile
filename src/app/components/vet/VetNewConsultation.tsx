@@ -397,11 +397,11 @@ export function VetNewConsultation() {
               <div className="p-4 space-y-3">
                 <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">
-                    Diagnóstico presuntivo
+                    Nota inicial
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="Diagnóstico inicial"
+                    placeholder="Nota inicial"
                     value={diagnosticoPT}
                     onChange={(e) => setDiagnosticoPT(e.target.value)}
                     className={ic}
@@ -409,11 +409,11 @@ export function VetNewConsultation() {
                 </div>
                 <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">
-                    Diagnóstico diferencial
+                    Consideraciones adicionales
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="Otros diagnósticos a considerar"
+                    placeholder="Otras consideraciones a revisar"
                     value={diagnosticoDiferencial}
                     onChange={(e) => setDiagnosticoDiferencial(e.target.value)}
                     className={ic}

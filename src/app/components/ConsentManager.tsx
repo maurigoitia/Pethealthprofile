@@ -97,7 +97,7 @@ export function ConsentManager({ onConsent, onBack, compact = false }: ConsentMa
         onToggle={toggleSection}
         link="/privacidad"
       >
-        Recolectamos tu nombre, email, país y datos de tus mascotas (historial médico,
+        Recolectamos tu nombre, email, país y datos de tus mascotas (historial,
         medicamentos, vacunas). Estos datos se almacenan en servidores de Google (Firebase)
         en Estados Unidos. Podés acceder, corregir, exportar o eliminar tus datos en cualquier
         momento desde Configuración → Privacidad.
@@ -112,9 +112,9 @@ export function ConsentManager({ onConsent, onBack, compact = false }: ConsentMa
         onToggle={toggleSection}
         badge="Datos sensibles"
       >
-        Cuando subís un documento médico (foto o PDF), Pessy lo envía a servicios
+        Cuando subís un documento (foto o PDF), Pessy lo envía a servicios
         de inteligencia artificial externos (Google Gemini API y/o Anthropic Claude API)
-        para extraer información como diagnósticos, medicamentos y fechas. Estos servicios
+        para extraer información como medicamentos y fechas. Estos servicios
         NO retienen tus documentos para entrenar sus modelos. Los resultados son revisables
         por vos antes de confirmarse. Podés usar Pessy sin subir documentos si preferís
         no usar esta función.

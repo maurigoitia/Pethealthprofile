@@ -453,7 +453,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                     {activePet?.name || "Mascota"} necesita una agenda clara
                   </h2>
                   <p className="text-sm text-slate-600 dark:text-slate-200 mt-2 leading-5">
-                    Confirmá, editá o cerrá turnos sin mezclar logística con historial clínico.
+                    Confirmá, editá o cerrá tus turnos sin complicaciones.
                   </p>
                 </div>
               </div>

@@ -124,39 +124,94 @@ Detected need  →  Pessy processes  →  Concrete next step with ONE tap
 - `PESSY_IDENTIDAD_PRODUCTO.md` — Product identity and positioning
 - `PESSY_REDESIGN_MASTER.md` — UI redesign rules including Rule #11
 
-## 🎯 PRODUCT VISION — Conexiones Contextuales (Mauri, 2026-04-03)
+## 🎯 PRODUCT VISION — Ecosistema End-to-End (Mauri, 2026-04-05)
 
-Pessy NO es un marketplace genérico. El diferencial es que Pessy YA conoce a la mascota
-y usa ese conocimiento para conectar en el momento justo, sin que el usuario tenga que buscar.
+### ⚠️ CRÍTICO: Pessy NO es una app médica / clínica
 
-### Los 3 escenarios que deben existir en el producto:
+**Pessy NO diagnostica, NO prescribe, NO es un sistema de registros médicos.**
 
-1. **Análisis clínico detecta algo → veterinarios cercanos**
-   - Cuando el motor clínico detecta una condición o riesgo, la app muestra 2-3 veterinarios
-     cercanos que atienden ese tipo de caso → botón "Agendar"
-   - NO es un directorio. Es una recomendación contextual disparada por datos reales.
+Esto no es solo copy — es regulatorio. Posicionar Pessy como "app clínica" o "historial médico"
+abre riesgos regulatorios de salud digital. El producto debe mantenerse en el espacio lifestyle/consumer.
 
-2. **Mascota come X → sugerencia de alimento específico con link de compra**
-   - Cuando el tutor carga la alimentación de su mascota, Pessy sugiere el alimento
-     específico más adecuado → con link de compra directo
-   - Sin búsqueda, sin catálogo. Solo "para Thor, esto."
+**Lenguaje PROHIBIDO para agentes:**
+- ❌ "historial médico / clínico"
+- ❌ "motor clínico", "análisis clínico", "riesgo clínico"
+- ❌ "diagnóstico", "prescripción", "tratamiento médico"
+- ❌ "app de salud médica para mascotas"
 
-3. **Vence una vacuna → veterinaria más cercana con turno disponible**
-   - Cuando se acerca el vencimiento de una vacuna, Pessy conecta directamente con
-     la clínica más cercana con disponibilidad → botón "Pedir turno"
-   - No es un recordatorio vacío. Es un recordatorio con acción.
+**Lenguaje CORRECTO:**
+- ✅ "historial de tu mascota", "registro de Thor"
+- ✅ "rutinas de salud", "cuidado de tu mascota"
+- ✅ "conectar con un veterinario", "pedir turno"
+- ✅ "datos de Thor", "el perfil de tu mascota"
 
-### Reglas de diseño para estas conexiones:
-- SIEMPRE se disparan desde datos clínicos/perfil reales de la mascota, NUNCA genérico
-- SIEMPRE tienen una acción concreta (botón, link)
-- NUNCA reemplazar al veterinario (módulo vet = beta, NO conectar aún)
-- Los pagos = NO por ahora, se habilitan en etapa siguiente
-- La UI debe comunicar estas conexiones desde el HomeScreen de forma clara y visible
+---
+
+### La Visión Real: Ecosistema End-to-End para Dueños de Mascotas
+
+Pessy es el ecosistema completo de la vida de una mascota. No una feature, no una vertical —
+el lugar donde el dueño gestiona TODO lo relacionado con su animal.
+
+```
+RUTINAS → PASEOS → COMPRAR → SERVICIOS DE SALUD → 💳 TARJETA DE CRÉDITO
+```
+
+Cada capa habilita la siguiente. Juntas crean el lock-in y el moat.
+
+### Los 5 Pilares del Ecosistema
+
+1. **Rutinas** — El día a día: alimentación, medicamentos, recordatorios, actividad física.
+   El dueño registra. Pessy aprende. Pessy sugiere.
+
+2. **Paseos & Actividad** — Registro de salidas, rutas, tiempo activo, energía gastada.
+   Social layer: dueños cerca, perros compatibles.
+
+3. **Comprar** — Alimento, accesorios, medicamentos, productos de higiene.
+   Contexto: "Thor come Royal Canin Maxi → [Comprar] antes de que se acabe"
+   Conexión directa a tiendas (MercadoLibre, etc.) — sin catálogo genérico.
+
+4. **Servicios de Salud** — Turnos veterinarios, peluquería, guardería, adiestramiento.
+   NO reemplaza al vet. CONECTA con el vet en el momento justo.
+   "Vacuna vence el 15 → [Agendar turno] en clínica cercana"
+
+5. **💳 Tarjeta de Crédito / Capa Financiera** *(roadmap futuro)*
+   La capa que lo une todo. Pessy card: pagar veterinarios, petshops, servicios.
+   Cashback en gastos de mascotas. Cuotas para cirugías. Seguro de mascota integrado.
+   → Este es el moat final. El que hace que Pessy sea Nubank para dueños de mascotas.
+
+### Roadmap de Capas (en orden de construcción)
+
+| Etapa | Capa | Status |
+|-------|------|--------|
+| 1 | Rutinas + Historial | ✅ En producción |
+| 2 | Servicios de Salud (vets, turnos) | 🚧 Beta |
+| 3 | Comprar (links contextuales) | 📋 Próximo |
+| 4 | Paseos & Comunidad | 📋 Backlog |
+| 5 | Tarjeta de Crédito / Fintech | 🔮 Visión |
+
+### Reglas de diseño para el ecosistema:
+- SIEMPRE disparar desde datos reales del perfil de la mascota, NUNCA genérico
+- SIEMPRE con una acción concreta (botón, link) — nunca solo información
+- NUNCA lenguaje médico/clínico — siempre lifestyle/consumer
+- Los pagos directos = siguiente etapa (hoy: links externos a MercadoLibre/vets)
+- La tarjeta de crédito = visión, NO construir aún
+- La UI debe comunicar el ecosistema completo desde el HomeScreen
+
+### Conexiones Contextuales que deben existir (MVP)
+
+1. **Vacuna próxima a vencer → veterinaria cercana con turno**
+   "Vence el 15. 3 vets tienen turno → [Agendar]"
+
+2. **Mascota come X → sugerencia de alimento con link de compra**
+   "Thor come Royal Canin → [Comprar ahora]" (link a MercadoLibre)
+
+3. **Datos de actividad → sugerencia de paseo o rutina**
+   "Thor lleva 3 días sin salir → [Registrar paseo]"
 
 ### Comunicación de marketing:
-- Esta visión es el corazón del pitch de Pessy
-- El landing page DEBE comunicar esto: "Pessy no te da info, te da el siguiente paso"
-- Si el producto no hace esto → el marketing no tiene sustancia
+- "Pessy no te da info, te da el siguiente paso"
+- NO "ecosistema digital para mascotas" (tecno-jerga)
+- SÍ "todo lo de tu mascota, en un lugar"
 
 ## Incident Log
 - 2026-03-27: Agent deployed from `main` instead of `pessy-website`. main has different SPA

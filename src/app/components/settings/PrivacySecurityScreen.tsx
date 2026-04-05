@@ -232,14 +232,14 @@ export function PrivacySecurityScreen({ onBack, onLogout, autoOpenGmail }: Priva
 
   const handleDeleteClinicalData = async () => {
     if (clinicalDeleteLoading) return;
-    if (!confirm("¿Borrar todos los datos clínicos y de Gmail? Tu cuenta y mascotas se mantienen, pero se pierde toda la historia médica.")) return;
+    if (!confirm("¿Borrar todos los datos y de Gmail? Tu cuenta y mascotas se mantienen, pero se pierde todo el historial.")) return;
     setClinicalDeleteLoading(true);
     try {
       await deleteAllUserClinicalData();
-      toast.success("Datos clínicos eliminados correctamente.");
+      toast.success("Datos eliminados correctamente.");
     } catch (error) {
-      console.error("No se pudieron eliminar datos clínicos:", error);
-      toast.error("No se pudieron eliminar los datos clínicos. Reintentá en unos minutos.");
+      console.error("No se pudieron eliminar los datos:", error);
+      toast.error("No se pudieron eliminar los datos. Reintentá en unos minutos.");
     } finally {
       setClinicalDeleteLoading(false);
     }
@@ -465,10 +465,10 @@ export function PrivacySecurityScreen({ onBack, onLogout, autoOpenGmail }: Priva
               </div>
               <div className="text-left">
                 <h3 className="font-bold text-amber-700 dark:text-amber-400">
-                  {clinicalDeleteLoading ? "Eliminando..." : "Borrar datos clínicos"}
+                  {clinicalDeleteLoading ? "Eliminando..." : "Borrar mis datos"}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Elimina historia médica y datos de Gmail. Tu cuenta y mascotas se mantienen.
+                  Elimina tu historial y datos de Gmail. Tu cuenta y mascotas se mantienen.
                 </p>
               </div>
             </div>

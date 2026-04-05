@@ -28,7 +28,7 @@ type ClinicalRenderKind =
 const FILTERS: { label: string; value: TimelineFilter }[] = [
   { label: "Todos", value: "all" },
   { label: "Estudios", value: "studies" },
-  { label: "Diagnósticos", value: "diagnosis" },
+  { label: "Notas", value: "diagnosis" },
   { label: "Vacunas", value: "vaccines" },
   { label: "Tratamientos", value: "treatments" },
 ];
@@ -47,7 +47,7 @@ const TYPE_CONFIG: Record<DocumentType, { icon: string; label: string; iconTone:
   electrocardiogram: { icon: "ecg", label: "Electrocardiograma", iconTone: "bg-rose-100 text-rose-700", badgeTone: "bg-rose-100 text-rose-700", accent: "#e11d48" },
   surgery: { icon: "local_hospital", label: "Cirugía", iconTone: "bg-red-100 text-red-700", badgeTone: "bg-red-100 text-red-700", accent: "#dc2626" },
   medication: { icon: "medication", label: "Tratamiento", iconTone: "bg-amber-100 text-amber-700", badgeTone: "bg-amber-100 text-amber-700", accent: "#d97706" },
-  checkup: { icon: "stethoscope", label: "Diagnóstico", iconTone: "bg-sky-100 text-sky-700", badgeTone: "bg-sky-100 text-sky-700", accent: "#0284c7" },
+  checkup: { icon: "stethoscope", label: "Nota", iconTone: "bg-sky-100 text-sky-700", badgeTone: "bg-sky-100 text-sky-700", accent: "#0284c7" },
   other: { icon: "description", label: "Documento", iconTone: "bg-slate-100 text-slate-600", badgeTone: "bg-slate-100 text-slate-600", accent: "#64748b" },
 };
 
@@ -186,9 +186,9 @@ function buildEventTitle(event: MedicalEvent, petName: string): string {
     case "vaccination_record":
       return cleanTitle || "Registro de vacunación";
     case "clinical_report":
-      return cleanTitle || `Informe clínico de ${petName}`;
+      return cleanTitle || `Registro de ${petName}`;
     default:
-      return cleanTitle || `Documento clínico de ${petName}`;
+      return cleanTitle || `Documento de ${petName}`;
   }
 }
 
@@ -256,10 +256,10 @@ function buildEventSummary(event: MedicalEvent, petName: string): string {
   }
 
   if (kind === "clinical_report" && diagnosis) {
-    return `Informe clínico del ${eventDate}: ${petName} presenta ${diagnosis}${whoWhere ? `. Atención en ${whoWhere}` : ""}.`;
+    return `Registro del ${eventDate}: ${petName} presenta ${diagnosis}${whoWhere ? `. Atención en ${whoWhere}` : ""}.`;
   }
 
-  return cleanText(d.aiGeneratedSummary || d.observations) || `Documento clínico de ${petName} registrado el ${eventDate}.`;
+  return cleanText(d.aiGeneratedSummary || d.observations) || `Documento de ${petName} registrado el ${eventDate}.`;
 }
 
 function buildMetaPills(event: MedicalEvent, kind: ClinicalRenderKind): string[] {
@@ -595,7 +595,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                   <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-3 space-y-3">
                                     {d.diagnosis && renderKind !== "appointment_confirmation" && (
                                       <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
-                                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400 mb-1">Diagnóstico / Hallazgo</p>
+                                        <p className="text-[10px] font-black uppercase tracking-wide text-slate-400 mb-1">Nota / Hallazgo</p>
                                         <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                                           {cleanDiagnosisText(d.diagnosis)}
                                         </p>

@@ -154,7 +154,7 @@ export function ContextualNexosSection({
     nexos.push({
       id: "clinical",
       icon: "medical_information",
-      badge: topAlert.severity === "high" ? "Requiere atención" : "Seguimiento clínico",
+      badge: topAlert.severity === "high" ? "Requiere atención" : "Para revisar",
       title: topAlert.title,
       subtitle: `Hay veterinarias cerca que atienden esto para ${petName}`,
       cta: "Ver veterinarias",

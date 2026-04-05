@@ -1006,7 +1006,7 @@ export function PetHomeView({
                   <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
                     {activePet?.breed
                       ? `Con el historial de un ${activePet.breed}, Pessy puede darte sugerencias específicas.`
-                      : "Con historial médico, Pessy puede darte sugerencias útiles."}
+                      : "Con tu historial, Pessy puede darte sugerencias útiles."}
                   </p>
                   <button
                     onClick={onOpenScanner}

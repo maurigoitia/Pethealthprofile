@@ -102,7 +102,7 @@ export function GmailConsentScreen({ onAccept, onDecline, loading }: GmailConsen
             />
             <ConsentItem
               icon="smart_toy"
-              text="Procesar el contenido con IA de Google (Gemini) para identificar datos clínicos"
+              text="Procesar el contenido con IA de Google (Gemini) para extraer información de tu mascota"
               tone="emerald"
             />
             <ConsentItem
@@ -150,7 +150,7 @@ export function GmailConsentScreen({ onAccept, onDecline, loading }: GmailConsen
               className="mt-0.5 size-4 rounded border-slate-300 text-[#074738] accent-[#074738]"
             />
             <span className="text-sm text-slate-700 dark:text-slate-300">
-              Acepto que Pessy lea mis emails veterinarios y extraiga datos clínicos de mis mascotas.
+              Acepto que Pessy lea mis emails veterinarios y extraiga información sobre mis mascotas.
             </span>
           </label>
 
@@ -165,7 +165,7 @@ export function GmailConsentScreen({ onAccept, onDecline, loading }: GmailConsen
               className="mt-0.5 size-4 rounded border-slate-300 text-[#074738] accent-[#074738]"
             />
             <span className="text-sm text-slate-700 dark:text-slate-300">
-              Acepto que el contenido de los emails sea procesado por Google Gemini (IA) para extraer información médica.
+              Acepto que el contenido de los emails sea procesado por Google Gemini (IA) para extraer información de mis mascotas.
             </span>
           </label>
 
@@ -203,7 +203,7 @@ export function GmailConsentScreen({ onAccept, onDecline, loading }: GmailConsen
           </button>
           {/* BUG-16 fix: "Privacidad y seguridad" is now a clickable button */}
           <p className="mt-3 text-center text-[11px] text-slate-400">
-            Podés desconectar Gmail y borrar tus datos clínicos en cualquier momento desde{" "}
+            Podés desconectar Gmail y borrar tu información en cualquier momento desde{" "}
             <button
               type="button"
               onClick={onDecline}

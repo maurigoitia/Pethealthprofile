@@ -571,7 +571,7 @@ export function VetConsultationView({ consultationId, onBack }: Props) {
                   <>
                     <div>
                       <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">
-                        Diagnóstico presuntivo
+                        Nota inicial
                       </label>
                       <textarea
                         rows={2}
@@ -587,7 +587,7 @@ export function VetConsultationView({ consultationId, onBack }: Props) {
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">
-                        Diagnóstico diferencial
+                        Consideraciones adicionales
                       </label>
                       <textarea
                         rows={2}
@@ -616,7 +616,7 @@ export function VetConsultationView({ consultationId, onBack }: Props) {
                       </div>
                     ) : (
                       <p className="text-slate-400 text-sm italic">
-                        Sin diagnóstico presuntivo
+                        Sin nota inicial
                       </p>
                     )}
                     {c.soapData?.a?.diagnosticoDiferencial && (

@@ -176,7 +176,7 @@ export function EditEventModal({ isOpen, onClose, event }: EditEventModalProps) 
 
                             {/* Diagnóstico */}
                             <div className="space-y-1.5">
-                                <label className="text-xs font-black text-slate-500 uppercase tracking-wider">Diagnóstico / Hallazgo</label>
+                                <label className="text-xs font-black text-slate-500 uppercase tracking-wider">Nota / Hallazgo</label>
                                 <textarea
                                     value={formData.diagnosis}
                                     onChange={(e) => setFormData({ ...formData, diagnosis: e.target.value })}

@@ -160,7 +160,7 @@ export default function HomeScreen() {
                   ¡Bienvenido a PESSY!
                 </h2>
                 <p className="text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
-                  Comienza agregando tu primera mascota para llevar su historial médico completo
+                  Comienza agregando tu primera mascota para mantener su historial organizado
                 </p>
               </div>
               <button

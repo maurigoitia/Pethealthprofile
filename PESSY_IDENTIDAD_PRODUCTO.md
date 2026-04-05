@@ -4,13 +4,31 @@
 
 ---
 
+## ⚠️ CORRECCIÓN CRÍTICA: Pessy NO es una app médica
+
+**Pessy es un ecosystem de lifestyle para dueños de mascotas. NO es un dispositivo médico, NO diagnostica, NO prescribe.**
+
+Pessy CONECTA con servicios (vets, petshops, seguros) pero NO proporciona atención veterinaria. El veterinario es quien diagnostica y trata.
+
+Esta distinción es crítica por razones regulatorias.
+
+---
+
 ## Identidad del Producto
 
 **"Pessy te ayuda a llevar el día a día de tu mascota."**
-Rutinas, alimentación, salud y cuidados — todo en un lugar.
+Rutinas, alimentación, paseos, compras y servicios — todo en un lugar.
 
-Esto es lo que Pessy ES. Una app donde el tutor maneja la vida completa de su mascota.
+Esto es lo que Pessy ES. Un ecosystem central donde el tutor:
+- Organiza rutinas y recordatorios
+- Compra alimento y supplies
+- Agenda servicios (vet, grooming)
+- Accede a crédito y seguros
+- Paga todo desde un lugar
+
 Clara, honesta, cualquier persona lo entiende en 3 segundos.
+
+**Lo que Pessy NO es:** Una app médica, un consultor veterinario, o un diagnóstico. Eso lo hace el vet.
 
 ---
 
@@ -77,10 +95,12 @@ Necesidad detectada  →  Pessy procesa  →  Acción concreta en 1 tap
 
 ## Qué NO ES Pessy
 
-- ❌ Un organizador de rutinas (eso es consecuencia, no propósito)
-- ❌ Un directorio de veterinarios
+- ❌ Una app médica o dispositivo de salud (NO diagnostica, NO prescribe)
+- ❌ Un consultor veterinario o médico
+- ❌ Un organizador de rutinas puro (eso es consecuencia, no propósito)
+- ❌ Un directorio de veterinarios inerte
 - ❌ Una app que "avisa" y te deja a vos buscando
-- ❌ Un marketplace (por ahora — llega en una fase posterior)
+- ❌ Un marketplace genérico (por ahora — llega en una fase posterior)
 
 ---
 
@@ -89,12 +109,15 @@ Necesidad detectada  →  Pessy procesa  →  Acción concreta en 1 tap
 | Módulo | Función de conexión |
 |--------|---------------------|
 | Identidad Digital | Aprende quién es la mascota → alimenta todas las conexiones |
-| Salud / Vacunas | Detecta vencimientos → conecta con vets disponibles |
-| Salud / Medicamentos | Detecta stock bajo → bridge de reposición (pendiente marketplace) |
+| Rutinas | Organiza día a día (paseos, tomas de meds, alimentación) |
+| Paseos | Social layer + location tracking (futuro) |
 | Nutrición / Alimento | Detecta stock bajo → conecta con MercadoLibre |
-| Rutinas | Detecta necesidades del día → conecta con quien las resuelve |
-| Recordatorios | No solo avisa — conecta cuando la acción es ejecutable |
-| Vets / Servicios | Directorio + booking bridge (SCRUM-68 pendiente) |
+| Salud / Vacunas | Detecta vencimientos → conecta con vets disponibles (NO diagnostica) |
+| Salud / Medicamentos | Detecta stock bajo → bridge de reposición (pendiente marketplace) |
+| Servicios / Vets | Directorio + booking bridge (SCRUM-68 pendiente) |
+| Servicios / Grooming | Similar a vets — conexión, no ejecución |
+| Compras | Marketplace contextual (MercadoLibre, petshops integrados) |
+| **💳 Capa Financiera** | **FUTURA: Crédito, seguros, tarjeta de crédito (Fase 2+)** |
 | Comunidad | Feed + Perdidos + Adopción |
 
 ---
@@ -105,6 +128,7 @@ Necesidad detectada  →  Pessy procesa  →  Acción concreta en 1 tap
 2. **El CTA debe ser de 1 tap** — no redirigir a una lista, sino a la acción directa.
 3. **El copy nunca termina en "buscá" o "consultá"** — siempre termina en un verbo ejecutado.
 4. **Si no hay backend para cerrar el loop** (ej: sin marketplace aún), no prometer la conexión — mostrar el estado real.
+5. **NUNCA dar consejos médicos o interpretar resultados clínicos.** Pessy CONECTA con veterinarios, no DIAGNOSTICA. Si algo requiere interpretación médica, el copy dice "Compartí esto con tu veterinario" — siempre dejando la decisión clínica al profesional.
 
 ---
 
