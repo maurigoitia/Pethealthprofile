@@ -467,17 +467,17 @@ import {
   syncAppointmentCalendarEvent,
 } from "./gmail/oauth";
 import {
-  backfillNarrativeHistory,
-  backfillGmailTaxonomy,
-  cleanupLegacyMailsyncMedicalEvents,
-  forceRunEmailClinicalIngestion,
-  ingestClinicalEmailWebhook,
-  resetEmailImportClinicalData,
-  runEmailClinicalAiWorker,
-  runEmailClinicalAttachmentWorker,
-  runEmailClinicalIngestionQueue,
-  runEmailClinicalScanWorker,
-  triggerEmailClinicalIngestion,
+  // [GMAIL-EXTRACTION-DISABLED] backfillNarrativeHistory,
+  // [GMAIL-EXTRACTION-DISABLED] backfillGmailTaxonomy,
+  // [GMAIL-EXTRACTION-DISABLED] cleanupLegacyMailsyncMedicalEvents,
+  // [GMAIL-EXTRACTION-DISABLED] forceRunEmailClinicalIngestion,
+  // [GMAIL-EXTRACTION-DISABLED] ingestClinicalEmailWebhook,
+  // [GMAIL-EXTRACTION-DISABLED] resetEmailImportClinicalData,
+  // [GMAIL-EXTRACTION-DISABLED] runEmailClinicalAiWorker,
+  // [GMAIL-EXTRACTION-DISABLED] runEmailClinicalAttachmentWorker,
+  // [GMAIL-EXTRACTION-DISABLED] runEmailClinicalIngestionQueue,
+  // [GMAIL-EXTRACTION-DISABLED] runEmailClinicalScanWorker,
+  // [GMAIL-EXTRACTION-DISABLED] triggerEmailClinicalIngestion,
 } from "./gmail/clinicalIngestion";
 import { uploadPetPhoto } from "./media/petPhotos";
 import { resolveClinicalKnowledgeContext } from "./clinical/knowledgeBase";
@@ -1439,7 +1439,8 @@ export const sendBroadcastPushCampaigns = functions.pubsub
 // - Usuarios sin Gmail Sync conectado
 // - Envío por push si hay token activo
 // ─────────────────────────────────────────────────────────────────────────────
-export const sendGmailSyncConsentReminders = functions.pubsub
+// [GMAIL-EXTRACTION-DISABLED]
+const sendGmailSyncConsentReminders_DISABLED = functions.pubsub
   .schedule("every 24 hours")
   .onRun(async () => {
     const now = new Date();
@@ -2659,17 +2660,17 @@ export {
   gmailAuthCallback,
   disconnectGmailSync,
   syncAppointmentCalendarEvent,
-  triggerEmailClinicalIngestion,
-  runEmailClinicalIngestionQueue,
-  runEmailClinicalScanWorker,
-  runEmailClinicalAttachmentWorker,
-  runEmailClinicalAiWorker,
-  forceRunEmailClinicalIngestion,
-  resetEmailImportClinicalData,
-  backfillNarrativeHistory,
-  backfillGmailTaxonomy,
-  cleanupLegacyMailsyncMedicalEvents,
-  ingestClinicalEmailWebhook,
+  // [GMAIL-EXTRACTION-DISABLED] triggerEmailClinicalIngestion,
+  // [GMAIL-EXTRACTION-DISABLED] runEmailClinicalIngestionQueue,
+  // [GMAIL-EXTRACTION-DISABLED] runEmailClinicalScanWorker,
+  // [GMAIL-EXTRACTION-DISABLED] runEmailClinicalAttachmentWorker,
+  // [GMAIL-EXTRACTION-DISABLED] runEmailClinicalAiWorker,
+  // [GMAIL-EXTRACTION-DISABLED] forceRunEmailClinicalIngestion,
+  // [GMAIL-EXTRACTION-DISABLED] resetEmailImportClinicalData,
+  // [GMAIL-EXTRACTION-DISABLED] backfillNarrativeHistory,
+  // [GMAIL-EXTRACTION-DISABLED] backfillGmailTaxonomy,
+  // [GMAIL-EXTRACTION-DISABLED] cleanupLegacyMailsyncMedicalEvents,
+  // [GMAIL-EXTRACTION-DISABLED] ingestClinicalEmailWebhook,
   pessyClinicalBrainGrounding,
   provisionPessyVertexDatastore,
   uploadPetPhoto,

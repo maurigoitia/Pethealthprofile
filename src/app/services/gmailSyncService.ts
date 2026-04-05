@@ -174,6 +174,9 @@ export async function disconnectGmailSync(): Promise<void> {
 }
 
 export async function triggerEmailClinicalIngestion(params?: { petId?: string }): Promise<{ session_id: string }> {
+  // [GMAIL-EXTRACTION-DISABLED]
+  console.warn('[GmailSync] Clinical ingestion disabled');
+  return { session_id: 'DISABLED' };
   const callable = httpsCallable<{ petId?: string }, { ok: boolean; session_id: string }>(
     firebaseFunctions,
     "triggerEmailClinicalIngestion"
