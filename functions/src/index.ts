@@ -179,7 +179,7 @@ async function sendEmailReminder(args: {
       subject,
       html,
     });
-    console.log(`[EMAIL] ✅ Enviado a ${args.toEmail} — ${args.medicationName} (${args.minutesBefore}min antes)`);
+    console.log(`[EMAIL] ✅ Notificación de medicamento enviada`);
   } catch (err) {
     console.error("[EMAIL] Error enviando:", err);
   }
@@ -234,7 +234,7 @@ async function sendInvitationEmail(args: {
       subject: "Te invitamos a probar Pessy",
       html,
     });
-    console.log(`[EMAIL] ✅ Invitación enviada a ${args.toEmail}`);
+    console.log(`[EMAIL] ✅ Invitación enviada`);
   } catch (err) {
     console.error("[EMAIL] Error enviando invitación:", err);
   }
@@ -411,7 +411,7 @@ ${petDetail ? `<div style="font-size:13px;color:#666;margin-top:2px;">${petDetai
       subject: `${args.inviterName} te invitó a ser co-tutor en Pessy`,
       html,
     });
-    console.log(`[EMAIL] ✅ Invitación co-tutor enviada a ${args.toEmail} (mascota: ${args.petName})`);
+    console.log(`[EMAIL] ✅ Invitación co-tutor enviada`);
   } catch (err) {
     console.error("[EMAIL] Error enviando invitación co-tutor:", err);
   }
@@ -1121,7 +1121,7 @@ export const sendScheduledNotifications = functions
           }
         }
 
-        console.log(`[CRON] ✅ Enviada: ${notification.title} → ${notification.petName}`);
+        console.log(`[CRON] ✅ Notificación enviada`);
       })
     );
 
@@ -2522,7 +2522,7 @@ export const sendCoTutorInvite = functions
           subject: `Te invitaron a ser guardián de ${petName} en PESSY`,
           html,
         });
-        console.log(`[COTUTORES] ✅ Invitación enviada a ${toEmail} (código ${inviteCode}, intento ${attempt})`);
+        console.log(`[COTUTORES] ✅ Invitación enviada`);
         lastErr = null;
         break;
       } catch (err: any) {
