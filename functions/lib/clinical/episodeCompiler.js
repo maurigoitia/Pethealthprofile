@@ -219,12 +219,13 @@ function buildEpisodeSeedFromEvent(row, id) {
     const specialty = cleanLabel((asArray(extracted.detectedAppointments)[0] || {}).specialty) || null;
     const episodeType = classifyEpisodeType(row);
     const status = confidence >= 0.85 ? "confirmed" : confidence >= 0.75 ? "draft" : "needs_clean_upload";
-    const headline = cleanLabel(extracted.suggestedTitle) ||
+    const headline = stripGenericTitle(asString(extracted.suggestedTitle)) ||
+        stripGenericTitle(asString(row.title)) ||
         (episodeType === "appointment"
             ? "Turno veterinario"
             : episodeType === "prescription"
                 ? ((_a = medications[0]) === null || _a === void 0 ? void 0 : _a.name) || "Prescripción"
-                : studies[0] || diagnoses[0] || cleanLabel(row.title, "Acto clínico"));
+                : studies[0] || diagnoses[0] || "Acto clínico");
     const narrativeParts = [
         diagnoses[0] ? `Diagnóstico principal: ${diagnoses[0]}.` : "",
         studies[0] ? `Estudio: ${studies[0]}.` : "",
@@ -252,11 +253,39 @@ function buildEpisodeSeedFromEvent(row, id) {
         source: inferSource(row),
     };
 }
+// Bucket dates into 2-day windows so the same study arriving via two emails
+// (one with the study date, one with the email-received date ±1 day) collapses
+// into a single episode group instead of producing two duplicate cards.
+function dateToBucket(date) {
+    const ts = parseTimestamp(date);
+    if (ts === null)
+        return date.slice(0, 10);
+    const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+    const bucketTs = Math.floor(ts / TWO_DAYS_MS) * TWO_DAYS_MS;
+    return new Date(bucketTs).toISOString().slice(0, 10);
+}
+const GENERIC_TITLE_PATTERNS = [
+    /^diagn[oó]stico detectado por correo$/i,
+    /^estudio detectado por correo$/i,
+    /^documento detectado por correo$/i,
+    /^documento$/i,
+    /^informe de estudio$/i,
+    /^resultado de laboratorio$/i,
+    /^diagn[oó]stico$/i,
+    /^turno programado$/i,
+    /^documento cl[ií]nico(?: de .*?)?$/i,
+];
+function stripGenericTitle(value) {
+    const cleaned = cleanLabel(value);
+    if (GENERIC_TITLE_PATTERNS.some((pattern) => pattern.test(cleaned)))
+        return "";
+    return cleaned;
+}
 function buildGroupKey(seed) {
     var _a;
     const providerKey = normalize(seed.provider.name || seed.provider.clinic || "sin_prestador");
     const actKey = normalize(seed.diagnoses[0] || seed.studies[0] || ((_a = seed.medications[0]) === null || _a === void 0 ? void 0 : _a.name) || seed.title || seed.episodeType);
-    return `${seed.date.slice(0, 10)}::${providerKey}::${seed.episodeType}::${actKey}`;
+    return `${dateToBucket(seed.date)}::${providerKey}::${seed.episodeType}::${actKey}`;
 }
 function mergeEpisodeSeeds(args) {
     const sorted = [...args.seeds].sort((a, b) => a.timestamp - b.timestamp);

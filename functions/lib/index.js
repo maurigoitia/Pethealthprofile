@@ -14,8 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteUserAccount = exports.backfillClinicalEpisodes = exports.backfillClinicalProjection = exports.onClinicalEventProjection = exports.syncTreatmentTimezoneV3 = exports.evaluateTreatmentDedupV3 = exports.recordDoseEventV3 = exports.markMissedTreatmentDosesV3 = exports.dispatchTreatmentRemindersV3 = exports.onTreatmentWriteScheduleV3 = exports.onMedicationWriteScheduleV3 = exports.uploadPetPhoto = exports.provisionPessyVertexDatastore = exports.pessyClinicalBrainGrounding = exports.ingestClinicalEmailWebhook = exports.cleanupLegacyMailsyncMedicalEvents = exports.backfillGmailTaxonomy = exports.backfillNarrativeHistory = exports.resetEmailImportClinicalData = exports.forceRunEmailClinicalIngestion = exports.runEmailClinicalAiWorker = exports.runEmailClinicalAttachmentWorker = exports.runEmailClinicalScanWorker = exports.runEmailClinicalIngestionQueue = exports.triggerEmailClinicalIngestion = exports.syncAppointmentCalendarEvent = exports.disconnectGmailSync = exports.gmailAuthCallback = exports.getGmailConnectUrl = exports.acceptCoTutorInvite = exports.sendCoTutorInvite = exports.resolveBrainPayload = exports.generateClinicalSummary = exports.analyzeDocument = exports.cleanupOldNotifications = exports.recomputeClinicalAlertsDaily = exports.reconcileExistingTreatments = exports.sendGmailSyncConsentReminders = exports.sendBroadcastPushCampaigns = exports.sendDailyCareSummary = exports.sendScheduledNotifications = exports.onUserCreatedSendWelcome = exports.pessySendCoTutorInvitation = exports.pessySendWelcomeEmail = exports.pessySendInvitationEmail = exports.nearbyVets = exports.computeAdoptionMatches = exports.onPetSighting = exports.onLostPetReport = exports.ingestHistory = void 0;
-exports.approveAccessRequest = exports.seedBrainKnowledge = exports.syncNotebookKnowledge = exports.submitDataDeletionRequest = exports.deleteAllUserClinicalData = void 0;
+exports.approveAccessRequest = exports.seedBrainKnowledge = exports.syncNotebookKnowledge = exports.submitDataDeletionRequest = exports.deleteAllUserClinicalData = exports.deleteUserAccount = exports.backfillClinicalEpisodes = exports.backfillClinicalProjection = exports.onClinicalEventProjection = exports.syncTreatmentTimezoneV3 = exports.evaluateTreatmentDedupV3 = exports.recordDoseEventV3 = exports.markMissedTreatmentDosesV3 = exports.dispatchTreatmentRemindersV3 = exports.onTreatmentWriteScheduleV3 = exports.onMedicationWriteScheduleV3 = exports.uploadPetPhoto = exports.provisionPessyVertexDatastore = exports.pessyClinicalBrainGrounding = exports.syncAppointmentCalendarEvent = exports.disconnectGmailSync = exports.gmailAuthCallback = exports.getGmailConnectUrl = exports.acceptCoTutorInvite = exports.sendCoTutorInvite = exports.resolveBrainPayload = exports.generateClinicalSummary = exports.analyzeDocument = exports.cleanupOldNotifications = exports.recomputeClinicalAlertsDaily = exports.reconcileExistingTreatments = exports.sendBroadcastPushCampaigns = exports.sendDailyCareSummary = exports.sendScheduledNotifications = exports.onUserCreatedSendWelcome = exports.pessySendCoTutorInvitation = exports.pessySendWelcomeEmail = exports.pessySendInvitationEmail = exports.nearbyVets = exports.computeAdoptionMatches = exports.onPetSighting = exports.onLostPetReport = exports.ingestHistory = void 0;
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const resend_1 = require("resend");
@@ -178,7 +177,7 @@ async function sendEmailReminder(args) {
             subject,
             html,
         });
-        console.log(`[EMAIL] ✅ Enviado a ${args.toEmail} — ${args.medicationName} (${args.minutesBefore}min antes)`);
+        console.log(`[EMAIL] ✅ Notificación de medicamento enviada`);
     }
     catch (err) {
         console.error("[EMAIL] Error enviando:", err);
@@ -230,7 +229,7 @@ async function sendInvitationEmail(args) {
             subject: "Te invitamos a probar Pessy",
             html,
         });
-        console.log(`[EMAIL] ✅ Invitación enviada a ${args.toEmail}`);
+        console.log(`[EMAIL] ✅ Invitación enviada`);
     }
     catch (err) {
         console.error("[EMAIL] Error enviando invitación:", err);
@@ -396,7 +395,7 @@ ${petDetail ? `<div style="font-size:13px;color:#666;margin-top:2px;">${petDetai
             subject: `${args.inviterName} te invitó a ser co-tutor en Pessy`,
             html,
         });
-        console.log(`[EMAIL] ✅ Invitación co-tutor enviada a ${args.toEmail} (mascota: ${args.petName})`);
+        console.log(`[EMAIL] ✅ Invitación co-tutor enviada`);
     }
     catch (err) {
         console.error("[EMAIL] Error enviando invitación co-tutor:", err);
@@ -456,18 +455,6 @@ Object.defineProperty(exports, "disconnectGmailSync", { enumerable: true, get: f
 Object.defineProperty(exports, "getGmailConnectUrl", { enumerable: true, get: function () { return oauth_1.getGmailConnectUrl; } });
 Object.defineProperty(exports, "gmailAuthCallback", { enumerable: true, get: function () { return oauth_1.gmailAuthCallback; } });
 Object.defineProperty(exports, "syncAppointmentCalendarEvent", { enumerable: true, get: function () { return oauth_1.syncAppointmentCalendarEvent; } });
-const clinicalIngestion_1 = require("./gmail/clinicalIngestion");
-Object.defineProperty(exports, "backfillNarrativeHistory", { enumerable: true, get: function () { return clinicalIngestion_1.backfillNarrativeHistory; } });
-Object.defineProperty(exports, "backfillGmailTaxonomy", { enumerable: true, get: function () { return clinicalIngestion_1.backfillGmailTaxonomy; } });
-Object.defineProperty(exports, "cleanupLegacyMailsyncMedicalEvents", { enumerable: true, get: function () { return clinicalIngestion_1.cleanupLegacyMailsyncMedicalEvents; } });
-Object.defineProperty(exports, "forceRunEmailClinicalIngestion", { enumerable: true, get: function () { return clinicalIngestion_1.forceRunEmailClinicalIngestion; } });
-Object.defineProperty(exports, "ingestClinicalEmailWebhook", { enumerable: true, get: function () { return clinicalIngestion_1.ingestClinicalEmailWebhook; } });
-Object.defineProperty(exports, "resetEmailImportClinicalData", { enumerable: true, get: function () { return clinicalIngestion_1.resetEmailImportClinicalData; } });
-Object.defineProperty(exports, "runEmailClinicalAiWorker", { enumerable: true, get: function () { return clinicalIngestion_1.runEmailClinicalAiWorker; } });
-Object.defineProperty(exports, "runEmailClinicalAttachmentWorker", { enumerable: true, get: function () { return clinicalIngestion_1.runEmailClinicalAttachmentWorker; } });
-Object.defineProperty(exports, "runEmailClinicalIngestionQueue", { enumerable: true, get: function () { return clinicalIngestion_1.runEmailClinicalIngestionQueue; } });
-Object.defineProperty(exports, "runEmailClinicalScanWorker", { enumerable: true, get: function () { return clinicalIngestion_1.runEmailClinicalScanWorker; } });
-Object.defineProperty(exports, "triggerEmailClinicalIngestion", { enumerable: true, get: function () { return clinicalIngestion_1.triggerEmailClinicalIngestion; } });
 const petPhotos_1 = require("./media/petPhotos");
 Object.defineProperty(exports, "uploadPetPhoto", { enumerable: true, get: function () { return petPhotos_1.uploadPetPhoto; } });
 const knowledgeBase_1 = require("./clinical/knowledgeBase");
@@ -1006,7 +993,7 @@ exports.sendScheduledNotifications = functions
                 }
             }
         }
-        console.log(`[CRON] ✅ Enviada: ${notification.title} → ${notification.petName}`);
+        console.log(`[CRON] ✅ Notificación enviada`);
     }));
     const failed = results.filter((r) => r.status === "rejected");
     if (failed.length > 0) {
@@ -1274,7 +1261,8 @@ exports.sendBroadcastPushCampaigns = functions.pubsub
 // - Usuarios sin Gmail Sync conectado
 // - Envío por push si hay token activo
 // ─────────────────────────────────────────────────────────────────────────────
-exports.sendGmailSyncConsentReminders = functions.pubsub
+// [GMAIL-EXTRACTION-DISABLED]
+const sendGmailSyncConsentReminders_DISABLED = functions.pubsub
     .schedule("every 24 hours")
     .onRun(async () => {
     const now = new Date();
@@ -2140,7 +2128,7 @@ exports.generateClinicalSummary = functions
 exports.resolveBrainPayload = functions
     .region("us-central1")
     .https.onCall(async (data, context) => {
-    var _a, _b, _c;
+    var _a, _b;
     if (!((_a = context.auth) === null || _a === void 0 ? void 0 : _a.uid)) {
         throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión para resolver datos clínicos.");
     }
@@ -2159,8 +2147,7 @@ exports.resolveBrainPayload = functions
         ? payload.entities.map((item) => asRecord(item))
         : [];
     const sourceMetadata = asRecord(data === null || data === void 0 ? void 0 : data.sourceMetadata);
-    const reviewThresholdRaw = Number((_c = data === null || data === void 0 ? void 0 : data.reviewThreshold) !== null && _c !== void 0 ? _c : 0.85);
-    const reviewThreshold = Number.isFinite(reviewThresholdRaw) ? reviewThresholdRaw : 0.85;
+    // GOLDEN RULE: reviewThreshold removed — always uses hardcoded DEFAULT_REVIEW_THRESHOLD.
     const result = await (0, brainResolver_1.resolveBrainOutput)({
         userId: context.auth.uid,
         brainOutput: {
@@ -2178,7 +2165,6 @@ exports.resolveBrainPayload = functions
             ui_hint: asRecord(payload.ui_hint),
         },
         sourceMetadata: Object.assign({ source: typeof sourceMetadata.source === "string" ? sourceMetadata.source : "manual" }, sourceMetadata),
-        reviewThreshold: Math.min(1, Math.max(0, reviewThreshold)),
     });
     return Object.assign({ ok: true }, result);
 });
@@ -2261,7 +2247,7 @@ exports.sendCoTutorInvite = functions
                 subject: `Te invitaron a ser guardián de ${petName} en PESSY`,
                 html,
             });
-            console.log(`[COTUTORES] ✅ Invitación enviada a ${toEmail} (código ${inviteCode}, intento ${attempt})`);
+            console.log(`[COTUTORES] ✅ Invitación enviada`);
             lastErr = null;
             break;
         }

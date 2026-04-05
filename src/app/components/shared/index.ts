@@ -9,3 +9,4 @@ export { default as MaterialIcon } from './MaterialIcon';
 export { default as RouteErrorFallback } from './RouteErrorFallback';
 export { default as SEO } from './SEO';
 export { default as Sidebar } from './Sidebar';
+export { ComprarCTA } from './ComprarCTA';

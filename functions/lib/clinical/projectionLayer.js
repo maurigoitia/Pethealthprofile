@@ -131,7 +131,8 @@ async function projectToMedicalEvent(args) {
             clinic: asString((_d = data.source_metadata) === null || _d === void 0 ? void 0 : _d.sender) || null,
             provider: null,
             diagnosis: diagnoses.map((d) => d.condition_name).filter(Boolean).join("; ") || null,
-            diagnosisConfidence: data.brain_confidence >= 0.85 ? "high" : "medium",
+            // Confidence is informational metadata — routing decisions are in ROUTING_TABLE
+            diagnosisConfidence: typeof data.brain_confidence === "number" && data.brain_confidence >= 0.85 ? "high" : "medium",
             observations: asString(data.primary_finding) || null,
             measurements: findings,
             medications: [],
@@ -295,13 +296,12 @@ async function projectClinicalEvent(clinicalEventId, data) {
     }
     const category = asString(data.category);
     const documentType = asString(data.document_type);
-    const confidence = typeof data.brain_confidence === "number" ? data.brain_confidence : 0;
-    // Forzar revisión si confianza baja o mascota no resuelta
-    const forceReview = confidence < 0.85
-        ? `Confianza baja (${Math.round(confidence * 100)}%) — verificar datos extraídos`
-        : !asString(data.petId)
-            ? "Mascota no identificada — asignar manualmente"
-            : undefined;
+    // GOLDEN RULE: Routing is DETERMINISTIC — based on category/documentType table,
+    // never on AI confidence. Confidence is logged as metadata only.
+    // Force review only for data-completeness reasons (missing pet), not AI scores.
+    const forceReview = !asString(data.petId)
+        ? "Mascota no identificada — asignar manualmente"
+        : undefined;
     const decision = resolveRouting(category, documentType, forceReview);
     let projectedDocId;
     switch (decision.collection) {

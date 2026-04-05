@@ -17,10 +17,9 @@ const GOOGLE_PLACES_API_KEY = (0, params_1.defineSecret)("GOOGLE_PLACES_API_KEY"
  */
 exports.nearbyVets = functions
     .runWith({
-    // Increase timeout for API calls
     timeoutSeconds: 30,
-    // Set memory to handle requests
     memory: "256MB",
+    secrets: ["GOOGLE_PLACES_API_KEY"],
 })
     .https.onCall(async (requestData, context) => {
     const uid = (0, authGuard_1.requireCallableAuth)(context);

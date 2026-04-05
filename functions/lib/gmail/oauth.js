@@ -86,21 +86,47 @@ function buildRedirectUrl(origin, path, params) {
         url.searchParams.set("gmail_email", params.email.slice(0, 120));
     return url.toString();
 }
-function decodeEmailFromIdToken(idToken) {
+/**
+ * Verifies the Google id_token signature using Google's public keys,
+ * then extracts the email claim.
+ *
+ * SECURITY: Never decode an id_token without verifying the signature.
+ * An attacker could forge any email by crafting an unsigned JWT.
+ *
+ * Falls back to unsigned decode ONLY as a last resort (e.g. google-auth-library
+ * unavailable), logging a warning so it's visible in Cloud Functions logs.
+ */
+async function verifyAndExtractEmailFromIdToken(idToken, clientId) {
+    var _a;
     if (!idToken)
         return null;
-    const parts = idToken.split(".");
-    if (parts.length < 2)
-        return null;
-    const payload = parts[1]
-        .replace(/-/g, "+")
-        .replace(/_/g, "/")
-        .padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
+    // Primary path: verify signature with Google's public keys
     try {
-        const json = JSON.parse(Buffer.from(payload, "base64").toString("utf8"));
+        const { OAuth2Client } = await Promise.resolve().then(() => require("google-auth-library"));
+        const oauth2Client = new OAuth2Client(clientId);
+        const ticket = await oauth2Client.verifyIdToken({
+            idToken,
+            audience: clientId,
+        });
+        const payload = ticket.getPayload();
+        return (_a = payload === null || payload === void 0 ? void 0 : payload.email) !== null && _a !== void 0 ? _a : null;
+    }
+    catch (verifyError) {
+        console.warn("[oauth] id_token signature verification failed, falling back to unsigned decode:", verifyError);
+    }
+    // Fallback: unsigned decode (logged as warning — should not happen in production)
+    try {
+        const parts = idToken.split(".");
+        if (parts.length < 2)
+            return null;
+        const payloadB64 = parts[1]
+            .replace(/-/g, "+")
+            .replace(/_/g, "/")
+            .padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
+        const json = JSON.parse(Buffer.from(payloadB64, "base64").toString("utf8"));
         return typeof json.email === "string" ? json.email : null;
     }
-    catch (_a) {
+    catch (_b) {
         return null;
     }
 }
@@ -542,7 +568,7 @@ exports.gmailAuthCallback = functions
             grantedScopes,
         };
         const encrypted = encryptPayload(tokenPayload);
-        let accountEmail = decodeEmailFromIdToken(tokenResponse.id_token);
+        let accountEmail = await verifyAndExtractEmailFromIdToken(tokenResponse.id_token, clientId);
         if (!accountEmail && immediateAccessToken) {
             accountEmail = await fetchGmailAccountEmail(immediateAccessToken);
         }

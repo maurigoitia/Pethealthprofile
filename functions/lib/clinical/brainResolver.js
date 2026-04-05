@@ -195,9 +195,9 @@ function computeReviewReason(args) {
     return null;
 }
 async function resolveBrainOutput(args) {
-    var _a;
     const nowIso = new Date().toISOString();
-    const threshold = clamp((_a = args.reviewThreshold) !== null && _a !== void 0 ? _a : DEFAULT_REVIEW_THRESHOLD, 0, 1);
+    // GOLDEN RULE: threshold is hardcoded, never overridable by callers.
+    const threshold = DEFAULT_REVIEW_THRESHOLD;
     const confidence = clamp(Number(args.brainOutput.confidence || 0), 0, 1);
     const reviewRequired = args.brainOutput.review_required === true;
     const categoryRaw = asString(args.brainOutput.category);
