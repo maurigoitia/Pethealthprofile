@@ -32,7 +32,7 @@ export function WelcomeScreen() {
             AI-powered
           </div>
           <h1 className="mx-auto max-w-3xl text-6xl font-black leading-[0.95] tracking-tight text-slate-900 md:text-8xl">
-            Porque quererlo ya es suficiente trabajo.
+            Tu mascota, sus cosas, todo en orden.
           </h1>
           <p className="mx-auto mt-8 max-w-3xl text-2xl font-semibold leading-relaxed text-slate-500 md:text-3xl">
             Pessy lo maneja. Vos lo disfrutás.

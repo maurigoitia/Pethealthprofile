@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Sun, CalendarCheck, Users, Fingerprint, ArrowRight, Check } from "lucide-react";
+import { Sun, CalendarCheck, Heart, Fingerprint, ArrowRight, Check } from "lucide-react";
 
 interface OnboardingSlidesProps {
   onComplete: () => void;
@@ -10,33 +10,33 @@ const SLIDES = [
     icon: Sun,
     color: "#1A9B7D",
     bg: "#E0F2F1",
-    title: "Día a Día",
-    subtitle: "Todo lo de tu mascota, en un solo lugar",
-    description: "Registrá síntomas, seguí el ánimo y recibí orientación personalizada. Pessy organiza la información para que vos solo te ocupes de querer.",
+    title: "Tu mascota, sus cosas",
+    subtitle: "Todo en orden",
+    description: "Pessy te ayuda a llevar el día a día de tu mascota sin que tengas que pensar.",
   },
   {
     icon: CalendarCheck,
     color: "#3B82F6",
     bg: "#EFF6FF",
-    title: "Rutinas",
-    subtitle: "Citas, medicamentos y recordatorios",
-    description: "Nunca más un turno olvidado ni una dosis salteada. Pessy te avisa lo justo y lo importante.",
+    title: "Rutinas y recordatorios",
+    subtitle: "Vacunas, medicamentos, paseos",
+    description: "Vacunas, medicamentos, paseos. Pessy avisa antes de que venza o se olvide.",
   },
   {
-    icon: Users,
+    icon: Heart,
     color: "#F59E0B",
     bg: "#FFFBEB",
-    title: "Comunidad",
-    subtitle: "Perdidos, encontrados y adopción",
-    description: "Una red de tutores que se ayudan. Publicá alertas, encontrá mascotas y conectá con otros tutores cerca tuyo.",
+    title: "Mascotas perdidas y adopción",
+    subtitle: "Ayudá a encontrar y conectar",
+    description: "Ayudá a encontrar mascotas perdidas cerca tuyo y conectá con mascotas en adopción.",
   },
   {
     icon: Fingerprint,
     color: "#8B5CF6",
     bg: "#F5F3FF",
-    title: "Identidad Digital",
-    subtitle: "El perfil único de tu mascota",
-    description: "Historial clínico, vacunas, co-tutores y QR. Todo verificable, todo en un lugar seguro.",
+    title: "Todo en un lugar",
+    subtitle: "Documentos, historial, datos",
+    description: "Documentos, historial, datos — guardados y listos cuando los necesitás.",
   },
 ];
 

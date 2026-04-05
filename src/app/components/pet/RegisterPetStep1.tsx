@@ -4,9 +4,26 @@ import { CAT_BREEDS, DOG_BREEDS, OTHER_BREEDS } from "../../data/breeds";
 import { searchBreeds } from "../../utils/breedSearch";
 import { AuthPageShell } from "../auth/AuthPageShell";
 
+const ONBOARDING_PET_DRAFT_KEY = "pessy_onboarding_pet_draft";
+
+function getInitialFromDraft<T>(field: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.localStorage.getItem(ONBOARDING_PET_DRAFT_KEY);
+    if (!raw) return fallback;
+    const draft = JSON.parse(raw) as Record<string, unknown>;
+    return (draft[field] as T) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export function RegisterPetStep1() {
   const navigate = useNavigate();
   const [name, setName] = useState(() => {
+    // Prefer onboarding draft, then landing prefill
+    const draftName = getInitialFromDraft<string>("name", "");
+    if (draftName) return draftName;
     if (typeof window === "undefined") return "";
     try {
       const raw = window.localStorage.getItem("pessy_landing_prefill");
@@ -17,8 +34,12 @@ export function RegisterPetStep1() {
       return "";
     }
   });
-  const [species, setSpecies] = useState<"dog" | "cat" | "other">("dog");
-  const [breedInput, setBreedInput] = useState("");
+  const [species, setSpecies] = useState<"dog" | "cat" | "other">(() =>
+    getInitialFromDraft<"dog" | "cat" | "other">("species", "dog")
+  );
+  const [breedInput, setBreedInput] = useState(() =>
+    getInitialFromDraft<string>("breed", "")
+  );
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [breedSuggestions, setBreedSuggestions] = useState<string[]>([]);
 
