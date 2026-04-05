@@ -145,7 +145,7 @@ export default function LegalPage() {
               href="#terminos"
               icon={<FileText className="size-6" />}
               title="Terminos y Condiciones"
-              desc="Condiciones de uso del ecosistema Pessy, planes y responsabilidades."
+              desc="Condiciones de uso de Pessy, planes y responsabilidades."
             />
             <Card 
               href="#dpa"
@@ -315,7 +315,7 @@ export default function LegalPage() {
           title="Acuerdo de Procesamiento (DPA)" 
           meta="Version 1.0 · Marzo 2026"
           onBackTop={scrollToTop}>
-          <p className="mb-8 font-medium">Este Acuerdo de Procesamiento de Datos (<strong className="text-[#074738]">"DPA"</strong>) rige el tratamiento de Datos Personales en el marco de la provision del ecosistema Pessy.</p>
+          <p className="mb-8 font-medium">Este Acuerdo de Procesamiento de Datos (<strong className="text-[#074738]">"DPA"</strong>) rige el tratamiento de Datos Personales en el marco de la provisión del servicio Pessy.</p>
 
           <SectionTitle>1. Roles</SectionTitle>
           <p>Pessy actua como <strong className="font-black text-slate-900">Encargado/Procesador</strong>. El Cliente/usuario actua como <strong className="font-black text-slate-900">Responsable/Controlador</strong>. Pessy tratara los datos unicamente segun las instrucciones del Cliente y la legislacion aplicable.</p>

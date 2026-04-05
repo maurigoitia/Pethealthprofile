@@ -57,7 +57,7 @@ export function AboutScreen({ onBack }: AboutScreenProps) {
               ¿Qué es PESSY?
             </h3>
             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-3">
-              PESSY es un ecosistema de cuidado y organizacion para mascotas que te ayuda a
+              Pessy te ayuda a llevar el día a día de tu mascota:
               mantener en orden su perfil, sus documentos, sus rutinas y sus recordatorios.
             </p>
             <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
