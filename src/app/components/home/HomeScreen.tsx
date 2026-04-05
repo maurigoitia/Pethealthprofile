@@ -208,6 +208,16 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
+
+    // ?viewmode=nearby-vets (from ClinicalReviewScreen Vet Booking Bridge)
+    const viewmode = params.get("viewmode");
+    if (viewmode === "nearby-vets") {
+      setCurrentTab("dia-a-dia");
+      setViewMode("nearby-vets");
+      return;
+    }
+
+    // ?review=... (existing deep-link pattern)
     const review = params.get("review");
     if (!review) return;
 

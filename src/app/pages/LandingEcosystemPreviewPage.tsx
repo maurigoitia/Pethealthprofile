@@ -635,7 +635,7 @@ export default function LandingEcosystemPreviewPage() {
                 <span
                   className="mb-3 block text-[11px] font-bold uppercase tracking-[0.25em] text-[#99d2be]"
                   style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
-                  Ecosistema digital
+                  Tu mascota conectada
                 </span>
                 <div className="flex flex-wrap gap-3">
                   {ecosystemChips.map((chip) => (
@@ -722,7 +722,7 @@ export default function LandingEcosystemPreviewPage() {
                 Nuestras suscripciones
               </h2>
               <p className="text-xl font-medium text-[#404945]">
-                Pensadas para resolver compras, envios y beneficios sin salir del ecosistema Pessy.
+                Cada plan conecta más. Base organiza. Premium conecta. Familiar conecta a toda la familia.
               </p>
             </div>
 

@@ -363,7 +363,7 @@ export function FocusedHomeExperience({
                     onClick={onOpenAppointments}
                     className="rounded-[14px] bg-[#1A9B7D] px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-white"
                   >
-                    Ver
+                    Agendar
                   </button>
                 </div>
               </div>
