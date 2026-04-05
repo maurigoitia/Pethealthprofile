@@ -639,6 +639,7 @@ export default function HomeScreen() {
                   onAppointmentsClick={() => setViewMode("appointments")}
                   onMedicationsClick={() => setViewMode("medications")}
                   onOpenScanner={handleOpenScanner}
+                  onOpenNearbyVets={() => setViewMode("nearby-vets")}
                   pets={pets}
                   activePetId={activePetId}
                   onPetChange={handlePetChange}

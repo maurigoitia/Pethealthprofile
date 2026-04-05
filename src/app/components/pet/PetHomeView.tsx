@@ -33,6 +33,7 @@ import PessyDailyCheckin from "../home/PessyDailyCheckin";
 import { EcosystemRow } from "../home/EcosystemRow";
 import PersonalityOnboarding from "./PersonalityOnboarding";
 import BreedInsightCard from "../home/BreedInsightCard";
+import { VaccineAlertBanner } from "../home/VaccineAlertBanner";
 import { detectWalkPattern } from "../../../domain/intelligence/walkPatternDetector";
 import { useWalks } from "../../contexts/WalkContext";
 
@@ -65,6 +66,7 @@ interface PetHomeViewProps {
   onAppointmentsClick: () => void;
   onMedicationsClick: () => void;
   onOpenScanner?: () => void;
+  onOpenNearbyVets?: () => void;
   pets: Array<{
     id: string;
     name: string;
@@ -386,6 +388,7 @@ export function PetHomeView({
   onViewHistory,
   onProfileClick,
   onOpenScanner,
+  onOpenNearbyVets,
   onPetClick,
   onAppointmentsClick,
   onMedicationsClick,
@@ -935,6 +938,14 @@ export function PetHomeView({
               )}
             </div>
           </div>
+        )}
+
+        {/* ── VACCINE ALERT BANNER — Connection Rule: 1-tap to book vet ── */}
+        {onOpenNearbyVets && (
+          <VaccineAlertBanner
+            petName={activePet.name}
+            onOpenNearbyVets={onOpenNearbyVets}
+          />
         )}
 
         {/* ── SECTION 2: Cork/Fizz — the ONE most important thing right now ── */}
