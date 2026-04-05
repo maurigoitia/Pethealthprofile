@@ -60,6 +60,7 @@ interface PetHomeViewProps {
   onPetClick: () => void;
   onAppointmentsClick: () => void;
   onMedicationsClick: () => void;
+  onOpenScanner?: () => void;
   pets: Array<{
     id: string;
     name: string;
@@ -380,6 +381,7 @@ function mapRecToTipColor(rec: PessyIntelligenceRecommendation): "green" | "blue
 export function PetHomeView({
   onViewHistory,
   onProfileClick,
+  onOpenScanner,
   onPetClick,
   onAppointmentsClick,
   onMedicationsClick,
@@ -990,6 +992,33 @@ export function PetHomeView({
         )}
 
         {/* ── SECTION 4: Pessy te dice — 1-2 real tips ── */}
+        {sortedRecommendations.length === 0 && historyCount === 0 && (
+          <div className="mx-3 mt-3">
+            <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+              <div className="flex items-start gap-3">
+                <div className="size-10 rounded-xl bg-[#E0F2F1] flex items-center justify-center shrink-0">
+                  <span className="text-lg">📋</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-[#074738]">
+                    {activePet?.name ? `Sumá el primer registro de ${activePet.name}` : "Sumá el primer registro"}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                    {activePet?.breed
+                      ? `Con el historial de un ${activePet.breed}, Pessy puede darte sugerencias específicas.`
+                      : "Con historial médico, Pessy puede darte sugerencias útiles."}
+                  </p>
+                  <button
+                    onClick={onOpenScanner}
+                    className="mt-3 px-4 py-2 rounded-xl bg-[#074738] text-white text-xs font-bold"
+                  >
+                    Agregar documento
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {sortedRecommendations.length > 0 && (
           <div className="mx-3 mt-3 space-y-2">
             {sortedRecommendations.slice(0, 2).map((rec) => {

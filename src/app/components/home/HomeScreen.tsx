@@ -638,6 +638,7 @@ export default function HomeScreen() {
                   onPetClick={() => setShowPetSelector(true)}
                   onAppointmentsClick={() => setViewMode("appointments")}
                   onMedicationsClick={() => setViewMode("medications")}
+                  onOpenScanner={handleOpenScanner}
                   pets={pets}
                   activePetId={activePetId}
                   onPetChange={handlePetChange}
