@@ -1,7 +1,7 @@
 /**
  * Random Question Pool
  *
- * Micro-preguntas que aparecen 1 por sesión para construir el perfil del dueño.
+ * Micro-preguntas que aparecen 1 por sesión para construir el perfil del tutor.
  * Cada respuesta genera tags que alimentan el motor de recomendaciones.
  *
  * Reglas:
@@ -60,7 +60,7 @@ export const QUESTION_POOL: RandomQuestion[] = [
   {
     id: "social-otros-duenos",
     category: "social",
-    text: "¿Te gusta charlar con otros dueños en el paseo?",
+    text: "¿Te gusta charlar con otros tutores en el paseo?",
     options: [
       { label: "Sí, siempre", value: "always", tag: "social_owner" },
       { label: "A veces", value: "sometimes", tag: "casual_social" },

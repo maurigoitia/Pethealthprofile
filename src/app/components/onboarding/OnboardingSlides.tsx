@@ -28,7 +28,7 @@ const SLIDES = [
     bg: "#FFFBEB",
     title: "Comunidad",
     subtitle: "Perdidos, encontrados y adopción",
-    description: "Una red de tutores que se ayudan. Publicá alertas, encontrá mascotas y conectá con otros dueños cerca tuyo.",
+    description: "Una red de tutores que se ayudan. Publicá alertas, encontrá mascotas y conectá con otros tutores cerca tuyo.",
   },
   {
     icon: Fingerprint,

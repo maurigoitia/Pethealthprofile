@@ -115,7 +115,7 @@ export function FoundPetFeed({ onReport, onBack, hideHeader }: Props) {
         <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-3 mb-4 flex gap-2.5">
           <MaterialIcon name="info" className="text-amber-600 text-lg flex-shrink-0 mt-0.5" />
           <p className="text-xs text-amber-800 dark:text-amber-200 leading-relaxed">
-            Estas mascotas fueron encontradas por personas que quieren ayudar a reunirlas con sus dueños. Si reconocés a tu mascota, contactá al finder.
+            Estas mascotas fueron encontradas por personas que quieren ayudar a reunirlas con sus tutores. Si reconocés a tu mascota, contactá al finder.
           </p>
         </div>
 
@@ -128,7 +128,7 @@ export function FoundPetFeed({ onReport, onBack, hideHeader }: Props) {
             <MaterialIcon name="location_searching" className="text-5xl text-[#1A9B7D]/30 mb-3" />
             <p className="text-base font-semibold text-slate-700 dark:text-slate-300">No hay reportes en tu zona</p>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Si encontraste una mascota extraviada, reportala para ayudar a su dueño.
+              Si encontraste una mascota extraviada, reportala para ayudar a su tutor.
             </p>
             <button
               onClick={onReport}

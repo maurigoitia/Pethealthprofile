@@ -295,7 +295,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                       </p>
                       <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 rounded-xl text-xs text-amber-800 dark:text-amber-300">
                         <MaterialIcon name="info" className="text-sm inline mr-1 align-text-bottom" />
-                        Solo el dueño puede gestionar otros accesos o eliminar la mascota.
+                        Solo el tutor puede gestionar otros accesos o eliminar la mascota.
                       </div>
                       <button onClick={handleLeave}
                         className="w-full py-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 text-red-600 font-bold text-sm">
@@ -310,7 +310,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                 <div className="space-y-4">
                   <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4">
                     <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Ingresar código de invitación</p>
-                    <p className="text-xs text-slate-500 mb-3">Si recibiste magic link por email, abrilo directamente. Si no, pedile al dueño un código y escribilo acá.</p>
+                    <p className="text-xs text-slate-500 mb-3">Si recibiste magic link por email, abrilo directamente. Si no, pedile al tutor un código y escribilo acá.</p>
                     <input
                       value={joinCode}
                       onChange={(e) => setJoinCode(e.target.value.toUpperCase())}

@@ -336,7 +336,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
     const petSnap = await getDoc(petRef);
     if (!petSnap.exists()) throw new Error("Mascota no encontrada");
     const petData = petSnap.data();
-    if (petData.ownerId !== user.uid) throw new Error("Solo el dueño puede invitar co-tutores");
+    if (petData.ownerId !== user.uid) throw new Error("Solo el tutor puede invitar co-tutores");
 
     const CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     const bytes = crypto.getRandomValues(new Uint8Array(6));

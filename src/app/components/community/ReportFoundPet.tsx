@@ -101,7 +101,7 @@ export function ReportFoundPet({ onBack, onSuccess }: Props) {
         </button>
         <div className="flex-1 min-w-0">
           <h1 className="text-lg font-bold text-[#074738] dark:text-white">Encontré una mascota</h1>
-          <p className="text-xs text-slate-500">Ayudame a reunirla con su dueño/a</p>
+          <p className="text-xs text-slate-500">Ayudame a reunirla con su tutor</p>
         </div>
       </div>
 
@@ -115,7 +115,7 @@ export function ReportFoundPet({ onBack, onSuccess }: Props) {
               Gracias por ayudar 🐾
             </p>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Tu reporte se usará para contactar al dueño/a. No implica adopción ni transferencia — sos un/a samaritano/a ayudando a reunir a esta mascota con su familia.
+              Tu reporte se usará para contactar al tutor. No implica adopción ni transferencia — sos un/a samaritano/a ayudando a reunir a esta mascota con su familia.
             </p>
           </div>
         </div>
@@ -224,7 +224,7 @@ export function ReportFoundPet({ onBack, onSuccess }: Props) {
             type="text"
             value={contactName}
             onChange={(e) => setContactName(e.target.value)}
-            placeholder="Para que el dueño/a pueda contactarte"
+            placeholder="Para que el tutor pueda contactarte"
             className="w-full h-[44px] px-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#1A9B7D]"
           />
         </div>
@@ -258,7 +258,7 @@ export function ReportFoundPet({ onBack, onSuccess }: Props) {
         </button>
 
         <p className="text-xs text-center text-slate-400 pb-4">
-          Este reporte ayuda a reunir a la mascota con su dueño/a. No implica adopción.
+          Este reporte ayuda a reunir a la mascota con su tutor. No implica adopción.
         </p>
       </div>
     </div>
