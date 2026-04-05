@@ -207,6 +207,21 @@ export default defineConfig({
             './src/app/utils/medicalRulesEngine',
             './src/app/utils/deduplication',
           ],
+          // Domain intelligence — heavy data modules, loaded on demand
+          'domain-intelligence': [
+            './src/domain/intelligence/pessyIntelligenceEngine',
+            './src/domain/intelligence/breedInsights',
+            './src/domain/intelligence/walkPatternDetector',
+            './src/domain/intelligence/smartSuggestionGenerator',
+            './src/domain/wellbeing/wellbeingMasterBook',
+          ],
+          // App services — used only in specific flows
+          'app-services': [
+            './src/app/services/analysisService',
+            './src/app/services/dataExportService',
+            './src/app/services/accountDeletionService',
+            './src/app/services/brainKnowledgeService',
+          ],
         },
       },
     },
