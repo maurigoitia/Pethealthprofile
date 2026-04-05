@@ -15,6 +15,7 @@ import { evaluateDocumentForReview, ReviewTarget } from "../utils/medicalRulesEn
 import { parseDateSafe } from "../utils/dateUtils";
 import { downloadIcsEvent } from "../utils/calendarExport";
 import { useStorageQuota } from "../hooks/useStorageQuota";
+import { VoiceInputButton } from "./VoiceInputButton";
 
 interface DocumentScannerModalProps {
   isOpen: boolean;
@@ -620,22 +621,34 @@ export function DocumentScannerModal({
                         <div className="grid grid-cols-1 gap-3">
                           <label className="space-y-1">
                             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Cada cuánto lo toma</span>
-                            <input
-                              value={item.frequency}
-                              onChange={(event) => updateTreatmentItem(item.id, { frequency: event.target.value })}
-                              className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
-                              placeholder="Ej: cada 12 horas"
-                            />
+                            <div className="flex items-center gap-2">
+                              <input
+                                value={item.frequency}
+                                onChange={(event) => updateTreatmentItem(item.id, { frequency: event.target.value })}
+                                className="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+                                placeholder="Ej: cada 12 horas"
+                              />
+                              <VoiceInputButton
+                                onTranscript={(text) => updateTreatmentItem(item.id, { frequency: item.frequency + (item.frequency ? " " : "") + text })}
+                                className="size-10"
+                              />
+                            </div>
                           </label>
 
                           <label className="space-y-1">
                             <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Por cuánto tiempo</span>
-                            <input
-                              value={item.duration}
-                              onChange={(event) => updateTreatmentItem(item.id, { duration: event.target.value })}
-                              className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
-                              placeholder="Ej: 10 días / 2 semanas / crónico"
-                            />
+                            <div className="flex items-center gap-2">
+                              <input
+                                value={item.duration}
+                                onChange={(event) => updateTreatmentItem(item.id, { duration: event.target.value })}
+                                className="flex-1 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+                                placeholder="Ej: 10 días / 2 semanas / crónico"
+                              />
+                              <VoiceInputButton
+                                onTranscript={(text) => updateTreatmentItem(item.id, { duration: item.duration + (item.duration ? " " : "") + text })}
+                                className="size-10"
+                              />
+                            </div>
                           </label>
                         </div>
 

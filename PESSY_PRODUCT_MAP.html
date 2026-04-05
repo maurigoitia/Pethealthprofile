@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pessy — Mapa de Producto</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f8f7f4;
+    color: #1a1a1a;
+    padding: 40px 24px;
+  }
+  .page { max-width: 1100px; margin: 0 auto; }
+
+  .header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+  }
+  .header p {
+    font-size: 15px;
+    color: #666;
+    max-width: 560px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+  .tag-norte {
+    display: inline-block;
+    background: #fff3d6;
+    color: #92600a;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+    border: 1px solid #f5d88a;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #555;
+  }
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-done { background: #22c55e; }
+  .dot-sprint { background: #f59e0b; }
+  .dot-pending { background: #d1d5db; border: 1.5px solid #9ca3af; }
+  .dot-blocked { background: #f87171; }
+  .dot-manual { background: #a78bfa; }
+
+  /* Pillars grid */
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+
+  .pillar {
+    background: #fff;
+    border-radius: 16px;
+    border: 1.5px solid #e8e4dc;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+
+  .pillar-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid #f0ede6;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .pillar-icon {
+    font-size: 24px;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+  .pillar-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a1a1a;
+    line-height: 1.2;
+  }
+  .pillar-sub {
+    font-size: 12px;
+    color: #888;
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+
+  .pillar-body {
+    padding: 16px 20px;
+  }
+
+  .feature {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f5f3ef;
+    font-size: 13.5px;
+    line-height: 1.4;
+  }
+  .feature:last-child { border-bottom: none; }
+
+  .feature-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 3px;
+  }
+  .feature-text { color: #333; flex: 1; }
+  .feature-tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .tag-done { background: #dcfce7; color: #15803d; }
+  .tag-sprint { background: #fef9c3; color: #92600a; }
+  .tag-pending { background: #f1f5f9; color: #64748b; }
+  .tag-blocked { background: #fee2e2; color: #b91c1c; }
+  .tag-manual { background: #ede9fe; color: #6d28d9; }
+  .tag-beta { background: #e0f2fe; color: #0369a1; }
+
+  /* Colors per pillar */
+  .p1 .pillar-icon { background: #fff3d6; }
+  .p2 .pillar-icon { background: #dcfce7; }
+  .p3 .pillar-icon { background: #dbeafe; }
+  .p4 .pillar-icon { background: #fce7f3; }
+  .p5 .pillar-icon { background: #f3e8ff; }
+  .p6 .pillar-icon { background: #fff7ed; }
+
+  /* Norte section */
+  .norte-section {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    border-radius: 16px;
+    padding: 28px 32px;
+    margin-bottom: 32px;
+    color: white;
+  }
+  .norte-section h2 {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    opacity: 0.9;
+  }
+  .norte-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .norte-item {
+    background: rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .norte-item .label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #f59e0b;
+    margin-bottom: 6px;
+  }
+  .norte-item .value {
+    font-size: 14px;
+    color: rgba(255,255,255,0.85);
+    line-height: 1.5;
+  }
+
+  /* What NOT to add */
+  .boundary-box {
+    background: #fff8f8;
+    border: 1.5px solid #fca5a5;
+    border-radius: 16px;
+    padding: 24px 28px;
+    margin-bottom: 32px;
+  }
+  .boundary-box h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #b91c1c;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .boundary-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .boundary-item {
+    background: #fee2e2;
+    color: #991b1b;
+    font-size: 13px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  /* Sprint banner */
+  .sprint-banner {
+    background: #fffbeb;
+    border: 1.5px solid #f59e0b;
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+  }
+  .sprint-banner h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #92600a;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .sprint-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .sprint-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13.5px;
+    color: #333;
+  }
+  .sprint-num {
+    background: #f59e0b;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+
+  .footer-note {
+    text-align: center;
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #e5e1da;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="tag-norte">🗺️ Mapa de Producto — Pessy v1</div>
+    <h1>Lo que es Pessy. Lo que falta. Lo que no va.</h1>
+    <p>Para dejar de agregar cosas random y terminar lo que importa. Todo lo que no está en este mapa, no entra al sprint.</p>
+  </div>
+
+  <!-- Norte -->
+  <div class="norte-section">
+    <h2>🧭 Norte del producto</h2>
+    <div class="norte-grid">
+      <div class="norte-item">
+        <div class="label">Qué es Pessy</div>
+        <div class="value">Una app para llevar el día a día de tu mascota: rutinas, salud, turnos, cuidados — todo en un lugar.</div>
+      </div>
+      <div class="norte-item">
+        <div class="label">Para quién</div>
+        <div class="value">Tutores de mascotas que quieren estar al día sin olvidar nada. Sin buscar, sin improvisar.</div>
+      </div>
+      <div class="norte-item">
+        <div class="label">Diferencial (Build Rule)</div>
+        <div class="value">Pessy ya conoce a tu mascota y te da el siguiente paso concreto — no info genérica.</div>
+      </div>
+      <div class="norte-item">
+        <div class="label">Lo que NO es</div>
+        <div class="value">No es marketplace. No es red social. No es directorio de vets. No reemplaza al veterinario.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sprint actual -->
+  <div class="sprint-banner">
+    <h3>⚡ Sprint activo — en este orden, sin saltearse</h3>
+    <div class="sprint-items">
+      <div class="sprint-item"><span class="sprint-num">SCRUM-68</span> NearbyVets con Google Maps real (reemplazar búsqueda simulada)</div>
+      <div class="sprint-item"><span class="sprint-num">SCRUM-72</span> Optimizar Comunidad — feed y posts (solo: mascotas perdidas + adopción)</div>
+      <div class="sprint-item"><span class="sprint-num">SCRUM-82</span> Documentar arquitectura técnica actualizada</div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><span class="dot dot-done"></span> Listo y en prod</div>
+    <div class="legend-item"><span class="dot dot-sprint"></span> En sprint activo</div>
+    <div class="legend-item"><span class="dot dot-pending"></span> Pendiente (backlog)</div>
+    <div class="legend-item"><span class="dot dot-blocked"></span> Bloqueado</div>
+    <div class="legend-item"><span class="dot dot-manual"></span> Manual (Mauri)</div>
+  </div>
+
+  <!-- Pillars -->
+  <div class="pillars">
+
+    <!-- P1: Perfil -->
+    <div class="pillar p1">
+      <div class="pillar-header">
+        <div class="pillar-icon">🐾</div>
+        <div>
+          <div class="pillar-title">Pilar 1 — Perfil de mascota</div>
+          <div class="pillar-sub">La base de todo. Sin perfil, no hay Pessy.</div>
+        </div>
+      </div>
+      <div class="pillar-body">
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Registro de mascota (nombre, raza, edad, especie)</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Foto de mascota con upload</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Co-tutor (invitar a otra persona)</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Múltiples mascotas por cuenta</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Personalidad / preferencias de la mascota</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- P2: Salud -->
+    <div class="pillar p2">
+      <div class="pillar-header">
+        <div class="pillar-icon">💊</div>
+        <div>
+          <div class="pillar-title">Pilar 2 — Salud & historial clínico</div>
+          <div class="pillar-sub">El núcleo médico. El motor de las conexiones contextuales.</div>
+        </div>
+      </div>
+      <div class="pillar-body">
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Timeline clínico (eventos médicos)</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Vacunas con fechas y vencimiento</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Medicamentos y tratamientos</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Turnos veterinarios</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Escaneo de documentos / informes</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Exportar reporte PDF</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-pending"></div>
+          <div class="feature-text">Módulo veterinario completo (BETA — no conectar aún)</div>
+          <span class="feature-tag tag-beta">BETA</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- P3: Rutinas -->
+    <div class="pillar p3">
+      <div class="pillar-header">
+        <div class="pillar-icon">📅</div>
+        <div>
+          <div class="pillar-title">Pilar 3 — Rutinas & recordatorios</div>
+          <div class="pillar-sub">El día a día real. Lo que hace a Pessy útil a diario.</div>
+        </div>
+      </div>
+      <div class="pillar-body">
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Recordatorios con push notifications</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Checklists diarias (baño, paseo, comida)</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Quick actions desde el home</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Resumen mensual de actividad</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Hub de rutinas (RutinasHub)</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- P4: Conexiones contextuales -->
+    <div class="pillar p4">
+      <div class="pillar-header">
+        <div class="pillar-icon">🔗</div>
+        <div>
+          <div class="pillar-title">Pilar 4 — Conexiones contextuales</div>
+          <div class="pillar-sub">El diferencial de Pessy. Datos de la mascota → acción concreta.</div>
+        </div>
+      </div>
+      <div class="pillar-body">
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Vets cercanos (UI lista, datos mock)</div>
+          <span class="feature-tag tag-done">UI lista</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-sprint"></div>
+          <div class="feature-text">Vets cercanos con Google Maps real (SCRUM-68)</div>
+          <span class="feature-tag tag-sprint">Sprint</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-pending"></div>
+          <div class="feature-text">Vacuna por vencer → vet con turno disponible</div>
+          <span class="feature-tag tag-pending">Backlog</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-pending"></div>
+          <div class="feature-text">Alimento X → sugerencia específica (sin link de compra por ahora)</div>
+          <span class="feature-tag tag-pending">Backlog</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-pending"></div>
+          <div class="feature-text">Medicamento por agotar → farmacias cercanas con stock</div>
+          <span class="feature-tag tag-pending">Backlog</span>
+        </div>
+        <div class="feature" style="background:#fffbeb; padding:8px; border-radius:8px; margin-top:4px;">
+          <div class="feature-dot" style="background:#f59e0b; margin-top:3px;"></div>
+          <div class="feature-text" style="font-size:12px; color:#92600a;">El link de compra espera marketplace (etapa 2). La sugerencia/conexión va igual.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- P5: Comunidad -->
+    <div class="pillar p5">
+      <div class="pillar-header">
+        <div class="pillar-icon">🏘️</div>
+        <div>
+          <div class="pillar-title">Pilar 5 — Comunidad</div>
+          <div class="pillar-sub">Solo lo útil: pérdidas y adopción. Sin red social.</div>
+        </div>
+      </div>
+      <div class="pillar-body">
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Reportar mascota perdida</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Reportar mascota encontrada</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Feed de adopciones</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-sprint"></div>
+          <div class="feature-text">Optimizar feed y posts — calidad UX (SCRUM-72)</div>
+          <span class="feature-tag tag-sprint">Sprint</span>
+        </div>
+        <div class="feature" style="background:#fff8f8; padding:8px; border-radius:8px; margin-top:4px;">
+          <div class="feature-dot" style="background:#f87171; margin-top:3px;"></div>
+          <div class="feature-text" style="font-size:12px; color:#b91c1c;">Fuera del scope: foros, likes, comentarios, perfiles públicos, seguir usuarios</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- P6: Plataforma -->
+    <div class="pillar p6">
+      <div class="pillar-header">
+        <div class="pillar-icon">🚀</div>
+        <div>
+          <div class="pillar-title">Pilar 6 — Plataforma & distribución</div>
+          <div class="pillar-sub">La base técnica y el go-to-market.</div>
+        </div>
+      </div>
+      <div class="pillar-body">
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">PWA publicada (pessy.app)</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Landing page con nueva identidad</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Auth (email, Google, magic link)</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-done"></div>
+          <div class="feature-text">Push notifications (Firebase Messaging)</div>
+          <span class="feature-tag tag-done">Listo</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-sprint"></div>
+          <div class="feature-text">Documentar arquitectura técnica (SCRUM-82)</div>
+          <span class="feature-tag tag-sprint">Sprint</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-pending"></div>
+          <div class="feature-text">Security: CSP, HSTS, OAuth firma (backlog)</div>
+          <span class="feature-tag tag-pending">Backlog</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-manual"></div>
+          <div class="feature-text">Apple Developer + App Store Connect (Mauri)</div>
+          <span class="feature-tag tag-manual">Manual</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-manual"></div>
+          <div class="feature-text">20+ testers Play Store (Mauri)</div>
+          <span class="feature-tag tag-manual">Manual</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-pending"></div>
+          <div class="feature-text">Marketplace (etapa siguiente — sprint separado)</div>
+          <span class="feature-tag tag-pending">Etapa 2</span>
+        </div>
+        <div class="feature">
+          <div class="feature-dot dot-pending"></div>
+          <div class="feature-text">Pagos (etapa siguiente — habilitados cuando haya marketplace)</div>
+          <span class="feature-tag tag-pending">Etapa 2</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Lo que NO entra -->
+  <div class="boundary-box">
+    <h3>🚫 Lo que no entra al producto (si alguien lo pide, rechazar)</h3>
+    <div class="boundary-list">
+      <span class="boundary-item">Red social / foros</span>
+      <span class="boundary-item">Marketplace (etapa 2 separada)</span>
+      <span class="boundary-item">Módulo vet conectado (BETA)</span>
+      <span class="boundary-item">Gmail Sync (hasta re-pensar)</span>
+      <span class="boundary-item">Sidebar</span>
+      <span class="boundary-item">Likes / comentarios / follows</span>
+      <span class="boundary-item">Pagos ahora</span>
+      <span class="boundary-item">Wellbeing / kitchen safety</span>
+      <span class="boundary-item">Gamificación compleja</span>
+      <span class="boundary-item">Chat entre usuarios</span>
+      <span class="boundary-item">Integraciones externas nuevas</span>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Pessy v1 — Mapa generado el 5 de abril 2026 · Actualizar cuando cambie el scope
+  </div>
+
+</div>
+</body>
+</html>
