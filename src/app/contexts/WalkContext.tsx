@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, ReactNode, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import type { GeoPoint } from "../hooks/useGPSTracking";
 
 export interface Walk {
@@ -108,10 +108,14 @@ export function WalkProvider({ children }: { children: ReactNode }) {
     [getWalksByPetId]
   );
 
+  // PERFORMANCE: Memoize context value to avoid re-renders in consumers on unrelated state changes
+  const contextValue = useMemo(
+    () => ({ walks, addWalk, updateWalk, deleteWalk, getWalksByPetId, getWalkStats, getLastWalk }),
+    [walks, addWalk, updateWalk, deleteWalk, getWalksByPetId, getWalkStats, getLastWalk]
+  );
+
   return (
-    <WalkContext.Provider
-      value={{ walks, addWalk, updateWalk, deleteWalk, getWalksByPetId, getWalkStats, getLastWalk }}
-    >
+    <WalkContext.Provider value={contextValue}>
       {children}
     </WalkContext.Provider>
   );

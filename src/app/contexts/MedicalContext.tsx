@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
 import { db } from "../../lib/firebase";
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, getDocs } from "firebase/firestore";
 import { usePet } from "./PetContext";
@@ -1860,32 +1860,39 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     return clinicalProfileSnapshot?.petId === petId ? clinicalProfileSnapshot : null;
   };
 
+  // PERFORMANCE: Memoize context value — MedicalContext has many consumers and heavy state.
+  // Prevents all consumers from re-rendering when only unrelated state changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const contextValue = useMemo(() => ({
+    events, addEvent, updateEvent, deleteEvent, confirmEvent, getEventsByPetId,
+    pendingActions,
+    addPendingAction,
+    completePendingAction,
+    deletePendingAction,
+    getPendingActionsByPetId,
+    getClinicalReviewDraftById,
+    submitClinicalReviewDraft,
+    activeMedications, addMedication, updateMedication, deactivateMedication, getActiveMedicationsByPetId,
+    getMonthSummary, saveVerifiedReport,
+    appointments, addAppointment, updateAppointment, deleteAppointment, getAppointmentsByPetId,
+    clinicalConditions,
+    clinicalAlerts,
+    consolidatedTreatments,
+    getClinicalConditionsByPetId,
+    getClinicalAlertsByPetId,
+    getConsolidatedTreatmentsByPetId,
+    clinicalEpisodes,
+    clinicalProfileSnapshot,
+    getClinicalEpisodesByPetId,
+    getProfileSnapshotByPetId,
+  }), [
+    events, pendingActions, activeMedications, appointments,
+    clinicalConditions, clinicalAlerts, consolidatedTreatments,
+    clinicalEpisodes, clinicalProfileSnapshot,
+  ]);
+
   return (
-    <MedicalContext.Provider
-      value={{
-        events, addEvent, updateEvent, deleteEvent, confirmEvent, getEventsByPetId,
-        pendingActions,
-        addPendingAction,
-        completePendingAction,
-        deletePendingAction,
-        getPendingActionsByPetId,
-        getClinicalReviewDraftById,
-        submitClinicalReviewDraft,
-        activeMedications, addMedication, updateMedication, deactivateMedication, getActiveMedicationsByPetId,
-        getMonthSummary, saveVerifiedReport,
-        appointments, addAppointment, updateAppointment, deleteAppointment, getAppointmentsByPetId,
-        clinicalConditions,
-        clinicalAlerts,
-        consolidatedTreatments,
-        getClinicalConditionsByPetId,
-        getClinicalAlertsByPetId,
-        getConsolidatedTreatmentsByPetId,
-        clinicalEpisodes,
-        clinicalProfileSnapshot,
-        getClinicalEpisodesByPetId,
-        getProfileSnapshotByPetId,
-      }}
-    >
+    <MedicalContext.Provider value={contextValue}>
       {children}
     </MedicalContext.Provider>
   );
