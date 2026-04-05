@@ -82,12 +82,18 @@
 
 
 
-## The Connection Rule (CORE — Non-Negotiable)
+## Regla de Construcción (Build Rule — Cómo construimos cada feature)
 
-**Pessy conecta a tu mascota con lo que necesita, sin que tengas que buscar.**
+**Identidad del producto:** "Pessy te ayuda a llevar el día a día de tu mascota."
+Sub-línea: "Rutinas, alimentación, salud y cuidados — todo en un lugar."
 
-This is not a feature. It is the product identity. Every screen, every copy line, every CTA
-must close the loop — from detected need to concrete action.
+Esta es la identidad real del producto. Clara, honesta, cualquiera la entiende.
+
+---
+
+**Build Rule (para agentes y desarrolladores):** Toda feature que detecte una necesidad debe cerrar el loop con una acción ejecutable en 1 tap. Esto es cómo construimos cada pantalla — no es el posicionamiento del producto.
+
+**Pessy te ayuda a llevar el día a día de tu mascota — y cada feature construida bajo esta regla hace eso posible sin que el usuario tenga que pensar.**
 
 ### The Loop (must always close)
 ```

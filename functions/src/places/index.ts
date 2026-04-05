@@ -1,1 +1,0 @@
-export { nearbyVets } from "./nearbyVets";
