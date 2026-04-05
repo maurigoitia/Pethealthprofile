@@ -5,18 +5,12 @@
 
 ---
 
-## Identidad del Producto
+## La Regla Dorada
 
-**"Pessy te ayuda a llevar el día a día de tu mascota."**
-Rutinas, alimentación, salud y cuidados — todo en un lugar.
+**Pessy conecta a tu mascota con lo que necesita, sin que tengas que buscar.**
 
----
-
-## Build Rule (La Regla de Construcción)
-
-Toda feature que detecte una necesidad debe cerrar el loop con una acción ejecutable en 1 tap.
-
-Esto es la norma interna de construcción — no el pitch del producto.
+Todo código, copy y diseño que produzcas debe respetar esta regla.
+Si una pantalla detecta una necesidad y no la resuelve en 1 tap → el trabajo está incompleto.
 
 ---
 

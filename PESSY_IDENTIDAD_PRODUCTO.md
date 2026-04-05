@@ -4,20 +4,11 @@
 
 ---
 
-## Identidad del Producto
+## Posicionamiento Central
 
-**"Pessy te ayuda a llevar el día a día de tu mascota."**
-Rutinas, alimentación, salud y cuidados — todo en un lugar.
+**Pessy conecta a tu mascota con lo que necesita, sin que tengas que buscar.**
 
-Esto es lo que Pessy ES. Una app donde el tutor maneja la vida completa de su mascota.
-Clara, honesta, cualquier persona lo entiende en 3 segundos.
-
----
-
-## Build Rule (cómo construimos cada feature)
-
-Toda feature que detecte una necesidad debe cerrar el loop con una acción ejecutable en 1 tap.
-Esto no es el posicionamiento — es el estándar de construcción interno.
+Esto no es un tagline. Es el core del producto. Cada pantalla, cada CTA, cada copy line debe cerrar el loop — desde la necesidad detectada hasta la acción concreta en un tap.
 
 ---
 

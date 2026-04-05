@@ -75,7 +75,7 @@ export function AuthPageShell({
           </div>
 
           <p className="text-xs font-medium text-white/40">
-            El día a día de tu mascota, todo en un lugar.
+            Tu mascota conectada con lo que necesita.
           </p>
         </div>
       </div>}
