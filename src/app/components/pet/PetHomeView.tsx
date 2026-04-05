@@ -30,6 +30,7 @@ import ProfileNudge from "../home/ProfileNudge";
 import QuickActions from "../home/QuickActions";
 import PessyTip, { SectionTitle } from "../home/PessyTip";
 import PessyDailyCheckin from "../home/PessyDailyCheckin";
+import { EcosystemRow } from "../home/EcosystemRow";
 import PersonalityOnboarding from "./PersonalityOnboarding";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -851,25 +852,6 @@ export function PetHomeView({
             <MaterialIcon name="star" className="!text-sm" /> {points} pts
           </div>
         </div>
-
-        {/* Pet selector for multiple pets */}
-        {hasMultiplePets && (
-          <div className="mx-3 mt-2 flex items-center gap-2 overflow-x-auto pb-1">
-            {pets.map((pet) => (
-              <button
-                key={pet.id}
-                onClick={() => onPetChange(pet.id)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
-                  pet.id === activePetId
-                    ? "bg-[#074738] text-white"
-                    : "bg-white text-[#9CA3AF] border border-[#E5E7EB]"
-                }`}
-              >
-                {pet.name}
-              </button>
-            ))}
-          </div>
-        )}
 
         {/* ── MEDICAL PROFILE SUMMARY ─────────────────────────────────────── */}
         {hasMedicalSummary && (
