@@ -48,10 +48,9 @@ interface NearbyVetsResponse {
  */
 export const nearbyVets = functions
   .runWith({
-    // Increase timeout for API calls
     timeoutSeconds: 30,
-    // Set memory to handle requests
     memory: "256MB",
+    secrets: ["GOOGLE_PLACES_API_KEY"],
   })
   .https.onCall(async (requestData: NearbyVetsRequest, context): Promise<NearbyVetsResponse> => {
     const uid = requireCallableAuth(context);
