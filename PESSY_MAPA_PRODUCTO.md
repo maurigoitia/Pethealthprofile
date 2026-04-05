@@ -262,3 +262,64 @@ Raza (300+), edad, peso, foto, castración, personalidad interactiva, co-tutores
 
 *Este documento es la fuente de verdad del producto.*
 *Todo agente, desarrollador y sprint empieza leyendo esto.*
+
+---
+
+## SISTEMA DE APRENDIZAJE PROGRESIVO (core de la IA)
+
+### La idea central
+Pessy NO pregunta todo en el onboarding. Aprende preguntando una cosa por día,
+durante semanas, de forma natural — como una conversación.
+
+### El loop en 4 semanas
+
+**Semana 1 — Pessy escucha:**
+Una pregunta por día, en momentos naturales.
+- "¿A qué hora sale Thor a caminar normalmente?"
+- "¿Cuántas veces al día come?"
+- "¿Tiene algún parque favorito?"
+- "¿Lo baña en casa o lo llevás a la peluquería?"
+
+**Semana 2 — Pessy anticipa:**
+Ya tiene datos. ANTES de la hora habitual del paseo:
+→ *"Son las 18hs — ¿hoy salen con Thor?"* [Sí, salimos] [Hoy no]
+El tutor toca un botón. Pessy registra sin fricción.
+
+**Semana 3+ — Pessy proactiva:**
+Conoce el patrón. Si el paseo no ocurrió a la hora habitual:
+→ *"Thor lleva 2 días sin su paseo de las 18hs. ¿Todo bien?"*
+
+**IA de raza siempre activa:**
+→ *"Labradores de 3 años necesitan 60 min de actividad diaria.*
+*Thor lleva 20 min esta semana. ¿A dónde lo llevás habitualmente?"*
+→ El tutor responde. Pessy guarda el lugar favorito.
+
+### Reglas del sistema de preguntas
+1. NUNCA más de 1 pregunta por sesión de uso
+2. Las preguntas aparecen en momentos contextuales (antes del paseo habitual, al abrir la app, después de una acción)
+3. Cada respuesta alimenta el motor de IA y mejora las sugerencias
+4. El tutor puede ignorar — Pessy vuelve a intentar otro día
+5. Una vez que Pessy aprendió algo, NO vuelve a preguntar lo mismo
+
+### Preguntas por categoría (banco de preguntas)
+
+| Categoría | Pregunta |
+|-----------|---------|
+| Paseos | ¿A qué hora sale Thor normalmente? |
+| Paseos | ¿Cuántas veces por día? |
+| Paseos | ¿Tiene un parque favorito? |
+| Alimentación | ¿A qué hora come por las mañanas? |
+| Alimentación | ¿Qué marca de alimento come? |
+| Veterinario | ¿A qué veterinaria llevas a Thor? |
+| Veterinario | ¿Con qué frecuencia lo revisás? |
+| Salud | ¿Tiene alguna alergia conocida? |
+| Salud | ¿Toma alguna medicación crónica? |
+| Personalidad | ¿Le gusta jugar con otros perros? |
+| Personalidad | ¿Tiene miedo a los truenos? |
+
+### Trigger contextual de raza (siempre personalizado)
+Formato: *"Perros de [raza] de [edad] años: [recomendación de raza]. ¿[pregunta accionable sobre Thor]?"*
+→ *"Bulldogs Franceses de 4 años son propensos a problemas respiratorios en calor.*
+*¿Cómo te fue en los últimos paseos de verano con Thor?"*
+
+---

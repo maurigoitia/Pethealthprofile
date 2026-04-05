@@ -163,4 +163,103 @@ export const QUESTION_POOL: RandomQuestion[] = [
     minSessionCount: 5,
     tagsGenerated: ["grooming_regular", "grooming_monthly", "low_maintenance"],
   },
+
+  // ── Walk Routine ─────────────────────────────────────
+  {
+    id: "walk-routine-hora",
+    category: "walk_routine",
+    text: "¿A qué hora salen a caminar normalmente con {petName}?",
+    options: [
+      { label: "Temprano (6-9h)", value: "early", tag: "walk_early" },
+      { label: "Media mañana (9-12h)", value: "mid_morning", tag: "walk_mid_morning" },
+      { label: "Tarde (16-19h)", value: "afternoon", tag: "walk_afternoon" },
+      { label: "Noche (19-22h)", value: "night", tag: "walk_night" },
+    ],
+    cooldownDays: 90,
+    minSessionCount: 5,
+    tagsGenerated: ["walk_early", "walk_mid_morning", "walk_afternoon", "walk_night"],
+  },
+  {
+    id: "walk-routine-frecuencia",
+    category: "walk_routine",
+    text: "¿Cuántas veces por día sale {petName} a pasear?",
+    options: [
+      { label: "1 vez", value: "1", tag: "walk_once_daily" },
+      { label: "2 veces", value: "2", tag: "walk_twice_daily" },
+      { label: "3 o más", value: "3+", tag: "walk_frequent" },
+    ],
+    cooldownDays: 90,
+    minSessionCount: 5,
+    tagsGenerated: ["walk_once_daily", "walk_twice_daily", "walk_frequent"],
+  },
+  {
+    id: "walk-routine-lugar",
+    category: "walk_routine",
+    text: "¿Tienen un parque o recorrido favorito?",
+    options: [
+      { label: "Parque específico", value: "park", tag: "walk_park_regular" },
+      { label: "Varios lugares", value: "varied", tag: "walk_varied_routes" },
+      { label: "Lo que salga en el momento", value: "spontaneous", tag: "walk_spontaneous" },
+    ],
+    cooldownDays: 120,
+    minSessionCount: 5,
+    tagsGenerated: ["walk_park_regular", "walk_varied_routes", "walk_spontaneous"],
+  },
+
+  // ── Vet Routine ──────────────────────────────────────
+  {
+    id: "vet-routine-veterinaria",
+    category: "vet_routine",
+    text: "¿A qué veterinaria llevás a {petName} habitualmente?",
+    options: [
+      { label: "Tengo una de confianza", value: "regular", tag: "vet_regular" },
+      { label: "Voy a distintas", value: "varied", tag: "vet_varied" },
+      { label: "Aún no tengo una", value: "none", tag: "vet_none" },
+    ],
+    cooldownDays: 180,
+    minSessionCount: 3,
+    tagsGenerated: ["vet_regular", "vet_varied", "vet_none"],
+  },
+  {
+    id: "vet-routine-lastcheckup",
+    category: "vet_routine",
+    text: "¿Cuándo fue la última vez que lo revisaron?",
+    options: [
+      { label: "Este año", value: "recent", tag: "vet_current" },
+      { label: "Hace más de un año", value: "overdue", tag: "vet_overdue" },
+      { label: "No recuerdo", value: "unknown", tag: "vet_unknown" },
+    ],
+    cooldownDays: 90,
+    minSessionCount: 3,
+    tagsGenerated: ["vet_current", "vet_overdue", "vet_unknown"],
+  },
+
+  // ── Feeding Routine ──────────────────────────────────
+  {
+    id: "feeding-routine-desayuno",
+    category: "feeding_routine",
+    text: "¿A qué hora le das el desayuno a {petName}?",
+    options: [
+      { label: "Temprano (6-8h)", value: "early", tag: "feed_early" },
+      { label: "Media mañana (8-10h)", value: "mid_morning", tag: "feed_mid_morning" },
+      { label: "Más tarde (10h+)", value: "late", tag: "feed_late" },
+    ],
+    cooldownDays: 90,
+    minSessionCount: 5,
+    tagsGenerated: ["feed_early", "feed_mid_morning", "feed_late"],
+  },
+  {
+    id: "feeding-routine-marca",
+    category: "feeding_routine",
+    text: "¿Qué marca de alimento come {petName}?",
+    options: [
+      { label: "Premium / holístico", value: "premium", tag: "feed_premium" },
+      { label: "Marca conocida", value: "standard", tag: "feed_standard" },
+      { label: "BARF / natural", value: "barf", tag: "feed_barf" },
+      { label: "No recuerdo la marca", value: "unknown", tag: "feed_unknown" },
+    ],
+    cooldownDays: 120,
+    minSessionCount: 5,
+    tagsGenerated: ["feed_premium", "feed_standard", "feed_barf", "feed_unknown"],
+  },
 ];

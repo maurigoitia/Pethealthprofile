@@ -70,7 +70,10 @@ export type RandomQuestionCategory =
   | "activity"
   | "travel"
   | "schedule"
-  | "care";
+  | "care"
+  | "walk_routine"
+  | "vet_routine"
+  | "feeding_routine";
 
 export interface RandomQuestionOption {
   label: string;

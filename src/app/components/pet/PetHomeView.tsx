@@ -32,6 +32,9 @@ import PessyTip, { SectionTitle } from "../home/PessyTip";
 import PessyDailyCheckin from "../home/PessyDailyCheckin";
 import { EcosystemRow } from "../home/EcosystemRow";
 import PersonalityOnboarding from "./PersonalityOnboarding";
+import BreedInsightCard from "../home/BreedInsightCard";
+import { detectWalkPattern } from "../../../domain/intelligence/walkPatternDetector";
+import { useWalks } from "../../contexts/WalkContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -392,6 +395,8 @@ export function PetHomeView({
 }: PetHomeViewProps) {
   const { updatePet } = usePet();
   const { user } = useAuth();
+  const { walks } = useWalks();
+  const walkPattern = useMemo(() => detectWalkPattern(walks), [walks]);
   const [showPreferences, setShowPreferences] = useState(false);
   const [personality, setPersonality] = useState<Personality>({});
   const [showPersonalityOnboarding, setShowPersonalityOnboarding] = useState(false);
@@ -408,6 +413,8 @@ export function PetHomeView({
   const [points, setPoints] = useState(() => getPoints());
   const [completedMissions, setCompletedMissions] = useState<Set<string>>(new Set());
   const [activeMissionCode, setActiveMissionCode] = useState<string | null>(null);
+  const [preWalkDismissed, setPreWalkDismissed] = useState(false);
+  const [breedInsightDismissed, setBreedInsightDismissed] = useState(false);
   const {
     getEventsByPetId,
     getActiveMedicationsByPetId,
@@ -451,6 +458,20 @@ export function PetHomeView({
 
   const species = resolveSpecies(activePet?.species, activePet?.breed);
   const ageMonths = parseAgeToMonths(activePet?.age);
+  const showPreWalkPrompt = useMemo(() => {
+    if (preWalkDismissed || !activePet) return false;
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTimeInMinutes = currentHour * 60 + currentMinutes;
+    const usualWalkTimeInMinutes = (walkPattern.usualWalkHour || 0) * 60;
+    const withinTimeWindow = Math.abs(currentTimeInMinutes - usualWalkTimeInMinutes) <= 30;
+    return (
+      walkPattern.hasEstablishedPattern &&
+      withinTimeWindow &&
+      walkPattern.daysSinceLastWalk >= 1
+    );
+  }, [walkPattern, activePet, preWalkDismissed]);
   const isPuppy = species === "dog" && ageMonths !== null && ageMonths < 12;
   const baseGroupIds = resolveGroupIds(species, activePet?.breed || "");
   // Inject dog.puppy group if age indicates a puppy (< 12 months)
@@ -929,6 +950,36 @@ export function PetHomeView({
           />
         </div>
 
+
+
+        {/* ── PRE-WALK PROMPT CARD ── */}
+        {showPreWalkPrompt && (
+          <div className="mx-3 mt-3 bg-white rounded-[16px] border border-[#E5E7EB] transition-all" style={{ padding: "14px 16px" }}>
+            <div className="flex flex-col gap-3">
+              <p className="text-[13px] font-bold text-[#1A1A1A]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                Son las {new Date().getHours()}:{String(new Date().getMinutes()).padStart(2, "0")} — ¿hoy salen con {activePet.name}?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    /* TODO: abrir WalkLogModal */
+                    setPreWalkDismissed(true);
+                  }}
+                  className="flex-1 px-3 py-1.5 rounded-full bg-[#074738] text-white text-[11px] font-bold active:scale-[0.96] transition-transform"
+                >
+                  ¡Sí, salimos!
+                </button>
+                <button
+                  onClick={() => setPreWalkDismissed(true)}
+                  className="flex-1 px-3 py-1.5 rounded-full border border-[#D1D5DB] text-[11px] font-bold text-[#6B7280] active:scale-[0.96] transition-transform"
+                >
+                  Hoy no
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── SECTION 3: Quick actions — 2 buttons max ── */}
         {(historyCount > 0 || medicationCount > 0 || appointmentCount > 0) && (
           <div className="mx-3 mt-3 flex gap-3">
@@ -1021,6 +1072,29 @@ export function PetHomeView({
                 />
               );
             })}
+          </div>
+        )}
+
+        {/* ── BREED INSIGHT CARD ── */}
+        {activePet?.breed && !breedInsightDismissed && (
+          <div className="mx-3 mt-3">
+            <BreedInsightCard
+              petName={activePet.name}
+              breed={activePet.breed}
+              ageMonths={ageMonths || 0}
+              onAction={(actionType) => {
+                if (actionType === "walk") {
+                  /* TODO: abrir WalkLogModal */
+                }
+                if (actionType === "vet") {
+                  onAppointmentsClick?.();
+                }
+                if (actionType === "routines") {
+                  /* TODO: cambiar a tab rutinas */
+                }
+              }}
+              onDismiss={() => setBreedInsightDismissed(true)}
+            />
           </div>
         )}
       </div>
