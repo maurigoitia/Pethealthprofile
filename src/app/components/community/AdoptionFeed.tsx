@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { collection, query, where, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import type { AdoptionListing } from "../../../domain/community/adoption.contract";
@@ -51,7 +51,7 @@ export function AdoptionFeed({ onPublish, onBack, onSelect, hideHeader }: Props)
     );
   }, []);
 
-  // Fetch active adoption listings
+  // Real-time subscription to active adoption listings
   useEffect(() => {
     const q = query(
       collection(db, "adoption_listings"),
@@ -59,16 +59,15 @@ export function AdoptionFeed({ onPublish, onBack, onSelect, hideHeader }: Props)
       orderBy("publishedAt", "desc"),
       limit(30),
     );
-    getDocs(q)
-      .then((snap) => {
-        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AdoptionListing);
-        setListings(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("AdoptionFeed:", err);
-        setLoading(false);
-      });
+    const unsub = onSnapshot(q, (snap) => {
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as AdoptionListing);
+      setListings(data);
+      setLoading(false);
+    }, (err) => {
+      console.error("AdoptionFeed:", err);
+      setLoading(false);
+    });
+    return () => unsub();
   }, []);
 
   const sorted = userLocation

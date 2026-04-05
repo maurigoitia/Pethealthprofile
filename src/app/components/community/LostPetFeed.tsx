@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { collection, query, where, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import type { LostPetReport } from "../../../domain/community/lostPet.contract";
@@ -40,7 +40,7 @@ export function LostPetFeed({ onReport, onBack, hideHeader }: Props) {
     );
   }, []);
 
-  // Fetch active lost pet reports
+  // Real-time subscription to active lost pet reports
   useEffect(() => {
     const q = query(
       collection(db, "lost_pets"),
@@ -48,14 +48,15 @@ export function LostPetFeed({ onReport, onBack, hideHeader }: Props) {
       orderBy("reportedAt", "desc"),
       limit(20),
     );
-    getDocs(q).then((snap) => {
+    const unsub = onSnapshot(q, (snap) => {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as LostPetReport);
       setReports(data);
       setLoading(false);
-    }).catch((err) => {
+    }, (err) => {
       console.error("LostPetFeed:", err);
       setLoading(false);
     });
+    return () => unsub();
   }, []);
 
   const sorted = userLocation

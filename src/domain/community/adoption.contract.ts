@@ -50,6 +50,7 @@ export interface AdoptionListing {
   petProfile: AdoptionPetProfile;
   location: PessyGeoPoint;
   address: string;
+  contactPhone?: string;   // Teléfono del publicador — abre WhatsApp o tel:
   publishedAt: Timestamp;
   updatedAt: Timestamp;
   viewCount: number;

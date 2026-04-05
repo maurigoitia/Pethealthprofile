@@ -180,10 +180,30 @@ export function AdoptionDetail({ listing, onBack }: Props) {
           </div>
 
           {/* Contact CTA */}
-          <button className="w-full h-[52px] rounded-2xl bg-[#1A9B7D] text-white font-semibold text-base flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
-            <MaterialIcon name="mail" className="text-xl" />
-            Contactar al publicador
-          </button>
+          {listing.contactPhone ? (
+            <div className="flex gap-3">
+              <a
+                href={`https://wa.me/${listing.contactPhone.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 h-[52px] rounded-2xl bg-[#25D366] text-white font-semibold text-base flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+              >
+                <MaterialIcon name="chat" className="text-xl" />
+                WhatsApp
+              </a>
+              <a
+                href={`tel:${listing.contactPhone}`}
+                className="h-[52px] px-5 rounded-2xl bg-[#1A9B7D] text-white font-semibold text-base flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+              >
+                <MaterialIcon name="call" className="text-xl" />
+              </a>
+            </div>
+          ) : (
+            <div className="w-full h-[52px] rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-400 font-medium text-sm flex items-center justify-center gap-2">
+              <MaterialIcon name="info" className="text-lg" />
+              Contacto no disponible
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -55,6 +55,9 @@ export function PostForAdoption({ onBack, onSuccess, publisherType = "individual
   // Special needs
   const [specialNeeds, setSpecialNeeds] = useState("");
 
+  // Contact
+  const [contactPhone, setContactPhone] = useState("");
+
   // Photos
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
@@ -158,6 +161,7 @@ export function PostForAdoption({ onBack, onSuccess, publisherType = "individual
         },
         location: { latitude: pos.coords.latitude, longitude: pos.coords.longitude },
         address,
+        ...(contactPhone.trim() ? { contactPhone: contactPhone.trim() } : {}),
         publishedAt: now,
         updatedAt: now,
         viewCount: 0,
@@ -390,6 +394,21 @@ export function PostForAdoption({ onBack, onSuccess, publisherType = "individual
             placeholder="Barrio, ciudad o zona"
             className="w-full h-[44px] px-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-base text-slate-900 dark:text-white placeholder-slate-400"
           />
+        </div>
+
+        {/* Contact phone */}
+        <div>
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5 block">
+            WhatsApp / Teléfono de contacto <span className="text-slate-400 font-normal">(opcional)</span>
+          </label>
+          <input
+            type="tel"
+            value={contactPhone}
+            onChange={(e) => setContactPhone(e.target.value)}
+            placeholder="+54 9 11 1234-5678"
+            className="w-full h-[44px] px-4 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-base text-slate-900 dark:text-white placeholder-slate-400"
+          />
+          <p className="text-xs text-slate-500 mt-1">Los interesados podrán escribirte directo por WhatsApp</p>
         </div>
 
         {/* Info */}

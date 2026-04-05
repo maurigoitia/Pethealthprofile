@@ -15,9 +15,12 @@ const LostPetFeed = lazy(() => import("./LostPetFeed").then((m) => ({ default: m
 const ReportLostPet = lazy(() => import("./ReportLostPet").then((m) => ({ default: m.ReportLostPet })));
 const AdoptionFeed = lazy(() => import("./AdoptionFeed").then((m) => ({ default: m.AdoptionFeed })));
 const PostForAdoption = lazy(() => import("./PostForAdoption").then((m) => ({ default: m.PostForAdoption })));
+const AdoptionDetail = lazy(() => import("./AdoptionDetail").then((m) => ({ default: m.AdoptionDetail })));
+
+import type { AdoptionListing } from "../../../domain/community/adoption.contract";
 
 type Tab = "lost" | "adopt";
-type SubView = "feed" | "report-lost" | "post-adoption";
+type SubView = "feed" | "report-lost" | "post-adoption" | "adoption-detail";
 
 interface Props {
   onBack: () => void;
@@ -39,13 +42,14 @@ const TABS: { id: Tab; label: string; icon: string; emoji: string }[] = [
 export function CommunityHub({ onBack }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("lost");
   const [subView, setSubView] = useState<SubView>("feed");
+  const [selectedListing, setSelectedListing] = useState<AdoptionListing | null>(null);
 
   const handleTabChange = (tab: Tab) => {
     setActiveTab(tab);
     setSubView("feed");
   };
 
-  // Show sub-forms fullscreen
+  // Show sub-forms/detail fullscreen
   if (subView === "report-lost") {
     return (
       <Suspense fallback={<Spinner />}>
@@ -57,6 +61,16 @@ export function CommunityHub({ onBack }: Props) {
     return (
       <Suspense fallback={<Spinner />}>
         <PostForAdoption onBack={() => setSubView("feed")} onSuccess={() => { setActiveTab("adopt"); setSubView("feed"); }} />
+      </Suspense>
+    );
+  }
+  if (subView === "adoption-detail" && selectedListing) {
+    return (
+      <Suspense fallback={<Spinner />}>
+        <AdoptionDetail
+          listing={selectedListing}
+          onBack={() => { setSubView("feed"); setSelectedListing(null); }}
+        />
       </Suspense>
     );
   }
@@ -137,6 +151,7 @@ export function CommunityHub({ onBack }: Props) {
               onPublish={() => setSubView("post-adoption")}
               onBack={onBack}
               hideHeader
+              onSelect={(listing) => { setSelectedListing(listing); setSubView("adoption-detail"); }}
             />
           )}
         </Suspense>
