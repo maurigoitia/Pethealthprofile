@@ -7,6 +7,7 @@ import { PrivacySecurityScreen } from "./PrivacySecurityScreen";
 import { AppearanceScreen } from "./AppearanceScreen";
 import { HelpSupportScreen } from "./HelpSupportScreen";
 import { AboutScreen } from "./AboutScreen";
+import { LogrosScreen } from "./LogrosScreen";
 import { BrainDevTools } from "../admin/BrainDevTools";
 import { CoTutorModal } from "../pet/CoTutorModal";
 import { useAuth } from "../../contexts/AuthContext";
@@ -30,7 +31,8 @@ type SubScreen =
   | "privacy"
   | "appearance"
   | "help"
-  | "about";
+  | "about"
+  | "logros";
 
 export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
   const [currentScreen, setCurrentScreen] = useState<SubScreen>("main");
@@ -70,6 +72,12 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
       title: "Co-tutores",
       subtitle: "Invitar o unirte a mascotas compartidas",
       onClick: () => setShowCoTutorModal(true),
+    },
+    {
+      icon: "emoji_events",
+      title: "Logros y puntos",
+      subtitle: totalPoints > 0 ? `${totalPoints} pts · Nivel ${level}` : "Completá rutinas para ganar puntos",
+      onClick: () => setCurrentScreen("logros"),
     },
     {
       icon: "person",
@@ -116,6 +124,9 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
   ];
 
   // Render sub-screens
+  if (currentScreen === "logros") {
+    return <LogrosScreen onBack={() => setCurrentScreen("main")} />;
+  }
   if (currentScreen === "personal-info") {
     return <PersonalInfoScreen onBack={() => setCurrentScreen("main")} />;
   }
