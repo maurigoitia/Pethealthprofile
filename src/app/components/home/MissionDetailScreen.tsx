@@ -156,7 +156,7 @@ export function MissionDetailScreen({
       <div className="fixed inset-0 z-50 bg-[#F0FAF9] flex flex-col items-center justify-center p-8">
         <CorkMascot size={80} />
         <p className="mt-6 text-3xl font-black text-[#074738] text-center">
-          +{mission.points} pts 🎉
+          🎉
         </p>
         <p className="mt-3 text-[15px] text-slate-600 text-center leading-relaxed max-w-xs">
           {mission.completionMessage(petName)}
@@ -351,7 +351,7 @@ export function MissionDetailScreen({
                 : 'bg-[#E5E7EB] text-[#9CA3AF] cursor-not-allowed'
             }`}
           >
-            Terminé · +{mission.points} pts
+            Terminé
           </button>
         </div>
       </div>

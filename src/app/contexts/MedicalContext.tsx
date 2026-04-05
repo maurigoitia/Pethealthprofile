@@ -409,15 +409,15 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
 
   const persistDerivedDataFromEvent = async (event: MedicalEvent) => {
     if (event.derivedDataPersistedAt) return;
-    if (!event.extractedData.medications || event.extractedData.medications.length === 0) return;
+    if (!event.extractedData?.medications || event.extractedData.medications.length === 0) return;
 
     // Verificar contra Firestore (no el argumento) para evitar race conditions
     const freshSnap = await getDoc(doc(db, "medical_events", event.id));
     if (freshSnap.exists() && freshSnap.data()?.derivedDataPersistedAt) return;
 
-    const treatmentStart = event.extractedData.eventDate || event.createdAt;
+    const treatmentStart = event.extractedData?.eventDate || event.createdAt;
 
-    for (let idx = 0; idx < event.extractedData.medications.length; idx++) {
+    for (let idx = 0; idx < (event.extractedData?.medications?.length ?? 0); idx++) {
       const medicationExtracted = event.extractedData.medications[idx];
       const treatmentEnd = parseDurationToEndDate(medicationExtracted.duration, treatmentStart);
       // ID determinístico basado en evento + índice — evita duplicados si se re-ejecuta
@@ -1638,8 +1638,8 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     };
 
     petEvents.forEach((event) => {
-      const type = event.extractedData.documentType;
-      eventsByType[type] = (eventsByType[type] || 0) + 1;
+      const type = event.extractedData?.documentType;
+      if (type) eventsByType[type] = (eventsByType[type] || 0) + 1;
     });
 
     const petPendingActions = dedupePendingActions(pendingActions.filter((action) => action.petId === petId));

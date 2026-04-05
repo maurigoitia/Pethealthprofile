@@ -57,7 +57,7 @@ export const MISSIONS: Record<string, MissionDefinition> = {
     ],
     defaultLevelId: 'easy',
     youtubeSearchQuery: 'enseñar perro esperar comando adiestramiento',
-    points: 20,
+    points: 0,
     completionMessage: (petName) => `¡${petName} está aprendiendo control de impulsos! Cada sesión suma.`,
   },
 
@@ -74,7 +74,7 @@ export const MISSIONS: Record<string, MissionDefinition> = {
       { emoji: '💡', text: 'Luz baja, sin estímulos', hint: 'Silencio hasta que se duerma' },
     ],
     youtubeSearchQuery: 'rutina calma relajacion perro antes dormir',
-    points: 10,
+    points: 0,
     completionMessage: (petName) => `Una noche tranquila para ${petName}. Esta rutina reduce el estrés a largo plazo.`,
   },
 

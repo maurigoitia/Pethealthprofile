@@ -1,4 +1,4 @@
-import { Sun, CalendarCheck, Plus, Users, Fingerprint } from "lucide-react";
+import { Sun, HeartPulse, Plus, Users, Fingerprint } from "lucide-react";
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 
 export type PillarTab = "dia-a-dia" | "rutinas" | "comunidad" | "mi-pessy";
@@ -19,7 +19,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument }: BottomNavP
 
   const TABS: { id: PillarTab; label: string; Icon: typeof Sun }[] = [
     { id: "dia-a-dia", label: "Día a Día", Icon: Sun },
-    { id: "rutinas",   label: "Rutinas",   Icon: CalendarCheck },
+    { id: "rutinas",   label: "Salud",     Icon: HeartPulse },
     { id: "comunidad", label: "Comunidad", Icon: Users },
     { id: "mi-pessy",  label: "Mi Pessy",  Icon: Fingerprint },
   ];
@@ -38,7 +38,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument }: BottomNavP
               </button>
 
               {/* Rutinas */}
-              <button onClick={() => onTabChange("rutinas")} className="flex items-center justify-center" aria-label="Rutinas" aria-current={currentTab === "rutinas" ? "page" : undefined}>
+              <button onClick={() => onTabChange("rutinas")} className="flex items-center justify-center" aria-label="Salud" aria-current={currentTab === "rutinas" ? "page" : undefined}>
                 <div className={`size-11 rounded-full flex items-center justify-center transition-all duration-150 ${currentTab === "rutinas" ? "bg-white/18 text-white" : "text-white/70"}`}>
                   <CalendarCheck size={iconSize} strokeWidth={strokeWidth} />
                 </div>

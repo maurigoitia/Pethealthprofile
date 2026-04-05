@@ -104,15 +104,7 @@ export default function DailyHookCard({
             {duration}
           </span>
 
-          {/* Points */}
-          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-amber-300 shrink-0">
-            <MaterialIcon
-              name="star"
-              className="text-amber-300 !text-[12px]"
-              filled
-            />
-            +{points}
-          </span>
+
         </div>
 
         {/* Start button */}

@@ -105,11 +105,11 @@ export default function PessyTip({
               onClick={handleComplete}
               className="mt-2 self-start px-3 py-1.5 rounded-full bg-[#074738] text-white text-[11px] font-bold active:scale-[0.96] transition-transform"
             >
-              Completar · +{missionPoints} pts
+              Completar
             </button>
           )}
           {isMission && completed && (
-            <span className="mt-1 text-[11px] font-bold text-[#1A9B7D]">+{missionPoints} pts ganados 🎉</span>
+            <span className="mt-1 text-[11px] font-bold text-[#1A9B7D]">Completada 🎉</span>
           )}
 
           {(!completed || !isMission) && ((actionLabel && onAction) || (dismissLabel && onDismiss)) && (

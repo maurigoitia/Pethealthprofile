@@ -268,7 +268,11 @@ type EnhancedTip = PessyIntelligenceRecommendation & {
 // it shows FIRST (kind: "alert") before breed/weather recommendations.
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildContextualTips(petName: string, medications: any[], appointments: any[], personality?: Personality): EnhancedTip[] {
+function buildContextualTips(petName: string, medications: any[], appointments: any[], personality?: Personality, species?: string, breed?: string): EnhancedTip[] {
+  // Hour-of-day context for time-sensitive missions
+  const currentHour = new Date().getHours();
+  const isEvening = currentHour >= 18 || currentHour < 6;
+  const isDog = !species || species === "dog";
   const tips: PessyIntelligenceRecommendation[] = [];
 
   // Active medications → always relevant, show name + dosage
@@ -318,14 +322,15 @@ function buildContextualTips(petName: string, medications: any[], appointments: 
     }
   }
 
-  // Personality-aware mission tips (only if personality data exists)
+  // Personality-aware mission tips — solo perros, con contexto de raza
   const training = personality?.training_level?.value;
-  if (training) {
+  if (training && isDog) {
+    const breedHint = breed ? ` (${breed})` : "";
     const missionTitle = training === "none"
       ? `Enseñarle 'Sentado' a ${petName}`
       : training === "partial"
-        ? `Reforzar 'Quieto' con ${petName}`
-        : `Practicar 'Espera la señal' con ${petName}`;
+        ? `Reforzar 'Quieto' con ${petName}${breedHint}`
+        : `Practicar 'Espera la señal' con ${petName}${breedHint}`;
     tips.push({
       id: "mission-training",
       code: "mission_training",
@@ -336,12 +341,12 @@ function buildContextualTips(petName: string, medications: any[], appointments: 
       kind: "recommendation",
       sourceModule: "mission",
       isMission: true,
-      missionPoints: training === "trained" ? 20 : 15,
     });
   }
 
+  // Rutina de calma — solo en la tarde/noche (18hs en adelante o antes de las 6am)
   const sleep = personality?.sleep_habits?.value;
-  if (sleep) {
+  if (sleep && isEvening) {
     tips.push({
       id: "mission-sleep",
       code: "mission_sleep",
@@ -352,7 +357,6 @@ function buildContextualTips(petName: string, medications: any[], appointments: 
       kind: "recommendation",
       sourceModule: "mission",
       isMission: true,
-      missionPoints: 10,
     });
   }
 
@@ -496,7 +500,7 @@ export function PetHomeView({
 
   const sortedRecommendations = useMemo(() => {
     // Contextual tips from real data (meds, appointments) always come first
-    const contextual = buildContextualTips(activePet?.name || "", activeMedications, upcomingAppointments, personality);
+    const contextual = buildContextualTips(activePet?.name || "", activeMedications, upcomingAppointments, personality, activePet?.species, activePet?.breed);
     const intelligence = intelligenceResult?.recommendations || [];
     const order: Record<string, number> = { block: 0, alert: 1, recommendation: 2 };
     const all = [...contextual, ...intelligence].sort((a, b) => (order[a.kind] ?? 2) - (order[b.kind] ?? 2));
