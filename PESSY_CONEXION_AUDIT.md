@@ -77,7 +77,7 @@ Necesitan reemplazarse por verbos activos: **conectar, agendar, comprar, ejecuta
 **5 posts nuevos propuestos para mostrar la conexión:**
 
 1. **Adopción + Pessy conecta:** "Adoptar es hermoso. Pessy conecta con el refugio, coordina la visita, agenda el primer vet, hace el seguimiento. Adopción sin drama."
-2. **Boom pet + Pessy como conector:** "El mercado pet crece. ¿Quién conecta a los dueños con los servicios nuevos? Pessy."
+2. **Boom pet + Pessy como conector:** "El mercado pet crece. ¿Quién conecta a los tutores con los servicios nuevos? Pessy."
 3. **Maltrato + Pessy:** "Denunciaste maltrato. Pessy conecta tu denuncia con rescatistas, vets y ONG de tu zona."
 4. **Ansiedad + Conexión:** "Tu perro tiene ansiedad. Pessy lo conecta con veterinarios conductuales verificados cerca tuyo."
 5. **Castración + Pessy geolocaliza:** "Castraciones gratuitas existen. Pessy las geolocaliza, agenda la cita, te avisa. Eso es conectar."

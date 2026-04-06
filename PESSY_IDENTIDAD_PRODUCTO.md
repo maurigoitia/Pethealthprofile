@@ -6,7 +6,7 @@
 
 ## ⚠️ CORRECCIÓN CRÍTICA: Pessy NO es una app médica
 
-**Pessy es un ecosystem de lifestyle para dueños de mascotas. NO es un dispositivo médico, NO diagnostica, NO prescribe.**
+**Pessy es un ecosystem de lifestyle para tutores de mascotas. NO es un dispositivo médico, NO diagnostica, NO prescribe.**
 
 Pessy CONECTA con servicios (vets, petshops, seguros) pero NO proporciona atención veterinaria. El veterinario es quien diagnostica y trata.
 

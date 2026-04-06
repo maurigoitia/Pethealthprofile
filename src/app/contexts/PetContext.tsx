@@ -159,7 +159,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Query 1: mascotas donde soy dueño
+    // Query 1: mascotas donde soy tutor
     const qOwner = query(collection(db, "pets"), where("ownerId", "==", user.uid));
     const unsubOwner = onSnapshot(qOwner, (snap) => {
       snap.docChanges().forEach(change => {
