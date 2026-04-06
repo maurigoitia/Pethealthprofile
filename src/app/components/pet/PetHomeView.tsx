@@ -555,6 +555,39 @@ export function PetHomeView({
     return all.slice(0, 4);
   }, [activePet?.name, activeMedications, upcomingAppointments, intelligenceResult, personality]);
 
+  // ─── Extract daily hook from intelligence recommendations ──────────────────
+  const dailyHook = useMemo(() => {
+    const dailyActivityRec = intelligenceResult?.recommendations?.find(
+      (rec) => rec.code === "daily_activity_suggestion"
+    );
+    if (!dailyActivityRec) return null;
+    
+    // Map recommendation to DailyHookCard props
+    const categoryMap: Record<string, string> = {
+      outdoor: "park",
+      indoor: "home",
+      grooming: "content_cut",
+      training: "school",
+      social: "people",
+    };
+    
+    // Extract duration from detail (e.g., "30-45 minutos")
+    const durationMatch = dailyActivityRec.detail.match(/\(([^)]+)\)/);
+    const duration = durationMatch ? durationMatch[1] : "30 min";
+    
+    // Estimate points based on duration (simple heuristic)
+    const points = duration.includes("45") || duration.includes("60") ? 50 : 30;
+    
+    return {
+      category: "Actividad del día",
+      categoryIcon: categoryMap[dailyActivityRec.icon] || "sports_handball",
+      title: dailyActivityRec.title,
+      description: dailyActivityRec.detail.split("(")[0].trim(),
+      duration,
+      points,
+    };
+  }, [intelligenceResult]);
+
   // ─── Personality — load from Firestore, trigger onboarding if not done ──────
   useEffect(() => {
     if (!user || !activePetId) return;
@@ -896,6 +929,26 @@ export function PetHomeView({
             <MaterialIcon name="star" className="!text-sm" /> {points} pts
           </div>
         </div>
+
+        {/* ── DAILY HOOK CARD — AI-powered activity suggestion ─────────────── */}
+        {dailyHook && (
+          <div className="mx-3 mt-4">
+            <DailyHookCard
+              category={dailyHook.category}
+              categoryIcon={dailyHook.categoryIcon}
+              title={dailyHook.title}
+              description={dailyHook.description}
+              duration={dailyHook.duration}
+              points={dailyHook.points}
+              onStart={(pts) => {
+                addPoints(pts);
+                setPoints(getPoints() + pts);
+                // Mark daily activity done for streak tracking
+                markDailyActivityDone();
+              }}
+            />
+          </div>
+        )}
 
         {/* ── MEDICAL PROFILE SUMMARY ─────────────────────────────────────── */}
         {hasMedicalSummary && (
