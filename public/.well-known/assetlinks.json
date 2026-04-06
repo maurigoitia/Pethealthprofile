@@ -3,9 +3,9 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "app.pessy.android",
+      "package_name": "app.pessy.mobile",
       "sha256_cert_fingerprints": [
-        "TODO_REPLACE_WITH_YOUR_SIGNING_KEY_SHA256_FINGERPRINT"
+        "57:AC:C0:CD:DC:73:52:1F:BA:42:34:3F:F9:B1:36:6B:58:C9:77:BE:7F:8E:5C:A1:47:7B:73:7D:19:7E:0C:87"
       ]
     }
   }

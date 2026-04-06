@@ -22,12 +22,14 @@ export default defineConfig({
       manifest: {
         name: 'Pessy',
         short_name: 'Pessy',
-        description: 'Tu mascota, sus cosas, todo en orden.',
+        description: 'Llevá el día a día de tu mascota. Rutinas, salud y cuidados — todo en un lugar.',
         theme_color: '#074738',
         background_color: '#F0FAF9',
         display: 'standalone',
         orientation: 'portrait',
         lang: 'es',
+        start_url: '/home',
+        scope: '/',
         categories: ['lifestyle', 'health'],
         icons: [
           {
@@ -55,16 +57,28 @@ export default defineConfig({
             purpose: 'maskable'
           }
         ],
-        screenshots: [],
+        screenshots: [
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'Pessy — inicio y resumen de tu mascota'
+          }
+        ],
         shortcuts: [
           {
             name: 'Inicio',
-            url: '/inicio',
+            short_name: 'Inicio',
+            description: 'Ver el resumen de tu mascota',
+            url: '/home',
             icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
           },
           {
-            name: 'Agregar',
-            url: '/inicio',
+            name: 'Explorar',
+            short_name: 'Explorar',
+            description: 'Veterinarias y servicios cerca tuyo',
+            url: '/home?tab=explorar',
             icons: [{ src: 'pwa-192x192.png', sizes: '192x192' }]
           }
         ]
