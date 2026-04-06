@@ -1,13 +1,13 @@
-import { Sun, HeartPulse, Plus, Users, Fingerprint, CalendarCheck, ShoppingCart } from "lucide-react";
+import { Sun, HeartPulse, Plus, Fingerprint, CalendarCheck, Users2 } from "lucide-react";
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 
-export type PillarTab = "dia-a-dia" | "rutinas" | "servicios" | "mi-pessy";
+export type PillarTab = "dia-a-dia" | "rutinas" | "comunidad" | "mi-pessy";
 
 interface BottomNavProps {
   currentTab: PillarTab;
   onTabChange: (tab: PillarTab) => void;
   onAddDocument?: () => void;
-  /** @deprecated Use onTabChange("servicios") instead */
+  /** @deprecated Use onTabChange("comunidad") instead */
   onNavigate?: (screen: "lost-pets" | "explore") => void;
 }
 
@@ -18,10 +18,10 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument }: BottomNavP
   const strokeWidth = 1.8;
 
   const TABS: { id: PillarTab; label: string; Icon: typeof Sun }[] = [
-    { id: "dia-a-dia", label: "Día a Día", Icon: Sun },
-    { id: "rutinas",   label: "Salud",     Icon: HeartPulse },
-    { id: "servicios", label: "Servicios", Icon: ShoppingCart },
-    { id: "mi-pessy",  label: "Mi Pessy",  Icon: Fingerprint },
+    { id: "dia-a-dia",  label: "Día a Día",  Icon: Sun },
+    { id: "rutinas",    label: "Salud",      Icon: HeartPulse },
+    { id: "comunidad",  label: "Comunidad",  Icon: Users2 },
+    { id: "mi-pessy",   label: "Mi Pessy",   Icon: Fingerprint },
   ];
 
   if (focusExperienceEnabled) {
@@ -55,10 +55,10 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument }: BottomNavP
                 <div />
               )}
 
-              {/* Servicios */}
-              <button onClick={() => onTabChange("servicios")} className="flex items-center justify-center" aria-label="Servicios" aria-current={currentTab === "servicios" ? "page" : undefined}>
-                <div className={`size-11 rounded-full flex items-center justify-center transition-all duration-150 ${currentTab === "servicios" ? "bg-white/18 text-white" : "text-white/70"}`}>
-                  <ShoppingCart size={iconSize} strokeWidth={strokeWidth} />
+              {/* Comunidad */}
+              <button onClick={() => onTabChange("comunidad")} className="flex items-center justify-center" aria-label="Comunidad" aria-current={currentTab === "comunidad" ? "page" : undefined}>
+                <div className={`size-11 rounded-full flex items-center justify-center transition-all duration-150 ${currentTab === "comunidad" ? "bg-white/18 text-white" : "text-white/70"}`}>
+                  <Users2 size={iconSize} strokeWidth={strokeWidth} />
                 </div>
               </button>
 

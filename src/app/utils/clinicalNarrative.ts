@@ -68,7 +68,7 @@ export function buildClinicalNarrativeSummary({
   resolvedConditions = [],
   treatmentRows = [],
   studies = [],
-}: ClinicalNarrativeInput): string {
+}: ClinicalNarrativeInput): string | null {
   const snapshotNarrative = cleanText(snapshot?.narrative || "");
   if (snapshotNarrative) return snapshotNarrative;
 
@@ -80,6 +80,11 @@ export function buildClinicalNarrativeSummary({
   );
   const studyLabels = buildStudyLabels(studies);
 
+  // If no clinical data at all, return null instead of empty string
+  if (activeNames.length === 0 && resolvedNames.length === 0 && medicationNames.length === 0 && studyLabels.length === 0) {
+    return null;
+  }
+
   const introParts = [speciesLabel, breed, ageLabel].map((value) => cleanText(value || "")).filter(Boolean);
   const intro =
     introParts.length > 0
@@ -89,17 +94,17 @@ export function buildClinicalNarrativeSummary({
   const sentences = [intro];
 
   if (activeNames.length > 0) {
-    sentences.push(`Hoy está en seguimiento por ${joinHumanList(activeNames)}.`);
+    sentences.push(`Actualmente se observa seguimiento de ${joinHumanList(activeNames)}.`);
   } else if (resolvedNames.length > 0) {
-    sentences.push(`Entre sus antecedentes más relevantes aparecen ${joinHumanList(resolvedNames)}.`);
+    sentences.push(`Entre sus antecedentes registrados figuran ${joinHumanList(resolvedNames)}.`);
   }
 
   if (medicationNames.length > 0) {
-    sentences.push(`Los cuidados actuales incluyen ${joinHumanList(medicationNames)}.`);
+    sentences.push(`Los tratamientos registrados incluyen ${joinHumanList(medicationNames)}.`);
   }
 
   if (studyLabels.length > 0) {
-    sentences.push(`Entre los estudios registrados se destacan ${joinHumanList(studyLabels)}.`);
+    sentences.push(`Entre los estudios disponibles se encuentran ${joinHumanList(studyLabels)}.`);
   }
 
   return sentences.join(" ").trim();
@@ -113,17 +118,17 @@ export function buildClinicalNarrativeHighlights({
   studies = [],
 }: Omit<ClinicalNarrativeInput, "petName">): string[] {
   const highlights = [
-    ...uniqueValues(snapshot?.activeConditions || [], 2).map((item) => `Tema activo: ${item}`),
-    ...uniqueValues(snapshot?.currentMedications?.map((medication) => medication.name) || [], 2).map((item) => `Tratamiento actual: ${item}`),
-    ...uniqueValues(snapshot?.recurrentPathologies || [], 1).map((item) => `Recurrente: ${item}`),
+    ...uniqueValues(snapshot?.activeConditions || [], 2).map((item) => `Seguimiento: ${item}`),
+    ...uniqueValues(snapshot?.currentMedications?.map((medication) => medication.name) || [], 2).map((item) => `Tratamiento: ${item}`),
+    ...uniqueValues(snapshot?.recurrentPathologies || [], 1).map((item) => `Patrón observado: ${item}`),
   ];
 
   if (highlights.length > 0) return highlights.slice(0, 3);
 
   const fallbackHighlights = [
-    ...uniqueValues(activeConditions.map((item) => item.normalizedName), 1).map((item) => `Tema activo: ${item}`),
-    ...uniqueValues(treatmentRows.map((item) => item.name || item.normalizedName || ""), 1).map((item) => `Tratamiento actual: ${item}`),
-    ...buildStudyLabels(studies).slice(0, 1).map((item) => `Estudio destacado: ${item}`),
+    ...uniqueValues(activeConditions.map((item) => item.normalizedName), 1).map((item) => `Seguimiento: ${item}`),
+    ...uniqueValues(treatmentRows.map((item) => item.name || item.normalizedName || ""), 1).map((item) => `Tratamiento: ${item}`),
+    ...buildStudyLabels(studies).slice(0, 1).map((item) => `Estudio: ${item}`),
     ...uniqueValues(resolvedConditions.map((item) => item.normalizedName), 1).map((item) => `Antecedente: ${item}`),
   ];
 

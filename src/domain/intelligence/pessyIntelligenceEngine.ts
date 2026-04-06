@@ -452,9 +452,10 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
 
     let bestSuggestion = eligible.find((s) => preferredCategories.includes(s.category));
     if (!bestSuggestion && eligible.length > 0) {
-      // Rotate by day of year
+      // Rotate by day of year AND pet name hash to avoid repetition and give variety per pet
       const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
-      bestSuggestion = eligible[dayOfYear % eligible.length];
+      const petHash = input.petName.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+      bestSuggestion = eligible[(dayOfYear + petHash) % eligible.length];
     }
 
     if (bestSuggestion) {

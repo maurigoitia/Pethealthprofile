@@ -62,6 +62,7 @@ function isTrustedClinicalSenderName(emailHeader: string): boolean {
   const knownTrustedNames = [
     "veterinaria panda", "panda clinica veterinaria", "panda - clinica veterinaria",
     "ecoform", "silvana formoso", "instituto de gastroenterologia veterinaria", "igv",
+    "myvete", "lvdiazz",
   ];
   return knownTrustedNames.some((item) => normalized.includes(item));
 }
@@ -359,7 +360,7 @@ export function choosePetByHints(args: {
 export function attachmentNamesContainClinicalSignal(metadata: AttachmentMetadata[]): boolean {
   const joined = normalizeTextForMatch(metadata.map((row) => row.filename).join(" "));
   if (!joined) return false;
-  return /\b(receta|prescrip|estudio|analisis|informe|laboratorio|hemograma|bioquim|perfil\s+hep|perfil\s+renal|quimica\s+sanguinea|sangre|radiograf|ecograf|ecocard|doppler|ultrasound|ecg)\b/i.test(
+  return /\b(receta|prescrip|estudio|analisis|informe|laboratorio|hemograma|bioquim|perfil\s+hep|perfil\s+renal|quimica\s+sanguinea|sangre|radiograf|ecograf|ecocard|doppler|ultrasound|ecg|historiaclinica|historia.?clinic|clinicavet|resultado)\b/i.test(
     joined
   );
 }

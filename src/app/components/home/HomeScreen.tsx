@@ -267,8 +267,8 @@ export default function HomeScreen() {
       case "rutinas":
         setViewMode("rutinas-hub");
         break;
-      case "servicios":
-        setViewMode("explore");
+      case "comunidad":
+        setViewMode("lost-pets");
         break;
       case "mi-pessy":
         break; // handled by currentTab check below
