@@ -427,7 +427,9 @@ export function DocumentScannerModal({
           "Documento cargado. Revisemos algunos datos antes de confirmarlos."
         );
       }
-      setUploadStage("success");
+      setDiscoveredEventId(newEvent.id);
+      setDiscoveredData({ type: typeMap[documentType] || "General", data: aiData });
+      setUploadStage("discovered");
     } catch (error: any) {
       console.error("Error processing document:", error);
       setUploadStage("error");
