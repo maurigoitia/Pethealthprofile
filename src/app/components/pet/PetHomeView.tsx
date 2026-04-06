@@ -282,7 +282,7 @@ function buildContextualTips(petName: string, medications: any[], appointments: 
   const currentHour = new Date().getHours();
   const isEvening = currentHour >= 18 || currentHour < 6;
   const isDog = !species || species === "dog";
-  const tips: PessyIntelligenceRecommendation[] = [];
+  const tips: EnhancedTip[] = [];
 
   // Active medications → always relevant, show name + dosage
   medications.slice(0, 2).forEach((med, i) => {
