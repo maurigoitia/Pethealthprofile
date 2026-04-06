@@ -21,7 +21,7 @@ interface DocumentScannerModalProps {
   onClose: () => void;
 }
 
-type UploadStage = "select" | "processing" | "treatment_questions" | "success" | "error";
+type UploadStage = "select" | "processing" | "treatment_questions" | "discovered" | "success" | "error";
 
 interface TreatmentQuestionItem {
   id: string;
@@ -62,6 +62,8 @@ export function DocumentScannerModal({
   const [reviewReasons, setReviewReasons] = useState<string[]>([]);
   const [reviewTarget, setReviewTarget] = useState<ReviewTarget>("feed");
   const [pendingTreatmentContext, setPendingTreatmentContext] = useState<PendingTreatmentContext | null>(null);
+  const [discoveredEventId, setDiscoveredEventId] = useState<string | null>(null);
+  const [discoveredData, setDiscoveredData] = useState<{ type: string; data: any } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const parseDurationToEndDate = (duration: string | null | undefined, startDateIso: string): string | null => {
@@ -216,6 +218,8 @@ export function DocumentScannerModal({
       }
 
       setPendingTreatmentContext(null);
+      setDiscoveredEventId(null);
+      setDiscoveredData(null);
       setUploadStage("success");
     } catch (error) {
       console.error("No se pudo guardar el tratamiento confirmado:", error);
@@ -469,6 +473,8 @@ export function DocumentScannerModal({
       setReviewReasons([]);
       setReviewTarget("feed");
       setPendingTreatmentContext(null);
+      setDiscoveredEventId(null);
+      setDiscoveredData(null);
     }, 300);
   };
 
@@ -483,6 +489,13 @@ export function DocumentScannerModal({
     const extra = savedEventId ? `&eventId=${savedEventId}` : "";
     navigate(`/home?review=${reviewParam}${extra}`);
     handleClose();
+  };
+
+  const handleViewTimeline = () => {
+    handleClose();
+    setTimeout(() => {
+      navigate('/home');
+    }, 300);
   };
 
   if (!isOpen) return null;
@@ -609,6 +622,57 @@ export function DocumentScannerModal({
                 </div>
               )}
 
+              {/* DISCOVERED STAGE - Pessy encontró esto */}
+              {uploadStage === "discovered" && discoveredData && (
+                <div className="p-6 flex flex-col items-center justify-center min-h-[400px]">
+                  <div className="size-24 rounded-full bg-[#1A9B7D] flex items-center justify-center mb-6">
+                    <MaterialIcon name="check_circle" className="text-white text-5xl" />
+                  </div>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white mb-6">
+                    Pessy encontró esto:
+                  </h3>
+                  <div className="w-full max-w-xs space-y-3 mb-8">
+                    {discoveredData.data.documentType && (
+                      <div className="p-3 rounded-lg bg-[#F0FAF9] border border-[#1A9B7D]/20">
+                        <p className="text-xs text-slate-600 dark:text-slate-400">Tipo</p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">{discoveredData.type}</p>
+                      </div>
+                    )}
+                    {discoveredData.data.eventDate && (
+                      <div className="p-3 rounded-lg bg-[#F0FAF9] border border-[#1A9B7D]/20">
+                        <p className="text-xs text-slate-600 dark:text-slate-400">Fecha</p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">{new Date(discoveredData.data.eventDate).toLocaleDateString("es-AR")}</p>
+                      </div>
+                    )}
+                    {discoveredData.data.diagnosis && (
+                      <div className="p-3 rounded-lg bg-[#F0FAF9] border border-[#1A9B7D]/20">
+                        <p className="text-xs text-slate-600 dark:text-slate-400">Diagnóstico</p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">{discoveredData.data.diagnosis}</p>
+                      </div>
+                    )}
+                    {discoveredData.data.provider && (
+                      <div className="p-3 rounded-lg bg-[#F0FAF9] border border-[#1A9B7D]/20">
+                        <p className="text-xs text-slate-600 dark:text-slate-400">Profesional</p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">{discoveredData.data.provider}</p>
+                      </div>
+                    )}
+                    {discoveredData.data.medications && discoveredData.data.medications.length > 0 && (
+                      <div className="p-3 rounded-lg bg-[#F0FAF9] border border-[#1A9B7D]/20">
+                        <p className="text-xs text-slate-600 dark:text-slate-400">Medicamentos</p>
+                        <ul className="space-y-1 mt-2">
+                          {discoveredData.data.medications.slice(0, 3).map((med: any, idx: number) => (
+                            <li key={idx} className="text-sm font-medium text-slate-900 dark:text-white">{med.name}{med.dosage ? ` - ${med.dosage}` : ""}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-3 w-full">
+                    <button onClick={handleViewTimeline} className="flex-1 py-3 rounded-xl bg-[#074738] hover:bg-[#1a9b7d] text-white font-bold shadow-lg shadow-[#074738]/30 transition-colors">Ver en Timeline</button>
+                    <button onClick={() => setUploadStage("select")} className="flex-1 py-3 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white font-bold transition-colors">Cerrar</button>
+                  </div>
+                </div>
+              )}
               {/* SUCCESS STAGE */}
               {uploadStage === "treatment_questions" && pendingTreatmentContext && (
                 <div className="p-6 space-y-5">
