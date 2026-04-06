@@ -32,8 +32,15 @@ vi.mock("../../contexts/MedicalContext", () => ({
   }),
 }));
 
-vi.mock("../../utils/gamification", () => ({
-  addPoints: (amount: number) => mockAddPoints(amount),
+vi.mock("../../contexts/GamificationContext", () => ({
+  useGamification: () => ({
+    addPoints: mockAddPoints,
+    profile: null,
+    totalPoints: 0,
+    level: 1,
+    streak: 0,
+    loading: false,
+  }),
 }));
 
 import PessyDailyCheckin from "../home/PessyDailyCheckin";
@@ -100,7 +107,7 @@ describe("Home cards regression", () => {
 
     await waitFor(() => {
       expect(mockSetDoc).toHaveBeenCalled();
-      expect(mockAddPoints).toHaveBeenCalledWith(20);
+      expect(mockAddPoints).toHaveBeenCalledWith("medication_logged");
     });
 
     expect(mockUpdateMedication).toHaveBeenCalledWith(

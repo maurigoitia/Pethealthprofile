@@ -207,9 +207,17 @@ export default defineConfig({
   assetsInclude: ['**/*.svg', '**/*.csv'],
   test: {
     environment: 'jsdom',
-    exclude: [...configDefaults.exclude, '.claude/**'],
+    env: {
+      NODE_ENV: 'test',
+    },
+    exclude: [
+      ...configDefaults.exclude,
+      '.claude/**',
+      'functions/lib/**',
+      'functions/node_modules/**',
+    ],
     environmentMatchGlobs: [
-      ['functions/**', 'node'],
+      ['functions/src/**', 'node'],
     ],
   },
   build: {

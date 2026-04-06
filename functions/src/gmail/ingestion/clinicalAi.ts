@@ -28,6 +28,7 @@ import {
   isTrustedClinicalSender, isVetDomain,
   hasStrongHumanHealthcareSignal, hasStrongVeterinaryEvidence,
   hasStrongNonClinicalSignal, attachmentNamesContainClinicalSignal,
+  hasVeterinaryAdministrativeOnlySignal, isSelfGeneratedPessyEmail,
 } from "./petMatching";
 import { recordSessionStageMetric } from "./sessionQueue";
 import { resolveClinicalKnowledgeContext } from "../../clinical/knowledgeBase";
@@ -534,12 +535,44 @@ export function toClinicalOutput(
 
 // ─── Heuristic fallbacks ────────────────────────────────────────────────────
 
-export function heuristicClinicalExtraction(extractedText: string, emailDate: string): ClinicalExtractionOutput {
-  const normalized = normalizeForHash(extractedText);
+interface HeuristicExtractionArgs {
+  sourceSubject?: string;
+  sourceSender?: string;
+  extractedText: string;
+  emailDate: string;
+  attachmentMetadata?: AttachmentMetadata[];
+}
+
+// Attachment filename patterns that strongly signal clinical content
+const CLINICAL_ATTACHMENT_REGEX =
+  /historia|histor|clinica|clinic|resumen|resultado|analisis|hemograma|bioquim|ecograf|radiograf|rx|placa|informe|estudio|laboratorio|turno|consulta|prescri|receta|vacuna|goita|ultrasonido|tomografia|resonancia|electrocard|biopsia|citolog/i;
+
+function hasClinicalAttachmentSignal(attachments: AttachmentMetadata[] = []): boolean {
+  return attachments.some((a) => CLINICAL_ATTACHMENT_REGEX.test(a.filename));
+}
+
+export function heuristicClinicalExtraction(
+  argsOrText: HeuristicExtractionArgs | string,
+  emailDateLegacy?: string,
+): ClinicalExtractionOutput {
+  // Support both old (string, string) signature and new object signature
+  const args: HeuristicExtractionArgs =
+    typeof argsOrText === "string"
+      ? { extractedText: argsOrText, emailDate: emailDateLegacy ?? "" }
+      : argsOrText;
+
+  const { extractedText, emailDate, sourceSubject = "", attachmentMetadata = [] } = args;
+  const combined = `${sourceSubject}\n${extractedText}`;
+  const normalized = normalizeForHash(combined);
+
   const keywordRegex =
-    /\b(veterinari|vet|receta|prescrip|dosis|vacuna|turno|diagn[oó]stic|laboratorio|ecograf|radiograf|electrocard|tratamiento)\b/i;
-  const isClinical = keywordRegex.test(normalized);
-  if (!isClinical) {
+    /\b(veterinari|vet|receta|prescrip|dosis|vacuna|turno|diagn[oó]stic|laboratorio|ecograf|radiograf|electrocard|tratamiento|ecg|hemograma|bioquim|ultrasonido|resonancia|biopsia)\b/i;
+  const textIsClinical = keywordRegex.test(normalized);
+
+  // Attachment-first: even with empty body, clinical attachment names signal content
+  const attachmentIsClinical = hasClinicalAttachmentSignal(attachmentMetadata);
+
+  if (!textIsClinical && !attachmentIsClinical) {
     return {
       is_clinical_content: false,
       confidence_overall: 15,
@@ -550,11 +583,50 @@ export function heuristicClinicalExtraction(extractedText: string, emailDate: st
     };
   }
 
+  // If we only have attachment signal (empty body), synthesize a study_report
+  if (attachmentIsClinical && !textIsClinical) {
+    const clinicalAttachment = attachmentMetadata.find((a) => CLINICAL_ATTACHMENT_REGEX.test(a.filename));
+    return {
+      is_clinical_content: true,
+      confidence_overall: 70,
+      detected_events: [
+        {
+          event_type: "study_report",
+          event_date: toIsoDateOnly(new Date(emailDate)),
+          date_confidence: 55,
+          description_summary: clinicalAttachment
+            ? `Documento clínico adjunto: ${clinicalAttachment.filename}`
+            : "Documento clínico detectado por nombre de adjunto",
+          diagnosis: null,
+          medications: [],
+          lab_results: [],
+          imaging_type: null,
+          study_subtype: inferStudySubtypeFromSignals({
+            descriptionSummary: sourceSubject,
+            diagnosis: null,
+            imagingType: null,
+            labResults: [],
+          }),
+          appointment_time: null,
+          appointment_specialty: null,
+          professional_name: null,
+          clinic_name: null,
+          appointment_status: null,
+          severity: null,
+          confidence_score: 70,
+        },
+      ],
+      narrative_summary: "Documento clínico detectado por nombre de adjunto. Requiere validación manual.",
+      requires_human_review: true,
+      reason_if_review_needed: "study_fallback_from_attachment_signal",
+    };
+  }
+
   const inferredType: EventType = normalized.includes("vacuna")
     ? "vaccination_record"
     : normalized.includes("dosis") || normalized.includes("tratamiento") || normalized.includes("prescrip")
       ? "prescription_record"
-      : /\b(laboratorio|hemograma|bioquim|radiograf|ecograf|electrocard|resultado|koh|citolog|microscop)\b/i.test(normalized)
+      : /\b(laboratorio|hemograma|bioquim|radiograf|ecograf|electrocard|resultado|koh|citolog|microscop|ultrasonido|resonancia|biopsia)\b/i.test(normalized)
         ? "study_report"
       : /\b(turno|consulta|recordatorio|confirmaci[oó]n|cancelaci[oó]n|reprogramaci[oó]n)\b/i.test(normalized)
         ? ((): EventType => {
@@ -565,6 +637,46 @@ export function heuristicClinicalExtraction(extractedText: string, emailDate: st
           })()
         : "clinical_report";
 
+  // Multi-appointment detection: emails with a booking summary list
+  // Pattern: DD/MM/YY HH:MM [doctor] [specialty] [clinic] [procedure]
+  if (isAppointmentEventType(inferredType)) {
+    const multiApptPattern = /(?:^|\n)\d{2}\/\d{2}\/\d{2}\s+(\d{2}:\d{2})\s+(.+)/g;
+    const apptMatches = [...extractedText.matchAll(multiApptPattern)];
+    if (apptMatches.length > 1) {
+      const eventDate = toIsoDateOnly(new Date(emailDate));
+      const multiEvents: ClinicalEventExtraction[] = apptMatches.map((match) => {
+        const time = match[1] ?? null;
+        const rest = match[2] ?? "";
+        return {
+          event_type: inferredType,
+          event_date: eventDate,
+          date_confidence: 75,
+          description_summary: rest.slice(0, 220),
+          diagnosis: null,
+          medications: [],
+          lab_results: [],
+          imaging_type: null,
+          study_subtype: null,
+          appointment_time: time,
+          appointment_specialty: extractAppointmentSpecialtyFromText(rest),
+          professional_name: extractProfessionalNameFromText(rest),
+          clinic_name: extractClinicNameFromText(rest),
+          appointment_status: inferAppointmentStatusFromText(rest),
+          severity: null,
+          confidence_score: 72,
+        };
+      });
+      return {
+        is_clinical_content: true,
+        confidence_overall: 72,
+        detected_events: multiEvents,
+        narrative_summary: `${multiEvents.length} turnos detectados en el correo.`,
+        requires_human_review: true,
+        reason_if_review_needed: "heuristic_fallback",
+      };
+    }
+  }
+
   return {
     is_clinical_content: true,
     confidence_overall: 62,
@@ -573,13 +685,13 @@ export function heuristicClinicalExtraction(extractedText: string, emailDate: st
         event_type: inferredType,
         event_date: toIsoDateOnly(new Date(emailDate)),
         date_confidence: 60,
-        description_summary: extractedText.slice(0, 220) || "Documento clínico detectado por reglas",
+        description_summary: extractedText.slice(0, 220) || sourceSubject || "Documento clínico detectado por reglas",
         diagnosis: null,
         medications: [],
         lab_results: [],
         imaging_type: null,
         study_subtype: inferredType === "study_report" ? inferStudySubtypeFromSignals({
-          descriptionSummary: extractedText,
+          descriptionSummary: combined,
           diagnosis: null,
           imagingType: null,
           labResults: [],
@@ -785,12 +897,23 @@ export function structuredHeuristicExtraction(
 }
 
 export function heuristicClinicalClassification(input: ClinicalClassificationInput): ClinicalClassificationOutput {
+  // Pessy's own notification emails are never clinical records
+  if (isSelfGeneratedPessyEmail({ subject: input.subject, fromEmail: input.fromEmail, bodyText: input.bodyText })) {
+    return { is_clinical: false, confidence: 3 };
+  }
+
   const normalized = normalizeForHash(
     [input.subject || "", input.fromEmail || "", input.bodyText || ""].filter(Boolean).join("\n")
   );
+  const hasClinicalAttachment = attachmentNamesContainClinicalSignal(input.attachmentMetadata || []);
+
+  // Vet-sent invoices/receipts are administrative even though the sender is a vet clinic
+  if (hasVeterinaryAdministrativeOnlySignal(input) && !hasClinicalAttachment) {
+    return { is_clinical: false, confidence: 8 };
+  }
+
   const keywordRegex =
     /\b(veterinari|vet|receta|prescrip|dosis|vacuna|turno|diagn[oó]stic|laboratorio|ecograf|radiograf|electrocard|tratamiento|medicaci[oó]n)\b/i;
-  const hasClinicalAttachment = attachmentNamesContainClinicalSignal(input.attachmentMetadata || []);
   const hasNoise = hasStrongNonClinicalSignal(normalized);
   const hasHumanHealthcareNoise = hasStrongHumanHealthcareSignal(normalized);
   const hasVetEvidence = hasStrongVeterinaryEvidence(input);
@@ -813,6 +936,12 @@ export async function classifyClinicalContentWithAi(
   const bodyText = asString(input.bodyText);
   const subject = asString(input.subject).slice(0, 500);
   const fromEmail = asString(input.fromEmail).slice(0, 320);
+
+  // Pessy's own notification emails are never clinical records
+  if (isSelfGeneratedPessyEmail({ subject, fromEmail, bodyText })) {
+    return { is_clinical: false, confidence: 3 };
+  }
+
   const hasClinicalAttachment = attachmentNamesContainClinicalSignal(input.attachmentMetadata || []);
   const hasHumanHealthcareNoise = hasStrongHumanHealthcareSignal(`${subject}\n${fromEmail}\n${bodyText}`);
   const hasVetEvidence = hasStrongVeterinaryEvidence(input);
@@ -825,21 +954,46 @@ export async function classifyClinicalContentWithAi(
   if (!hasBody && !subject && !hasClinicalAttachment) {
     return { is_clinical: false, confidence: 0 };
   }
+
+  // Non-clinical noise signals override attachment/subject heuristics
+  // (facturas, comprobantes, newsletters, mails automáticos de Pessy)
+  const bodySubjectCombined = `${subject}\n${fromEmail}\n${bodyText}`;
+  const hasAdminNoise = hasStrongNonClinicalSignal(bodySubjectCombined);
   if (hasHumanHealthcareNoise && !hasVetEvidence && !hasClinicalAttachment) {
     return { is_clinical: false, confidence: 12 };
   }
+  // If clear administrative noise (factura, promo, etc.) and no trusted vet evidence, skip
+  if (hasAdminNoise && !hasVetEvidence && !senderLooksClinical) {
+    return { is_clinical: false, confidence: 10 };
+  }
 
   if (hasClinicalAttachment) {
-    return {
-      is_clinical: true,
-      confidence: senderLooksClinical ? 92 : 82,
-    };
+    // Attachment-first: only trust if sender is credible OR no admin noise
+    if (hasAdminNoise && !senderLooksClinical && !hasVetEvidence) {
+      // Attachment name looks clinical but context is administrative — fall through to Gemini
+    } else {
+      return {
+        is_clinical: true,
+        confidence: senderLooksClinical ? 92 : 82,
+      };
+    }
   }
-  if (subjectLooksClinical) {
-    return {
-      is_clinical: true,
-      confidence: senderLooksClinical ? 78 : 72,
-    };
+  if (subjectLooksClinical && !hasAdminNoise) {
+    // Subject looks clinical: only early-return if sender is trusted OR there's body evidence
+    if (senderLooksClinical || hasVetEvidence) {
+      return {
+        is_clinical: true,
+        confidence: senderLooksClinical ? 78 : 72,
+      };
+    }
+    // Otherwise fall through to Gemini for borderline subjects from unknown senders
+  }
+
+  // Vet-domain sender + body has explicit clinical appointment/reminder content → high-confidence clinical
+  const bodyHasClinicalAppointmentContent =
+    /\b(turno|consulta|especialidad|prestaci[oó]n|profesional|cardiolog|ecograf|radiograf|resultado|hemograma|bioquim)\b/i.test(bodyText);
+  if (senderLooksClinical && bodyHasClinicalAppointmentContent && !hasAdminNoise) {
+    return { is_clinical: true, confidence: 90 };
   }
 
   const hasGemini = Boolean(asString(process.env.GEMINI_API_KEY));

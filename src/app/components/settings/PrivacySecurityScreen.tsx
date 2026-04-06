@@ -366,8 +366,6 @@ export function PrivacySecurityScreen({ onBack, onLogout, autoOpenGmail }: Priva
             </div>
             <MaterialIcon name="chevron_right" className="text-slate-400" />
           </button>
-          {false && (
-
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
             <div className="flex items-start gap-3">
               <div className="size-10 rounded-lg bg-[#074738]/10 flex items-center justify-center shrink-0">
@@ -427,7 +425,6 @@ export function PrivacySecurityScreen({ onBack, onLogout, autoOpenGmail }: Priva
               </div>
             </div>
           </div>
-          )}
 
           {/* Privacy Policy */}
           <a
