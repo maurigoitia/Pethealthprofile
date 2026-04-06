@@ -488,6 +488,22 @@ export function PetHomeView({
   const thermalProfile = resolveThermalProfile(species, groupIds);
   const foodDaysLeft = computeFoodDaysLeft(activePet?.preferences);
 
+  // ─── Insight banners ────────────────────────────────────────────────────────
+  // "Thor lleva 3 días sin salir → [Registrar paseo]"
+  const showNoWalkInsight = useMemo(() => {
+    if (!activePet) return false;
+    if (species !== "dog") return false;
+    if (showPreWalkPrompt) return false; // Pre-walk prompt already covers this
+    return walkPattern.daysSinceLastWalk >= 3;
+  }, [activePet, species, showPreWalkPrompt, walkPattern.daysSinceLastWalk]);
+
+  // "Alimento de Thor se está agotando → [Reponer en MercadoLibre]"
+  const showFoodLowInsight = useMemo(() => {
+    if (!activePet) return false;
+    if (foodDaysLeft === null || foodDaysLeft === undefined) return false;
+    return foodDaysLeft <= 3 && foodDaysLeft > 0;
+  }, [activePet, foodDaysLeft]);
+
   // ─── Profile completeness ───────────────────────────────────────────────────
   const missingItems: string[] = [];
   if (!activePet?.photo) missingItems.push("foto");
@@ -950,6 +966,60 @@ export function PetHomeView({
             petName={activePet.name}
             onOpenNearbyVets={onOpenNearbyVets}
           />
+        )}
+
+        {/* ── NO-WALK INSIGHT BANNER — Connection Rule: 3+ days without walk ── */}
+        {showNoWalkInsight && (
+          <div className="mx-3 mt-3">
+            <div className="bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-800/30 rounded-2xl p-4 flex items-center gap-3">
+              <div className="size-10 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center shrink-0">
+                <MaterialIcon name="directions_walk" className="text-sky-600 dark:text-sky-400 text-xl" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black text-slate-900 dark:text-white leading-tight">
+                  {activePet.name} lleva {walkPattern.daysSinceLastWalk} día{walkPattern.daysSinceLastWalk !== 1 ? "s" : ""} sin salir
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Los {species === "dog" ? "perros" : "gatos"} necesitan actividad regular
+                </p>
+              </div>
+              <button
+                onClick={() => setShowWalkLogModal(true)}
+                className="shrink-0 px-3 py-2 rounded-xl bg-sky-600 text-white text-xs font-black flex items-center gap-1 active:scale-[0.96] transition-transform"
+              >
+                <MaterialIcon name="add" className="text-sm" />
+                Paseo
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── FOOD LOW-STOCK INSIGHT — Connection Rule: food running out → buy ── */}
+        {showFoodLowInsight && (
+          <div className="mx-3 mt-3">
+            <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/30 rounded-2xl p-4 flex items-center gap-3">
+              <div className="size-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
+                <MaterialIcon name="restaurant" className="text-orange-600 dark:text-orange-400 text-xl" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black text-slate-900 dark:text-white leading-tight">
+                  Alimento de {activePet.name} se agota en {foodDaysLeft} día{foodDaysLeft !== 1 ? "s" : ""}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {activePet.preferences?.foodBrand ? `Come ${activePet.preferences.foodBrand}` : "Reponé antes de que se acabe"}
+                </p>
+              </div>
+              <a
+                href={`https://listado.mercadolibre.com.ar/${encodeURIComponent(`alimento ${activePet.preferences?.foodBrand || ""} ${species === "cat" ? "gato" : "perro"}`.trim())}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 px-3 py-2 rounded-xl bg-orange-500 text-white text-xs font-black flex items-center gap-1 active:scale-[0.96] transition-transform"
+              >
+                <MaterialIcon name="shopping_bag" className="text-sm" />
+                Reponer
+              </a>
+            </div>
+          </div>
         )}
 
         {/* ── SECTION 2: Cork/Fizz — the ONE most important thing right now ── */}
