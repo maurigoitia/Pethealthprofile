@@ -88,7 +88,7 @@ export default function HomeScreen() {
   const [showScanner, setShowScanner] = useState(false);
   const [showPetSelector, setShowPetSelector] = useState(false);
   const [showInviteFriends, setShowInviteFriends] = useState(false);
-  const [currentTab, setCurrentTab] = useState<PillarTab>("dia-a-dia");
+  const [currentTab, setCurrentTab] = useState<PillarTab>("inicio");
   const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications" | "nearby-vets" | "lost-pets" | "explore" | "rutinas-hub" | "reminders">("card");
   const [inviteNotice, setInviteNotice] = useState<{ type: "info" | "success" | "error"; message: string } | null>(null);
   const [inviteJoiningCode, setInviteJoiningCode] = useState("");
@@ -115,7 +115,7 @@ export default function HomeScreen() {
     // ?viewmode=nearby-vets (from ClinicalReviewScreen Vet Booking Bridge)
     const viewmode = params.get("viewmode");
     if (viewmode === "nearby-vets") {
-      setCurrentTab("dia-a-dia");
+      setCurrentTab("inicio");
       setViewMode("nearby-vets");
       return;
     }
@@ -125,17 +125,17 @@ export default function HomeScreen() {
     if (!review) return;
 
     if (review === "appointments") {
-      setCurrentTab("dia-a-dia");
+      setCurrentTab("inicio");
       setViewMode("appointments");
       return;
     }
     if (review === "medications") {
-      setCurrentTab("dia-a-dia");
+      setCurrentTab("inicio");
       setViewMode("medications");
       return;
     }
     if (review === "feed") {
-      setCurrentTab("dia-a-dia");
+      setCurrentTab("inicio");
       setViewMode("feed");
       return;
     }
@@ -261,11 +261,11 @@ export default function HomeScreen() {
   const handleTabChange = (tab: PillarTab) => {
     setCurrentTab(tab);
     switch (tab) {
-      case "dia-a-dia":
+      case "inicio":
         setViewMode("card");
         break;
-      case "rutinas":
-        setViewMode("rutinas-hub");
+      case "explorar":
+        setViewMode("explore");
         break;
       case "comunidad":
         setViewMode("lost-pets");
@@ -454,7 +454,7 @@ export default function HomeScreen() {
     return withTermsNotice(
       <>
         <Suspense fallback={<ScreenLoader label="Cargando perfil..." />}>
-          <UserProfileScreen onBack={() => handleTabChange("dia-a-dia")} />
+          <UserProfileScreen onBack={() => handleTabChange("inicio")} />
         </Suspense>
         <BottomNav
           currentTab={currentTab}
@@ -641,7 +641,7 @@ export default function HomeScreen() {
                   onOpenScanner={handleOpenScanner}
                   onOpenNearbyVets={() => setViewMode("nearby-vets")}
                   onSwitchToRutinas={() => {
-                    setCurrentTab("rutinas");
+                    setCurrentTab("inicio");
                     setViewMode("rutinas-hub");
                   }}
                   pets={pets}

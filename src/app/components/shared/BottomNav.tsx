@@ -1,7 +1,7 @@
-import { Sun, HeartPulse, Plus, Fingerprint, CalendarCheck, Users2 } from "lucide-react";
+import { Home, MapPin, Plus, Fingerprint, Users2 } from "lucide-react";
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 
-export type PillarTab = "dia-a-dia" | "rutinas" | "comunidad" | "mi-pessy";
+export type PillarTab = "inicio" | "explorar" | "comunidad" | "mi-pessy";
 
 interface BottomNavProps {
   currentTab: PillarTab;
@@ -18,8 +18,8 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument }: BottomNavP
   const strokeWidth = 1.8;
 
   const TABS: { id: PillarTab; label: string; Icon: typeof Sun }[] = [
-    { id: "dia-a-dia",  label: "Día a Día",  Icon: Sun },
-    { id: "rutinas",    label: "Salud",      Icon: HeartPulse },
+    { id: "inicio",     label: "Inicio",     Icon: Home },
+    { id: "explorar",   label: "Explorar",   Icon: MapPin },
     { id: "comunidad",  label: "Comunidad",  Icon: Users2 },
     { id: "mi-pessy",   label: "Mi Pessy",   Icon: Fingerprint },
   ];
@@ -30,17 +30,17 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument }: BottomNavP
         <div className="max-w-md mx-auto px-4">
           <div className="rounded-full bg-[#074738] px-4 py-3 shadow-[0_8px_32px_rgba(7,71,56,0.25)]">
             <div className="grid grid-cols-5 items-center">
-              {/* Día a Día */}
-              <button onClick={() => onTabChange("dia-a-dia")} className="flex items-center justify-center" aria-label="Día a Día" aria-current={currentTab === "dia-a-dia" ? "page" : undefined}>
-                <div className={`size-11 rounded-full flex items-center justify-center transition-all duration-150 ${currentTab === "dia-a-dia" ? "bg-white/18 text-white" : "text-white/70"}`}>
-                  <Sun size={iconSize} strokeWidth={strokeWidth} />
+              {/* Inicio */}
+              <button onClick={() => onTabChange("inicio")} className="flex items-center justify-center" aria-label="Inicio" aria-current={currentTab === "inicio" ? "page" : undefined}>
+                <div className={`size-11 rounded-full flex items-center justify-center transition-all duration-150 ${currentTab === "inicio" ? "bg-white/18 text-white" : "text-white/70"}`}>
+                  <Home size={iconSize} strokeWidth={strokeWidth} />
                 </div>
               </button>
 
-              {/* Rutinas */}
-              <button onClick={() => onTabChange("rutinas")} className="flex items-center justify-center" aria-label="Salud" aria-current={currentTab === "rutinas" ? "page" : undefined}>
-                <div className={`size-11 rounded-full flex items-center justify-center transition-all duration-150 ${currentTab === "rutinas" ? "bg-white/18 text-white" : "text-white/70"}`}>
-                  <CalendarCheck size={iconSize} strokeWidth={strokeWidth} />
+              {/* Explorar */}
+              <button onClick={() => onTabChange("explorar")} className="flex items-center justify-center" aria-label="Explorar" aria-current={currentTab === "explorar" ? "page" : undefined}>
+                <div className={`size-11 rounded-full flex items-center justify-center transition-all duration-150 ${currentTab === "explorar" ? "bg-white/18 text-white" : "text-white/70"}`}>
+                  <MapPin size={iconSize} strokeWidth={strokeWidth} />
                 </div>
               </button>
 
