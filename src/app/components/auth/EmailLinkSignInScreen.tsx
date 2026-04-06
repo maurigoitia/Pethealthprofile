@@ -2,15 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
 import { auth } from "../../../lib/firebase";
-import { usePet } from "../../contexts/PetContext";
-import { clearPendingCoTutorInvite, rememberPendingCoTutorInvite } from "../../utils/coTutorInvite";
+import { rememberPendingCoTutorInvite } from "../../utils/coTutorInvite";
 
 const EMAIL_STORAGE_KEY = "pessy_magic_link_email";
 
 export function EmailLinkSignInScreen() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { joinWithCode } = usePet();
 
   const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
   const inviteCode = (params.get("invite") || "").toUpperCase().trim();
@@ -40,14 +38,8 @@ export function EmailLinkSignInScreen() {
       localStorage.removeItem(EMAIL_STORAGE_KEY);
 
       if (inviteCode) {
-        try {
-          const { petName } = await joinWithCode(inviteCode);
-          clearPendingCoTutorInvite();
-          setSuccess(`Acceso confirmado. Ya tenés acceso a ${petName}.`);
-        } catch (joinError: any) {
-          setSuccess("Sesión iniciada correctamente.");
-          setError(joinError?.message || "No se pudo completar la unión como co-tutor.");
-        }
+        rememberPendingCoTutorInvite(inviteCode);
+        setSuccess("Sesión iniciada correctamente. Estamos validando la invitación.");
       } else {
         setSuccess("Sesión iniciada correctamente.");
       }

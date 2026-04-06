@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router";
 import { BottomNav, type PillarTab } from "../shared/BottomNav";
 import { MaterialIcon } from "../shared/MaterialIcon";
@@ -7,7 +7,8 @@ import { TermsAcceptanceNotice } from "../settings/TermsAcceptanceNotice";
 import { usePet } from "../../contexts/PetContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { usePreferences } from "../../contexts/PreferenceContext";
-import { clearPendingCoTutorInvite, readPendingCoTutorInvite, rememberPendingCoTutorInvite, normalizeCoTutorInviteCode } from "../../utils/coTutorInvite";
+import { rememberPendingCoTutorInvite, normalizeCoTutorInviteCode } from "../../utils/coTutorInvite";
+import { useAcceptPetInvite } from "../../hooks/useAcceptPetInvite";
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 import { CorkMascot } from "../shared/CorkMascot";
 import { RutinasHub } from "../rutinas/RutinasHub";
@@ -90,23 +91,13 @@ export default function HomeScreen() {
   const [showInviteFriends, setShowInviteFriends] = useState(false);
   const [currentTab, setCurrentTab] = useState<PillarTab>("inicio");
   const [viewMode, setViewMode] = useState<"card" | "feed" | "appointments" | "medications" | "nearby-vets" | "lost-pets" | "explore" | "rutinas-hub" | "reminders">("card");
-  const [inviteNotice, setInviteNotice] = useState<{ type: "info" | "success" | "error"; message: string } | null>(null);
-  const [inviteJoiningCode, setInviteJoiningCode] = useState("");
-  const [inviteResolvedCode, setInviteResolvedCode] = useState("");
   const { activePetId, setActivePetId, pets, activePet, loading: petsLoading, joinWithCode, canEditPet } = usePet();
   const { user, loading: authLoading, userName, userRole, logout } = useAuth();
   const { currentQuestion, answerQuestion, dismissQuestion } = usePreferences();
   const focusExperienceEnabled = isFocusExperienceHost();
-  const joinWithCodeRef = useRef(joinWithCode);
-  const inviteJoiningCodeRef = useRef(inviteJoiningCode);
 
-  useEffect(() => {
-    joinWithCodeRef.current = joinWithCode;
-  }, [joinWithCode]);
-
-  useEffect(() => {
-    inviteJoiningCodeRef.current = inviteJoiningCode;
-  }, [inviteJoiningCode]);
+  const { inviteNotice, inviteJoiningCode, inviteResolvedCode, setInviteResolvedCode } =
+    useAcceptPetInvite(user, joinWithCode);
 
 
   useEffect(() => {
@@ -153,75 +144,6 @@ export default function HomeScreen() {
       navigate(location.pathname + (clean ? `?${clean}` : ""), { replace: true });
     }
   }, [location.search, navigate]);
-
-  useEffect(() => {
-    if (!user) return;
-    const pendingInviteCode = readPendingCoTutorInvite();
-    if (!pendingInviteCode) return;
-    if (pendingInviteCode === inviteJoiningCodeRef.current || pendingInviteCode === inviteResolvedCode) return;
-
-    let cancelled = false;
-    setInviteJoiningCode(pendingInviteCode);
-    setInviteNotice({
-      type: "info",
-      message: "Vinculando la invitación de co-tutor...",
-    });
-
-    // Timeout: if joinWithCode takes >10s, clear and let user through
-    const timeout = window.setTimeout(() => {
-      if (cancelled) return;
-      clearPendingCoTutorInvite();
-      setInviteResolvedCode(pendingInviteCode);
-      setInviteJoiningCode("");
-      setInviteNotice(null);
-    }, 10_000);
-
-    void joinWithCodeRef.current(pendingInviteCode)
-      .then(({ petName }) => {
-        if (cancelled) return;
-        window.clearTimeout(timeout);
-        clearPendingCoTutorInvite();
-        setInviteResolvedCode(pendingInviteCode);
-        setInviteNotice({
-          type: "success",
-          message: `Acceso confirmado. Ya tenés acceso a ${petName}.`,
-        });
-        window.setTimeout(() => {
-          setInviteNotice((current) => (current?.type === "success" ? null : current));
-        }, 5000);
-      })
-      .catch((error: any) => {
-        if (cancelled) return;
-        window.clearTimeout(timeout);
-        clearPendingCoTutorInvite();
-        setInviteResolvedCode(pendingInviteCode);
-        // Errores que no requieren mostrar nada al usuario (código propio, ya unido, etc.)
-        const msg = error?.message || "";
-        const silent = msg.includes("propia mascota") || msg.includes("ya sos") || msg.includes("ya fue utilizado") || msg.includes("Ya sos tutor");
-        if (!silent) {
-          setInviteNotice({
-            type: "error",
-            message: msg || "No se pudo completar la invitación de co-tutor.",
-          });
-          window.setTimeout(() => {
-            setInviteNotice((current) => (current?.type === "error" ? null : current));
-          }, 5000);
-        } else {
-          setInviteNotice(null);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          window.clearTimeout(timeout);
-          setInviteJoiningCode("");
-        }
-      });
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeout);
-    };
-  }, [user, inviteResolvedCode]);
 
   const canEditActivePet = canEditPet(activePet);
 

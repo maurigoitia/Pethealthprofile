@@ -473,7 +473,11 @@ export function PetProvider({ children }: { children: ReactNode }) {
       if (!denied) {
         throw joinError;
       }
-      console.warn("[joinWithCode] La unión a la mascota fue rechazada o ya estaba aplicada:", message || code);
+      throw new Error("No se pudo aplicar el acceso compartido a la mascota.");
+    }
+
+    if (!petJoinGranted) {
+      throw new Error("No se pudo completar la invitación de co-tutor.");
     }
 
     const invPayload = { used: true, usedBy: currentUser.uid, usedAt: new Date() };

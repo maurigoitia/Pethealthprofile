@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { usePet, CoTutor, SharedPetAccessRole } from "../../contexts/PetContext";
@@ -28,6 +28,38 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
   const owner = activePet ? isOwner(activePet) : false;
   const accessLevel = activePet ? getPetAccessLevel(activePet) : "none";
   const coTutors: CoTutor[] = activePet?.coTutors || [];
+
+  const resetInviteState = useCallback(() => {
+    setGeneratedCode(null);
+    setJoinCode("");
+    setLoadingCode(false);
+    setLoadingJoin(false);
+    setInviteEmail("");
+    setInviteAccessRole("editor");
+    setLoadingEmailInvite(false);
+    setError("");
+    setSuccess("");
+    setCopied(false);
+    setCopiedLink(false);
+    setTab("manage");
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      resetInviteState();
+    }
+  }, [isOpen, resetInviteState]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    resetInviteState();
+  }, [activePetId, isOpen, resetInviteState]);
+
+  useEffect(() => {
+    setGeneratedCode(null);
+    setCopied(false);
+    setCopiedLink(false);
+  }, [inviteAccessRole]);
 
   const handleGenerateCode = async () => {
     if (!activePetId) return;
@@ -121,7 +153,10 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
   return (
         <>
           <div
-            onClick={onClose}
+            onClick={() => {
+              resetInviteState();
+              onClose();
+            }}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-fadeIn"
           />
           <div
@@ -139,7 +174,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                 <h2 className="text-lg font-black text-slate-900 dark:text-white">Co-tutores</h2>
                 <p className="text-xs text-slate-500">{activePet?.name}</p>
               </div>
-              <button onClick={onClose} className="size-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+              <button onClick={() => { resetInviteState(); onClose(); }} className="size-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                 <MaterialIcon name="close" className="text-lg" />
               </button>
             </div>
