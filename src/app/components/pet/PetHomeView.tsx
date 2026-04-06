@@ -36,6 +36,7 @@ import BreedInsightCard from "../home/BreedInsightCard";
 import { VaccineAlertBanner } from "../home/VaccineAlertBanner";
 import { detectWalkPattern } from "../../../domain/intelligence/walkPatternDetector";
 import { useWalks } from "../../contexts/WalkContext";
+import { WalkLogModal } from "../walks/WalkLogModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,6 +68,7 @@ interface PetHomeViewProps {
   onMedicationsClick: () => void;
   onOpenScanner?: () => void;
   onOpenNearbyVets?: () => void;
+  onSwitchToRutinas?: () => void;
   pets: Array<{
     id: string;
     name: string;
@@ -389,6 +391,7 @@ export function PetHomeView({
   onProfileClick,
   onOpenScanner,
   onOpenNearbyVets,
+  onSwitchToRutinas,
   onPetClick,
   onAppointmentsClick,
   onMedicationsClick,
@@ -418,6 +421,7 @@ export function PetHomeView({
   const [activeMissionCode, setActiveMissionCode] = useState<string | null>(null);
   const [preWalkDismissed, setPreWalkDismissed] = useState(false);
   const [breedInsightDismissed, setBreedInsightDismissed] = useState(false);
+  const [showWalkLogModal, setShowWalkLogModal] = useState(false);
   const {
     getEventsByPetId,
     getActiveMedicationsByPetId,
@@ -973,7 +977,7 @@ export function PetHomeView({
               <div className="flex gap-2">
                 <button
                   onClick={() => {
-                    /* TODO: abrir WalkLogModal */
+                    setShowWalkLogModal(true);
                     setPreWalkDismissed(true);
                   }}
                   className="flex-1 px-3 py-1.5 rounded-full bg-[#074738] text-white text-[11px] font-bold active:scale-[0.96] transition-transform"
@@ -1095,13 +1099,13 @@ export function PetHomeView({
               ageMonths={ageMonths || 0}
               onAction={(actionType) => {
                 if (actionType === "walk") {
-                  /* TODO: abrir WalkLogModal */
+                  setShowWalkLogModal(true);
                 }
                 if (actionType === "vet") {
                   onAppointmentsClick?.();
                 }
                 if (actionType === "routines") {
-                  /* TODO: cambiar a tab rutinas */
+                  onSwitchToRutinas?.();
                 }
               }}
               onDismiss={() => setBreedInsightDismissed(true)}
@@ -1139,6 +1143,16 @@ export function PetHomeView({
           petName={activePet.name}
           onComplete={() => handleMissionComplete(activeMissionCode)}
           onClose={() => setActiveMissionCode(null)}
+        />
+      )}
+
+      {/* ─── Walk Log Modal ───────────────────────────────────────────────── */}
+      {activePet && (
+        <WalkLogModal
+          isOpen={showWalkLogModal}
+          onClose={() => setShowWalkLogModal(false)}
+          petId={activePetId}
+          petName={activePet.name}
         />
       )}
 

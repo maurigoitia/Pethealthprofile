@@ -640,6 +640,10 @@ export default function HomeScreen() {
                   onMedicationsClick={() => setViewMode("medications")}
                   onOpenScanner={handleOpenScanner}
                   onOpenNearbyVets={() => setViewMode("nearby-vets")}
+                  onSwitchToRutinas={() => {
+                    setCurrentTab("rutinas");
+                    setViewMode("rutinas-hub");
+                  }}
                   pets={pets}
                   activePetId={activePetId}
                   onPetChange={handlePetChange}
