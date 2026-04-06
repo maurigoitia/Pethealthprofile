@@ -5,7 +5,7 @@ import { usePet, type PetPreferences } from "../../contexts/PetContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { toTimestampSafe } from "../../utils/dateUtils";
 import { PetPhoto } from "./PetPhoto";
-import { getPoints, addPoints, isDailyActivityDone, markDailyActivityDone } from "../../utils/gamification";
+import { useGamification } from "../../contexts/GamificationContext";
 import { db } from "../../../lib/firebase";
 import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
 
@@ -37,6 +37,7 @@ import { VaccineAlertBanner } from "../home/VaccineAlertBanner";
 import { detectWalkPattern } from "../../../domain/intelligence/walkPatternDetector";
 import { useWalks } from "../../contexts/WalkContext";
 import { WalkLogModal } from "../walks/WalkLogModal";
+import { MascotPresence } from "../shared/MascotPresence";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -416,7 +417,7 @@ export function PetHomeView({
   });
   const [nudgedBreed, setNudgedBreed] = useState(false);
   const [checkedRoutineItems, setCheckedRoutineItems] = useState<string[]>([]);
-  const [points, setPoints] = useState(() => getPoints());
+  const { totalPoints: points, addPoints: addPointsToContext } = useGamification();
   const [completedMissions, setCompletedMissions] = useState<Set<string>>(new Set());
   const [activeMissionCode, setActiveMissionCode] = useState<string | null>(null);
   const [preWalkDismissed, setPreWalkDismissed] = useState(false);
@@ -637,8 +638,7 @@ export function PetHomeView({
         const ref = doc(db, "users", user.uid, "pets", activePetId, "missions", missionCode);
         setDoc(ref, { completedDate: today, points: pts }).catch(() => {});
       }
-      const total = addPoints(pts);
-      setPoints(total);
+      void addPointsToContext("mission_completed", { missionCode });
       setCompletedMissions((prev) => new Set([...prev, missionCode]));
       setActiveMissionCode(null);
     },
@@ -762,8 +762,7 @@ export function PetHomeView({
         if (activePetId) saveCheckedItems(activePetId, next);
         // Award points only when checking an item (not unchecking)
         if (!wasChecked) {
-          const earned = addPoints(5);
-          setPoints(earned);
+          void addPointsToContext("routine_completed");
         }
         return next;
       });
@@ -915,14 +914,17 @@ export function PetHomeView({
           <div className="absolute bottom-0 left-0 right-0 h-[120px] bg-gradient-to-t from-[rgba(7,71,56,0.92)] via-[rgba(7,71,56,0.4)] to-transparent" />
           {/* Decorative blob — pessy.app organic feel */}
           <div className="pessy-blob absolute -top-10 -right-10 w-[120px] h-[120px] bg-[rgba(26,155,125,0.15)]" style={{ animationDelay: '2s' }} />
-          <div className="absolute bottom-3.5 left-4 text-white">
-            <h1
-              className="text-[26px] font-[900] leading-none"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            >
-              {activePet.name}
-            </h1>
-            <p className="text-xs opacity-80 mt-0.5">{activePet.breed}</p>
+          <div className="absolute bottom-3.5 left-4 text-white flex items-end gap-2">
+            <MascotPresence species={activePet.species as "dog" | "cat"} size={28} ambient />
+            <div>
+              <h1
+                className="text-[26px] font-[900] leading-none"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                {activePet.name}
+              </h1>
+              <p className="text-xs opacity-80 mt-0.5">{activePet.breed}</p>
+            </div>
           </div>
           {/* Gamification points badge top-right */}
           <div className="absolute top-3 right-3 bg-[rgba(7,71,56,0.85)] text-white text-xs font-[800] px-3 py-1.5 rounded-full flex items-center gap-1 backdrop-blur-sm">
@@ -941,10 +943,7 @@ export function PetHomeView({
               duration={dailyHook.duration}
               points={dailyHook.points}
               onStart={(pts) => {
-                addPoints(pts);
-                setPoints(getPoints() + pts);
-                // Mark daily activity done for streak tracking
-                markDailyActivityDone();
+                void addPointsToContext("daily_checkin");
               }}
             />
           </div>
@@ -1192,6 +1191,13 @@ export function PetHomeView({
         )}
         {sortedRecommendations.length > 0 && (
           <div className="mx-3 mt-3 space-y-2">
+            {/* Cork/Fizz introduces the recommendations */}
+            <div className="flex items-center gap-2 mb-1">
+              <MascotPresence species={activePet?.species as "dog" | "cat"} size={20} ambient />
+              <span className="text-xs font-semibold text-[#074738]/60 dark:text-[#1A9B7D]/60">
+                {activePet?.species === "cat" ? "Fizz" : "Cork"} dice
+              </span>
+            </div>
             {sortedRecommendations.slice(0, 2).map((rec) => {
               const enhanced = rec as EnhancedTip;
               const missionCode = enhanced.isMission ? enhanced.code : undefined;
