@@ -59,12 +59,26 @@ export default defineConfig({
         ],
         screenshots: [
           {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
+            src: 'screenshots/screenshot-1-home.png',
+            sizes: '540x960',
             type: 'image/png',
             form_factor: 'narrow',
-            label: 'Pessy — inicio y resumen de tu mascota'
-          }
+            label: 'Inicio — el día de tu mascota'
+          },
+          {
+            src: 'screenshots/screenshot-2-explorar.png',
+            sizes: '540x960',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'Explorar — vets y servicios cerca'
+          },
+          {
+            src: 'screenshots/screenshot-3-historial.png',
+            sizes: '540x960',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'Historial — todo el registro de tu mascota'
+          },
         ],
         shortcuts: [
           {

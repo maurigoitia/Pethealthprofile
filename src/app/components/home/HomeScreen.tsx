@@ -578,7 +578,10 @@ export default function HomeScreen() {
     return withTermsNotice(
       <>
         <Suspense fallback={<ScreenLoader label="Descubriendo lugares..." />}>
-          <RecommendationFeedScreen onBack={() => setViewMode("card")} />
+          <RecommendationFeedScreen
+            onBack={() => setViewMode("card")}
+            onOpenNearbyVets={() => setViewMode("nearby-vets")}
+          />
         </Suspense>
         <BottomNav currentTab={currentTab} onTabChange={handleTabChange} onAddDocument={handleOpenScanner} onNavigate={handleBottomNavNavigate} />
       </>

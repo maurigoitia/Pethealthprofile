@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { clsx } from "clsx";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { EmptyState } from "../shared/EmptyState";
+import { MascotPresence } from "../shared/MascotPresence";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
 import type { ClinicalEpisode } from "../../contexts/MedicalContext";
@@ -911,6 +911,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
   const historicalEpisodesEnabled = isFocusHistoryExperimentHost();
 
   const allEvents = getEventsByPetId(activePetId);
+  const activePetName = cleanText(activePet?.name) || "tu mascota";
 
   const filteredSortedEvents = useMemo(() => {
     const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
@@ -1179,16 +1180,19 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
 
       {filteredSortedEvents.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800">
-          <EmptyState
-            icon="inbox"
-            title={allEvents.length === 0 ? "Sin registros" : "Sin resultados para este filtro"}
-            description={
-              allEvents.length === 0
-                ? "Los documentos que subas aparecerán aquí automáticamente"
-                : "Probá con otro filtro para ver más eventos"
-            }
-            illustration="medical"
-          />
+          <div className="flex flex-col items-center py-12 gap-3 px-6">
+            <MascotPresence
+              size={56}
+              mood="curious"
+              message={`Empezá a registrar y acá vas a ver la historia de ${activePetName}`}
+              className="max-w-sm"
+            />
+            {allEvents.length > 0 && (
+              <p className="text-xs text-slate-500 text-center">
+                Probá con otro filtro para ver más eventos.
+              </p>
+            )}
+          </div>
         </div>
       ) : (
         <div className="space-y-8">
@@ -1702,6 +1706,17 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
               </div>
             </div>
           ))}
+
+          {filteredSortedEvents.length < 3 && (
+            <div className="rounded-[20px] border border-[#074738]/10 bg-white dark:bg-slate-900 dark:border-slate-800 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              <MascotPresence
+                species={(activePet as { species?: "dog" | "cat" } | undefined)?.species}
+                size={40}
+                mood="proud"
+                message="Cada registro que hacés queda acá para siempre. ¡Seguí así!"
+              />
+            </div>
+          )}
         </div>
       )}
 

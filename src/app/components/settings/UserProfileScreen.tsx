@@ -16,6 +16,8 @@ import { useMedical } from "../../contexts/MedicalContext";
 import { StorageUsageWidget } from "./StorageUsageWidget";
 import { useGamification } from "../../contexts/GamificationContext";
 import { PetPhoto } from "../pet/PetPhoto";
+import { MascotPresence } from "../shared/MascotPresence";
+import { LEVEL_THRESHOLDS } from "../../../domain/gamification/gamification.contract";
 
 // Version injected at build time via Vite define
 const APP_VERSION = (typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "1.0.0") as string;
@@ -32,16 +34,28 @@ type SubScreen =
   | "appearance"
   | "help"
   | "about"
-  | "logros";
+  | "logros"
+  | "gmail-sync";
 
 export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
   const [currentScreen, setCurrentScreen] = useState<SubScreen>("main");
   const [showCoTutorModal, setShowCoTutorModal] = useState(false);
-  const { user, logout, userFullName, userPhoto } = useAuth();
-  const { pets, setActivePetId } = usePet();
+  const { user, logout, userFullName, userName, userPhoto } = useAuth();
+  const { pets, setActivePetId, activePet } = usePet();
   const { events } = useMedical();
   const { totalPoints, level } = useGamification();
   const navigate = useNavigate();
+
+  const currentLevelFloor = LEVEL_THRESHOLDS[level] ?? 0;
+  const nextLevelTarget = LEVEL_THRESHOLDS[level + 1] ?? currentLevelFloor;
+  const pointsIntoLevel = Math.max(totalPoints - currentLevelFloor, 0);
+  const pointsNeededForLevel = Math.max(nextLevelTarget - currentLevelFloor, 1);
+  const progressPct =
+    level >= LEVEL_THRESHOLDS.length - 1
+      ? 100
+      : Math.min(100, Math.round((pointsIntoLevel / pointsNeededForLevel) * 100));
+  const pointsToNextLevel = Math.max(nextLevelTarget - totalPoints, 0);
+  const safeGreetingName = userName || userFullName || user?.email?.split("@")[0] || "Tutor";
 
   // Datos del usuario desde AuthContext — una sola fuente de verdad
   const userData = {
@@ -173,6 +187,20 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
           className="px-6 pt-8 pb-6"
         >
           <div className="flex flex-col items-center">
+            <div className="w-full bg-white/80 dark:bg-slate-900/80 rounded-[20px] border border-[#E5E7EB] dark:border-slate-800 px-4 py-3 mb-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center gap-3">
+                <MascotPresence species={activePet?.species as "dog" | "cat" | undefined} size={32} ambient />
+                <div className="min-w-0">
+                  <p className="text-base font-black text-slate-900 dark:text-white">
+                    Hola, {safeGreetingName}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Tu mascota está en buenas manos
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Avatar */}
             {userData.photo ? (
               <div className="relative">
@@ -217,13 +245,46 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
             </div>
           </div>
 
-          {/* Gamification badge */}
+          {/* Prominent level card */}
           {totalPoints > 0 && (
-            <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/30 text-amber-700 dark:text-amber-400 px-4 py-2 rounded-full mt-3">
-              <MaterialIcon name="star" className="!text-base text-amber-400" />
-              <span className="text-xs font-black">{totalPoints} pts</span>
-              <span className="text-xs text-amber-500/70">·</span>
-              <span className="text-xs font-bold">Nivel {level}</span>
+            <div className="mt-5 rounded-[20px] border border-amber-200/80 dark:border-amber-800/40 bg-[linear-gradient(135deg,#fff7db_0%,#fff0b8_100%)] dark:bg-amber-950/20 p-4 shadow-[0_4px_18px_rgba(180,132,0,0.08)]">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-amber-700/80 dark:text-amber-300">
+                    Logro destacado
+                  </p>
+                  <h3 className="mt-1 text-xl font-black text-slate-900 dark:text-white">
+                    Nivel {level}
+                  </h3>
+                  <p className="mt-1 text-sm font-semibold text-amber-700 dark:text-amber-300">
+                    {totalPoints} pts totales
+                  </p>
+                </div>
+                <div className="size-12 rounded-2xl bg-white/80 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50 flex items-center justify-center shadow-sm">
+                  <MaterialIcon name="military_tech" className="text-[24px] text-amber-500" />
+                </div>
+              </div>
+
+              <div className="mt-4">
+                <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-2">
+                  <span>Progreso al próximo nivel</span>
+                  <span>{progressPct}%</span>
+                </div>
+                <div className="h-3 rounded-full bg-white/70 dark:bg-slate-800/80 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-[linear-gradient(90deg,#f59e0b_0%,#f97316_100%)] transition-[width] duration-500"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+                <div className="mt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <span>{currentLevelFloor} pts</span>
+                  <span>
+                    {level >= LEVEL_THRESHOLDS.length - 1
+                      ? "Nivel máximo alcanzado"
+                      : `Faltan ${pointsToNextLevel} pts para nivel ${level + 1}`}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
 

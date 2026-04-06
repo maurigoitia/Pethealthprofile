@@ -72,7 +72,12 @@ function buildCategories(species?: string, hasUrgentAlert?: boolean): Category[]
   return cats;
 }
 
-export function RecommendationFeed({ onBack }: { onBack?: () => void }) {
+interface RecommendationFeedProps {
+  onBack?: () => void;
+  onOpenNearbyVets?: () => void;
+}
+
+export function RecommendationFeed({ onBack, onOpenNearbyVets }: RecommendationFeedProps) {
   const { activePet, activePetId } = usePet();
   const { getClinicalAlertsByPetId } = useMedical();
 
@@ -292,15 +297,29 @@ export function RecommendationFeed({ onBack }: { onBack?: () => void }) {
         )}
 
         {locStatus === "ready" && mapSrc && (
-          <iframe
-            key={`${selected.id}-${coords?.lat}-${coords?.lng}`}
-            src={mapSrc}
-            title={`${selected.label} cerca`}
-            className="w-full h-full"
-            style={{ border: 0, minHeight: "calc(100vh - 160px)" }}
-            allowFullScreen
-            loading="lazy"
-          />
+          <div className="h-full">
+            {selected.id === "veterinarias" && (
+              <div className="px-4 pt-3">
+                <button
+                  onClick={() => onOpenNearbyVets?.()}
+                  className="w-full flex items-center justify-between bg-[#074738] text-white rounded-xl px-4 py-3 shadow-[0_10px_24px_rgba(7,71,56,0.18)]"
+                >
+                  <span className="font-bold text-sm">Ver veterinarias con datos completos</span>
+                  <MaterialIcon name="arrow_forward" className="text-white" />
+                </button>
+              </div>
+            )}
+
+            <iframe
+              key={`${selected.id}-${coords?.lat}-${coords?.lng}`}
+              src={mapSrc}
+              title={`${selected.label} cerca`}
+              className="w-full"
+              style={{ border: 0, minHeight: selected.id === "veterinarias" ? "calc(100vh - 232px)" : "calc(100vh - 160px)" }}
+              allowFullScreen
+              loading="lazy"
+            />
+          </div>
         )}
       </div>
 

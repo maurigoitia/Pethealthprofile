@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { collection, query, where, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { MaterialIcon } from "../shared/MaterialIcon";
+import { MascotPresence } from "../shared/MascotPresence";
 import type { LostPetReport } from "../../../domain/community/lostPet.contract";
 import { distanceKm, type PessyGeoPoint } from "../../../domain/community/lostPet.contract";
 
@@ -88,12 +89,17 @@ export function LostPetFeed({ onReport, onBack, hideHeader }: Props) {
           </div>
         ) : sorted.length === 0 ? (
           <div className="text-center py-12">
-            <MaterialIcon name="pets" className="text-5xl text-[#1A9B7D]/30 mb-4" />
-            <p className="text-base font-semibold text-slate-700 dark:text-slate-300 mb-2">Todavía no hay reportes en tu zona</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">¿Perdiste una mascota?</p>
+            <div className="mx-auto max-w-sm rounded-[20px] border border-[#E5E7EB] bg-white dark:bg-slate-900 dark:border-slate-800 p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              <MascotPresence
+                size={48}
+                mood="happy"
+                message="¡Buenas noticias — no hay mascotas perdidas cerca tuyo ahora mismo!"
+                className="justify-center text-left"
+              />
+            </div>
             <button
               onClick={onReport}
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-colors mt-6"
             >
               <MaterialIcon name="add_alert" className="text-lg" />
               Reportar mascota perdida
@@ -101,6 +107,24 @@ export function LostPetFeed({ onReport, onBack, hideHeader }: Props) {
           </div>
         ) : (
           <div className="flex flex-col gap-4">
+            <div className="rounded-[18px] border border-[#E5E7EB] bg-white dark:bg-slate-900 dark:border-slate-800 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              <div className="flex items-start gap-3">
+                <MascotPresence size={40} mood="alert" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-black text-slate-900 dark:text-white">
+                    Si encontrás una mascota, escaneá el carnet Pessy o reportalo acá
+                  </p>
+                  <button
+                    onClick={onReport}
+                    className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#074738] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#0b5b48] transition-colors"
+                  >
+                    <MaterialIcon name="pets" className="text-base" />
+                    Reportar hallazgo
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {sorted.map((r) => {
               const dist = userLocation ? distanceKm(userLocation, r.lastSeenLocation) : null;
               const ago = r.reportedAt?.toDate ? timeAgo(r.reportedAt.toDate()) : "";
