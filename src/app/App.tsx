@@ -8,6 +8,7 @@ import { NotificationProvider } from "./contexts/NotificationContext";
 import { RemindersProvider } from "./contexts/RemindersContext";
 import { PreferenceProvider } from "./contexts/PreferenceContext";
 import { GamificationProvider } from "./contexts/GamificationContext";
+import { WalkProvider } from "./contexts/WalkContext";
 import { AppErrorBoundary } from "./components/shared/AppErrorBoundary";
 import { AppEntryGate } from "./components/onboarding/AppEntryGate";
 
@@ -22,8 +23,10 @@ export default function App() {
                 <RemindersProvider>
                   <PreferenceProvider>
                     <GamificationProvider>
-                      <RouterProvider router={router} />
-                      <Toaster position="top-center" richColors />
+                      <WalkProvider>
+                        <RouterProvider router={router} />
+                        <Toaster position="top-center" richColors />
+                      </WalkProvider>
                     </GamificationProvider>
                   </PreferenceProvider>
                 </RemindersProvider>
