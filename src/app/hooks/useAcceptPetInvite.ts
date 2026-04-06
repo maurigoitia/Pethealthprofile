@@ -96,7 +96,6 @@ export function useAcceptPetInvite(
         window.clearTimeout(timeout);
         if (!timedOut) {
           clearPendingCoTutorInvite();
-          setInviteResolvedCode(pendingCode);
         }
         const msg = (error as any)?.message || "";
         // Errors that are expected / non-actionable: own pet, already joined.

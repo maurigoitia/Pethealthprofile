@@ -134,7 +134,7 @@ describe("useAcceptPetInvite", () => {
     expect(result.current.inviteNotice?.type).toBe("error");
     expect(result.current.inviteNotice?.message).toContain("Código inválido o expirado");
     expect(getPending()).toBeUndefined();            // cleared
-    expect(result.current.inviteResolvedCode).toBe("BAD123");
+    expect(result.current.inviteResolvedCode).toBe("");
     expect(result.current.inviteJoiningCode).toBe("");
   });
 
