@@ -4,7 +4,7 @@ import {
   Wind, CloudRain, Dog, Heart, Activity, Utensils, Star,
 } from 'lucide-react';
 import { MaterialIcon } from '../shared/MaterialIcon';
-import { addPoints } from '../../utils/gamification';
+import { useGamification } from '../../contexts/GamificationContext';
 
 const LUCIDE_MAP: Record<string, React.ElementType> = {
   lightbulb: Lightbulb, tips_and_updates: Lightbulb,
@@ -60,7 +60,7 @@ export default function PessyTip({
   const [internalCompleted, setInternalCompleted] = useState(false);
   const completed = isCompleted ?? internalCompleted;
 
-  const handleComplete = () => {
+  const handleComplete = async () => {
     if (completed) return;
     // If a detail screen handler is provided, open it — points awarded there
     if (onMissionStart) {
@@ -69,8 +69,8 @@ export default function PessyTip({
     }
     // Fallback: award points directly (legacy behavior)
     setInternalCompleted(true);
-    const total = addPoints(missionPoints);
-    onMissionComplete?.(total);
+    await addPointsToContext("mission_completed", { mission: "pessy_tip" });
+    onMissionComplete?.(missionPoints);
   };
 
   return (

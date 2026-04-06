@@ -2,7 +2,7 @@
 
 import React from "react";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { isDailyActivityDone, markDailyActivityDone } from "../../utils/gamification";
+import { useGamification } from "../../contexts/GamificationContext";
 
 interface DailyHookCardProps {
   category: string;
@@ -23,6 +23,17 @@ export default function DailyHookCard({
   points,
   onStart,
 }: DailyHookCardProps) {
+  const { addPoints } = useGamification();
+
+  const handleStart = async () => {
+    if (onStart) {
+      // Fire the callback for any additional UI updates
+      onStart(points);
+      // Award points to Firestore/context
+      await addPoints("daily_checkin");
+    }
+  };
+
   return (
     <div
       className="relative overflow-hidden w-full p-4"
@@ -103,18 +114,11 @@ export default function DailyHookCard({
             />
             {duration}
           </span>
-
-
         </div>
 
         {/* Start button */}
         <button
-          onClick={() => {
-            if (onStart && !isDailyActivityDone()) {
-              markDailyActivityDone();
-              onStart(points);
-            }
-          }}
+          onClick={handleStart}
           className="shrink-0 px-4 py-2 bg-white text-[11px] font-bold active:scale-95 transition-transform hover:bg-[#E0F2F1]"
           style={{
             color: "#074738",

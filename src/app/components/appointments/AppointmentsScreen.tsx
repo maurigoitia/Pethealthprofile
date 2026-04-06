@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { MaterialIcon } from "../shared/MaterialIcon";
+import { MascotPresence } from "../shared/MascotPresence";
 import { AddAppointmentModal } from "./AddAppointmentModal";
 import { PetPhoto } from "../pet/PetPhoto";
 import { useAuth } from "../../contexts/AuthContext";
@@ -524,8 +525,12 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
             )}
             {renderedAppointments.length === 0 ? (
               <div className="rounded-[28px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center shadow-sm">
-                <div className="size-16 bg-[#074738]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <MaterialIcon name="event" className="text-3xl text-[#074738]" />
+                <div className="flex flex-col items-center gap-3 py-4">
+                  <MascotPresence
+                    size={48}
+                    message={activeTab === "upcoming" ? "Sin turnos agendados — todo al día 🐾" : "Cuando cierres turnos, los ves acá"}
+                    mood="happy"
+                  />
                 </div>
                 <h3 className="font-black text-slate-900 dark:text-white">
                   {activeTab === "upcoming" ? "No hay turnos para esta fecha" : "No hay turnos registrados"}
@@ -779,8 +784,12 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
           )}
           {renderedAppointments.length === 0 ? (
             <div className="text-center py-16">
-              <div className="size-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MaterialIcon name="event" className="text-4xl text-slate-400" />
+              <div className="flex flex-col items-center gap-3 py-4">
+                <MascotPresence
+                  size={48}
+                  message={activeTab === "upcoming" ? "Todo al día — sin citas próximas 🐾" : "Aquí van a aparecer las citas pasadas"}
+                  mood="happy"
+                />
               </div>
               <h3 className="font-black text-slate-900 dark:text-white mb-2">
                 {activeTab === "upcoming" ? "No hay citas próximas" : "Sin citas pasadas"}

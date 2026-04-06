@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { MaterialIcon } from "../shared/MaterialIcon";
+import { MascotPresence } from "../shared/MascotPresence";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
 
@@ -12,7 +13,7 @@ type Category = {
   urgent?: boolean; // auto-seleccionado por alerta activa
 };
 
-function buildCategories(species?: string, hasUrgentAlert?: boolean, hasDogActivities?: boolean): Category[] {
+function buildCategories(species?: string, hasUrgentAlert?: boolean): Category[] {
   const isDog = !species || species === "dog";
   const isCat = species === "cat";
 
@@ -41,7 +42,7 @@ function buildCategories(species?: string, hasUrgentAlert?: boolean, hasDogActiv
     },
   ];
 
-  // Categorías solo para perros con actividades outdoors
+  // Categorías solo para perros
   if (isDog) {
     cats.splice(1, 0, {
       id: "parques",
@@ -50,16 +51,23 @@ function buildCategories(species?: string, hasUrgentAlert?: boolean, hasDogActiv
       icon: "park",
       emoji: "🌳",
     });
-    if (hasDogActivities) {
-      cats.push({
-        id: "cafes",
-        label: "Cafés",
-        query: "café restaurante pet friendly perros",
-        icon: "local_cafe",
-        emoji: "☕",
-      });
-    }
+    cats.push({
+      id: "cafes",
+      label: "Cafés",
+      query: "café restaurante pet friendly perros",
+      icon: "local_cafe",
+      emoji: "☕",
+    });
   }
+
+  // Agregar "Comprar" al final para TODAS las especies
+  cats.push({
+    id: "comprar",
+    label: "Comprar",
+    query: isCat ? "tienda online productos gato" : "tienda online productos perro",
+    icon: "shopping_bag",
+    emoji: "🛒",
+  });
 
   return cats;
 }
@@ -69,8 +77,6 @@ export function RecommendationFeed({ onBack }: { onBack?: () => void }) {
   const { getClinicalAlertsByPetId } = useMedical();
 
   const species = activePet?.species;
-  const favoriteActivities = activePet?.preferences?.favoriteActivities || [];
-  const hasDogActivities = favoriteActivities.some(a => ["walk","park","beach","hiking"].includes(a));
 
   const hasUrgentAlert = useMemo(() => {
     if (!activePetId) return false;
@@ -79,8 +85,8 @@ export function RecommendationFeed({ onBack }: { onBack?: () => void }) {
   }, [activePetId, getClinicalAlertsByPetId]);
 
   const CATEGORIES = useMemo(
-    () => buildCategories(species, hasUrgentAlert, hasDogActivities),
-    [species, hasUrgentAlert, hasDogActivities]
+    () => buildCategories(species, hasUrgentAlert),
+    [species, hasUrgentAlert]
   );
 
   const defaultCategory = CATEGORIES.find(c => c.urgent) || CATEGORIES[0];
@@ -136,6 +142,19 @@ export function RecommendationFeed({ onBack }: { onBack?: () => void }) {
             <p className="text-xs text-slate-500">
               {activePet?.name ? `Lugares para ${activePet.name} cerca tuyo` : "Lugares pet-friendly cerca tuyo"}
             </p>
+            {/* Cork/Fizz contextual whisper */}
+            <div className="mt-2 flex items-center gap-2">
+              <MascotPresence species={species as "dog" | "cat"} size={18} ambient />
+              <p className="text-[11px] text-[#074738]/60 font-medium">
+                {selected.id === "veterinarias" && hasUrgentAlert
+                  ? `${activePet?.name || "Tu mascota"} necesita atención — encontrá un vet abajo`
+                  : selected.id === "veterinarias"
+                  ? `Veterinarias a 5km de ${activePet?.name || "tu mascota"}`
+                  : selected.id === "comprar"
+                  ? `Productos directo en MercadoLibre`
+                  : `Lugares pet-friendly cerca tuyo`}
+              </p>
+            </div>
           </div>
         </div>
 
@@ -188,6 +207,35 @@ export function RecommendationFeed({ onBack }: { onBack?: () => void }) {
 
       {/* Map / Status area */}
       <div className="flex-1 relative min-h-[400px]">
+        {/* Comprar section — when Comprar tab selected */}
+        {selected.id === "comprar" && (
+          <div className="absolute inset-0 overflow-y-auto px-4 py-4 z-10 bg-[#F0FAF9]">
+            <p className="text-xs text-slate-500 font-medium mb-3">Búsquedas rápidas para {activePet?.name || "tu mascota"}:</p>
+            {[
+              { label: `Alimento ${species === "cat" ? "gatos" : "perros"}`, query: species === "cat" ? "alimento gato" : "alimento perro kibble" },
+              { label: "Antipulgas y antiparasitarios", query: `antipulgas ${species === "cat" ? "gato" : "perro"}` },
+              { label: "Juguetes", query: `juguetes ${species === "cat" ? "gato" : "perro"}` },
+              { label: "Camas y accesorios", query: `cama accesorio ${species === "cat" ? "gato" : "perro"}` },
+              { label: "Higiene y aseo", query: `shampoo higiene ${species === "cat" ? "gato" : "perro"}` },
+            ].map((item) => (
+              <a
+                key={item.label}
+                href={`https://listado.mercadolibre.com.ar/${encodeURIComponent(item.query)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-between bg-white rounded-xl px-4 py-3.5 mb-2 shadow-sm border border-slate-100 active:scale-[0.99]"
+              >
+                <span className="text-sm font-semibold text-slate-800">{item.label}</span>
+                <div className="flex items-center gap-1 text-[#1A9B7D]">
+                  <span className="text-xs font-bold">Ver</span>
+                  <MaterialIcon name="arrow_outward" className="text-sm" />
+                </div>
+              </a>
+            ))}
+            <p className="text-[10px] text-slate-400 text-center pt-2">Conectamos con MercadoLibre · Pessy no vende</p>
+          </div>
+        )}
+
         {locStatus === "loading" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#F0FAF9] z-10">
             <div className="size-12 rounded-full border-4 border-[#074738]/20 border-t-[#074738] animate-spin mb-4" />

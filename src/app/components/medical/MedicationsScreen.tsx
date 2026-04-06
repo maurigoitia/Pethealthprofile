@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router";
 import { MaterialIcon } from "../shared/MaterialIcon";
+import { MascotPresence } from "../shared/MascotPresence";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
 import { useReminders } from "../../contexts/RemindersContext";
@@ -766,8 +767,12 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
 
           {shownItems.length === 0 ? (
             <div className="text-center py-16">
-              <div className="size-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MaterialIcon name="medication" className="text-4xl text-slate-400" />
+              <div className="flex flex-col items-center gap-3 py-4">
+                <MascotPresence
+                  size={48}
+                  message="Sin medicamentos activos — eso es buena señal 🐾"
+                  mood="happy"
+                />
               </div>
               <h3 className="font-black text-slate-900 dark:text-white mb-2">Sin registros</h3>
               <p className="text-sm text-slate-500">Subí recetas y notas de tratamiento para verlos acá.</p>
