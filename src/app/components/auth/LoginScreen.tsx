@@ -309,7 +309,7 @@ export function LoginScreen() {
             </button>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex justify-end">
             <button
               type="button"
               onClick={() => { setShowReset(true); setResetEmail(email); setResetError(""); setResetSuccess(""); }}
@@ -318,13 +318,7 @@ export function LoginScreen() {
             >
               ¿Olvidaste tu contraseña?
             </button>
-            <a
-              href="mailto:hola@pessy.app?subject=No recuerdo mi acceso"
-              className="text-xs font-medium text-[#9CA3AF] transition-colors hover:text-[#6B7280]"
-              style={{ fontFamily: "'Manrope', sans-serif" }}
-            >
-              ¿No recordás tu acceso?
-            </a>
+
           </div>
 
           {error && <p className="rounded-2xl border border-[#EF4444]/30 bg-[#EF4444]/10 px-4 py-2 text-center text-sm font-semibold text-[#EF4444]" style={{ fontFamily: "'Manrope', sans-serif" }}>{error}</p>}

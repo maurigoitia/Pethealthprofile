@@ -116,9 +116,9 @@ export function VetLoginScreen() {
               className="w-full px-5 py-4 pr-24 rounded-[12px] bg-white/95 text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-[#1A9B7D] outline-none text-sm" required />
             <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#074738] bg-white/80 rounded-full px-3 py-1">{showPassword ? "Ocultar" : "Mostrar"}</button>
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex justify-end">
             <button type="button" onClick={() => { setShowReset(true); setResetEmail(email); setResetError(""); setResetSuccess(""); }} className="text-white/60 text-xs font-semibold">¿Olvidaste tu contraseña?</button>
-            <a href="mailto:hola@pessy.app?subject=No recuerdo mi acceso (vet)" className="text-white/40 text-xs hover:text-white/60">¿No recordás tu acceso?</a>
+
           </div>
           {error && <p className="text-red-100 text-sm font-semibold text-center bg-red-500/20 rounded-xl px-4 py-2">{error}</p>}
           <button type="submit" disabled={loading || authLoading} className="w-full py-4 rounded-[14px] bg-white text-[#074738] font-bold text-sm shadow-[0_4px_12px_rgba(0,0,0,0.15)] disabled:opacity-60 uppercase tracking-wider" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>{authLoading ? "Validando..." : loading ? "Ingresando..." : "Ingresar"}</button>
