@@ -8,6 +8,7 @@
 | 1 | vacunas perros Argentina | vacunas-perros-argentina | published | /blog/vacunas-perros-argentina/ |
 | 2 | alimentos prohibidos perros | alimentos-prohibidos-perros | published | /blog/alimentos-prohibidos-perros/ |
 | 2 | tu mascota todo en orden | tu-mascota-todo-en-orden | published | /blog/tu-mascota-todo-en-orden/ |
+| 3 | desparasitar perros cachorros | desparasitar-perros-cachorros | published | /blog/desparasitar-perros-cachorros/ |
 
 ## Próximos keywords (por generar)
 
