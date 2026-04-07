@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { signInWithEmailAndPassword, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "firebase/auth";
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "firebase/auth";
 import { auth, db } from "../../../lib/firebase";
 import { useAuth } from "../../contexts/AuthContext";
-import { createPasswordResetActionCodeSettings } from "../../utils/authActionLinks";
 import { doc, getDoc } from "firebase/firestore";
 
 export function VetLoginScreen() {
@@ -15,11 +14,6 @@ export function VetLoginScreen() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
-  const [showReset, setShowReset] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
-  const [resetLoading, setResetLoading] = useState(false);
-  const [resetSuccess, setResetSuccess] = useState("");
-  const [resetError, setResetError] = useState("");
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -61,38 +55,6 @@ export function VetLoginScreen() {
     } finally { setLoadingGoogle(false); }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setResetError("");
-    setResetSuccess("");
-    setResetLoading(true);
-    // Mismo mensaje genérico para éxito y user-not-found — no revelar existencia de cuenta
-    const genericSuccess = "Si existe una cuenta con ese correo, vas a recibir un link para restablecer tu contraseña.";
-    try {
-      await sendPasswordResetEmail(
-        auth,
-        resetEmail.trim().toLowerCase(),
-        createPasswordResetActionCodeSettings()
-      );
-      setResetSuccess(genericSuccess);
-    } catch (err: any) {
-      if (err?.code === "auth/user-not-found") {
-        setResetSuccess(genericSuccess);
-      } else if (err?.code === "auth/invalid-email") {
-        setResetError("El correo ingresado no es válido.");
-      } else if (err?.code === "auth/operation-not-allowed") {
-        setResetError("La recuperación de contraseña no está disponible en este momento. Intentá más tarde.");
-      } else if (err?.code === "auth/unauthorized-continue-uri" || err?.code === "auth/invalid-continue-uri") {
-        console.warn("Password reset blocked: continue URI not authorized in Firebase Auth.", err);
-        setResetError("Hubo un problema al enviar el correo. Intentá de nuevo más tarde.");
-      } else {
-        setResetError("No se pudo enviar el correo. Intentá nuevamente.");
-      }
-    } finally {
-      setResetLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #074738 0%, #0a6b54 50%, #1A9B7D 100%)" }}>
       <div className="absolute right-[-60px] top-[-60px] size-[300px] bg-white/5 rounded-full blur-[64px] pointer-events-none" />
@@ -117,8 +79,7 @@ export function VetLoginScreen() {
             <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#074738] bg-white/80 rounded-full px-3 py-1">{showPassword ? "Ocultar" : "Mostrar"}</button>
           </div>
           <div className="flex justify-end">
-            <button type="button" onClick={() => { setShowReset(true); setResetEmail(email); setResetError(""); setResetSuccess(""); }} className="text-white/60 text-xs font-semibold">¿Olvidaste tu contraseña?</button>
-
+            <button type="button" onClick={() => navigate("/forgot-password?from=vet")} className="text-white/60 text-xs font-semibold hover:text-white/80 transition-colors">¿Olvidaste tu contraseña?</button>
           </div>
           {error && <p className="text-red-100 text-sm font-semibold text-center bg-red-500/20 rounded-xl px-4 py-2">{error}</p>}
           <button type="submit" disabled={loading || authLoading} className="w-full py-4 rounded-[14px] bg-white text-[#074738] font-bold text-sm shadow-[0_4px_12px_rgba(0,0,0,0.15)] disabled:opacity-60 uppercase tracking-wider" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>{authLoading ? "Validando..." : loading ? "Ingresando..." : "Ingresar"}</button>
@@ -131,26 +92,6 @@ export function VetLoginScreen() {
         </form>
         <p className="text-white/40 text-[11px] text-center mt-6">¿Sos tutor? <button onClick={() => navigate("/login")} className="text-white/70 underline font-semibold">Ingresá a Pessy</button></p>
       </div>
-
-      {showReset && (
-        <>
-          <div onClick={() => setShowReset(false)} role="presentation" aria-hidden="true" className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" />
-          <div className="fixed inset-x-4 bottom-8 z-50 bg-white rounded-[24px] shadow-2xl p-6 max-w-md mx-auto">
-            <h2 className="text-lg font-black text-slate-900 mb-1">Recuperar acceso</h2>
-            <p className="text-sm text-slate-500 mb-4">Ingresá el correo de tu cuenta profesional.</p>
-            <form onSubmit={handleResetPassword} className="space-y-3">
-              <input type="email" placeholder="Tu correo profesional" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} className="w-full px-4 py-3 rounded-[12px] border border-slate-200 text-sm focus:ring-2 focus:ring-[#074738] outline-none" required />
-              {resetError && <p className="text-red-600 text-xs font-semibold text-center">{resetError}</p>}
-              {resetSuccess
-                ? <p className="text-emerald-700 text-xs font-semibold text-center bg-emerald-50 rounded-xl p-3">{resetSuccess}</p>
-                : <button type="submit" disabled={resetLoading} className="w-full py-3 rounded-[12px] bg-[#074738] text-white font-bold text-sm disabled:opacity-60">{resetLoading ? "Enviando..." : "Enviar link"}</button>
-              }
-              <button type="button" onClick={() => setShowReset(false)} className="w-full py-2 text-slate-500 text-sm font-bold">{resetSuccess ? "Cerrar" : "Cancelar"}</button>
-
-            </form>
-          </div>
-        </>
-      )}
     </div>
   );
 }
