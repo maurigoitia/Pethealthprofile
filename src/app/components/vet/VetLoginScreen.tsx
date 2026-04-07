@@ -118,7 +118,7 @@ export function VetLoginScreen() {
           </div>
           <div className="flex items-center justify-between">
             <button type="button" onClick={() => { setShowReset(true); setResetEmail(email); setResetError(""); setResetSuccess(""); }} className="text-white/60 text-xs font-semibold">¿Olvidaste tu contraseña?</button>
-            <button type="button" onClick={() => { setShowReset(true); setResetEmail(""); setResetError(""); setResetSuccess(""); }} className="text-white/40 text-xs">¿No recordás tu correo?</button>
+            <a href="mailto:hola@pessy.app?subject=No recuerdo mi acceso (vet)" className="text-white/40 text-xs hover:text-white/60">¿No recordás tu acceso?</a>
           </div>
           {error && <p className="text-red-100 text-sm font-semibold text-center bg-red-500/20 rounded-xl px-4 py-2">{error}</p>}
           <button type="submit" disabled={loading || authLoading} className="w-full py-4 rounded-[14px] bg-white text-[#074738] font-bold text-sm shadow-[0_4px_12px_rgba(0,0,0,0.15)] disabled:opacity-60 uppercase tracking-wider" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>{authLoading ? "Validando..." : loading ? "Ingresando..." : "Ingresar"}</button>
@@ -146,14 +146,7 @@ export function VetLoginScreen() {
                 : <button type="submit" disabled={resetLoading} className="w-full py-3 rounded-[12px] bg-[#074738] text-white font-bold text-sm disabled:opacity-60">{resetLoading ? "Enviando..." : "Enviar link"}</button>
               }
               <button type="button" onClick={() => setShowReset(false)} className="w-full py-2 text-slate-500 text-sm font-bold">{resetSuccess ? "Cerrar" : "Cancelar"}</button>
-              {!resetSuccess && (
-                <p className="text-center text-xs text-slate-400 pt-1" style={{ fontFamily: "'Manrope',sans-serif" }}>
-                  ¿No recordás el correo?{" "}
-                  <a href="mailto:hola@pessy.app?subject=No recuerdo mi correo (vet)" className="font-semibold text-[#074738] underline underline-offset-2">
-                    Contactanos
-                  </a>
-                </p>
-              )}
+
             </form>
           </div>
         </>

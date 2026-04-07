@@ -318,14 +318,13 @@ export function LoginScreen() {
             >
               ¿Olvidaste tu contraseña?
             </button>
-            <button
-              type="button"
-              onClick={() => { setShowReset(true); setResetEmail(""); setResetError(""); setResetSuccess(""); }}
+            <a
+              href="mailto:hola@pessy.app?subject=No recuerdo mi acceso"
               className="text-xs font-medium text-[#9CA3AF] transition-colors hover:text-[#6B7280]"
               style={{ fontFamily: "'Manrope', sans-serif" }}
             >
-              ¿No recordás tu correo?
-            </button>
+              ¿No recordás tu acceso?
+            </a>
           </div>
 
           {error && <p className="rounded-2xl border border-[#EF4444]/30 bg-[#EF4444]/10 px-4 py-2 text-center text-sm font-semibold text-[#EF4444]" style={{ fontFamily: "'Manrope', sans-serif" }}>{error}</p>}
@@ -437,18 +436,6 @@ export function LoginScreen() {
                 {resetSuccess ? "Cerrar" : "Cancelar"}
               </button>
 
-              {/* "¿No recordás tu correo?" — orientación sin exponer infraestructura */}
-              {!resetSuccess && (
-                <p className="text-center text-xs text-slate-400 pt-1" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                  ¿No recordás el correo con que te registraste?{" "}
-                  <a
-                    href="mailto:hola@pessy.app?subject=No recuerdo mi correo"
-                    className="font-semibold text-[#074738] underline underline-offset-2"
-                  >
-                    Contactanos
-                  </a>
-                </p>
-              )}
             </form>
           </div>
         </>
