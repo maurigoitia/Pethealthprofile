@@ -166,16 +166,20 @@ export function LoginScreen() {
     setResetError("");
     setResetSuccess("");
     setResetLoading(true);
+    // Mensaje genérico usado tanto para éxito real como para user-not-found —
+    // no revelar si la cuenta existe (previene enumeración de emails).
+    const genericSuccess = "Si existe una cuenta con ese correo, vas a recibir un link para restablecer tu contraseña.";
     try {
       await sendPasswordResetEmail(
         auth,
         resetEmail.trim().toLowerCase(),
         createPasswordResetActionCodeSettings()
       );
-      setResetSuccess("¡Listo! Revisá tu correo para restablecer la contraseña.");
+      setResetSuccess(genericSuccess);
     } catch (err: any) {
       if (err?.code === "auth/user-not-found") {
-        setResetError("No encontramos una cuenta con ese correo.");
+        // No revelar que la cuenta no existe
+        setResetSuccess(genericSuccess);
       } else if (err?.code === "auth/invalid-email") {
         setResetError("El correo ingresado no es válido.");
       } else if (err?.code === "auth/operation-not-allowed") {
@@ -254,12 +258,7 @@ export function LoginScreen() {
           </p>
         </div>
 
-        <div
-
-
-
-          className="mb-8 w-full"
-        >
+        <div className="mb-8 w-full">
           <div className="w-full rounded-[16px] border border-[#E5E7EB] bg-[#F0FAF9] p-5">
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]" style={{ fontFamily: "'Manrope', sans-serif" }}>Tu mascota, sus cosas</p>
             <p className="mt-2 text-sm font-medium leading-6 text-[#6B7280]" style={{ fontFamily: "'Manrope', sans-serif" }}>
@@ -268,13 +267,7 @@ export function LoginScreen() {
           </div>
         </div>
 
-        <form
-          onSubmit={handleLogin}
-
-
-
-          className="w-full space-y-4"
-        >
+        <form onSubmit={handleLogin} className="w-full space-y-4">
           {inviteCode && (
             <div className="rounded-[16px] border border-[#1A9B7D]/30 bg-[#E0F2F1] px-5 py-4 text-[#1A1A1A]">
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]" style={{ fontFamily: "'Manrope', sans-serif" }}>Invitacion de co-tutor</p>
@@ -316,7 +309,7 @@ export function LoginScreen() {
             </button>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between">
             <button
               type="button"
               onClick={() => { setShowReset(true); setResetEmail(email); setResetError(""); setResetSuccess(""); }}
@@ -324,6 +317,14 @@ export function LoginScreen() {
               style={{ fontFamily: "'Manrope', sans-serif" }}
             >
               ¿Olvidaste tu contraseña?
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowReset(true); setResetEmail(""); setResetError(""); setResetSuccess(""); }}
+              className="text-xs font-medium text-[#9CA3AF] transition-colors hover:text-[#6B7280]"
+              style={{ fontFamily: "'Manrope', sans-serif" }}
+            >
+              ¿No recordás tu correo?
             </button>
           </div>
 
@@ -382,74 +383,76 @@ export function LoginScreen() {
           >
             Crear cuenta
           </button>
-
-
         </form>
       </AuthPageShell>
 
-              {showReset && (
-          <>
-            <div
+      {showReset && (
+        <>
+          <div
+            onClick={() => setShowReset(false)}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+          />
+          <div className="fixed inset-x-4 bottom-8 z-50 bg-white rounded-3xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-6 max-w-md mx-auto">
+            <h2 className="text-xl font-black text-slate-900 mb-1">Recuperar acceso</h2>
+            <p className="text-sm text-slate-500 mb-5">
+              Ingresá tu correo y te enviamos un link para crear una nueva contraseña.
+            </p>
 
+            <form onSubmit={handleResetPassword} className="space-y-4">
+              <input
+                type="email"
+                placeholder="Tu correo electrónico"
+                aria-label="Correo electrónico para recuperar contraseña"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#074738]"
+                required
+              />
 
+              {resetError && (
+                <p className="text-sm text-red-600 font-semibold text-center">{resetError}</p>
+              )}
 
-              onClick={() => setShowReset(false)}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-            />
-            <div
-
-
-
-
-              className="fixed inset-x-4 bottom-8 z-50 bg-white rounded-3xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-6 max-w-md mx-auto"
-            >
-              <h2 className="text-xl font-black text-slate-900 mb-1">Recuperar contraseña</h2>
-              <p className="text-sm text-slate-500 mb-5">
-                Ingresá tu correo y te enviamos un link para crear una nueva contraseña.
-              </p>
-
-              <form onSubmit={handleResetPassword} className="space-y-4">
-                <input
-                  type="email"
-                  placeholder="Tu correo electrónico"
-                  aria-label="Correo electrónico para recuperar contraseña"
-                  value={resetEmail}
-                  onChange={(e) => setResetEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#074738]"
-                  required
-                />
-
-                {resetError && (
-                  <p className="text-sm text-red-600 font-semibold text-center">{resetError}</p>
-                )}
-
-                {resetSuccess ? (
-                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700 font-medium text-center">
-                    {resetSuccess}
-                  </div>
-                ) : (
-                  <button
-                    type="submit"
-                    disabled={resetLoading}
-                    className="w-full py-3 rounded-xl bg-[#074738] text-white font-bold disabled:opacity-60 flex items-center justify-center gap-2"
-                  >
-                    {resetLoading
-                      ? <><span className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Enviando...</>
-                      : "Enviar link"}
-                  </button>
-                )}
-
+              {resetSuccess ? (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700 font-medium text-center">
+                  {resetSuccess}
+                </div>
+              ) : (
                 <button
-                  type="button"
-                  onClick={() => setShowReset(false)}
-                  className="w-full py-3 rounded-xl bg-slate-100 text-slate-700 font-bold"
+                  type="submit"
+                  disabled={resetLoading}
+                  className="w-full py-3 rounded-xl bg-[#074738] text-white font-bold disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  {resetSuccess ? "Cerrar" : "Cancelar"}
+                  {resetLoading
+                    ? <><span className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Enviando...</>
+                    : "Enviar link"}
                 </button>
-              </form>
-            </div>
-          </>
-        )}
-          </>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowReset(false)}
+                className="w-full py-3 rounded-xl bg-slate-100 text-slate-700 font-bold"
+              >
+                {resetSuccess ? "Cerrar" : "Cancelar"}
+              </button>
+
+              {/* "¿No recordás tu correo?" — orientación sin exponer infraestructura */}
+              {!resetSuccess && (
+                <p className="text-center text-xs text-slate-400 pt-1" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                  ¿No recordás el correo con que te registraste?{" "}
+                  <a
+                    href="mailto:hola@pessy.app?subject=No recuerdo mi correo"
+                    className="font-semibold text-[#074738] underline underline-offset-2"
+                  >
+                    Contactanos
+                  </a>
+                </p>
+              )}
+            </form>
+          </div>
+        </>
+      )}
+    </>
   );
 }
