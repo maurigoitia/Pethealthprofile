@@ -1,44 +1,42 @@
 # PESSY — Rules for AI Agents
 
-## ⛔ DO NOT DEPLOY FROM THIS BRANCH
+## ⛔ NEVER run `firebase deploy` manually from this branch
 
-This is the `main` branch. It is for DEVELOPMENT ONLY.
+`main` is the production branch. **Deploys to production happen exclusively via GitHub Actions** (`deploy-prod.yml`), never from the terminal.
 
-**Production deploys MUST happen from the `pessy-website` branch.**
-
-Running `firebase deploy` from this branch WILL BREAK pessy.app.
+Running `firebase deploy` manually from any branch WILL BREAK pessy.app.
 This has already happened TWICE (2026-03-27 and 2026-03-28) causing:
 - Blank page in production (wrong architecture deployed)
 - CSS completely broken (different file structure)
 
-## What to do instead
+## Branch model
 
-If you need to deploy to production:
-1. Switch to `pessy-website`: `git checkout pessy-website`
-2. Use the deploy script: `bash deploy-with-landing.sh`
-3. NEVER run `firebase deploy` directly from any branch
+| Branch | Purpose | Deploy |
+|--------|---------|--------|
+| `main` | Production | GitHub Actions only — triggers after CI passes |
+| `develop` | Staging | Auto-deploys to `appqa` on push |
+| feature branches | Development | No deploy |
 
-## Why this branch is different
+## How production deploys work
 
-| | pessy-website (PRODUCTION) | main (DEVELOPMENT) |
-|---|---|---|
-| Homepage | Static landing.html | Vite SPA index.html |
-| SPA entry | app.html (renamed) | index.html |
-| Deploy script | deploy-with-landing.sh | NONE (do not deploy) |
-| Firebase rewrite | ** → /app.html | ** → /index.html |
+1. Open a PR from `develop` → `main`
+2. CI must pass (`npm test` + `tsc` + `lint` + build)
+3. Merge to `main` → `deploy-prod.yml` triggers automatically
+4. Or trigger manually from GitHub Actions UI (`workflow_dispatch`)
 
-## Forbidden Actions (on this branch)
-- `firebase deploy` (any variant)
+**NEVER** run any of these manually:
+- `firebase deploy`
 - `firebase deploy --only hosting`
 - `firebase deploy --only hosting:app`
-- Any command that pushes to Firebase Hosting
+- `firebase deploy --only functions` from `main` (use GitHub Actions)
 
-## Allowed Actions (on this branch)
-- `firebase deploy --only functions` (Cloud Functions only, OK)
-- Development work (coding, testing locally)
-- `npm run dev` (local dev server)
-- `npm run build` (local build for testing)
+## What agents CAN do locally
+- `npm run dev` — local dev server
+- `npm run build` — local build for testing
+- `npm test` — run vitest
+- `firebase emulators:start` — local emulation only
 
 ## Incident Log
-- 2026-03-27: Agent deployed hosting from main → blank page in production
-- 2026-03-28 ~12:41: Agent deployed hosting from main AGAIN → broke CSS/layout
+- 2026-03-27: Agent deployed hosting from main manually → blank page in production
+- 2026-03-28 ~12:41: Agent deployed hosting from main manually AGAIN → broke CSS/layout
+- 2026-04-07: CI/CD audit — unified branch policy, Node 22, added test gate, dist/ untracked

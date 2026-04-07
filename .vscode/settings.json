@@ -1,0 +1,20 @@
+{
+  "files.exclude": {
+    "node_modules": true,
+    "dist": true,
+    "playwright-report": true,
+    "test-results": true,
+    ".claude": true,
+    ".firebase": true,
+    "flutter_app": true,
+    "security-audit": true
+  },
+  "search.exclude": {
+    "node_modules": true,
+    "dist": true,
+    "playwright-report": true,
+    "test-results": true,
+    ".firebase": true,
+    "flutter_app": true
+  }
+}
