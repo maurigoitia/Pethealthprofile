@@ -326,11 +326,6 @@
       ],
       "redirects": [
         {
-          "source": "/blog/:slug",
-          "destination": "/blog/:slug/",
-          "type": 301
-        },
-        {
           "source": "/welcome",
           "destination": "/",
           "type": 301
@@ -417,6 +412,26 @@
         {
           "source": "/blog/carnet-digital",
           "destination": "/blog/carnet-digital.html"
+        },
+        {
+          "source": "/blog/frecuencia-bano",
+          "destination": "/blog/frecuencia-bano/index.html"
+        },
+        {
+          "source": "/blog/cada-cuanto-banar-perro",
+          "destination": "/blog/cada-cuanto-banar-perro/index.html"
+        },
+        {
+          "source": "/blog/alimentos-prohibidos-perros",
+          "destination": "/blog/alimentos-prohibidos-perros/index.html"
+        },
+        {
+          "source": "/blog/alimentos-prohibidos-gatos",
+          "destination": "/blog/alimentos-prohibidos-gatos/index.html"
+        },
+        {
+          "source": "/blog/frutas-para-perros",
+          "destination": "/blog/frutas-para-perros/index.html"
         },
         {
           "source": "**",
