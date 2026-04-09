@@ -4,6 +4,7 @@ import { RegisterUserScreen } from "./components/auth/RegisterUserScreen";
 import { RegisterPetStep1 } from "./components/pet/RegisterPetStep1";
 import { RegisterPetStep2 } from "./components/pet/RegisterPetStep2";
 import { LoginScreen } from "./components/auth/LoginScreen";
+import { ForgotPasswordScreen } from "./components/auth/ForgotPasswordScreen";
 import HomeScreen from "./components/home/HomeScreen";
 import { VerifyReportScreen } from "./components/medical/VerifyReportScreen";
 import { EmailLinkSignInScreen } from "./components/auth/EmailLinkSignInScreen";
@@ -132,6 +133,7 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/register-pet/step2", Component: RegisterPetStep2 }),
   withErrorBoundary({ path: "/register-pet-step2", element: <Navigate to="/register-pet/step2" replace /> }),
   withErrorBoundary({ path: "/login", Component: LoginScreen }),
+  withErrorBoundary({ path: "/forgot-password", Component: ForgotPasswordScreen }),
   withErrorBoundary({ path: "/solicitar-acceso", Component: RequestAccessScreen }),
   withErrorBoundary({ path: "/admin/access-requests", lazy: AdminAccessRequests }),
   withErrorBoundary({ path: "/app", element: <Navigate to="/inicio" replace /> }),

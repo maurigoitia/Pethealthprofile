@@ -2,6 +2,7 @@
   "name": "pessy-functions",
   "scripts": {
     "build": "tsc",
+    "lint": "tsc --noEmit",
     "serve": "npm run build && firebase emulators:start --only functions",
     "deploy": "firebase deploy --only functions"
   },
@@ -10,7 +11,9 @@
   },
   "main": "lib/index.js",
   "dependencies": {
+    "@google-cloud/secret-manager": "^6.1.1",
     "@google-cloud/vertexai": "^1.10.0",
+    "@upstash/redis": "^1.37.0",
     "firebase-admin": "^11.11.1",
     "firebase-functions": "^5.1.1",
     "mammoth": "^1.11.0",

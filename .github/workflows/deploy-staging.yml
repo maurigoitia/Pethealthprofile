@@ -1,0 +1,38 @@
+name: Deploy — Staging (appqa)
+
+on:
+  push:
+    branches: [develop]
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci && cd functions && npm ci
+
+      - name: TypeScript check (root)
+        run: npx tsc --noEmit --skipLibCheck
+
+      - name: TypeScript check (functions)
+        run: cd functions && npx tsc --noEmit
+
+      - name: Unit tests (vitest)
+        run: npm test
+
+      - name: Build frontend
+        run: npm run build
+        env:
+          VITE_ENV: staging
+
+      - name: Deploy to Firebase Staging (appqa)
+        run: npx firebase-tools deploy --only hosting:appqa --project polar-scene-488615-i0 --token "$FIREBASE_TOKEN"
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

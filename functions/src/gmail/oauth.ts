@@ -153,18 +153,18 @@ function buildRedirectUrl(
   return url.toString();
 }
 
-function decodeEmailFromIdToken(idToken: string | undefined): string | null {
+/**
+ * SCRUM-8: Verifica la firma del id_token usando Firebase Admin SDK.
+ * Reemplaza la decodificación manual sin verificación de firma.
+ * Un atacante podría forjar un JWT sin verificación — esto lo previene.
+ */
+async function verifyIdTokenAndGetEmail(idToken: string | undefined): Promise<string | null> {
   if (!idToken) return null;
-  const parts = idToken.split(".");
-  if (parts.length < 2) return null;
-  const payload = parts[1]
-    .replace(/-/g, "+")
-    .replace(/_/g, "/")
-    .padEnd(Math.ceil(parts[1].length / 4) * 4, "=");
   try {
-    const json = JSON.parse(Buffer.from(payload, "base64").toString("utf8")) as Record<string, unknown>;
-    return typeof json.email === "string" ? json.email : null;
-  } catch {
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    return decoded.email ?? null;
+  } catch (err) {
+    console.error("[oauth] id_token verification failed:", err);
     return null;
   }
 }
@@ -719,7 +719,7 @@ export const gmailAuthCallback = functions
       };
 
       const encrypted = encryptPayload(tokenPayload);
-      let accountEmail = decodeEmailFromIdToken(tokenResponse.id_token);
+      let accountEmail = await verifyIdTokenAndGetEmail(tokenResponse.id_token);
       if (!accountEmail && immediateAccessToken) {
         accountEmail = await fetchGmailAccountEmail(immediateAccessToken);
       }

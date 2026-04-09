@@ -2,6 +2,7 @@ import * as functions from "firebase-functions";
 import * as admin from "firebase-admin";
 import { Resend } from "resend";
 export * from "./appointments";
+export { setAdminClaim, onAdminBootstrap } from "./admin/adminClaims";
 export { ingestHistory } from "./clinical/ingestHistory";
 export { onLostPetReport, onPetSighting, computeAdoptionMatches } from "./community";
 

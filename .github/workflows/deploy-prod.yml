@@ -1,0 +1,44 @@
+name: Deploy — Production
+
+on:
+  # Solo dispara cuando CI pasa en main — nunca en push directo
+  workflow_run:
+    workflows: ["CI — PR Checks"]
+    types: [completed]
+    branches: [main]
+  # También permite deploy manual desde GitHub Actions UI
+  workflow_dispatch:
+
+jobs:
+  deploy-prod:
+    runs-on: ubuntu-latest
+    # Si viene de workflow_run, solo continúa si CI fue exitoso
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci && cd functions && npm ci
+
+      - name: TypeScript check (functions)
+        run: cd functions && npx tsc --noEmit
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Deploy hosting to Production
+        run: npx firebase-tools deploy --only hosting:app --project polar-scene-488615-i0 --token "$FIREBASE_TOKEN"
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Deploy functions to Production
+        run: npx firebase-tools deploy --only functions --project polar-scene-488615-i0 --token "$FIREBASE_TOKEN"
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
