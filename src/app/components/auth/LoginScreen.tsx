@@ -12,6 +12,7 @@ import { auth } from "../../../lib/firebase";
 import { useAuth } from "../../contexts/AuthContext";
 import { normalizeCoTutorInviteCode, rememberPendingCoTutorInvite } from "../../utils/coTutorInvite";
 import { persistAcquisitionSource, resolveAcquisitionSource, trackAcquisitionEvent } from "../../utils/acquisitionTracking";
+import { toast } from "sonner";
 import { SEO } from "../shared/SEO";
 import { AuthPageShell } from "./AuthPageShell";
 import { isNativeAppContext } from "../../utils/runtimeFlags";
@@ -83,7 +84,9 @@ export function LoginScreen() {
   };
 
   useEffect(() => {
-    getRedirectResult(auth).catch(() => {});
+    getRedirectResult(auth).catch((err) => {
+      if (err?.code) toast.error(getGoogleAuthErrorMessage(err.code));
+    });
   }, []);
 
   useEffect(() => {
