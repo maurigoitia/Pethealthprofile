@@ -1,21 +1,21 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ── Capacitor / WebView JS Bridge ──────────────────────────
+# Keep all classes exposed to JavaScript via @JavascriptInterface
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Keep Capacitor plugin classes (they're loaded by reflection)
+-keep class com.getcapacitor.** { *; }
+-keep class com.capacitorjs.** { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ── Firebase Cloud Messaging ──────────────────────────────
+-keep class com.google.firebase.messaging.** { *; }
+-dontwarn com.google.firebase.messaging.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ── AndroidX ──────────────────────────────────────────────
+-keep class androidx.** { *; }
+-dontwarn androidx.**
+
+# ── Crash reports: preserve line numbers ──────────────────
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile

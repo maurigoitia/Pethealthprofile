@@ -101,3 +101,14 @@ functions/lib/
 !src/**/*.png
 .claude/
 functions/.env.*
+
+# Mobile credentials (NEVER commit)
+android/key.properties
+android/app/*.keystore
+android/app/*.jks
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist
+
+# Allow icons through the global *.png block
+!android/app/src/main/res/mipmap-*/*.png
+!ios/App/App/Assets.xcassets/**/*.png
