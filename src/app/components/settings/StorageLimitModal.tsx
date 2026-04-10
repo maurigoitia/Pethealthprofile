@@ -15,7 +15,7 @@ interface StorageLimitModalProps {
 
 const FEATURES = [
   { icon: "storage",         text: "10 GB de almacenamiento" },
-  { icon: "auto_awesome",    text: "Análisis ilimitados con IA" },
+  { icon: "auto_awesome",    text: "Análisis ilimitados de documentos" },
   { icon: "picture_as_pdf",  text: "Exportes PDF ilimitados" },
   { icon: "group",           text: "Co-tutores ilimitados" },
   { icon: "notifications",   text: "Recordatorios prioritarios" },
@@ -208,7 +208,7 @@ export function StorageLimitModal({ isOpen, onClose, quota, triggerUpgrade }: St
                 {[
                   ["Almacenamiento", "1 GB", "10 GB"],
                   ["Documentos / mes", "10", "Ilimitados"],
-                  ["Análisis con IA", "✓", "✓"],
+                  ["Análisis de documentos", "✓", "✓"],
                   ["Co-tutores", "3", "Ilimitados"],
                   ["Exportes PDF", "✓", "✓"],
                   ["Soporte", "Básico", "Prioritario"],

@@ -13,8 +13,8 @@ interface SEOProps {
 
 export function SEO({ 
   title = "Pessy — Porque quererlo ya es suficiente trabajo",
-  description = "Pessy lo maneja. Vos lo disfrutás. La app con IA que tiene todo lo de tu mascota en un solo lugar.",
-  keywords = "mascota, pet care, identidad digital, servicios para mascotas, rutinas, compras, papeles, recordatorios, perro, gato, ia",
+  description = "Pessy lo maneja. Vos lo disfrutás. Todo lo de tu mascota en un solo lugar.",
+  keywords = "mascota, pet care, identidad digital, servicios para mascotas, rutinas, compras, papeles, recordatorios, perro, gato",
   ogImage = "https://pessy.app/og-image.jpg",
   canonical,
   robots,
