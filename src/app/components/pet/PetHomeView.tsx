@@ -24,6 +24,7 @@ import {
 } from "../../../domain/intelligence/pessyIntelligenceEngine";
 
 import DailyHookCard from "../home/DailyHookCard";
+import HealthPulse from "../home/HealthPulse";
 import RoutineChecklist from "../home/RoutineChecklist";
 import ProfileNudge from "../home/ProfileNudge";
 import QuickActions from "../home/QuickActions";
@@ -747,7 +748,19 @@ export function PetHomeView({
           </div>
         )}
 
-        {/* 3. PROFILE NUDGE - only if incomplete */}
+        {/* 3. HEALTH PULSE - at-a-glance pet health status */}
+        <div className="mx-3 mt-2">
+          <HealthPulse
+            petName={activePet.name}
+            overdueVaccines={medicalHistoryInputs.overdueVaccineCount}
+            activeMedications={activeMedications.length}
+            lastVetVisitDaysAgo={medicalHistoryInputs.lastVetVisitDaysAgo}
+            recurringConditions={medicalHistoryInputs.recurringConditions || []}
+            upcomingAppointments={upcomingAppointments.length}
+          />
+        </div>
+
+        {/* 4. PROFILE NUDGE - only if incomplete */}
         {profileIncomplete && (
           <div className="mx-3 mt-2">
             <ProfileNudge
