@@ -810,77 +810,45 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     });
   }, [activePet]);
 
-  // 2. Sync Pending Actions
-  useEffect(() => {
-    if (!activePet) {
-      setPendingActions([]);
-      return;
-    }
-    const q = query(collection(db, "pending_actions"), where("petId", "==", activePet.id));
-    return onSnapshot(q, (snapshot) => {
-      setPendingActions(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as PendingAction)));
+  // ─── Simple pet-scoped Firestore subscriptions ─────────────────────────────
+  // Factory: subscribe to a collection filtered by petId, map docs to typed array.
+  // Returns the onSnapshot unsubscribe (useEffect cleanup).
+  function syncPetCollection<T>(
+    collectionName: string,
+    setter: (items: T[]) => void,
+    ...extraConstraints: ReturnType<typeof where>[]
+  ) {
+    if (!activePet) { setter([]); return; }
+    const q = query(
+      collection(db, collectionName),
+      where("petId", "==", activePet.id),
+      ...extraConstraints,
+    );
+    return onSnapshot(q, (snap) => {
+      setter(snap.docs.map(d => ({ id: d.id, ...d.data() }) as T));
     });
-  }, [activePet]);
+  }
 
-  // 3. Sync Medications
-  useEffect(() => {
-    if (!activePet) {
-      setActiveMedications([]);
-      return;
-    }
-    const q = query(collection(db, "treatments"), where("petId", "==", activePet.id), where("subtype", "==", "medication"));
-    return onSnapshot(q, (snapshot) => {
-      setActiveMedications(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ActiveMedication)));
-    });
-  }, [activePet]);
+  // 2. Sync Pending Actions
+  useEffect(() => syncPetCollection<PendingAction>("pending_actions", setPendingActions), [activePet]);
+
+  // 3. Sync Medications (extra filter: subtype === "medication")
+  useEffect(
+    () => syncPetCollection<ActiveMedication>("treatments", setActiveMedications, where("subtype", "==", "medication")),
+    [activePet],
+  );
 
   // 4. Sync Appointments
-  useEffect(() => {
-    if (!activePet) {
-      setAppointments([]);
-      return;
-    }
-    const q = query(collection(db, "appointments"), where("petId", "==", activePet.id));
-    return onSnapshot(q, (snapshot) => {
-      setAppointments(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Appointment)));
-    });
-  }, [activePet]);
+  useEffect(() => syncPetCollection<Appointment>("appointments", setAppointments), [activePet]);
 
   // 5. Sync Clinical Conditions
-  useEffect(() => {
-    if (!activePet) {
-      setClinicalConditions([]);
-      return;
-    }
-    const q = query(collection(db, "clinical_conditions"), where("petId", "==", activePet.id));
-    return onSnapshot(q, (snapshot) => {
-      setClinicalConditions(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as ClinicalCondition)));
-    });
-  }, [activePet]);
+  useEffect(() => syncPetCollection<ClinicalCondition>("clinical_conditions", setClinicalConditions), [activePet]);
 
   // 6. Sync Clinical Alerts
-  useEffect(() => {
-    if (!activePet) {
-      setClinicalAlerts([]);
-      return;
-    }
-    const q = query(collection(db, "clinical_alerts"), where("petId", "==", activePet.id));
-    return onSnapshot(q, (snapshot) => {
-      setClinicalAlerts(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as ClinicalAlert)));
-    });
-  }, [activePet]);
+  useEffect(() => syncPetCollection<ClinicalAlert>("clinical_alerts", setClinicalAlerts), [activePet]);
 
   // 7. Sync Consolidated Treatments
-  useEffect(() => {
-    if (!activePet) {
-      setConsolidatedTreatments([]);
-      return;
-    }
-    const q = query(collection(db, "treatments"), where("petId", "==", activePet.id));
-    return onSnapshot(q, (snapshot) => {
-      setConsolidatedTreatments(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as TreatmentEntity)));
-    });
-  }, [activePet]);
+  useEffect(() => syncPetCollection<TreatmentEntity>("treatments", setConsolidatedTreatments), [activePet]);
 
   // ─── Suscripciones episódicas (solo con flag experimental) ───────────────────
   useEffect(() => {

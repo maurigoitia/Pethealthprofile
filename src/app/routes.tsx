@@ -138,7 +138,10 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/admin/access-requests", lazy: AdminAccessRequests }),
   withErrorBoundary({ path: "/app", element: <Navigate to="/inicio" replace /> }),
   withErrorBoundary({ path: "/inicio", Component: HomeScreen }),
-  withErrorBoundary({ path: "/empezar", Component: EmpezarLandingPage }),
+  withErrorBoundary({
+    path: "/empezar",
+    Component: isNativeAppContext() ? () => <Navigate to="/inicio" replace /> : EmpezarLandingPage,
+  }),
   withErrorBoundary({ path: "/inicio/vacunas", element: <Navigate to="/inicio" replace /> }),
   withErrorBoundary({ path: "/inicio/medicacion", element: <Navigate to="/inicio" replace /> }),
   withErrorBoundary({ path: "/inicio/historial-medico", element: <Navigate to="/inicio" replace /> }),
