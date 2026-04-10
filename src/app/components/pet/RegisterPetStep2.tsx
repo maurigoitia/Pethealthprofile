@@ -164,9 +164,16 @@ export function RegisterPetStep2() {
           <input
             type="number"
             step="0.1"
+            min="0.1"
+            max="200"
             placeholder="Peso aproximado (kg)"
             value={formData.weight}
-            onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === "" || (Number(val) >= 0 && Number(val) <= 200)) {
+                setFormData({ ...formData, weight: val });
+              }
+            }}
             className="w-full px-4 py-4 rounded-[12px] border border-slate-200 focus:ring-2 focus:ring-[#1A9B7D] outline-none"
           />
 

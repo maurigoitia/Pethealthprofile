@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 import { MaterialIcon } from "../shared/MaterialIcon";
 import type { PetPreferences } from "../../contexts/PetContext";
@@ -36,6 +36,9 @@ const FEAR_OPTIONS = ["Truenos", "Fuegos artificiales", "Otros perros", "Autos",
 export function PetPreferencesEditor({ petName, preferences, onSave, onClose }: PetPreferencesEditorProps) {
   const [prefs, setPrefs] = useState<PetPreferences>({ ...preferences });
   const [section, setSection] = useState<"personality" | "activities" | "fears" | "food">("personality");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const toggleArrayItem = <T extends string>(arr: T[] | undefined, item: T): T[] => {
     const current = arr || [];
@@ -204,6 +207,9 @@ export function PetPreferencesEditor({ petName, preferences, onSave, onClose }: 
                     <input
                       type="number"
                       placeholder="15"
+                      min="0.1"
+                      max="50"
+                      step="0.5"
                       value={prefs.foodBagKg || ""}
                       onChange={(e) => setPrefs({ ...prefs, foodBagKg: Number(e.target.value) || undefined })}
                       className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
@@ -214,6 +220,9 @@ export function PetPreferencesEditor({ petName, preferences, onSave, onClose }: 
                     <input
                       type="number"
                       placeholder="300"
+                      min="1"
+                      max="5000"
+                      step="10"
                       value={prefs.foodDailyGrams || ""}
                       onChange={(e) => setPrefs({ ...prefs, foodDailyGrams: Number(e.target.value) || undefined })}
                       className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
@@ -225,6 +234,7 @@ export function PetPreferencesEditor({ petName, preferences, onSave, onClose }: 
                   <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">Última compra</label>
                   <input
                     type="date"
+                    max={todayStr}
                     value={prefs.foodLastPurchase || ""}
                     onChange={(e) => setPrefs({ ...prefs, foodLastPurchase: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-white"
@@ -253,11 +263,15 @@ export function PetPreferencesEditor({ petName, preferences, onSave, onClose }: 
         {/* Save Button */}
         <div className="border-t border-slate-100 px-5 py-4 dark:border-slate-800">
           <button
-            onClick={() => onSave(prefs)}
-            className="w-full rounded-2xl py-3.5 text-sm font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            disabled={isSaving}
+            onClick={async () => {
+              setIsSaving(true);
+              try { await onSave(prefs); } finally { setIsSaving(false); }
+            }}
+            className="w-full rounded-2xl py-3.5 text-sm font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: "#074738" }}
           >
-            Guardar gustos
+            {isSaving ? "Guardando..." : "Guardar gustos"}
           </button>
         </div>
       </div>

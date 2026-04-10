@@ -219,6 +219,8 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   const [draftNoteByEvent, setDraftNoteByEvent] = useState<Record<string, string>>({});
   const [savingNoteByEvent, setSavingNoteByEvent] = useState<Record<string, boolean>>({});
   const [confirmingByEvent, setConfirmingByEvent] = useState<Record<string, boolean>>({});
+  const [registeringDoseFor, setRegisteringDoseFor] = useState<string | null>(null);
+  const [finalizingFor, setFinalizingFor] = useState<string | null>(null);
 
   // Editar
   const [editingItem, setEditingItem] = useState<MedicationCardItem | null>(null);
@@ -716,9 +718,13 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                         </div>
                         {!needsReview && (
                           <button
-                            onClick={() => void registerDoseNow(item)}
-                            className="w-full py-2 rounded-xl bg-[#074738] text-white text-xs font-bold hover:bg-[#245ecf] transition-colors">
-                            Marcar dosis dada ahora
+                            disabled={registeringDoseFor === item.event.id}
+                            onClick={async () => {
+                              setRegisteringDoseFor(item.event.id);
+                              try { await registerDoseNow(item); } finally { setRegisteringDoseFor(null); }
+                            }}
+                            className="w-full py-2 rounded-xl bg-[#074738] text-white text-xs font-bold hover:bg-[#245ecf] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            {registeringDoseFor === item.event.id ? "Registrando..." : "Marcar dosis dada ahora"}
                           </button>
                         )}
                       </div>
@@ -740,20 +746,24 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                       {/* Botón rápido finalizar — solo en activos/crónicos */}
                       {(item.status === "active" || item.status === "chronic") && !needsReview && (
                         <button
+                          disabled={finalizingFor === item.event.id}
                           onClick={async () => {
-                            const note: TreatmentNote = {
-                              id: `note_${Date.now()}`,
-                              text: "Ya no lo toma — marcado como finalizado",
-                              interpretedAs: "interruption",
-                              createdAt: new Date().toISOString(),
-                            };
-                            await updateEvent(item.event.id, {
-                              treatmentNotes: [...(item.event.treatmentNotes || []), note],
-                            });
+                            setFinalizingFor(item.event.id);
+                            try {
+                              const note: TreatmentNote = {
+                                id: `note_${Date.now()}`,
+                                text: "Ya no lo toma — marcado como finalizado",
+                                interpretedAs: "interruption",
+                                createdAt: new Date().toISOString(),
+                              };
+                              await updateEvent(item.event.id, {
+                                treatmentNotes: [...(item.event.treatmentNotes || []), note],
+                              });
+                            } finally { setFinalizingFor(null); }
                           }}
-                          className="w-full mb-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1.5 hover:bg-[#F0FAF9] dark:hover:bg-slate-800 transition-colors">
+                          className="w-full mb-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1.5 hover:bg-[#F0FAF9] dark:hover:bg-slate-800 transition-colors disabled:opacity-50">
                           <MaterialIcon name="check_circle" className="text-sm text-slate-400" />
-                          Ya no lo toma — marcar como finalizado
+                          {finalizingFor === item.event.id ? "Finalizando..." : "Ya no lo toma — marcar como finalizado"}
                         </button>
                       )}
                       <button
