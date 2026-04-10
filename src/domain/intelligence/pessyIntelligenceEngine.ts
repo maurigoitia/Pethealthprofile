@@ -31,6 +31,13 @@ export interface PessyIntelligenceInput {
   favoriteActivities?: string[]; // "walk", "park", "cafe", etc.
   walkTimes?: string[]; // "08:00", "14:00"
   foodDaysLeft?: number | null; // from supply predictor
+  // ─── Medical history (derived from events) ────────────────────────────
+  lastVetVisitDaysAgo?: number | null;
+  overdueVaccineCount?: number;
+  activeMedicationCount?: number;
+  upcomingAppointmentCount?: number;
+  weightHistory?: { kg: number; date: string }[]; // recent 3-5 entries
+  recurringConditions?: string[]; // conditions seen 2+ times, e.g. "otitis", "gastritis"
 }
 
 export interface PessyIntelligenceRecommendation {
@@ -497,6 +504,110 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
         sourceModule: "supply_tracker",
       });
     }
+  }
+
+  // ─── MODULE: Vet visit reminder (history-based) ──────────────────────────
+  if (input.lastVetVisitDaysAgo !== null && input.lastVetVisitDaysAgo !== undefined) {
+    if (input.lastVetVisitDaysAgo > 365) {
+      recommendations.push({
+        id: `${input.petName}_vet_overdue`,
+        code: "vet_visit_overdue",
+        title: `${input.petName} no ve al veterinario hace más de un año`,
+        detail: "Un chequeo anual preventivo puede detectar problemas a tiempo. Agendá una visita.",
+        slot: "Preventivo",
+        icon: "medical_services",
+        kind: "alert",
+        sourceModule: "medical_history",
+      });
+    } else if (input.lastVetVisitDaysAgo > 270) {
+      recommendations.push({
+        id: `${input.petName}_vet_soon`,
+        code: "vet_visit_approaching",
+        title: "Chequeo anual se acerca",
+        detail: `La última visita de ${input.petName} fue hace ${Math.round(input.lastVetVisitDaysAgo / 30)} meses. Conviene agendar turno preventivo.`,
+        slot: "Esta semana",
+        icon: "event_available",
+        kind: "recommendation",
+        sourceModule: "medical_history",
+      });
+    }
+  }
+
+  // ─── MODULE: Overdue vaccines ───────────────────────────────────────────────
+  if (input.overdueVaccineCount && input.overdueVaccineCount > 0) {
+    recommendations.push({
+      id: `${input.petName}_vaccines_overdue`,
+      code: "vaccines_overdue",
+      title: `${input.overdueVaccineCount} vacuna${input.overdueVaccineCount > 1 ? "s" : ""} vencida${input.overdueVaccineCount > 1 ? "s" : ""}`,
+      detail: `${input.petName} tiene vacunas fuera de calendario. Consultá con tu veterinario.`,
+      slot: "Urgente",
+      icon: "vaccines",
+      kind: "alert",
+      sourceModule: "medical_history",
+    });
+  }
+
+  // ─── MODULE: Weight trend ───────────────────────────────────────────────────
+  if (input.weightHistory && input.weightHistory.length >= 2) {
+    const sorted = [...input.weightHistory].sort((a, b) => a.date.localeCompare(b.date));
+    const oldest = sorted[0];
+    const newest = sorted[sorted.length - 1];
+    const deltaKg = newest.kg - oldest.kg;
+    const pctChange = (deltaKg / oldest.kg) * 100;
+
+    if (pctChange > 15) {
+      recommendations.push({
+        id: `${input.petName}_weight_gain`,
+        code: "weight_gain_alert",
+        title: `${input.petName} subió ${deltaKg.toFixed(1)} kg`,
+        detail: `Pasó de ${oldest.kg} kg a ${newest.kg} kg (+${pctChange.toFixed(0)}%). Revisá la alimentación y consultá al veterinario si sigue subiendo.`,
+        slot: "Preventivo",
+        icon: "monitor_weight",
+        kind: "alert",
+        sourceModule: "weight_trend",
+      });
+    } else if (pctChange < -15) {
+      recommendations.push({
+        id: `${input.petName}_weight_loss`,
+        code: "weight_loss_alert",
+        title: `${input.petName} bajó ${Math.abs(deltaKg).toFixed(1)} kg`,
+        detail: `Pasó de ${oldest.kg} kg a ${newest.kg} kg (${pctChange.toFixed(0)}%). Una baja significativa puede indicar un problema. Consultá al veterinario.`,
+        slot: "Urgente",
+        icon: "monitor_weight",
+        kind: "alert",
+        sourceModule: "weight_trend",
+      });
+    }
+  }
+
+  // ─── MODULE: Recurring conditions ──────────────────────────────────────────
+  if (input.recurringConditions && input.recurringConditions.length > 0) {
+    for (const condition of input.recurringConditions.slice(0, 2)) {
+      recommendations.push({
+        id: `${input.petName}_recurring_${condition.toLowerCase().replace(/\s+/g, "_")}`,
+        code: "recurring_condition_watch",
+        title: `${input.petName} tiene historial de ${condition}`,
+        detail: `Se detectó ${condition} más de una vez. Prestá atención a síntomas tempranos y mencionalo en la próxima visita al vet.`,
+        slot: "Preventivo",
+        icon: "history",
+        kind: "recommendation",
+        sourceModule: "recurring_conditions",
+      });
+    }
+  }
+
+  // ─── MODULE: Active treatment load ─────────────────────────────────────────
+  if (input.activeMedicationCount && input.activeMedicationCount >= 3) {
+    recommendations.push({
+      id: `${input.petName}_polypharmacy`,
+      code: "high_medication_load",
+      title: `${input.petName} tiene ${input.activeMedicationCount} tratamientos activos`,
+      detail: "Con varios medicamentos simultáneos, es importante verificar interacciones con tu veterinario.",
+      slot: "Preventivo",
+      icon: "medication",
+      kind: "recommendation",
+      sourceModule: "medical_history",
+    });
   }
 
   // ─── MODULE: Fireworks/loud noises fear (seasonal) ────────────────────────

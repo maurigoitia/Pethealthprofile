@@ -512,6 +512,53 @@ export function PetHomeView({
   if (!activePet?.breed) missingItems.push("raza");
   const profileIncomplete = missingItems.length > 0;
 
+  // ─── Medical history derivation for intelligence engine ─────────────────────
+  const medicalHistoryInputs = useMemo(() => {
+    const now = Date.now();
+    const DAY_MS = 86_400_000;
+
+    // Last vet visit (checkup, surgery, appointment events)
+    const vetVisitTypes = new Set(["checkup", "appointment", "surgery"]);
+    const vetVisitDates = petEvents
+      .filter(e => vetVisitTypes.has(e.extractedData?.documentType))
+      .map(e => toTimestampSafe(e.extractedData?.eventDate || e.createdAt, 0))
+      .filter(ts => ts > 0);
+    const lastVetVisitDaysAgo = vetVisitDates.length > 0
+      ? Math.round((now - Math.max(...vetVisitDates)) / DAY_MS)
+      : null;
+
+    // Overdue vaccines: vaccine events with revaccination_date in the past
+    let overdueVaccineCount = 0;
+    for (const e of petEvents) {
+      if (e.extractedData?.documentType !== "vaccine") continue;
+      const revacDate = e.extractedData?.vaccine_artifacts?.revaccination_date;
+      if (revacDate) {
+        const ts = toTimestampSafe(revacDate, 0);
+        if (ts > 0 && ts < now) overdueVaccineCount++;
+      }
+    }
+
+    // Recurring conditions: diagnoses that appear 2+ times
+    const diagnosisCounts = new Map<string, number>();
+    for (const e of petEvents) {
+      const diag = e.extractedData?.diagnosis?.toLowerCase().trim();
+      if (diag && diag.length > 2) {
+        diagnosisCounts.set(diag, (diagnosisCounts.get(diag) || 0) + 1);
+      }
+    }
+    const recurringConditions = [...diagnosisCounts.entries()]
+      .filter(([, count]) => count >= 2)
+      .map(([diag]) => diag.charAt(0).toUpperCase() + diag.slice(1));
+
+    return {
+      lastVetVisitDaysAgo,
+      overdueVaccineCount,
+      activeMedicationCount: activeMedications.length,
+      upcomingAppointmentCount: upcomingAppointments.length,
+      recurringConditions: recurringConditions.length > 0 ? recurringConditions : undefined,
+    };
+  }, [petEvents, activeMedications.length, upcomingAppointments.length]);
+
   // ─── Intelligence engine ────────────────────────────────────────────────────
   const hasVaccineOnRecord = petEvents.some((e: any) => e.extractedData?.documentType === "vaccine");
   const hasSeparationAnxiety = (activePet?.preferences?.fears || []).some((f: string) =>
@@ -543,8 +590,9 @@ export function PetHomeView({
       isPuppy,
       hasSeparationAnxiety,
       isUnvaccinated: isPuppy && !hasVaccineOnRecord,
+      ...medicalHistoryInputs,
     });
-  }, [activePet?.id, activePet?.breed, activePet?.name, activePet?.age, activePet?.preferences, species, groupIds, weather, foodDaysLeft, isPuppy, hasSeparationAnxiety, hasVaccineOnRecord]);
+  }, [activePet?.id, activePet?.breed, activePet?.name, activePet?.age, activePet?.preferences, species, groupIds, weather, foodDaysLeft, isPuppy, hasSeparationAnxiety, hasVaccineOnRecord, medicalHistoryInputs]);
 
   const sortedRecommendations = useMemo(() => {
     // Contextual tips from real data (meds, appointments) always come first
