@@ -9,6 +9,7 @@ import { RemindersProvider } from "./contexts/RemindersContext";
 import { PreferenceProvider } from "./contexts/PreferenceContext";
 import { GamificationProvider } from "./contexts/GamificationContext";
 import { AppErrorBoundary } from "./components/shared/AppErrorBoundary";
+import { OfflineBanner } from "./components/shared/OfflineBanner";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
               <RemindersProvider>
                 <PreferenceProvider>
                   <GamificationProvider>
+                    <OfflineBanner />
                     <RouterProvider router={router} />
                     <Toaster position="top-center" richColors />
                   </GamificationProvider>
