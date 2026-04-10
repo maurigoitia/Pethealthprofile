@@ -47,7 +47,7 @@ const buildTimelineSubtitle = (event: any) => {
   const aiSummary = cleanText(event.extractedData?.aiGeneratedSummary || "");
   if (diagnosis) return diagnosis;
   if (observations) return observations;
-  if (aiSummary) return `Resumen IA pendiente de validación: ${aiSummary}`;
+  if (aiSummary) return `Resumen automático pendiente de validación: ${aiSummary}`;
   return "Sin observaciones cargadas";
 };
 

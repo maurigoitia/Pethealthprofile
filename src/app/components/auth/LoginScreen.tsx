@@ -179,7 +179,7 @@ export function LoginScreen() {
     <>
       <SEO
         title="Login | Pessy"
-        description="Accede a Pessy — la app con IA que tiene todo lo de tu mascota en un solo lugar."
+        description="Accede a Pessy — todo lo de tu mascota en un solo lugar."
         canonical="https://pessy.app/login"
         robots="noindex,nofollow"
       />
@@ -187,7 +187,7 @@ export function LoginScreen() {
       <AuthPageShell
         eyebrow="Acceso"
         title="Pessy — Porque quererlo ya es suficiente trabajo"
-        description="Porque quererlo ya es suficiente trabajo. Con IA."
+        description="Porque quererlo ya es suficiente trabajo."
         highlights={["Identidad digital", "Recordatorios", "Co-tutores"]}
       >
         <div className="mb-8">

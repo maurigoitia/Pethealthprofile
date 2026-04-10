@@ -487,7 +487,7 @@ function buildEventSummary(event: MedicalEvent, petName: string): string {
 
   if (kind === "treatment_plan") {
     const treatmentNarrative = cleanText(d.observations || d.aiGeneratedSummary);
-    const narrativePrefix = d.aiGeneratedSummary && !d.observations ? "Resumen IA (no canónico): " : "";
+    const narrativePrefix = d.aiGeneratedSummary && !d.observations ? "Resumen automático (pendiente revisión): " : "";
     return `Plan terapéutico registrado el ${eventDate} para ${petName}${whoWhere ? `. Centro/profesional: ${whoWhere}` : ""}. ${narrativePrefix}${treatmentNarrative}`;
   }
 
@@ -518,7 +518,7 @@ function buildEventSummary(event: MedicalEvent, petName: string): string {
 
   const genericNarrative = cleanText(d.aiGeneratedSummary || d.observations);
   if (d.aiGeneratedSummary) {
-    return `Resumen IA (no canónico): ${genericNarrative || `Documento de ${petName} registrado el ${eventDate}.`}`;
+    return `Resumen automático (pendiente revisión): ${genericNarrative || `Documento de ${petName} registrado el ${eventDate}.`}`;
   }
   return genericNarrative || `Documento de ${petName} registrado el ${eventDate}.`;
 }

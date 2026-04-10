@@ -169,7 +169,7 @@ export function VerifyReportScreen() {
                     <div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Fuente narrativa</p>
                       <p className="text-base font-bold text-slate-900 dark:text-white">
-                        {report.includesAiNarrative ? "Resumen IA (no canónico)" : "No aplica"}
+                        {report.includesAiNarrative ? "Resumen automático (no canónico)" : "No aplica"}
                       </p>
                     </div>
                   </div>
