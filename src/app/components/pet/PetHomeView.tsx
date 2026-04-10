@@ -760,6 +760,29 @@ export function PetHomeView({
           />
         </div>
 
+        {/* 3b. PREFERENCES NUDGE — appears if pet has no preferences set */}
+        {activePet && !activePet.preferences?.personality?.length && !activePet.preferences?.fears?.length && !activePet.preferences?.favoriteActivities?.length && (
+          <div className="mx-3 mt-2">
+            <button
+              type="button"
+              onClick={() => setShowPreferences(true)}
+              className="w-full rounded-[16px] border border-[#C8E6C9] bg-[#E8F5E9] flex items-center gap-3 text-left transition-colors hover:bg-[#C8E6C9]"
+              style={{ padding: "14px 16px" }}
+            >
+              <span className="text-[22px]">🎯</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-[800] text-[#074738]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  Contanos sobre {activePet.name}
+                </p>
+                <p className="text-[11px] font-[500] text-[#6B7280] mt-0.5">
+                  Personalidad, actividades y miedos — para sugerencias más precisas
+                </p>
+              </div>
+              <span className="text-[#1A9B7D] text-lg shrink-0">→</span>
+            </button>
+          </div>
+        )}
+
         {/* 4. PROFILE NUDGE - only if incomplete */}
         {profileIncomplete && (
           <div className="mx-3 mt-2">
