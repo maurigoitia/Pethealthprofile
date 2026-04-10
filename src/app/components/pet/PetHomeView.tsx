@@ -1,8 +1,12 @@
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useMedical } from "../../contexts/MedicalContext";
 import { usePet, type PetPreferences } from "../../contexts/PetContext";
 import { toTimestampSafe } from "../../utils/dateUtils";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "../../../lib/firebase";
+import { useAuth } from "../../contexts/AuthContext";
 import { PetPhoto } from "./PetPhoto";
 import { getPoints, addPoints, isDailyActivityDone, markDailyActivityDone } from "../../utils/gamification";
 
@@ -213,12 +217,17 @@ function WeatherPill({
 
 // ─── ROUTINE STORAGE HELPERS ──────────────────────────────────────────────────
 
-function getRoutineStorageKey(petId: string): string {
-  const today = new Date().toISOString().slice(0, 10);
-  return `pessy_routine_${petId}_${today}`;
+// ─── Routine persistence: localStorage (cache) + Firestore (source of truth) ─
+function getRoutineDate(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
-function loadCheckedItems(petId: string): string[] {
+function getRoutineStorageKey(petId: string): string {
+  return `pessy_routine_${petId}_${getRoutineDate()}`;
+}
+
+/** Read from localStorage cache (instant, works offline) */
+function loadCheckedItemsLocal(petId: string): string[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(getRoutineStorageKey(petId));
@@ -228,9 +237,38 @@ function loadCheckedItems(petId: string): string[] {
   }
 }
 
-function saveCheckedItems(petId: string, items: string[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(getRoutineStorageKey(petId), JSON.stringify(items));
+/** Save to both localStorage (instant) and Firestore (persistent, cross-device) */
+function saveCheckedItems(petId: string, userId: string, items: string[]) {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(getRoutineStorageKey(petId), JSON.stringify(items));
+  }
+  const date = getRoutineDate();
+  const docId = `${petId}_${date}`;
+  setDoc(doc(db, "routine_completions", docId), {
+    petId,
+    userId,
+    date,
+    checkedItems: items,
+    updatedAt: new Date().toISOString(),
+  }, { merge: true }).catch(() => {
+    // Firestore write failed — localStorage still has the data, will retry on next toggle
+  });
+}
+
+/** Load from Firestore (cross-device sync); falls back to localStorage */
+async function loadCheckedItemsFromFirestore(petId: string): Promise<string[] | null> {
+  try {
+    const date = getRoutineDate();
+    const docId = `${petId}_${date}`;
+    const snap = await getDoc(doc(db, "routine_completions", docId));
+    if (snap.exists()) {
+      const data = snap.data();
+      return Array.isArray(data.checkedItems) ? data.checkedItems : null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 // ─── RECOMMENDATION COLOR MAPPING ────────────────────────────────────────────
@@ -261,6 +299,7 @@ export function PetHomeView({
   onPetChange,
 }: PetHomeViewProps) {
   const { updatePet } = usePet();
+  const { user } = useAuth();
   const [showPreferences, setShowPreferences] = useState(false);
   const [weather, setWeather] = useState<LiveWeatherSnapshot>({
     status: "loading",
@@ -434,11 +473,21 @@ export function PetHomeView({
       ? "wb_twilight"
       : "bedtime";
 
-  // ─── Load checked routine items from localStorage ───────────────────────────
+  // ─── Load checked routine items: localStorage first (instant), then Firestore ─
   useEffect(() => {
-    if (activePetId) {
-      setCheckedRoutineItems(loadCheckedItems(activePetId));
-    }
+    if (!activePetId) return;
+    // Instant load from localStorage cache
+    setCheckedRoutineItems(loadCheckedItemsLocal(activePetId));
+    // Then sync from Firestore (cross-device, persistent)
+    loadCheckedItemsFromFirestore(activePetId).then((firestoreItems) => {
+      if (firestoreItems && firestoreItems.length > 0) {
+        setCheckedRoutineItems(firestoreItems);
+        // Update localStorage cache with Firestore truth
+        if (typeof window !== "undefined") {
+          window.localStorage.setItem(getRoutineStorageKey(activePetId), JSON.stringify(firestoreItems));
+        }
+      }
+    });
   }, [activePetId]);
 
   const handleRoutineToggle = useCallback(
@@ -446,7 +495,7 @@ export function PetHomeView({
       setCheckedRoutineItems((prev) => {
         const wasChecked = prev.includes(item);
         const next = wasChecked ? prev.filter((i) => i !== item) : [...prev, item];
-        if (activePetId) saveCheckedItems(activePetId, next);
+        if (activePetId && user?.uid) saveCheckedItems(activePetId, user.uid, next);
         // Award points only when checking an item (not unchecking)
         if (!wasChecked) {
           const earned = addPoints(5);
@@ -455,7 +504,7 @@ export function PetHomeView({
         return next;
       });
     },
-    [activePetId]
+    [activePetId, user?.uid]
   );
 
   // ─── Nudge for new user without breed ───────────────────────────────────────
