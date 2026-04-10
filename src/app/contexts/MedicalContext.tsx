@@ -276,7 +276,6 @@ interface MedicalContextType {
   confirmEvent: (id: string, overrides?: Partial<MedicalEvent>) => Promise<void>;
   getEventsByPetId: (petId: string) => MedicalEvent[];
 
-  pendingActions: PendingAction[];
   addPendingAction: (action: PendingAction) => Promise<void>;
   completePendingAction: (id: string) => Promise<void>;
   deletePendingAction: (id: string) => Promise<void>;
@@ -304,22 +303,16 @@ interface MedicalContextType {
   getMonthSummary: (petId: string, month: Date) => MonthSummary;
   saveVerifiedReport: (report: Record<string, unknown>) => Promise<string>;
 
-  appointments: Appointment[];
   addAppointment: (appointment: Appointment) => Promise<void>;
   updateAppointment: (id: string, updates: Partial<Appointment>) => Promise<void>;
   deleteAppointment: (id: string) => Promise<void>;
   getAppointmentsByPetId: (petId: string) => Appointment[];
 
-  clinicalConditions: ClinicalCondition[];
-  clinicalAlerts: ClinicalAlert[];
-  consolidatedTreatments: TreatmentEntity[];
   getClinicalConditionsByPetId: (petId: string) => ClinicalCondition[];
   getClinicalAlertsByPetId: (petId: string) => ClinicalAlert[];
   getConsolidatedTreatmentsByPetId: (petId: string) => TreatmentEntity[];
 
   // ─── Modelo episódico (solo con flag experimental) ────────────────────────────
-  clinicalEpisodes: ClinicalEpisode[];
-  clinicalProfileSnapshot: ClinicalProfileSnapshot | null;
   getClinicalEpisodesByPetId: (petId: string) => ClinicalEpisode[];
   getProfileSnapshotByPetId: (petId: string) => ClinicalProfileSnapshot | null;
 }
@@ -1801,7 +1794,6 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     <MedicalContext.Provider
       value={{
         events, addEvent, updateEvent, deleteEvent, confirmEvent, getEventsByPetId,
-        pendingActions,
         addPendingAction,
         completePendingAction,
         deletePendingAction,
@@ -1810,15 +1802,10 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
         submitClinicalReviewDraft,
         activeMedications, addMedication, updateMedication, deactivateMedication, getActiveMedicationsByPetId,
         getMonthSummary, saveVerifiedReport,
-        appointments, addAppointment, updateAppointment, deleteAppointment, getAppointmentsByPetId,
-        clinicalConditions,
-        clinicalAlerts,
-        consolidatedTreatments,
+        addAppointment, updateAppointment, deleteAppointment, getAppointmentsByPetId,
         getClinicalConditionsByPetId,
         getClinicalAlertsByPetId,
         getConsolidatedTreatmentsByPetId,
-        clinicalEpisodes,
-        clinicalProfileSnapshot,
         getClinicalEpisodesByPetId,
         getProfileSnapshotByPetId,
       }}
