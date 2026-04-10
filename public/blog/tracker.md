@@ -9,12 +9,11 @@
 | 2 | alimentos prohibidos perros | alimentos-prohibidos-perros | published | /blog/alimentos-prohibidos-perros/ |
 | 2 | tu mascota todo en orden | tu-mascota-todo-en-orden | published | /blog/tu-mascota-todo-en-orden/ |
 | 3 | desparasitar perros cachorros | desparasitar-perros-cachorros | published | /blog/desparasitar-perros-cachorros/ |
+| 4 | cuánto duerme un gato adulto | cuanto-duerme-un-gato-adulto | published | /blog/cuanto-duerme-un-gato-adulto/ |
 
 ## Próximos keywords (por generar)
 
 ### Bloque: Salud general
-- desparasitar perros cachorros
-- cuánto duerme un gato adulto
 - síntomas de moquillo en perros
 - convulsiones en perros causas
 - leishmaniasis perros síntomas
