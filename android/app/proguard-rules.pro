@@ -1,21 +1,19 @@
-# ── Capacitor / WebView JS Bridge ──────────────────────────
-# Keep all classes exposed to JavaScript via @JavascriptInterface
+# Capacitor WebView — keep JS interface classes
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;
 }
 
-# Keep Capacitor plugin classes (they're loaded by reflection)
+# Keep Capacitor plugin classes
 -keep class com.getcapacitor.** { *; }
 -keep class com.capacitorjs.** { *; }
 
-# ── Firebase Cloud Messaging ──────────────────────────────
+# Keep Firebase Messaging (push notifications)
 -keep class com.google.firebase.messaging.** { *; }
--dontwarn com.google.firebase.messaging.**
 
-# ── AndroidX ──────────────────────────────────────────────
--keep class androidx.** { *; }
--dontwarn androidx.**
-
-# ── Crash reports: preserve line numbers ──────────────────
+# Preserve line numbers for crash reports
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# Keep AndroidX classes used by Capacitor
+-keep class androidx.core.** { *; }
+-keep class androidx.appcompat.** { *; }

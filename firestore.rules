@@ -2,6 +2,11 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ─────────────────────────────────────────────────────────────────
+    // HELPER FUNCTIONS
+    // ─────────────────────────────────────────────────────────────────
+
     function signedIn() {
       return request.auth != null;
     }
@@ -34,6 +39,14 @@ service cloud.firestore {
       return signedIn() && pet.coTutorUids is list && request.auth.uid in pet.coTutorUids;
     }
 
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // INVITE HELPERS
+    // ─────────────────────────────────────────────────────────────────
+
     function canJoinPetWithInvite(petId) {
       return signedIn()
         && resource.data.coTutorUids is list
@@ -61,7 +74,6 @@ service cloud.firestore {
           get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.expiresAt > request.time
         )
         && (
-          // Si la invitación tiene inviteEmail, solo el destinatario puede usarla
           get(/databases/$(database)/documents/invitations/$(request.resource.data.lastJoinInviteCode)).data.inviteEmail == null ||
           (
             request.auth.token.email != null &&
@@ -88,9 +100,9 @@ service cloud.firestore {
         && request.resource.data.coTutors.size() == resource.data.coTutors.size() - 1;
     }
 
-    function isAdmin() {
-      return signedIn() && request.auth.token.admin == true;
-    }
+    // ─────────────────────────────────────────────────────────────────
+    // USERS
+    // ─────────────────────────────────────────────────────────────────
 
     match /users/{userId} {
       allow read, write: if signedIn() && request.auth.uid == userId;
@@ -104,21 +116,36 @@ service cloud.firestore {
       }
     }
 
+    // ─────────────────────────────────────────────────────────────────
+    // PETS
+    // ─────────────────────────────────────────────────────────────────
+
     match /pets/{petId} {
       allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
       allow read: if isPetOwner(resource.data) || isPetCoTutor(resource.data);
+      // SCRUM-16: co-tutors solo pueden modificar campos whitelisted
       allow update: if
         isPetOwner(resource.data) ||
         (
           isPetCoTutor(resource.data) &&
           request.resource.data.ownerId == resource.data.ownerId &&
           request.resource.data.coTutorUids == resource.data.coTutorUids &&
-          request.resource.data.coTutors == resource.data.coTutors
+          request.resource.data.coTutors == resource.data.coTutors &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly([
+            'petNotes',
+            'appointments',
+            'lastUpdatedBy',
+            'lastUpdatedAt'
+          ])
         ) ||
         canJoinPetWithInvite(petId) ||
         canLeavePetAsCoTutor();
       allow delete: if isPetOwner(resource.data);
     }
+
+    // ─────────────────────────────────────────────────────────────────
+    // ACCESS REQUESTS (beta gate)
+    // ─────────────────────────────────────────────────────────────────
 
     match /access_requests/{docId} {
       allow create: if request.resource.data.status == 'pending'
@@ -132,9 +159,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ─────────────────────────────────────────────────────────────────
+    // INVITATIONS
+    // ─────────────────────────────────────────────────────────────────
+
     match /invitations/{code} {
       allow create: if signedIn() && code.matches('^[A-Z0-9]{6}$') && (
-        // Existing co-tutor invite rule (unchanged)
         (
           request.resource.data.createdBy == request.auth.uid
           && request.resource.data.petId is string
@@ -142,7 +172,6 @@ service cloud.firestore {
           && request.resource.data.used == false
         )
         ||
-        // New platform invite rule
         (
           request.resource.data.type == 'platform'
           && request.resource.data.createdBy == request.auth.uid
@@ -151,10 +180,8 @@ service cloud.firestore {
       );
 
       allow get: if
-        // Platform invites: anyone can read (needed before auth for registration gate)
         (resource.data.type == 'platform')
         ||
-        // Co-tutor invites: existing rules (unchanged)
         (signedIn() && (
           resource.data.createdBy == request.auth.uid ||
           resource.data.inviteEmail == null ||
@@ -194,7 +221,6 @@ service cloud.firestore {
           request.resource.data.diff(resource.data).changedKeys().hasOnly(['used', 'usedBy', 'usedAt'])
         )
         ||
-        // Platform invite mark-as-used (new)
         (
           resource.data.type == 'platform' &&
           resource.data.used == false &&
@@ -207,26 +233,60 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.createdBy == request.auth.uid;
     }
 
+    // ─────────────────────────────────────────────────────────────────
+    // MEDICAL EVENTS
+    // ─────────────────────────────────────────────────────────────────
+
     match /medical_events/{eventId} {
-      // SECURITY: Validate userId on create to prevent IDOR (petId alone isn't enough)
+      // SECURITY: userId validated on create to prevent IDOR
       allow create: if canAccessPetById(request.resource.data.petId)
         && request.resource.data.userId == request.auth.uid;
       allow read: if canAccessPetById(resource.data.petId);
-      // SECURITY: Cannot change petId or userId on update (prevents reassignment attacks)
+      // SECURITY: petId and userId are immutable after creation
       allow update: if canAccessPetById(resource.data.petId)
         && request.resource.data.petId == resource.data.petId
         && request.resource.data.userId == resource.data.userId;
       allow delete: if canAccessPetById(resource.data.petId);
     }
 
+    // ─────────────────────────────────────────────────────────────────
+    // CLINICAL EVENTS
+    // SECURITY NOTE: clinical_events can be pet-scoped OR user-scoped
+    // (AI triage sessions not yet tied to a specific pet).
+    // For pet-scoped: enforce canAccessPetById.
+    // For user-scoped (no petId): enforce own userId + immutability on update.
+    // ─────────────────────────────────────────────────────────────────
+
     match /clinical_events/{eventId} {
       allow create: if
         (request.resource.data.petId is string && canAccessPetById(request.resource.data.petId)) ||
+        // User-scoped triage session (petId absent): only owner can create
         (signedIn() && request.resource.data.userId == request.auth.uid);
-      allow read, update, delete: if
+
+      allow read, delete: if
         (resource.data.petId is string && canAccessPetById(resource.data.petId)) ||
         (signedIn() && resource.data.userId == request.auth.uid);
+
+      // SECURITY: prevent userId reassignment on update (matches medical_events pattern)
+      allow update: if
+        (
+          resource.data.petId is string
+          && canAccessPetById(resource.data.petId)
+          && request.resource.data.petId == resource.data.petId
+          && request.resource.data.userId == resource.data.userId
+        ) ||
+        (
+          signedIn()
+          && resource.data.userId == request.auth.uid
+          && request.resource.data.userId == resource.data.userId
+          // User-scoped events cannot be promoted to pet-scoped via update
+          && !(request.resource.data.petId is string && resource.data.petId == null)
+        );
     }
+
+    // ─────────────────────────────────────────────────────────────────
+    // CLINICAL DATA (pet-scoped, all follow same pattern)
+    // ─────────────────────────────────────────────────────────────────
 
     match /pending_actions/{actionId} {
       allow create: if canAccessPetById(request.resource.data.petId);
@@ -244,7 +304,7 @@ service cloud.firestore {
     match /medications/{medicationId} {
       allow create: if canAccessPetById(request.resource.data.petId);
       allow read: if canAccessPetById(resource.data.petId);
-      // SECURITY: Cannot reassign medication to different pet
+      // SECURITY: petId immutable after creation
       allow update: if canAccessPetById(resource.data.petId)
         && request.resource.data.petId == resource.data.petId;
       allow delete: if canAccessPetById(resource.data.petId);
@@ -253,7 +313,7 @@ service cloud.firestore {
     match /appointments/{appointmentId} {
       allow create: if canAccessPetById(request.resource.data.petId);
       allow read: if canAccessPetById(resource.data.petId);
-      // SECURITY: Cannot reassign appointment to different pet
+      // SECURITY: petId immutable after creation
       allow update: if canAccessPetById(resource.data.petId)
         && request.resource.data.petId == resource.data.petId;
       allow delete: if canAccessPetById(resource.data.petId);
@@ -294,9 +354,56 @@ service cloud.firestore {
       allow read, update, delete: if canAccessPetById(resource.data.petId);
     }
 
-    // ─── COMMUNITY: Lost Pets ───
+    // ─────────────────────────────────────────────────────────────────
+    // VET MODE
+    // SECURITY: vetId == request.auth.uid enforces isolation between vets.
+    // Vets can only read/write their own consultations and profile.
+    // Tutor data is NOT accessible via these collections — vet mode is
+    // a separate identity layer that does not cross into pet/user data.
+    // ─────────────────────────────────────────────────────────────────
+
+    match /vetProfiles/{vetId} {
+      // Any authenticated user can create their own vet profile (pending verification)
+      allow create: if signedIn() && request.auth.uid == vetId
+        && request.resource.data.verified == false;
+      allow read: if signedIn() && request.auth.uid == vetId;
+      // SECURITY: vetId path must match auth UID; verified flag can only be set by admin
+      allow update: if (signedIn() && request.auth.uid == vetId
+          && request.resource.data.keys().hasOnly([
+            'fullName', 'specialty', 'matricula', 'patientsCount',
+            'phone', 'address', 'bio', 'updatedAt'
+          ]))
+        || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /consultations/{consultationId} {
+      // Only the vet who owns the consultation can create/read/update
+      allow create: if signedIn()
+        && request.resource.data.vetId == request.auth.uid
+        && request.resource.data.keys().hasAll(['vetId', 'petName', 'tutorName', 'reason', 'status', 'createdAt'])
+        && request.resource.data.status == 'pending';
+      allow read: if signedIn() && resource.data.vetId == request.auth.uid;
+      // SECURITY: vetId immutable; status transitions are controlled
+      allow update: if signedIn()
+        && resource.data.vetId == request.auth.uid
+        && request.resource.data.vetId == resource.data.vetId
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if signedIn() && resource.data.vetId == request.auth.uid;
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // COMMUNITY MODULE
+    // SECURITY NOTE: Community collections use `allow read: if signedIn()`
+    // which means all authenticated users can see location data (GeoPoint).
+    // This is intentional — the Comunidad feature requires geo visibility
+    // for lost pet alerts, adoption matching, and nearby sightings.
+    // Mitigation: location precision is limited at write time by the app layer.
+    // ─────────────────────────────────────────────────────────────────
+
     match /lost_pets/{reportId} {
-      allow create: if signedIn() && request.resource.data.reportedBy == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.reportedBy == request.auth.uid;
       allow read: if signedIn();
       allow update: if signedIn() && resource.data.reportedBy == request.auth.uid;
       allow delete: if signedIn() && resource.data.reportedBy == request.auth.uid;
@@ -308,24 +415,40 @@ service cloud.firestore {
       allow update, delete: if signedIn() && resource.data.reportedBy == request.auth.uid;
     }
 
-    // ─── COMMUNITY: Adoption Listings ───
     match /adoption_listings/{listingId} {
       allow create: if signedIn() && request.resource.data.listedBy == request.auth.uid;
       allow read: if signedIn();
       allow update, delete: if signedIn() && resource.data.listedBy == request.auth.uid;
     }
 
-    // ─── USER PREFERENCES (random questions, lifestyle tags) ───
+    // ─── COMMUNITY: Búsqueda Activa (persistent search alerts) ───
+    // Max 3 active alerts per user enforced at app layer; expires in 30 days.
+    match /search_alerts/{alertId} {
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.keys().hasAll(['userId', 'species', 'radius', 'status', 'createdAt', 'expiresAt']);
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      // SECURITY: userId and createdAt are immutable
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // USER DATA (preferences, gamification, places)
+    // ─────────────────────────────────────────────────────────────────
+
     match /user_preferences/{userId} {
       allow read, write: if signedIn() && request.auth.uid == userId;
     }
 
-    // ─── USER GAMIFICATION ───
     match /user_gamification/{userId} {
       allow read, write: if signedIn() && request.auth.uid == userId;
     }
 
-    // ─── PLACES (curated recommendations) ───
     match /places/{placeId} {
       allow read: if signedIn();
       allow create, update, delete: if isAdmin();
@@ -337,10 +460,13 @@ service cloud.firestore {
       allow update, delete: if signedIn() && resource.data.userId == request.auth.uid;
     }
 
-    // Gmail ingestion — temporary collections (user can only access own data)
+    // ─────────────────────────────────────────────────────────────────
+    // GMAIL INGESTION (temporary — backend-only write)
+    // ─────────────────────────────────────────────────────────────────
+
     match /gmail_raw_documents_tmp/{docId} {
       allow read, delete: if signedIn() && resource.data.user_id == request.auth.uid;
-      allow create, update: if false; // Solo backend (Cloud Functions)
+      allow create, update: if false; // Cloud Functions only
     }
     match /gmail_attachment_extract_tmp/{docId} {
       allow read, delete: if signedIn() && resource.data.user_id == request.auth.uid;
@@ -351,11 +477,9 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
-    match /routine_completions/{docId} {
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow read, update: if signedIn() && resource.data.userId == request.auth.uid;
-      allow delete: if false;
-    }
+    // ─────────────────────────────────────────────────────────────────
+    // NOTIFICATIONS & SCHEDULING
+    // ─────────────────────────────────────────────────────────────────
 
     match /reminders/{reminderId} {
       allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
@@ -385,6 +509,10 @@ service cloud.firestore {
         (resource.data.petId is string && canAccessPetById(resource.data.petId))
       );
     }
+
+    // ─────────────────────────────────────────────────────────────────
+    // VERIFIED REPORTS (digital passport export)
+    // ─────────────────────────────────────────────────────────────────
 
     match /verified_reports/{reportId} {
       allow read: if signedIn() && resource.data.ownerId == request.auth.uid;

@@ -307,7 +307,7 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
 
   return (
         <>
-          <div onClick={onClose} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-fadeIn" />
+          <div onClick={onClose} role="presentation" aria-hidden="true" className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-fadeIn" />
 
           <div
             className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-[24px] shadow-[0_2px_12px_rgba(0,0,0,0.06)] max-h-[92vh] overflow-hidden flex flex-col animate-slideUp"

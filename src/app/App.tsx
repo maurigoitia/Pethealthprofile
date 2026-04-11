@@ -14,6 +14,10 @@ import { OfflineBanner } from "./components/shared/OfflineBanner";
 export default function App() {
   return (
     <AppErrorBoundary>
+      {/* Skip navigation — keyboard users bypass repetitive nav ───── */}
+      <a href="#main-content" className="pessy-skip-link">
+        Ir al contenido principal
+      </a>
       <AuthProvider>
         <PetProvider>
           <MedicalProvider>

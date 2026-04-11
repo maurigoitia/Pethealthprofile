@@ -24,7 +24,7 @@ import {
   applyConstitutionalGuardrails,
 } from "./clinicalNormalization";
 import {
-  isTrustedClinicalSender, isVetDomain,
+  isTrustedClinicalSender, isVetDomain, isMassMarketingDomain, isBlockedClinicalDomain,
   hasStrongHumanHealthcareSignal, hasStrongVeterinaryEvidence,
   hasStrongNonClinicalSignal, attachmentNamesContainClinicalSignal,
 } from "./petMatching";
@@ -599,6 +599,114 @@ export function heuristicClinicalExtraction(extractedText: string, emailDate: st
   };
 }
 
+
+// ─── SCRUM-9: Scored deterministic classification ──────────────────────────
+/**
+ * Motor de scoring determinístico para clasificación clínica.
+ *
+ * Evalúa 5 categorías de señales y devuelve una decisión sin llamar a la IA.
+ * Solo retorna `null` (zona gris) cuando las señales son genuinamente ambiguas,
+ * lo que permite al caller decidir si vale la pena llamar a Gemini.
+ *
+ * Categorías de scoring:
+ *  1. Señales de remitente  (+/-)
+ *  2. Señales de adjuntos   (+)
+ *  3. Señales de asunto     (+)
+ *  4. Señales de cuerpo     (+, multiples sub-categorias con cap)
+ *  5. Señales negativas fuertes (bloqueo)
+ *
+ * Umbrales:  score >= 55 → clínico  |  score <= -25 → no clínico  |  zona gris → null
+ */
+export function scoredClinicalClassification(
+  input: ClinicalClassificationInput,
+): ClinicalClassificationOutput | null {
+  const subject  = asString(input.subject).slice(0, 500).toLowerCase();
+  const fromEmail = asString(input.fromEmail).slice(0, 320).toLowerCase();
+  const bodyText  = asString(input.bodyText).toLowerCase();
+  const corpus    = `${subject}\n${fromEmail}\n${bodyText}`;
+  const attachments = input.attachmentMetadata || [];
+
+  let score = 0;
+
+  // ── 1. Señales de remitente ──────────────────────────────────────────────
+  const senderTrusted    = isTrustedClinicalSender(fromEmail) || isVetDomain(fromEmail);
+  const senderMassMarket = isMassMarketingDomain(fromEmail);
+  const senderBlocked    = isBlockedClinicalDomain(fromEmail);
+
+  if (senderBlocked)    score -= 60;
+  if (senderMassMarket) score -= 50;
+  if (senderTrusted)    score += 45;
+
+  // ── 2. Señales de adjuntos ───────────────────────────────────────────────
+  const hasClinicalAttachment = attachmentNamesContainClinicalSignal(attachments);
+  if (hasClinicalAttachment)         score += 55;
+  else if (attachments.length > 0)   score += 5;
+
+  // ── 3. Señales de asunto ─────────────────────────────────────────────────
+  const subjectClinicalProc  = /\b(ecografi|radiografi|tomografi|electrocard|result[ao]|diagnosi|diagn[oó]stic|laboratorio|informe\s+m[eé]dic|hemograma|biopsia)\b/i.test(subject);
+  const subjectMedication    = /\b(receta|prescrip|medicaci[oó]n|dosis|tratamiento|f[aá]rmac)\b/i.test(subject);
+  const subjectVaccination   = /\b(vacuna|vacunaci[oó]n|vacunar|desparasit)\b/i.test(subject);
+  const subjectAppointment   = /\b(turno|cita|consulta|citaci[oó]n|revisi[oó]n)\b/i.test(subject);
+  const subjectVetContext    = /\b(veterinari|vet\b|cl[ií]nica veterinaria|hospital veterinario)\b/i.test(subject);
+
+  if (subjectClinicalProc)                        score += 40;
+  if (subjectMedication)                          score += 40;
+  if (subjectVaccination)                         score += 35;
+  if (subjectAppointment && subjectVetContext)     score += 30;
+  else if (subjectAppointment && senderTrusted)   score += 20;
+
+  // ── 4. Señales en el cuerpo (cap de +60) ────────────────────────────────
+  let bodyBonus = 0;
+
+  // 4a. Términos veterinarios específicos de especie
+  if (/\b(perro|gato|canino|canina|felino|felina|mascota|cachorro|gatito|bovino|equino|porcino)\b/i.test(bodyText))
+    bodyBonus += 20;
+
+  // 4b. Procedimientos clínicos en el cuerpo
+  const bodyProcedure = /\b(ecografi|radiografi|rx\b|tomografi|electrocard|ecocard|resonancia|ultrasonido|biopsia|citolog[ií]a|hemograma|bioquimica|urianalis|cultivo|antibiograma)\b/i.test(bodyText);
+  if (bodyProcedure) bodyBonus += 20;
+
+  // 4c. Medicación con dosificación
+  const bodyMedDose = /\b(mg|ml|cc|mcg|kg)\s*\/\s*(kg|d[ií]a|dosis)|\b(cada\s+\d+\s*h|bid|tid|sid|q\d+h|dosis\s+de|tomar\s+\d)\b/i.test(bodyText);
+  if (bodyMedDose) bodyBonus += 25;
+
+  // 4d. Valores numéricos de laboratorio (ej: "glucosa: 120 mg/dl")
+  const bodyLabValues = /\b(glucosa|creatinina|bun|alt|ast|alp|albumina|proteinas|leucocitos|eritrocitos|hemoglobina|hematocrito|plaquetas|trigliceridos|colesterol|urea)\b.*?\b\d+\b/i.test(bodyText);
+  if (bodyLabValues) bodyBonus += 20;
+
+  // 4e. Diagnóstico explícito
+  const bodyDiagnosis = /\b(diagn[oó]stic|hallazgo|se observ|compatible con|consistente con|presenta|lesion|masa|n[oó]dulo|inflamaci[oó]n|infecci[oó]n|neoplasia|quiste|displasia|fractura|luxaci[oó]n)\b/i.test(bodyText);
+  if (bodyDiagnosis) bodyBonus += 15;
+
+  score += Math.min(bodyBonus, 60);
+
+  // ── 5. Señales negativas fuertes ─────────────────────────────────────────
+  const hasHumanNoise = hasStrongHumanHealthcareSignal(corpus);
+  const hasVetEvidence = hasStrongVeterinaryEvidence(input);
+  const hasNonClinicalNoise = hasStrongNonClinicalSignal(corpus);
+
+  if (hasHumanNoise && !hasVetEvidence && !hasClinicalAttachment)
+    score -= 60;
+  if (hasNonClinicalNoise && !hasVetEvidence && !hasClinicalAttachment)
+    score -= 40;
+
+  // ── Decisión ─────────────────────────────────────────────────────────────
+  const CLINICAL_THRESHOLD     =  55;
+  const NOT_CLINICAL_THRESHOLD = -25;
+
+  if (score >= CLINICAL_THRESHOLD) {
+    const confidence = Math.min(95, 60 + Math.round(score / 2));
+    return { is_clinical: true, confidence, classificationMethod: "heuristic" };
+  }
+  if (score <= NOT_CLINICAL_THRESHOLD) {
+    const confidence = Math.min(95, 30 + Math.round(Math.abs(score) / 2));
+    return { is_clinical: false, confidence, classificationMethod: "heuristic" };
+  }
+
+  // Zona gris: retorna null para que el caller evalúe si vale llamar a AI
+  return null;
+}
+
 export function heuristicClinicalClassification(input: ClinicalClassificationInput): ClinicalClassificationOutput {
   const normalized = normalizeForHash(
     [input.subject || "", input.fromEmail || "", input.bodyText || ""].filter(Boolean).join("\n")
@@ -628,39 +736,25 @@ export async function classifyClinicalContentWithAi(
   const bodyText = asString(input.bodyText);
   const subject = asString(input.subject).slice(0, 500);
   const fromEmail = asString(input.fromEmail).slice(0, 320);
+
+  // ── SCRUM-9: Motor de scoring determinístico primero ─────────────────────
+  // Cubre ~85% de emails sin llamar al LLM. Solo la zona gris genuina llega a Gemini.
+  const scoredResult = scoredClinicalClassification(input);
+  if (scoredResult !== null) {
+    return scoredResult;
+  }
+
+  // ── Zona gris: chequeo mínimo antes de llamar a Gemini ───────────────────
   const hasClinicalAttachment = attachmentNamesContainClinicalSignal(input.attachmentMetadata || []);
-  const hasHumanHealthcareNoise = hasStrongHumanHealthcareSignal(`${subject}\n${fromEmail}\n${bodyText}`);
-  const hasVetEvidence = hasStrongVeterinaryEvidence(input);
-  const subjectLooksClinical =
-    /\b(receta|prescrip|vacuna|diagn[oó]stic|laboratorio|ecograf|radiograf|electrocard|tratamiento|medicaci[oó]n|resultado|resultados)\b/i
-      .test(subject);
-  const senderLooksClinical = isTrustedClinicalSender(fromEmail) || isVetDomain(fromEmail);
-  const hasBody = bodyText.trim().length > 0;
-
-  if (!hasBody && !subject && !hasClinicalAttachment) {
-    return { is_clinical: false, confidence: 0 };
-  }
-  if (hasHumanHealthcareNoise && !hasVetEvidence && !hasClinicalAttachment) {
-    return { is_clinical: false, confidence: 12 };
-  }
-
-  if (hasClinicalAttachment) {
-    return {
-      is_clinical: true,
-      confidence: senderLooksClinical ? 92 : 82,
-    };
-  }
-  if (subjectLooksClinical) {
-    return {
-      is_clinical: true,
-      confidence: senderLooksClinical ? 78 : 72,
-    };
-  }
-
+  const hasBody = bodyText.trim().length > 120;
   const hasGemini = Boolean(asString(process.env.GEMINI_API_KEY));
-  if (!hasGemini) return heuristicClinicalClassification(input);
 
-  const attachmentNames = (input.attachmentMetadata || []).map((row) => row.filename).join(" | ").slice(0, 1800);
+  // Rule 3b: attachment signals outweigh short body — still call Gemini if clinical attachment present
+  if ((!hasBody && !hasClinicalAttachment) || !hasGemini) {
+    return heuristicClinicalClassification(input);
+  }
+
+    const attachmentNames = (input.attachmentMetadata || []).map((row) => row.filename).join(" | ").slice(0, 1800);
   const prompt = [
     "Role: You are a strict high-precision classifier for veterinary clinical emails for Pessy.app.",
     "Mission: classify whether the email contains actionable veterinary clinical information.",

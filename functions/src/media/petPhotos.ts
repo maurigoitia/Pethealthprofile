@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 import { randomBytes } from "crypto";
+import { checkRateLimitByTier } from "../utils/rateLimiter";
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // 8 MB binary
 const ALLOWED_CONTENT_TYPES = new Set([
@@ -201,6 +202,19 @@ export const uploadPetPhoto = functions
 
     if (!uid) {
       throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
+    }
+
+    // SCRUM-20: Rate limit photo uploads per user tier
+    const userSnap = await admin.firestore().collection("users").doc(uid).get();
+    const userData = userSnap.data() || {};
+    const candidatePlans = [userData.plan, userData.planType, userData.subscriptionPlan].join(" ").toLowerCase();
+    const isPremium = ["premium", "pro", "founder", "unlimited"].some((t) => candidatePlans.includes(t));
+    const rl = await checkRateLimitByTier(uid, "document-scan", isPremium);
+    if (!rl.allowed) {
+      throw new functions.https.HttpsError(
+        "resource-exhausted",
+        `Límite de subida de fotos alcanzado. Reintentar en ${rl.resetInSeconds}s.`
+      );
     }
 
     const petId = typeof rawData?.petId === "string" ? rawData.petId.trim() : "";

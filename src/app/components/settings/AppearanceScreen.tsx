@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { MaterialIcon } from "../shared/MaterialIcon";
+// SCRUM-104: i18n
+import { LanguageSelector } from "./LanguageSelector";
 
 interface AppearanceScreenProps {
   onBack: () => void;
@@ -108,6 +110,11 @@ export function AppearanceScreen({ onBack }: AppearanceScreenProps) {
               )}
             </button>
           ))}
+        </div>
+
+        {/* Language selector */}
+        <div className="px-4 pb-2">
+          <LanguageSelector />
         </div>
 
         {/* Preview Card */}

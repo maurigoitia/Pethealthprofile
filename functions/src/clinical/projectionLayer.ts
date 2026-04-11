@@ -363,14 +363,11 @@ export async function projectClinicalEvent(
 
   const category = asString(data.category);
   const documentType = asString(data.document_type);
-  const confidence: number = typeof data.brain_confidence === "number" ? data.brain_confidence : 0;
 
-  // Forzar revisión si confianza baja o mascota no resuelta
-  const forceReview = confidence < 0.85
-    ? `Confianza baja (${Math.round(confidence * 100)}%) — verificar datos extraídos`
-    : !asString(data.petId)
-      ? "Mascota no identificada — asignar manualmente"
-      : undefined;
+  // SCRUM-12: Deterministic routing — confidence threshold removed
+  const forceReview = !asString(data.petId)
+    ? "Mascota no identificada — asignar manualmente"
+    : undefined;
 
   const decision = resolveRouting(category, documentType, forceReview);
 

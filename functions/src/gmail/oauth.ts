@@ -1,8 +1,10 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
+import { randomBytes } from "crypto";
 import { initializeEmailIngestionAfterOauth } from "./clinicalIngestion";
 import { assertGmailInvitationOrThrow, getGmailInvitationAccess } from "./invitation";
+import { saveGmailToken, loadGmailToken, deleteGmailToken } from "./secretManager";
+import { checkRateLimitByTier } from "../utils/rateLimiter";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -167,59 +169,6 @@ async function verifyIdTokenAndGetEmail(idToken: string | undefined): Promise<st
     console.error("[oauth] id_token verification failed:", err);
     return null;
   }
-}
-
-function getEncryptionKey(): Buffer {
-  const raw = (process.env.MAIL_TOKEN_ENCRYPTION_KEY || "").trim();
-  if (!raw) {
-    throw new functions.https.HttpsError(
-      "failed-precondition",
-      "MAIL_TOKEN_ENCRYPTION_KEY no configurada."
-    );
-  }
-
-  const maybeB64 = Buffer.from(raw, "base64");
-  if (maybeB64.length === 32) return maybeB64;
-
-  return createHash("sha256").update(raw).digest();
-}
-
-function encryptPayload(value: Record<string, unknown>): { ciphertext: string; iv: string; tag: string } {
-  const key = getEncryptionKey();
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
-  const plaintext = Buffer.from(JSON.stringify(value), "utf8");
-  const encrypted = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  const tag = cipher.getAuthTag();
-
-  return {
-    ciphertext: encrypted.toString("base64"),
-    iv: iv.toString("base64"),
-    tag: tag.toString("base64"),
-  };
-}
-
-function encryptText(value: string): string {
-  const key = getEncryptionKey();
-  const iv = randomBytes(12);
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
-  const encrypted = Buffer.concat([
-    cipher.update(Buffer.from(value, "utf8")),
-    cipher.final(),
-  ]);
-  const tag = cipher.getAuthTag();
-  return `${iv.toString("base64")}.${encrypted.toString("base64")}.${tag.toString("base64")}`;
-}
-
-function decryptPayload(input: { ciphertext: string; iv: string; tag: string }): Record<string, unknown> {
-  const key = getEncryptionKey();
-  const decipher = createDecipheriv("aes-256-gcm", key, Buffer.from(input.iv, "base64"));
-  decipher.setAuthTag(Buffer.from(input.tag, "base64"));
-  const decrypted = Buffer.concat([
-    decipher.update(Buffer.from(input.ciphertext, "base64")),
-    decipher.final(),
-  ]);
-  return JSON.parse(decrypted.toString("utf8")) as Record<string, unknown>;
 }
 
 function asNonEmptyString(value: unknown): string | null {
@@ -492,6 +441,19 @@ export const getGmailConnectUrl = functions
       throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión.");
     }
 
+    // SCRUM-20: Rate limit Gmail connect requests per user tier
+    const gmailUserSnap = await admin.firestore().collection("users").doc(context.auth.uid).get();
+    const gmailUserData = gmailUserSnap.data() || {};
+    const gmailCandidatePlans = [gmailUserData.plan, gmailUserData.planType, gmailUserData.subscriptionPlan].join(" ").toLowerCase();
+    const gmailUserIsPremium = ["premium", "pro", "founder", "unlimited"].some((t) => gmailCandidatePlans.includes(t));
+    const gmailRl = await checkRateLimitByTier(context.auth.uid, "gmail-sync", gmailUserIsPremium);
+    if (!gmailRl.allowed) {
+      throw new functions.https.HttpsError(
+        "resource-exhausted",
+        `Límite de sincronización Gmail alcanzado. Reintentar en ${gmailRl.resetInSeconds}s.`
+      );
+    }
+
     await assertGmailInvitationOrThrow(context.auth.uid);
 
     const clientId = getEnvOrThrow("GMAIL_OAUTH_CLIENT_ID");
@@ -659,32 +621,18 @@ export const gmailAuthCallback = functions
 
       let refreshToken = (tokenResponse.refresh_token || "").trim();
       if (!refreshToken) {
-        const existingTokenSnap = await tokenRef.get();
-        if (existingTokenSnap.exists) {
-          const existingData = existingTokenSnap.data() || {};
-          const existingCiphertext =
-            typeof existingData.ciphertext === "string" ? existingData.ciphertext : "";
-          const existingIv = typeof existingData.iv === "string" ? existingData.iv : "";
-          const existingTag = typeof existingData.tag === "string" ? existingData.tag : "";
-          if (existingCiphertext && existingIv && existingTag) {
-            try {
-              const previous = decryptPayload({
-                ciphertext: existingCiphertext,
-                iv: existingIv,
-                tag: existingTag,
-              });
-              const previousRefresh =
-                typeof previous.refreshToken === "string" ? previous.refreshToken.trim() : "";
-              if (previousRefresh) {
-                refreshToken = previousRefresh;
-                console.warn(
-                  `[gmailAuthCallback] refresh_token ausente en intercambio, reutilizando token previo para uid=${uid}`
-                );
-              }
-            } catch (error) {
-              console.error("[gmailAuthCallback] Failed to decrypt existing refresh token:", error);
-            }
+        // SCRUM-7: Retrieve previous refresh token from Secret Manager (not Firestore)
+        try {
+          const previous = await loadGmailToken(uid);
+          const previousRefresh = previous?.refreshToken?.trim() || "";
+          if (previousRefresh) {
+            refreshToken = previousRefresh;
+            console.warn(
+              `[gmailAuthCallback] refresh_token ausente en intercambio, reutilizando token previo para uid=${uid}`
+            );
           }
+        } catch (error) {
+          console.error("[gmailAuthCallback] Failed to load existing refresh token:", error);
         }
       }
 
@@ -718,15 +666,19 @@ export const gmailAuthCallback = functions
         grantedScopes,
       };
 
-      const encrypted = encryptPayload(tokenPayload);
+       // SCRUM-7: Store token in Secret Manager, not Firestore
+      await saveGmailToken(uid, tokenPayload);
       let accountEmail = await verifyIdTokenAndGetEmail(tokenResponse.id_token);
       if (!accountEmail && immediateAccessToken) {
         accountEmail = await fetchGmailAccountEmail(immediateAccessToken);
       }
 
+      // Keep Firestore record for metadata only (no credential data)
       await tokenRef.set(
         {
-          ...encrypted,
+          hasToken: true,
+          secretManagerRef: `gmail_token_${uid}`,
+          grantedScopes,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
         { merge: true }
@@ -761,8 +713,7 @@ export const gmailAuthCallback = functions
           userId: uid,
           gmailConnected: true,
           userEmail: accountEmail || null,
-          accessToken: encryptText(tokenResponse.access_token || ""),
-          refreshToken: encryptText(refreshToken),
+          // SCRUM-7: tokens moved to Secret Manager
           lastSync: admin.firestore.FieldValue.serverTimestamp(),
           scopes: grantedScopes,
           expiresAt: admin.firestore.Timestamp.fromMillis(
@@ -859,33 +810,14 @@ export const syncAppointmentCalendarEvent = functions
       throw new functions.https.HttpsError("invalid-argument", "Faltan fecha o título para sincronizar.");
     }
 
-    const tokenSnap = await admin
-      .firestore()
-      .collection("users")
-      .doc(uid)
-      .collection("mail_sync_tokens")
-      .doc("gmail")
-      .get();
-
-    if (!tokenSnap.exists) {
+    // SCRUM-7: Load token from Secret Manager
+    const tokenPayloadCalendar = await loadGmailToken(uid);
+    if (!tokenPayloadCalendar) {
       return { ok: false, action: "skipped", reason: "gmail_not_connected" };
     }
-
-    const tokenData = tokenSnap.data() as Record<string, unknown>;
-    const encryptedToken = {
-      ciphertext: asNonEmptyString(tokenData.ciphertext) || "",
-      iv: asNonEmptyString(tokenData.iv) || "",
-      tag: asNonEmptyString(tokenData.tag) || "",
-    };
-
-    if (!encryptedToken.ciphertext || !encryptedToken.iv || !encryptedToken.tag) {
-      throw new functions.https.HttpsError("failed-precondition", "Token de Gmail inválido.");
-    }
-
-    const decrypted = decryptPayload(encryptedToken);
-    const refreshToken = asNonEmptyString(decrypted.refreshToken);
-    const grantedScopes = Array.isArray(decrypted.grantedScopes)
-      ? decrypted.grantedScopes.filter((scope): scope is string => typeof scope === "string")
+    const refreshToken = asNonEmptyString(tokenPayloadCalendar.refreshToken);
+    const grantedScopes = Array.isArray(tokenPayloadCalendar.grantedScopes)
+      ? tokenPayloadCalendar.grantedScopes.filter((scope): scope is string => typeof scope === "string")
       : [];
 
     if (!refreshToken) {
@@ -1016,27 +948,16 @@ export const disconnectGmailSync = functions
       .collection("mail_sync_tokens")
       .doc("gmail");
 
-    const tokenSnap = await tokenRef.get().catch(() => null);
-    if (tokenSnap?.exists) {
-      const tokenData = tokenSnap.data() as Record<string, unknown>;
-      const encryptedToken = {
-        ciphertext: asNonEmptyString(tokenData.ciphertext) || "",
-        iv: asNonEmptyString(tokenData.iv) || "",
-        tag: asNonEmptyString(tokenData.tag) || "",
-      };
-      if (encryptedToken.ciphertext && encryptedToken.iv && encryptedToken.tag) {
-        try {
-          const decrypted = decryptPayload(encryptedToken);
-          const refreshToken = asNonEmptyString(decrypted.refreshToken) || "";
-          if (refreshToken) {
-            await revokeGoogleToken(refreshToken);
-          }
-        } catch (error) {
-          console.error("[disconnectGmailSync] Failed to decrypt/revoke token:", error);
-        }
+    // SCRUM-7: Load token from Secret Manager, revoke, then delete secret
+    try {
+      const existingPayload = await loadGmailToken(uid);
+      if (existingPayload?.refreshToken) {
+        await revokeGoogleToken(existingPayload.refreshToken);
       }
+    } catch (error) {
+      console.error("[disconnectGmailSync] Failed to load/revoke token:", error);
     }
-
+    await deleteGmailToken(uid);
     await tokenRef.delete().catch(() => undefined);
 
     await admin.firestore().collection("users").doc(uid).set(

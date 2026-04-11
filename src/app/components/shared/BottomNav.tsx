@@ -22,6 +22,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, onNavigate }
             <div className="grid grid-cols-5 items-center">
               <button
                 onClick={() => onTabChange("home")}
+                aria-current={currentTab === "home" ? "page" : undefined}
                 className="flex items-center justify-center"
                 aria-label="Inicio"
               >
@@ -68,6 +69,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, onNavigate }
 
               <button
                 onClick={() => onTabChange("settings")}
+                aria-current={currentTab === "settings" ? "page" : undefined}
                 className="flex items-center justify-center"
                 aria-label="Perfil"
               >
@@ -93,6 +95,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, onNavigate }
             {/* Inicio */}
             <button
               onClick={() => onTabChange("home")}
+              aria-current={currentTab === "home" ? "page" : undefined}
               className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-150"
               aria-label="Inicio"
             >
@@ -151,6 +154,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, onNavigate }
             {/* Perfil */}
             <button
               onClick={() => onTabChange("settings")}
+              aria-current={currentTab === "settings" ? "page" : undefined}
               className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-150"
               aria-label="Perfil"
             >

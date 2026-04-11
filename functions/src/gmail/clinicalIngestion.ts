@@ -24,8 +24,8 @@ import {
   parseBirthDateFromPet, calculateAgeYears, calculateMaxLookbackMonths,
   getMaxMailsPerSync, parseGmailDate, monthsBetween,
   sanitizeNarrativeLabel,
-  decryptPayload,
 } from "./ingestion/utils";
+import { loadGmailToken } from "./secretManager";
 import {
   PetResolutionHints, PetCandidateProfile, UserPlanType,
 } from "./ingestion/types";
@@ -1473,32 +1473,18 @@ function normalizeWebhookAttachmentMetadata(rawValue: unknown): AttachmentMetada
     })
     .slice(0, MAX_ATTACHMENTS_PER_EMAIL);
 }
+// SCRUM-7: Load token from Secret Manager (migrated from Firestore)
 async function fetchUserRefreshToken(uid: string): Promise<{ refreshToken: string; grantedScopes: string[] }> {
-  const snap = await admin
-    .firestore()
-    .collection("users")
-    .doc(uid)
-    .collection("mail_sync_tokens")
-    .doc("gmail")
-    .get();
-
-  if (!snap.exists) {
+  const payload = await loadGmailToken(uid);
+  if (!payload) {
     throw new Error("gmail_token_not_found");
   }
-  const data = asRecord(snap.data());
-  const ciphertext = asString(data.ciphertext);
-  const iv = asString(data.iv);
-  const tag = asString(data.tag);
-  if (!ciphertext || !iv || !tag) {
-    throw new Error("gmail_token_invalid");
-  }
-  const decrypted = decryptPayload({ ciphertext, iv, tag });
-  const refreshToken = asString(decrypted.refreshToken);
+  const refreshToken = payload.refreshToken?.trim() || "";
   if (!refreshToken) {
     throw new Error("gmail_refresh_token_missing");
   }
-  const grantedScopes = Array.isArray(decrypted.grantedScopes)
-    ? decrypted.grantedScopes.filter((row): row is string => typeof row === "string")
+  const grantedScopes = Array.isArray(payload.grantedScopes)
+    ? payload.grantedScopes.filter((row): row is string => typeof row === "string")
     : [];
   return { refreshToken, grantedScopes };
 }
@@ -1966,6 +1952,35 @@ async function processAttachmentQueueJob(
   await maybeFinalizeSession(sessionId);
 }
 
+/**
+ * SCRUM-10: Securely delete temporary GCS attachment files after processing.
+ * Called at every AI job exit path to prevent indefinite storage accumulation.
+ * Uses Promise.allSettled so a single deletion failure never blocks the pipeline.
+ */
+async function deleteAttachmentGcsFiles(attachments: AttachmentMetadata[]): Promise<void> {
+  const toDelete = attachments.filter((a) => a.storage_path && a.storage_success);
+  if (toDelete.length === 0) return;
+
+  const results = await Promise.allSettled(
+    toDelete.map(async (a) => {
+      try {
+        const bucket = a.storage_bucket
+          ? admin.storage().bucket(a.storage_bucket)
+          : admin.storage().bucket();
+        await bucket.file(a.storage_path!).delete({ ignoreNotFound: true });
+      } catch (err) {
+        // Log but never throw — deletion failure must not break ingestion
+        console.warn(`[SCRUM-10] GCS delete failed for ${a.storage_path}:`, err);
+      }
+    })
+  );
+
+  const failed = results.filter((r) => r.status === "rejected").length;
+  if (failed > 0) {
+    console.warn(`[SCRUM-10] ${failed}/${toDelete.length} GCS attachment deletions failed (non-fatal)`);
+  }
+}
+
 async function processAiQueueJob(
   doc: FirebaseFirestore.QueryDocumentSnapshot<FirebaseFirestore.DocumentData>
 ): Promise<void> {
@@ -2260,6 +2275,7 @@ async function processAiQueueJob(
       },
       { merge: true }
     );
+    await deleteAttachmentGcsFiles(attachmentMetadata); // SCRUM-10: purge temp GCS files
     await deleteTemporaryAttachmentExtraction(rawDocId);
     await deleteTemporaryRawDocument(rawDocId);
     await markJobCompleted(doc.ref);
@@ -2555,6 +2571,7 @@ async function processAiQueueJob(
     { merge: true }
   );
 
+  await deleteAttachmentGcsFiles(attachmentMetadata); // SCRUM-10: purge temp GCS files
   await deleteTemporaryAttachmentExtraction(rawDocId);
   await deleteTemporaryRawDocument(rawDocId);
   await markJobCompleted(doc.ref);

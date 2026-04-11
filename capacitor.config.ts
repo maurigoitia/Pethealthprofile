@@ -11,6 +11,10 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchAutoHide: true,
     },
+    // SCRUM-75: Push notifications nativas
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"],
+    },
   },
 };
 

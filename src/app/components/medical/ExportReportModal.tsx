@@ -696,7 +696,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           petId: activePet.id, petName: activePet.name,
           petBreed: activePet.breed || "No registrada",
           ownerName: clean(userFullName || userName || user?.email) || "No registrado",
-          summary: reportSummaryForVerification || executiveSummary, reportType: selectedReport,
+          summary: reportSummaryForVerification || narrativeClinicalProfile, reportType: selectedReport,
           sourceEventCount: events.length, sourceMedicationCount: medications.length,
           sourceAppointmentCount: upcoming.length,
           sourceEventIds: events.map(e => e.id),

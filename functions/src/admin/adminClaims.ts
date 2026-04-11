@@ -39,7 +39,7 @@ export const onAdminBootstrap = functions.firestore
   .document("admin_bootstrap/{uid}")
   .onCreate(async (snap, context) => {
     const uid = context.params.uid;
-    await admin.auth().setCustomUserClaims(targetUid, { admin: true });
+    await admin.auth().setCustomUserClaims(uid, { admin: true });
     await admin.firestore().collection("admin_audit_log").add({
       action: "bootstrap_admin",
       targetUid: uid,

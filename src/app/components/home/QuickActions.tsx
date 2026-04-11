@@ -60,6 +60,7 @@ export default function QuickActions({
           <button
             key={card.label}
             onClick={card.onClick}
+            aria-label={card.label}
             className={`pessy-card-interactive rounded-[16px] p-4 text-left border ${
               card.hasAlert
                 ? 'border-[#F59E0B]/30 bg-[#FFFBEB]'

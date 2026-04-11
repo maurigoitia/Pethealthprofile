@@ -1,6 +1,6 @@
 import * as admin from "firebase-admin";
 
-const DEFAULT_REVIEW_THRESHOLD = 0.85;
+// SCRUM-12: Routing is now fully deterministic — no AI confidence threshold.
 const RESOLVER_VERSION = "brain_resolver_v2";
 const DEFAULT_BRAIN_SCHEMA_VERSION = "brain_payload_v2";
 
@@ -269,7 +269,9 @@ function computeContractReason(args: {
   entitiesCount: number;
   primaryFinding: string | null;
 }): string | null {
+  // SCRUM-12: Deterministic data-contract checks replace AI confidence threshold
   if (!args.categoryRaw) return "missing_category";
+  if (!ALLOWED_CATEGORIES.has(args.categoryRaw)) return "unrecognized_category";
   if (args.entitiesCount === 0 && !args.primaryFinding) return "empty_entities_and_primary_finding";
   return null;
 }
@@ -277,23 +279,21 @@ function computeContractReason(args: {
 function computeReviewReason(args: {
   reviewRequired: boolean;
   hasPet: boolean;
-  confidence: number;
-  threshold: number;
   providedReason?: string | null;
   contractReason?: string | null;
 }): string | null {
+  // SCRUM-12: Deterministic reasons only — confidence removed
   if (asString(args.contractReason)) return asString(args.contractReason);
   const provided = asString(args.providedReason);
   if (provided) return provided;
   if (!args.hasPet) return "pet_not_found";
   if (args.reviewRequired) return "review_required_by_brain";
-  if (args.confidence < args.threshold) return "low_confidence";
   return null;
 }
 
 export async function resolveBrainOutput(args: ResolveBrainOutputArgs): Promise<ResolveBrainOutputResult> {
   const nowIso = new Date().toISOString();
-  const threshold = clamp(args.reviewThreshold ?? DEFAULT_REVIEW_THRESHOLD, 0, 1);
+  // SCRUM-12: reviewThreshold ignored — routing is now fully deterministic
   const confidence = clamp(Number(args.brainOutput.confidence || 0), 0, 1);
   const reviewRequired = args.brainOutput.review_required === true;
 
@@ -323,14 +323,13 @@ export async function resolveBrainOutput(args: ResolveBrainOutputArgs): Promise<
     petIdHint: asString(args.sourceMetadata.pet_id_hint) || null,
   });
 
-  const needsManualReview = reviewRequired || !finalPetId || confidence < threshold || Boolean(contractReason);
+  // SCRUM-12: Deterministic routing — no confidence threshold
+  const needsManualReview = reviewRequired || !finalPetId || Boolean(contractReason);
   const targetCollection: BrainResolverCollection = needsManualReview ? "pending_reviews" : "clinical_events";
   const action: BrainResolverAction = needsManualReview ? "sent_to_review" : "added_to_timeline";
   const reason = computeReviewReason({
     reviewRequired,
     hasPet: Boolean(finalPetId),
-    confidence,
-    threshold,
     providedReason: asString(args.brainOutput.reason_if_review_needed) || null,
     contractReason,
   });
@@ -385,9 +384,10 @@ export async function resolveBrainOutput(args: ResolveBrainOutputArgs): Promise<
     resolver_version: RESOLVER_VERSION,
     // ─── Source-of-truth lineage ───────────────────────────────────────────
     validated_by_human: false,
+    // SCRUM-12: Labels now reflect deterministic routing reason, not AI confidence
     source_truth_level: needsManualReview
-      ? "ai_low_confidence"
-      : "ai_high_confidence",
+      ? "requires_review"
+      : "ai_extracted",
     validation_timestamp: null,
     review_action: null,
     // ──────────────────────────────────────────────────────────────────────

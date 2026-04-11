@@ -490,6 +490,8 @@ import {
 import { onClinicalEventProjection } from "./clinical/projectionLayer";
 import { backfillClinicalProjection } from "./clinical/backfillProjection";
 import { backfillClinicalEpisodes } from "./clinical/episodeCompiler";
+// SCRUM-52: AI Brain — proactive pet health insights
+import { pessyGeneratePetInsights, pessyDailyInsightsRefresh } from "./clinical/petInsightsEngine";
 import { deleteUserAccount, deleteAllUserClinicalData, submitDataDeletionRequest } from "./compliance/accountDeletion";
 
 admin.initializeApp();
@@ -2558,6 +2560,9 @@ export {
   submitDataDeletionRequest,
   syncNotebookKnowledge,
   seedBrainKnowledge,
+  // SCRUM-52
+  pessyGeneratePetInsights,
+  pessyDailyInsightsRefresh,
 };
 
 // ---------------------------------------------------------------------------

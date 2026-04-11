@@ -42,5 +42,6 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+    <!-- SCRUM-75: Push notifications — requerido en Android 13+ (API 33) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

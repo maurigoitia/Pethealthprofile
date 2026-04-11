@@ -27,7 +27,10 @@ export class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, App
   };
 
   private handleGoHome = () => {
-    window.location.assign("/login");
+    // FIX: no mandar a /login — eso genera loop si el error es en HomeScreen
+    // porque LoginScreen detecta el usuario y redirige de vuelta a /home.
+    // /inicio va directo a HomeScreen sin pasar por login.
+    window.location.assign("/inicio");
   };
 
   render() {

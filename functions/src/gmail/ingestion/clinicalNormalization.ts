@@ -18,6 +18,25 @@ import {
   normalizeTextForMatch,
   parseDateOnly,
 } from "./utils";
+// SCRUM-54: Mapping determinista event_type → documentType legacy
+// documentType NUNCA debe venir directamente de AI output — se deriva de event_type
+const LEGACY_DOCUMENT_TYPE_MAP: Record<string, string> = {
+  appointment_confirmation: "appointment",
+  appointment_reminder: "appointment",
+  appointment_cancellation: "appointment",
+  clinical_report: "checkup",
+  study_report: "lab_test",
+  prescription_record: "medication",
+  vaccination_record: "vaccine",
+};
+
+/** Deriva documentType de forma determinista a partir del event_type almacenado.
+ *  Usar en lugar de leer extractedData.documentType directamente. */
+export function deriveDocumentTypeFromEventType(eventType: string | null): string | null {
+  if (!eventType) return null;
+  return LEGACY_DOCUMENT_TYPE_MAP[eventType] ?? null;
+}
+
 import { extractSenderDomain, hasStrongHumanHealthcareSignal } from "./petMatching";
 
 // ─── Constants ──────────────────────────────────────────────────────────────

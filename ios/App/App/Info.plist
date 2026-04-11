@@ -51,5 +51,8 @@
 	<string>Pessy necesita acceder a tus fotos para subir imágenes de tu mascota y documentos</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Pessy necesita guardar fotos de documentos y reportes en tu galería</string>
+	<!-- SCRUM-61 / SCRUM-75: Push notifications — requerido por iOS para solicitar permiso -->
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Pessy usa notificaciones para recordarte los medicamentos y turnos de tu mascota</string>
 </dict>
 </plist>

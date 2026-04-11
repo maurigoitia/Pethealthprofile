@@ -6,6 +6,7 @@
  *  - Component: form interactions, loading states, error display
  *  - (E2E with Playwright would cover the full Firebase flow — out of scope here)
  */
+import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -83,7 +84,7 @@ vi.mock("motion/react", () => ({
   },
 }));
 
-import { PrivacySecurityScreen } from "../PrivacySecurityScreen";
+import { PrivacySecurityScreen } from "../settings/PrivacySecurityScreen";
 import { toast } from "sonner";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

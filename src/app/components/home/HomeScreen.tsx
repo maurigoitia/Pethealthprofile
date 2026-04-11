@@ -1,4 +1,45 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Component, lazy, Suspense, useEffect, useState } from "react";
+import type { ReactNode } from "react";
+
+// FIX: Error boundary local para el feed/historial.
+// Evita que un crash en Timeline escale hasta AppErrorBoundary y genere el loop
+// login → home → crash → login.
+class FeedErrorBoundary extends Component<
+  { onReset: () => void; children: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error("[Pessy] Error en vista Historial:", error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#F0FAF9] flex flex-col items-center justify-center px-6 text-center gap-4">
+          <p className="text-slate-500 text-sm font-medium max-w-xs">
+            Hubo un problema al cargar el historial. Podés volver al inicio sin perder tu sesión.
+          </p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false });
+              this.props.onReset();
+            }}
+            className="px-6 py-3 bg-[#074738] text-white rounded-[14px] font-bold text-sm shadow-[0_4px_12px_rgba(26,155,125,0.3)] active:scale-[0.97] transition-transform"
+          >
+            Volver al inicio
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { Navigate, useLocation, useNavigate } from "react-router";
 import { BottomNav } from "../shared/BottomNav";
 import { MaterialIcon } from "../shared/MaterialIcon";
@@ -310,7 +351,7 @@ export default function HomeScreen() {
           <div className="flex-1 flex items-center justify-center px-6">
             <div className="text-center space-y-6">
               <div className="size-32 mx-auto bg-[#074738]/10 rounded-full flex items-center justify-center">
-                <span className="material-symbols-outlined text-[#074738]" style={{ fontSize: "64px" }}>
+                <span className="material-symbols-outlined text-[#074738]" aria-hidden="true" style={{ fontSize: "64px" }}>
                   folder_shared
                 </span>
               </div>
@@ -602,6 +643,7 @@ export default function HomeScreen() {
 
         {/* Feed View - Original Design */}
         {viewMode === "feed" && (
+          <FeedErrorBoundary onReset={() => setViewMode("card")}>
           <Suspense fallback={<ScreenLoader label="Cargando historia..." />}>
             <>
               <Header
@@ -626,6 +668,7 @@ export default function HomeScreen() {
               </main>
             </>
           </Suspense>
+          </FeedErrorBoundary>
         )}
       </div>
 

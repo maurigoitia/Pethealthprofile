@@ -3,10 +3,10 @@ import { useLocation } from "react-router";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
+import { useReminders } from "../../contexts/RemindersContext";
 import { MedicalEvent, TreatmentNote } from "../../types/medical";
 import { cleanText } from "../../utils/cleanText";
 import { formatDateSafe, parseDateSafe, toDateKeySafe, toTimestampSafe } from "../../utils/dateUtils";
-import { NotificationService } from "../../services/notificationService";
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 import { EditMedicationModal } from "./EditMedicationModal";
 import { DeleteMedicationModal } from "./DeleteMedicationModal";
@@ -17,7 +17,7 @@ interface MedicationsScreenProps {
 
 type MedicationStatus = "active" | "chronic" | "completed";
 
-export type MedicationCardItem = {
+type MedicationCardItem = {
   id: string;
   event: MedicalEvent;
   medicationName: string;
@@ -219,8 +219,6 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   const [draftNoteByEvent, setDraftNoteByEvent] = useState<Record<string, string>>({});
   const [savingNoteByEvent, setSavingNoteByEvent] = useState<Record<string, boolean>>({});
   const [confirmingByEvent, setConfirmingByEvent] = useState<Record<string, boolean>>({});
-  const [registeringDoseFor, setRegisteringDoseFor] = useState<string | null>(null);
-  const [finalizingFor, setFinalizingFor] = useState<string | null>(null);
 
   // Editar
   const [editingItem, setEditingItem] = useState<MedicationCardItem | null>(null);
@@ -375,6 +373,8 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
     }
   };
 
+
+
   const registerDoseNow = async (item: MedicationCardItem) => {
     if (!activePet) return;
 
@@ -472,6 +472,8 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
     setEditFeedback(`Dosis registrada. Próximo recordatorio: ${nextLabel}.`);
     window.setTimeout(() => setEditFeedback(""), 5000);
   };
+
+
 
   return (
     <>
@@ -610,7 +612,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                           <MaterialIcon name="edit" className="text-sm text-slate-500" />
                         </button>
                         <button
-                          onClick={() => setDeletingItem(item)}
+                          onClick={() => { setDeletingItem(item); setDeleteStage("confirm"); }}
                           className="size-7 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
                           title="Eliminar">
                           <MaterialIcon name="delete" className="text-sm text-red-500" />
@@ -718,13 +720,9 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                         </div>
                         {!needsReview && (
                           <button
-                            disabled={registeringDoseFor === item.event.id}
-                            onClick={async () => {
-                              setRegisteringDoseFor(item.event.id);
-                              try { await registerDoseNow(item); } finally { setRegisteringDoseFor(null); }
-                            }}
-                            className="w-full py-2 rounded-xl bg-[#074738] text-white text-xs font-bold hover:bg-[#245ecf] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                            {registeringDoseFor === item.event.id ? "Registrando..." : "Marcar dosis dada ahora"}
+                            onClick={() => void registerDoseNow(item)}
+                            className="w-full py-2 rounded-xl bg-[#074738] text-white text-xs font-bold hover:bg-[#245ecf] transition-colors">
+                            Marcar dosis dada ahora
                           </button>
                         )}
                       </div>
@@ -746,24 +744,20 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                       {/* Botón rápido finalizar — solo en activos/crónicos */}
                       {(item.status === "active" || item.status === "chronic") && !needsReview && (
                         <button
-                          disabled={finalizingFor === item.event.id}
                           onClick={async () => {
-                            setFinalizingFor(item.event.id);
-                            try {
-                              const note: TreatmentNote = {
-                                id: `note_${Date.now()}`,
-                                text: "Ya no lo toma — marcado como finalizado",
-                                interpretedAs: "interruption",
-                                createdAt: new Date().toISOString(),
-                              };
-                              await updateEvent(item.event.id, {
-                                treatmentNotes: [...(item.event.treatmentNotes || []), note],
-                              });
-                            } finally { setFinalizingFor(null); }
+                            const note: TreatmentNote = {
+                              id: `note_${Date.now()}`,
+                              text: "Ya no lo toma — marcado como finalizado",
+                              interpretedAs: "interruption",
+                              createdAt: new Date().toISOString(),
+                            };
+                            await updateEvent(item.event.id, {
+                              treatmentNotes: [...(item.event.treatmentNotes || []), note],
+                            });
                           }}
-                          className="w-full mb-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1.5 hover:bg-[#F0FAF9] dark:hover:bg-slate-800 transition-colors disabled:opacity-50">
+                          className="w-full mb-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1.5 hover:bg-[#F0FAF9] dark:hover:bg-slate-800 transition-colors">
                           <MaterialIcon name="check_circle" className="text-sm text-slate-400" />
-                          {finalizingFor === item.event.id ? "Finalizando..." : "Ya no lo toma — marcar como finalizado"}
+                          Ya no lo toma — marcar como finalizado
                         </button>
                       )}
                       <button
@@ -812,19 +806,17 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
       </div>
     </div>
 
-    {/* ─── MODAL EDITAR ─────────────────────────────────────────────────── */}
+    {/* ─── MODALES ──────────────────────────────────────────────────────── */}
     <EditMedicationModal
       isOpen={!!editingItem}
       item={editingItem}
       onClose={() => setEditingItem(null)}
-      onSaved={(feedbackMessage) => {
+      onSaved={(msg) => {
         setEditingItem(null);
-        setEditFeedback(feedbackMessage);
+        setEditFeedback(msg);
         window.setTimeout(() => setEditFeedback(""), 5000);
       }}
     />
-
-    {/* ─── MODAL BORRAR ─────────────────────────────────────────────────── */}
     <DeleteMedicationModal
       isOpen={!!deletingItem}
       item={deletingItem}

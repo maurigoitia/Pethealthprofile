@@ -2,6 +2,11 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./app/App.tsx";
 import "./styles/index.css";
+// SCRUM-48: Error tracking
+import { initSentry } from "./app/config/sentryConfig";
+initSentry();
+// SCRUM-104: i18n — must import before App renders
+import "./i18n";
 
 declare const __PESSY_BUILD_ID__: string;
 

@@ -6,6 +6,37 @@
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* ─── Accessible focus ring — SCRUM-45 ───────────────────────────────
+   Tailwind v4 resets browser outlines; re-add a visible ring for
+   keyboard navigation. :focus-visible keeps mouse/touch unaffected.
+   ──────────────────────────────────────────────────────────────────── */
+*:focus-visible {
+  outline: 2px solid #1A9B7D;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+/* High-contrast mode */
+@media (forced-colors: active) {
+  *:focus-visible { outline: 3px solid ButtonText; }
+}
+
+/* Skip-to-main-content link — hidden until keyboard focused */
+.pessy-skip-link {
+  position: absolute;
+  top: -100%;
+  left: 8px;
+  z-index: 99999;
+  padding: 8px 16px;
+  background: #074738;
+  color: #fff;
+  border-radius: 0 0 8px 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 120ms ease;
+}
+.pessy-skip-link:focus { top: 0; outline: 2px solid #1A9B7D; outline-offset: 2px; }
+
 /* ═══════════════════════════════════════════════════════════════════
    PESSY.APP VISUAL EFFECTS — Redesign v2 (Plano + Figma Kit)
    ═══════════════════════════════════════════════════════════════════ */

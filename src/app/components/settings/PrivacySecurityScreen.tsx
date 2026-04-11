@@ -203,9 +203,20 @@ export function PrivacySecurityScreen({ onBack, onLogout }: PrivacySecurityScree
     setShowGmailConsent(false);
     try {
       await startGmailConnectFlow();
-    } catch (error) {
+    } catch (error: any) {
       console.error("No se pudo iniciar OAuth Gmail:", error);
-      alert("No se pudo iniciar la conexión con Gmail. Revisá configuración de OAuth y dominios autorizados.");
+      // Surface Firebase error code for easier diagnosis
+      const code = error?.code || error?.details?.code || "";
+      const msg = error?.message || "";
+      if (code === "functions/permission-denied" || msg.includes("invitaci")) {
+        alert("Tu cuenta aún no tiene acceso a Gmail Sync. Contactá al soporte para habilitarla.");
+      } else if (code === "functions/failed-precondition" || msg.includes("no configurada")) {
+        alert("Error de configuración del servidor. Contactá al soporte: [failed-precondition]");
+      } else if (code === "functions/unauthenticated") {
+        alert("Tu sesión expiró. Cerrá sesión y volvé a entrar.");
+      } else {
+        alert(`No se pudo iniciar la conexión con Gmail. (${code || msg.slice(0, 60) || "error desconocido"})`);
+      }
       setGmailActionLoading(false);
     }
   };

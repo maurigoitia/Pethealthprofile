@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
 import { VertexAI } from "@google-cloud/vertexai";
+import { checkRateLimitByTier } from "../utils/rateLimiter";
 
 const DEFAULT_LOCATION = "us-central1";
 const DEFAULT_MODEL = "gemini-2.0-flash-001";
@@ -705,6 +706,20 @@ export const pessyClinicalBrainGrounding = functions
     if (!project) {
       res.status(500).json({ ok: false, error: "missing_project_id" });
       return;
+    }
+
+    // SCRUM-20: Rate limit per-user if uid provided in payload
+    const callerUid = asString(body.uid || body.user_id);
+    if (callerUid) {
+      const brainUserSnap = await admin.firestore().collection("users").doc(callerUid).get();
+      const brainUserData = brainUserSnap.data() || {};
+      const brainCandidatePlans = [brainUserData.plan, brainUserData.planType, brainUserData.subscriptionPlan].join(" ").toLowerCase();
+      const brainUserIsPremium = ["premium", "pro", "founder", "unlimited"].some((t) => brainCandidatePlans.includes(t));
+      const brainRl = await checkRateLimitByTier(callerUid, "clinical-brain", brainUserIsPremium);
+      if (!brainRl.allowed) {
+        res.status(429).json({ ok: false, error: "rate_limit_exceeded", retryAfterSeconds: brainRl.resetInSeconds });
+        return;
+      }
     }
 
     const location = asString(body.location) || DEFAULT_LOCATION;

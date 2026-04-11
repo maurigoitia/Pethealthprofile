@@ -10,10 +10,17 @@ service firebase.storage {
     }
 
     // SECURITY: Solo tipos de archivo permitidos (previene upload de ejecutables)
+    // SCRUM-17: image/.* bloqueado — incluía SVG que puede tener JS embebido
+    // Whitelist explícita: solo jpeg/png/webp/gif/pdf
     function isAllowedContentType() {
-      return request.resource == null ||
-        request.resource.contentType.matches('image/.*') ||
-        request.resource.contentType == 'application/pdf';
+      return request.resource == null || (
+        request.resource.contentType == 'image/jpeg' ||
+        request.resource.contentType == 'image/jpg' ||
+        request.resource.contentType == 'image/png' ||
+        request.resource.contentType == 'image/webp' ||
+        request.resource.contentType == 'image/gif' ||
+        request.resource.contentType == 'application/pdf'
+      );
     }
 
     // Perfil de usuario y assets de mascotas por usuario

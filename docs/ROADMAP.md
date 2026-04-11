@@ -1,405 +1,204 @@
-# 🗺️ PESSY - Roadmap de Desarrollo 2026
+# 🗺️ PESSY — Roadmap de Producto 2026
 
-## 📅 Timeline Visual
-
-```
-Q1 2026 (Actual)          Q2 2026              Q3 2026              Q4 2026
-├─────────────────────────┼────────────────────┼────────────────────┼──────────
-│ ✅ UI/UX Complete       │ Backend Integration│ Features Avanzadas │ Lanzamiento
-│ ✅ Navegación completa  │ OCR/IA Real        │ Notificaciones     │ Marketing
-│ ✅ Estados y Modales    │ Supabase DB        │ Calendario         │ Usuarios Beta
-│ ✅ Documentación        │ Auth Real          │ Gráficas           │ v1.0 Release
-└─────────────────────────┴────────────────────┴────────────────────┴──────────
-      FEB-MAR                 ABR-JUN              JUL-SEP             OCT-DIC
-```
+> Última actualización: Abril 2026  
+> Estado actual: **Beta Privada** — infraestructura completa, módulos en refinamiento
 
 ---
 
-## 🎯 Versiones y Releases
+## 📍 Dónde estamos hoy
 
-### ✅ **v0.1.0 - MVP Frontend** (Completado - Enero 2026)
-- Splash, Welcome, Login screens
-- Registro de mascota básico
-- Navegación inicial
+El roadmap anterior reflejaba un estado de "frontend sin backend". Eso cambió. Pessy es hoy un producto completo en beta:
 
-### ✅ **v0.2.0 - Core UI** (Completado - Febrero 2026)
-- ActionTray y Timeline
-- Modales de perfil
-- Scanner UI (sin OCR real)
-- Bottom navigation
-
-### ✅ **v0.3.0 - Polish y Estados** (Completado - Febrero 2026)
-- EmptyState, LoadingState, ErrorState
-- Vista Card personalizada
-- Carnet de vacunación
-- Edición de perfil
-- Documentación completa
+- Firebase Firestore + Cloud Functions en producción
+- Auth completa (email/password, Google, magic link, email de recuperación)
+- Pipeline de Gmail → ingesta clínica con IA (Vertex AI)
+- Portal de veterinarios (registro, consultas, pacientes)
+- Módulo Comunidad (mascotas perdidas, adopción)
+- Recordatorios, citas, rutinas diarias
+- CI/CD con smoke tests post-deploy
+- Security rules auditadas (IDOR, field immutability, vet isolation, geo exposure)
+- 119 tests automatizados (unitarios + componentes)
 
 ---
 
-### 🔄 **v0.4.0 - Backend Alpha** (Marzo 2026)
-**Objetivo:** Conectar con base de datos real
+## 🗂️ Módulos del producto
 
-#### Features:
-- [ ] Setup Supabase project
-- [ ] Tablas: users, pets, events, documents, vaccines
-- [ ] Autenticación con email/password
-- [ ] Registro e inicio de sesión real
-- [ ] CRUD de mascotas
-- [ ] Storage para fotos de mascotas
+Pessy se estructura en 4 pilares:
 
-#### Archivos a modificar:
-- `LoginScreen.tsx` - Conectar con Supabase Auth
-- `RegisterPetScreen.tsx` - Guardar en DB
-- `PetProfileModal.tsx` - Cargar/guardar datos reales
-- `HomeScreen.tsx` - Fetch de datos del usuario
-
-#### Tiempo estimado: **2 semanas**
+| Pilar | Descripción | Estado |
+|---|---|---|
+| **Día a Día** | Check-in diario, rutina, tips, hook cards | ✅ Producción |
+| **Historial Clínico** | Timeline, escaneo de docs, ingesta Gmail, certif. vacunas | ✅ Producción |
+| **Identidad Digital** | Carnet digital, portal vet, co-tutor, validación matrícula | 🔄 Beta |
+| **Comunidad** | Perdidos, adopción, búsqueda activa, alertas geo | 🔄 Beta |
 
 ---
 
-### 🤖 **v0.5.0 - OCR Beta** (Abril 2026)
-**Objetivo:** Escaneo real de documentos médicos
+## ✅ Completado (Q1 2026)
 
-#### Features:
-- [ ] Integrar Tesseract.js
-- [ ] Camera API para tomar fotos
-- [ ] Upload de archivos
-- [ ] Procesamiento de imágenes
-- [ ] Extracción de texto estructurado
-- [ ] Guardar documentos en Storage + DB
+### Infraestructura
+- Firebase Firestore, Cloud Functions, FCM, Storage
+- Redis (rate limiting), Vertex AI Datastore
+- CI/CD: deploy automático a pessy.app + app.pessy.app
+- Smoke tests post-deploy
+- Firestore security rules (auditadas por Security Auditor)
+- Sentry (error tracking con PII redaction)
 
-#### Archivos a modificar:
-- `DocumentScannerModal.tsx` - OCR real
-- Crear: `services/ocr.ts` - Lógica de OCR
-- Crear: `services/documentParser.ts` - Parsear texto extraído
+### Auth y Usuarios
+- Login email/password + Google OAuth
+- Magic link (EmailLinkSignIn)
+- Recuperación de contraseña (anti-enumeración)
+- Registro de usuario en pasos
+- Co-tutor: invitación para compartir mascota
+- Admin claims + access requests
+- GDPR: borrado de cuenta, DPA, terms acceptance
+- Consentimiento Gmail con modal accesible
 
-#### Librerías a instalar:
-```bash
-npm install tesseract.js
-npm install react-webcam
-npm install compressorjs
-```
+### Historial Clínico
+- Timeline de eventos médicos
+- Scanner de documentos (DocumentScannerModal)
+- Ingesta de Gmail → parseo clínico → IA → Firestore
+- ClinicalReviewScreen + VerifyReportScreen
+- Carnet de vacunación (VaccinationCardModal)
+- Medicamentos (MedicationsScreen)
+- Exportar reporte (ExportReportModal)
+- Brain resolver + episode compiler + projection layer
 
-#### Tiempo estimado: **2-3 semanas**
+### Día a Día
+- HomeScreen con DailyHookCard, RoutineChecklist, QuickActions
+- PessyTip, ProfileNudge, FocusedHomeExperience
+- Recordatorios (RemindersScreen + AddReminderModal)
+- Citas (AppointmentsScreen + AddAppointmentModal)
+- Emails automáticos: overdue reminder, weekly digest
 
----
+### Settings
+- Perfil personal, apariencia, idioma
+- Privacidad y seguridad (cambio de password + Gmail consent)
+- Notificaciones, ayuda, about
+- Storage usage + límites
 
-### 📊 **v0.6.0 - Features Core** (Mayo-Junio 2026)
-**Objetivo:** Funcionalidades esenciales para uso diario
+### Portal Veterinario
+- VetLoginScreen + VetRegisterScreen
+- VetDashboard, VetPatientList
+- VetConsultationView + VetNewConsultation
+- VetProfileScreen
 
-#### Features Calendario:
-- [ ] Vista mensual de calendario
-- [ ] Agregar/editar/eliminar citas
-- [ ] Recordatorios de citas
-- [ ] Sincronización con Google Calendar (opcional)
-
-#### Features Notificaciones:
-- [ ] Sistema de notificaciones push
-- [ ] Recordatorios de vacunas próximas
-- [ ] Alertas de medicamentos
-- [ ] Notificaciones de citas del día
-
-#### Features PDF:
-- [ ] Generación de carnet de vacunación PDF
-- [ ] Reporte médico completo PDF
-- [ ] Export a Excel
-- [ ] Compartir via Web Share API
-
-#### Archivos nuevos:
-- `components/CalendarView.tsx`
-- `components/NotificationsCenter.tsx`
-- `services/pdfGenerator.ts`
-- `services/notifications.ts`
-
-#### Librerías a instalar:
-```bash
-npm install jspdf
-npm install xlsx
-npm install date-fns
-npm install react-big-calendar
-```
-
-#### Tiempo estimado: **3-4 semanas**
+### Tests
+- 119 tests en verde (dateUtils, sentryConfig, i18n, auth screens, privacy screen)
 
 ---
 
-### 📈 **v0.7.0 - Analytics y Gráficas** (Julio 2026)
-**Objetivo:** Visualización de datos de salud
+## 🔄 En progreso (Q2 2026 — Abril–Junio)
 
-#### Features:
-- [ ] Gráfica de peso en el tiempo
-- [ ] Timeline visual de vacunas
-- [ ] Dashboard de gastos médicos
-- [ ] Comparación de datos entre mascotas
-- [ ] Exportar gráficas como imágenes
+### Comunidad — Completar backend
+- [ ] Geo-push al reportar mascota perdida (LOST_NEARBY)
+- [ ] Match automático foto vs reportes activos (FOUND_QR)
+- [ ] Chat directo entre usuarios sin exponer datos
+- [ ] Algoritmo de matching para adopción (score 0–100)
+- [ ] Alertas persistentes de búsqueda (SEARCH_MATCH)
+- [ ] Tests unitarios: lostReports, adoptionPosts, searchAlerts
 
-#### Archivos nuevos:
-- `components/WeightChart.tsx`
-- `components/VaccinationTimeline.tsx`
-- `components/ExpensesDashboard.tsx`
-- `components/HealthDashboard.tsx`
+### Identidad Digital — Refinar
+- [ ] Validación de matrícula veterinaria (multi-país)
+- [ ] Watermark en documentos compartidos
+- [ ] QR del carnet → conexión inmediata con dueño
+- [ ] Perfil público de mascota (compartible)
 
-#### Librerías a instalar:
-```bash
-npm install recharts
-npm install date-fns
-npm install html2canvas (para exportar gráficas)
-```
-
-#### Tiempo estimado: **2 semanas**
-
----
-
-### 🔍 **v0.8.0 - Búsqueda y Filtros** (Agosto 2026)
-**Objetivo:** Encontrar información rápidamente
-
-#### Features:
-- [ ] Búsqueda global en la app
-- [ ] Filtros por tipo de evento
-- [ ] Filtros por rango de fechas
-- [ ] Búsqueda de veterinarios
-- [ ] Tags personalizados
-- [ ] Favoritos
-
-#### Archivos nuevos:
-- `components/SearchBar.tsx`
-- `components/FilterPanel.tsx`
-- `hooks/useSearch.ts`
-
-#### Tiempo estimado: **1-2 semanas**
-
----
-
-### 🎨 **v0.9.0 - Polish y PWA** (Septiembre 2026)
-**Objetivo:** App lista para producción
-
-#### Features:
-- [ ] Implementar Service Worker
-- [ ] Soporte offline completo
-- [ ] Caché de datos
-- [ ] Instalable como PWA
-- [ ] Splash screen nativa
-- [ ] Optimización de imágenes
-- [ ] Lazy loading de componentes
-
-#### Features de Accesibilidad:
-- [ ] ARIA labels en todos los botones
-- [ ] Navegación por teclado
-- [ ] Screen reader support
-- [ ] Modo de alto contraste
-- [ ] Skip links
-
-#### Archivos nuevos:
-- `public/manifest.json`
-- `public/service-worker.js`
-- `hooks/useOfflineSync.ts`
-
-#### Testing:
-- [ ] Unit tests con Vitest
-- [ ] E2E tests con Playwright
+### Calidad
+- [ ] Tests de integración: Gmail ingestion pipeline
+- [ ] Tests E2E con Playwright (flujos críticos: login → ingesta → timeline)
 - [ ] Lighthouse score > 90
-- [ ] Pruebas en dispositivos reales
+- [ ] Cobertura de tests: subir de 119 a 200+
 
-#### Tiempo estimado: **2-3 semanas**
+### Portal Veterinario — MVP funcional
+- [ ] Flujo completo: registro → validación → consulta → paciente
+- [ ] Notificación al tutor cuando el vet revisa el historial
+- [ ] Aislamiento de datos por matrícula confirmada
 
 ---
 
-### 🚀 **v1.0.0 - Launch** (Octubre 2026)
-**Objetivo:** Lanzamiento público
+## 📅 Próximos (Q3 2026 — Julio–Septiembre)
 
-#### Pre-launch Checklist:
-- [ ] Beta testing con 50 usuarios
-- [ ] Corrección de bugs críticos
-- [ ] Optimización de performance
-- [ ] SEO y metadatos
-- [ ] Legal: Términos y Privacidad
-- [ ] Analytics (Google Analytics/Mixpanel)
-- [ ] Error tracking (Sentry)
-- [ ] Deploy a producción (Vercel/Netlify)
+### Conexión real (The Connection Rule)
+> Pessy no dice "buscá un veterinario". Pessy te lleva directo.
 
-#### Marketing:
-- [ ] Landing page
-- [ ] Video demo
-- [ ] Capturas de pantalla
-- [ ] Press kit
+- [ ] NearbyVets con disponibilidad real + botón "Agendar"
+- [ ] Producto detectado en ingesta → link de compra directo
+- [ ] Vacuna por vencer → vet disponible + "Reservar turno" (1 tap)
+- [ ] Análisis detectado → 2–3 vets especializados → "Contactar"
+
+### Wellbeing (Monetización)
+- [ ] WellbeingMasterBook: lanzamiento como producto pago
+- [ ] WellbeingProtocol: protocolo personalizado por mascota
+- [ ] RecommendationFeed: algoritmo de recomendaciones basado en historial
+
+### Notificaciones inteligentes
+- [ ] Reglas de frecuencia por tipo (LOST, ADOPT, SEARCH, routine)
+- [ ] Ventanas de silencio configurables por usuario
+- [ ] Daily loop: mañana → rutina, tarde → recordatorio, noche → check-in
+
+### PWA y offline
+- [ ] Service Worker para offline parcial
+- [ ] Caché de timeline e historial
+- [ ] Sync cuando vuelve la conexión
+
+---
+
+## 🚀 Lanzamiento (Q4 2026 — Octubre–Diciembre)
+
+### v1.0.0 — Launch Público
+- [ ] Beta cerrada → 500 usuarios activos
+- [ ] Corrección de bugs críticos del beta
+- [ ] SEO + metadatos + OpenGraph por mascota
+- [ ] Landing pessy.app actualizada con social proof
+- [ ] Onboarding mejorado con análisis de drop-off
+- [ ] Analytics: Mixpanel o Amplitude (no solo Sentry)
 - [ ] Product Hunt launch
-- [ ] Redes sociales
+- [ ] Soporte multi-país: AR, MX, UY, CL, CO
 
-#### Tiempo estimado: **2 semanas**
-
----
-
-## 🔧 Mantenimiento Post-Launch
-
-### **v1.1.0 - Mejoras Basadas en Feedback** (Noviembre 2026)
-- Corrección de bugs reportados
-- Mejoras de UX basadas en datos
-- Nuevas features solicitadas
-- Optimizaciones de performance
-
-### **v1.2.0 - Integraciones** (Diciembre 2026)
-- Integración con clínicas veterinarias
-- API pública para partners
-- Importar desde otras apps
-- Sincronización con wearables (si aplica)
+### v1.1.0 — Monetización
+- [ ] Wellbeing products con paywall
+- [ ] Plan premium: historial ilimitado, reportes PDF, alertas avanzadas
+- [ ] Marketplace de productos por mascota
+- [ ] API para clínicas veterinarias partners
 
 ---
 
-## 📊 Métricas de Éxito por Versión
+## 📊 Métricas objetivo
 
-| Versión | Objetivo                     | Métrica Clave                |
-|---------|------------------------------|------------------------------|
-| v0.4    | Backend funcional            | 100% CRUD operations working |
-| v0.5    | OCR preciso                  | >85% accuracy en extracción  |
-| v0.6    | Engagement diario            | >3 sesiones por semana       |
-| v0.7    | Valor agregado               | >50% usan gráficas           |
-| v0.8    | Facilidad de uso             | <5 clics para cualquier tarea|
-| v0.9    | Performance                  | Lighthouse score >90         |
-| v1.0    | Adopción                     | 1000 usuarios activos        |
-
----
-
-## 💡 Ideas Futuras (v2.0+)
-
-### **Features Comunitarias:**
-- Foro de dueños de mascotas
-- Recomendaciones de veterinarios
-- Marketplace de productos
-- Red social para mascotas
-
-### **IA Avanzada:**
-- Chatbot para consultas básicas
-- Predicción de problemas de salud
-- Recomendaciones personalizadas
-- Detección de anomalías en gráficas
-
-### **Integraciones Avanzadas:**
-- Telemedicina veterinaria
-- Pedido de medicamentos
-- Recordatorios por WhatsApp
-- Integración con seguros de mascotas
-
-### **Gamificación:**
-- Sistema de logros
-- Retos semanales
-- Competencias amistosas
-- Recompensas por cuidados consistentes
+| Métrica | Hoy (Beta) | v1.0 Target |
+|---|---|---|
+| Tests en verde | 119 | 300+ |
+| Lighthouse score | TBD | > 90 |
+| Tiempo de ingesta Gmail | TBD | < 30s |
+| DAU / MAU | TBD | > 40% |
+| Retención día 7 | TBD | > 40% |
+| NPS | TBD | > 50 |
 
 ---
 
-## 👥 Equipo Necesario
+## 🔑 El principio que no negocia
 
-### **Fase Actual (v0.1-0.3):**
-- ✅ 1 Frontend Developer (Tú)
-- ✅ 1 UI/UX Designer (colaborador externo)
+> **"Pessy conecta a tu mascota con lo que necesita, sin que tengas que buscar."**
 
-### **Fase Backend (v0.4-0.5):**
-- 🔄 1 Frontend Developer (Tú)
-- ❌ 1 Backend Developer (o aprender backend)
-- ❌ 1 QA Tester (o testing manual)
+Cada feature nueva que entra al roadmap debe responder una pregunta:  
+**¿Estoy cerrando el loop, o estoy dejando al usuario que busque solo?**
 
-### **Fase Crecimiento (v0.6-0.9):**
-- 🔄 1 Frontend Developer
-- 🔄 1 Backend Developer
-- ❌ 1 Mobile Developer (si React Native)
-- ❌ 1 Designer full-time
-- ❌ 1 QA Engineer
-
-### **Fase Launch (v1.0+):**
-- 🔄 Todo el equipo anterior
-- ❌ 1 Product Manager
-- ❌ 1 Marketing Specialist
-- ❌ 1 Customer Support
-- ❌ 1 DevOps Engineer
+Si la respuesta es "dejarlo buscar" → no entra todavía.
 
 ---
 
-## 💰 Budget Estimado
+## 🏗️ Tech stack actual
 
-### **Desarrollo (Solo):**
-- **Tiempo:** 6-8 meses
-- **Costo:** $0 (tu tiempo)
-- **Servicios:**
-  - Supabase: $0-25/mes (tier gratuito + upgrade)
-  - Vercel/Netlify: $0 (tier gratuito)
-  - Google Vision API: ~$50/mes
-  - Total: **~$75/mes**
-
-### **Con Equipo:**
-- **Salarios:** $10k-15k/mes (team de 3-4)
-- **Servicios:** $200-500/mes
-- **Marketing:** $2k-5k/mes
-- **Total:** **$12k-20k/mes**
-
----
-
-## 🎓 Skills Necesarios
-
-### **Ya tienes:**
-- ✅ React/TypeScript
-- ✅ Tailwind CSS
-- ✅ Componentes reutilizables
-- ✅ State management
-- ✅ Animaciones
-
-### **Por aprender:**
-- 🔄 Supabase / Backend
-- 🔄 Autenticación
-- 🔄 File uploads
-- 🔄 OCR integration
-- 🔄 PDF generation
-- 🔄 PWA development
-- 🔄 Testing (unit + E2E)
-
----
-
-## 📚 Recursos de Aprendizaje
-
-### **Backend con Supabase:**
-- [Supabase Docs](https://supabase.com/docs)
-- [Supabase React Tutorial](https://supabase.com/docs/guides/getting-started/tutorials/with-react)
-
-### **OCR:**
-- [Tesseract.js Docs](https://tesseract.projectnaptha.com/)
-- [Google Vision API](https://cloud.google.com/vision/docs)
-
-### **PDF Generation:**
-- [jsPDF](https://github.com/parallax/jsPDF)
-- [React-PDF](https://react-pdf.org/)
-
-### **PWA:**
-- [Progressive Web Apps](https://web.dev/progressive-web-apps/)
-- [Workbox](https://developers.google.com/web/tools/workbox)
-
----
-
-## ✅ Checklist de Lanzamiento
-
-### **Pre-Launch:**
-- [ ] Todos los features core funcionan
-- [ ] Sin bugs críticos
-- [ ] Performance optimizada
-- [ ] SEO implementado
-- [ ] Analytics configurado
-- [ ] Términos y Privacidad
-- [ ] Beta testers satisfechos
-
-### **Launch Day:**
-- [ ] Deploy a producción
-- [ ] Post en Product Hunt
-- [ ] Anuncio en redes sociales
-- [ ] Email a beta testers
-- [ ] Monitoreo activo de errores
-
-### **Post-Launch:**
-- [ ] Responder feedback
-- [ ] Corrección rápida de bugs
-- [ ] Iterar basado en datos
-- [ ] Roadmap público de v1.1
-
----
-
-**Próximo milestone:** v0.4.0 - Backend Alpha (Marzo 2026)  
-**Días restantes:** ~20 días  
-**Estado:** 🚀 On track!
+| Capa | Tech |
+|---|---|
+| Frontend | React 18, TypeScript, Tailwind CSS, Motion |
+| Backend | Firebase Cloud Functions (Node.js/TS) |
+| DB | Firestore + Redis |
+| Auth | Firebase Auth (email, Google, magic link) |
+| IA | Vertex AI (Datastore + generative) |
+| Storage | Firebase Storage |
+| Notificaciones | FCM |
+| Infra | GitHub Actions CI/CD, Firebase Hosting |
+| Observabilidad | Sentry (error + PII redaction) |
+| Tests | Vitest + Testing Library + Playwright (por venir) |

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { clsx } from "clsx";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { EmptyState } from "../shared/EmptyState";
@@ -908,6 +908,17 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
   const { getEventsByPetId, confirmEvent, deleteEvent, getClinicalEpisodesByPetId } = useMedical();
   const historicalEpisodesEnabled = isFocusHistoryExperimentHost();
 
+  // Reset UI state when the active pet changes so stale state from
+  // a previous pet doesn't bleed into the new pet's timeline.
+  useEffect(() => {
+    setExpandedEvent(null);
+    setActiveFilter("all");
+    setShowAll(false);
+    setActionError(null);
+    setConfirmingEventId(null);
+    setDeletingEventId(null);
+  }, [activePetId]);
+
   const allEvents = getEventsByPetId(activePetId);
 
   const filteredSortedEvents = useMemo(
@@ -1088,7 +1099,8 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
           <button
             onClick={() => onExportReport?.()}
             className="size-9 rounded-full bg-[#1A9B7D]/10 flex items-center justify-center hover:bg-[#1A9B7D]/20 transition-colors"
-            title="Exportar Reporte">
+            title="Exportar Reporte"
+            aria-label="Exportar reporte PDF">
             <MaterialIcon name="description" className="text-[#1A9B7D] text-lg" />
           </button>
           {visibleEntryCount> 8 && (
@@ -1671,6 +1683,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
               if (deletingEventId) return;
               setEventToDelete(null);
             }}
+            role="presentation" aria-hidden="true"
             className="fixed inset-0 z-50 bg-black/45 animate-fadeIn"
           />
           <div className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl p-6 shadow-xl animate-slideUp">

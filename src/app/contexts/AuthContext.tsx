@@ -2,6 +2,10 @@ import { createContext, useContext, useEffect, useState, useCallback, ReactNode 
 import { User, onAuthStateChanged, signOut, updateProfile } from "firebase/auth";
 import { auth, db } from "../../lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+// SCRUM-48: Sentry user tracking
+import { setSentryUser } from "../config/sentryConfig";
+// SCRUM-104: i18n auto-detect from user country
+import { changeLanguage, getLangFromCountry, getStoredLang } from "../../i18n";
 
 interface AuthContextType {
   user: User | null;
@@ -105,6 +109,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserFullName(safeFullName);
     setUserPhoto(profile.photo);
     setUserCountry(profile.country);
+    // SCRUM-104: auto-apply language from country if user hasn't chosen one explicitly
+    if (profile.country && !getStoredLang()) {
+      const lang = getLangFromCountry(profile.country);
+      if (lang) changeLanguage(lang).catch(() => {});
+    }
     setUserRole(profile.role);
   }, []);
 
@@ -134,6 +143,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
+      // SCRUM-48: identify user in Sentry (UID only, never email)
+      setSentryUser(firebaseUser?.uid ?? null);
 
       if (firebaseUser) {
         // Cargar perfil Y asegurar doc en Firestore en paralelo

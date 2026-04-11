@@ -2,13 +2,14 @@ import { MaterialIcon } from "../shared/MaterialIcon";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useMedical } from "../../contexts/MedicalContext";
+import { useGamification } from "../../contexts/GamificationContext";
 import { usePet, type PetPreferences } from "../../contexts/PetContext";
 import { toTimestampSafe } from "../../utils/dateUtils";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { useAuth } from "../../contexts/AuthContext";
 import { PetPhoto } from "./PetPhoto";
-import { getPoints, addPoints, isDailyActivityDone, markDailyActivityDone } from "../../utils/gamification";
+
 
 const PetPreferencesEditor = lazy(() =>
   import("./PetPreferencesEditor.tsx").then((m) => ({ default: m.PetPreferencesEditor }))
@@ -311,9 +312,10 @@ export function PetHomeView({
     uvIndex: null,
   });
   const [nudgedBreed, setNudgedBreed] = useState(false);
-  const [checkedRoutineItems, setCheckedRoutineItems] = useState<string[]>([]);
-  const [points, setPoints] = useState(() => getPoints());
+  const [checkedRoutineItems, setCheckedRoutineItems] = useState<string[]>(() => activePetId ? loadCheckedItems(activePetId) : []);
+
   const { getEventsByPetId, getActiveMedicationsByPetId, getAppointmentsByPetId } = useMedical();
+  const gamification = useGamification();
 
   const currentIndex = pets.findIndex((pet) => pet.id === activePetId);
   const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
@@ -547,8 +549,7 @@ export function PetHomeView({
         if (activePetId && user?.uid) saveCheckedItems(activePetId, user.uid, next);
         // Award points only when checking an item (not unchecking)
         if (!wasChecked) {
-          const earned = addPoints(5);
-          setPoints(earned);
+          void gamification.addPoints("complete_routine");
         }
         return next;
       });
@@ -687,7 +688,7 @@ export function PetHomeView({
 
   return (
     <div className="bg-[#F0FAF9] dark:bg-[#0D1B16] min-h-screen font-['Manrope',sans-serif]">
-      <div className="max-w-md mx-auto pb-24">
+      <div id="main-content" role="main" className="max-w-md mx-auto pb-24">
 
         {/* 1. HERO - Pet photo with name overlay + blob */}
         <div className="relative h-[220px] overflow-hidden pessy-fade-up">
@@ -711,7 +712,7 @@ export function PetHomeView({
           </div>
           {/* Gamification points badge top-right */}
           <div className="absolute top-3 right-3 bg-[rgba(7,71,56,0.85)] text-white text-xs font-[800] px-3 py-1.5 rounded-full flex items-center gap-1 backdrop-blur-sm">
-            <MaterialIcon name="star" className="!text-sm" /> {points} pts
+            <MaterialIcon name="star" className="!text-sm" /> {gamification.totalPoints} pts
           </div>
         </div>
 
@@ -806,7 +807,7 @@ export function PetHomeView({
               description={dailySuggestions[0].detail}
               duration={dailySuggestions[0].duration}
               points={dailySuggestions[0].points}
-              onStart={(pts) => { const total = addPoints(pts); setPoints(total); }}
+              onStart={() => { void gamification.addPoints("daily_checkin"); }}
             />
           ) : (
             <div
@@ -822,7 +823,7 @@ export function PetHomeView({
                     description={s.detail}
                     duration={s.duration}
                     points={s.points}
-                    onStart={(pts) => { const total = addPoints(pts); setPoints(total); }}
+                    onStart={() => { void gamification.addPoints("daily_checkin"); }}
                   />
                 </div>
               ))}

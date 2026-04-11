@@ -21,21 +21,21 @@ export function VetNewConsultation() {
   return (
     <div className="min-h-screen" style={{background:"#F0FAF9",fontFamily:"'Manrope',sans-serif"}}><div className="max-w-md mx-auto pb-8">
       <div className="px-5 pt-12 pb-4 flex items-center gap-3">
-        <button onClick={()=>navigate("/vet/dashboard")} className="size-10 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm"><span className="material-symbols-outlined text-slate-700" style={{fontSize:"20px"}}>arrow_back</span></button>
+        <button onClick={()=>navigate("/vet/dashboard")} aria-label="Volver al dashboard" className="size-10 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm"><span className="material-symbols-outlined text-slate-700" aria-hidden="true" style={{fontSize:"20px"}}>arrow_back</span></button>
         <h1 className="text-xl font-black text-slate-900" style={{fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Nueva consulta</h1>
       </div>
       <form onSubmit={handleCreate} className="px-5 space-y-4">
         <div className="bg-white rounded-[16px] p-4 border border-[rgba(0,0,0,0.04)] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-          <h3 className="text-xs font-bold text-[#074738] uppercase tracking-wide mb-3 flex items-center gap-1.5"><span className="material-symbols-outlined" style={{fontSize:"16px"}}>pets</span>Paciente</h3>
+          <h3 className="text-xs font-bold text-[#074738] uppercase tracking-wide mb-3 flex items-center gap-1.5"><span className="material-symbols-outlined" aria-hidden="true" style={{fontSize:"16px"}}>pets</span>Paciente</h3>
           <div className="space-y-3"><input type="text" placeholder="Nombre del paciente *" value={petName} onChange={e=>setPetName(e.target.value)} className={ic} required/>
             <div className="grid grid-cols-2 gap-3"><select value={species} onChange={e=>setSpecies(e.target.value)} className={`${ic} appearance-none bg-white`}><option value="Perro">🐕 Perro</option><option value="Gato">🐈 Gato</option><option value="Ave">🐦 Ave</option><option value="Otro">Otro</option></select><input type="text" placeholder="Raza" value={breed} onChange={e=>setBreed(e.target.value)} className={ic}/></div></div>
         </div>
         <div className="bg-white rounded-[16px] p-4 border border-[rgba(0,0,0,0.04)] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-          <h3 className="text-xs font-bold text-[#074738] uppercase tracking-wide mb-3 flex items-center gap-1.5"><span className="material-symbols-outlined" style={{fontSize:"16px"}}>person</span>Tutor</h3>
+          <h3 className="text-xs font-bold text-[#074738] uppercase tracking-wide mb-3 flex items-center gap-1.5"><span className="material-symbols-outlined" aria-hidden="true" style={{fontSize:"16px"}}>person</span>Tutor</h3>
           <div className="space-y-3"><input type="text" placeholder="Nombre del tutor *" value={tutorName} onChange={e=>setTutorName(e.target.value)} className={ic} required/><input type="email" placeholder="Email (opcional)" value={tutorEmail} onChange={e=>setTutorEmail(e.target.value)} className={ic}/></div>
         </div>
         <div className="bg-white rounded-[16px] p-4 border border-[rgba(0,0,0,0.04)] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-          <h3 className="text-xs font-bold text-[#074738] uppercase tracking-wide mb-3 flex items-center gap-1.5"><span className="material-symbols-outlined" style={{fontSize:"16px"}}>clinical_notes</span>Consulta</h3>
+          <h3 className="text-xs font-bold text-[#074738] uppercase tracking-wide mb-3 flex items-center gap-1.5"><span className="material-symbols-outlined" aria-hidden="true" style={{fontSize:"16px"}}>clinical_notes</span>Consulta</h3>
           <div className="space-y-3"><input type="text" placeholder="Motivo de consulta *" value={reason} onChange={e=>setReason(e.target.value)} className={ic} required/><textarea rows={3} placeholder="Síntomas (opcional)" value={symptoms} onChange={e=>setSymptoms(e.target.value)} className={ic}/>
             <div className="grid grid-cols-2 gap-3"><input type="text" placeholder="Peso (kg)" value={weight} onChange={e=>setWeight(e.target.value)} className={ic}/><input type="text" placeholder="Temp (°C)" value={temperature} onChange={e=>setTemperature(e.target.value)} className={ic}/></div></div>
         </div>

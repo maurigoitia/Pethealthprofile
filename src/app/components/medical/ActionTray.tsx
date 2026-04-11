@@ -121,6 +121,8 @@ export function ActionTray() {
         </h2>
         <button
           onClick={() => setShowList((prev) => !prev)}
+          aria-expanded={showList}
+          aria-controls="action-tray-list"
           className="text-[11px] font-bold uppercase tracking-wider text-[#1A9B7D] hover:text-[#074738] transition-colors"
           style={{ fontFamily: "'Manrope', sans-serif" }}
         >

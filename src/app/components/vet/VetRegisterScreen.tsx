@@ -41,7 +41,7 @@ export function VetRegisterScreen() {
       <div className="w-full max-w-md bg-white rounded-[24px] shadow-2xl px-6 py-8">
         <div className="text-center mb-6">
           <div className="flex items-center justify-center gap-2 mb-1">
-            <span className="material-symbols-outlined text-[#074738]" style={{ fontSize: "24px" }}>stethoscope</span>
+            <span className="material-symbols-outlined text-[#074738]" aria-hidden="true" style={{ fontSize: "24px" }}>stethoscope</span>
             <h1 className="text-xl font-black text-[#074738]" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>Pessy Vet</h1>
           </div>
           <p className="text-slate-500 text-xs">Registro profesional veterinario</p>

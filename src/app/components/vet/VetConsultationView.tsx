@@ -16,13 +16,13 @@ export function VetConsultationView({ consultationId, onBack }: Props) {
   return (
     <div className="min-h-screen" style={{background:"#F0FAF9",fontFamily:"'Manrope',sans-serif"}}><div className="max-w-md mx-auto pb-24">
       <div className="px-5 pt-12 pb-4 flex items-center gap-3">
-        <button onClick={onBack} className="size-10 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm"><span className="material-symbols-outlined text-slate-700" style={{fontSize:"20px"}}>arrow_back</span></button>
+        <button onClick={onBack} aria-label="Volver" className="size-10 rounded-full bg-white border border-slate-200 flex items-center justify-center shadow-sm"><span className="material-symbols-outlined text-slate-700" aria-hidden="true" style={{fontSize:"20px"}}>arrow_back</span></button>
         <div className="flex-1"><h1 className="text-lg font-black text-slate-900" style={{fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{c.petName}</h1><p className="text-slate-500 text-xs">{c.species}{c.breed?` · ${c.breed}`:""}</p></div>
         <span className={`px-3 py-1 rounded-full text-xs font-bold ${sc[c.status]}`}>{sl[c.status]}</span>
       </div>
       <div className="px-5 space-y-4">
         <div className="bg-white rounded-[16px] p-4 border border-[rgba(0,0,0,0.04)] shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center gap-3 mb-3"><div className="size-10 rounded-full bg-[#E0F2F1] flex items-center justify-center"><span className="material-symbols-outlined text-[#074738]" style={{fontSize:"20px"}}>person</span></div><p className="font-bold text-slate-900 text-sm">{c.tutorName}</p></div>
+          <div className="flex items-center gap-3 mb-3"><div className="size-10 rounded-full bg-[#E0F2F1] flex items-center justify-center"><span className="material-symbols-outlined text-[#074738]" aria-hidden="true" style={{fontSize:"20px"}}>person</span></div><p className="font-bold text-slate-900 text-sm">{c.tutorName}</p></div>
           <div className="bg-slate-50 rounded-[12px] p-3"><p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Motivo</p><p className="text-sm text-slate-900">{c.reason||"No especificado"}</p></div>
           {c.symptoms && <div className="bg-slate-50 rounded-[12px] p-3 mt-2"><p className="text-[10px] font-bold text-slate-500 uppercase mb-1">Síntomas</p><p className="text-sm text-slate-900">{c.symptoms}</p></div>}
         </div>

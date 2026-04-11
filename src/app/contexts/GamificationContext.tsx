@@ -20,7 +20,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
+import { doc, getDoc, runTransaction, setDoc, Timestamp } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { useAuth } from "./AuthContext";
 import type {
@@ -119,73 +119,88 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
   }, [user?.uid]);
 
   // ── Add points ───────────────────────────────────────────────
+  // Uses runTransaction so concurrent calls never overwrite each other
+  // (fixes SCRUM-91: stale profile closure caused lost increments)
   const addPoints = useCallback(
     async (source: PointSource, metadata?: Record<string, string>) => {
-      if (!profile || !user?.uid) return;
+      if (!user?.uid) return;
 
       const amount = resolvePoints(source);
       if (amount <= 0) return;
 
-      const now = Timestamp.now();
-      const today = todayKey();
-      const yesterday = yesterdayKey();
-
-      // Update streak
-      const streak = { ...profile.streak };
-      if (streak.lastActiveDate === today) {
-        // Already active today, no streak change
-      } else if (streak.lastActiveDate === yesterday) {
-        streak.currentStreak += 1;
-        streak.longestStreak = Math.max(streak.longestStreak, streak.currentStreak);
-        streak.lastActiveDate = today;
-      } else {
-        streak.currentStreak = 1;
-        streak.lastActiveDate = today;
-      }
-
-      const newTotal = profile.totalPoints + amount;
-      const newLevel = getLevelForPoints(newTotal);
-      const entry: PointEntry = { source, amount, earnedAt: now, metadata };
-
-      // Check badge unlocks
-      const badges = [...profile.badges];
-      const unlock = (id: string) => {
-        const b = badges.find((x) => x.id === id);
-        if (b && !b.unlockedAt) b.unlockedAt = now;
-      };
-
-      if (source === "daily_checkin" && !badges.find((b) => b.id === "first_checkin")?.unlockedAt) unlock("first_checkin");
-      if (source === "scan_document" && !badges.find((b) => b.id === "first_scan")?.unlockedAt) unlock("first_scan");
-      if (streak.currentStreak >= 7) unlock("streak_7");
-      if (streak.currentStreak >= 30) unlock("streak_30");
-      if (streak.currentStreak >= 100) unlock("streak_100");
-      if (newLevel >= 10) unlock("pet_parent_pro");
-      if (source === "verified_sighting") unlock("community_hero");
-      if (source === "successful_adoption") unlock("adoption_angel");
-
-      // Count-based badges
-      const scanCount = profile.recentPoints.filter((p) => p.source === "scan_document").length + (source === "scan_document" ? 1 : 0);
-      if (scanCount >= 10) unlock("health_detective");
-      const questionCount = profile.recentPoints.filter((p) => p.source === "answer_random_question").length + (source === "answer_random_question" ? 1 : 0);
-      if (questionCount >= 5) unlock("social_butterfly");
-      const checkinCount = profile.recentPoints.filter((p) => p.source === "confirmed_place_checkin").length + (source === "confirmed_place_checkin" ? 1 : 0);
-      if (checkinCount >= 5) unlock("explorer");
-
-      const updated: UserGamificationProfile = {
-        ...profile,
-        totalPoints: newTotal,
-        level: newLevel,
-        streak,
-        badges,
-        recentPoints: [entry, ...profile.recentPoints].slice(0, 50),
-        updatedAt: now,
-      };
-
-      setProfile(updated);
       const ref = doc(db, "user_gamification", user.uid);
-      await setDoc(ref, updated, { merge: true });
+
+      // Capture the final computed profile so we can update local state
+      // after the transaction commits (not inside — callback can retry on conflicts)
+      let committedProfile: UserGamificationProfile | null = null;
+
+      await runTransaction(db, async (tx) => {
+        committedProfile = null; // reset on each retry
+        const snap = await tx.get(ref);
+        if (!snap.exists()) return; // profile not yet created — skip
+
+        const current = snap.data() as UserGamificationProfile;
+        const now = Timestamp.now();
+        const today = todayKey();
+        const yesterday = yesterdayKey();
+
+        // Update streak using fresh Firestore data
+        const streak = { ...current.streak };
+        if (streak.lastActiveDate === today) {
+          // Already active today — no streak change
+        } else if (streak.lastActiveDate === yesterday) {
+          streak.currentStreak += 1;
+          streak.longestStreak = Math.max(streak.longestStreak, streak.currentStreak);
+          streak.lastActiveDate = today;
+        } else {
+          streak.currentStreak = 1;
+          streak.lastActiveDate = today;
+        }
+
+        const newTotal = current.totalPoints + amount;
+        const newLevel = getLevelForPoints(newTotal);
+        const entry: PointEntry = { source, amount, earnedAt: now, metadata };
+
+        // Badge unlocks against fresh data
+        const badges = [...current.badges];
+        const unlock = (id: string) => {
+          const b = badges.find((x) => x.id === id);
+          if (b && !b.unlockedAt) b.unlockedAt = now;
+        };
+
+        if (source === "daily_checkin" && !badges.find((b) => b.id === "first_checkin")?.unlockedAt) unlock("first_checkin");
+        if (source === "scan_document" && !badges.find((b) => b.id === "first_scan")?.unlockedAt) unlock("first_scan");
+        if (streak.currentStreak >= 7) unlock("streak_7");
+        if (streak.currentStreak >= 30) unlock("streak_30");
+        if (streak.currentStreak >= 100) unlock("streak_100");
+        if (newLevel >= 10) unlock("pet_parent_pro");
+        if (source === "verified_sighting") unlock("community_hero");
+        if (source === "successful_adoption") unlock("adoption_angel");
+
+        const scanCount = current.recentPoints.filter((p) => p.source === "scan_document").length + (source === "scan_document" ? 1 : 0);
+        if (scanCount >= 10) unlock("health_detective");
+        const questionCount = current.recentPoints.filter((p) => p.source === "answer_random_question").length + (source === "answer_random_question" ? 1 : 0);
+        if (questionCount >= 5) unlock("social_butterfly");
+        const checkinCount = current.recentPoints.filter((p) => p.source === "confirmed_place_checkin").length + (source === "confirmed_place_checkin" ? 1 : 0);
+        if (checkinCount >= 5) unlock("explorer");
+
+        committedProfile = {
+          ...current,
+          totalPoints: newTotal,
+          level: newLevel,
+          streak,
+          badges,
+          recentPoints: [entry, ...current.recentPoints].slice(0, 50),
+          updatedAt: now,
+        };
+
+        tx.set(ref, committedProfile, { merge: true });
+      });
+
+      // Update local state only after the transaction successfully committed
+      if (committedProfile) setProfile(committedProfile);
     },
-    [profile, user?.uid],
+    [user?.uid], // no longer depends on stale profile — reads from Firestore
   );
 
   const value = useMemo<GamificationContextValue>(

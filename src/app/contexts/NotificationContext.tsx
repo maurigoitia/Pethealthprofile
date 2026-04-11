@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { NotificationService } from "../services/notificationService";
+import { NativePushService } from "../services/nativePushService";
 import { useAuth } from "./AuthContext";
 
 interface InAppNotification {
@@ -40,10 +41,44 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user) return;
 
-    let unsubscribe: (() => void) | null = null;
+    let unsubscribeWeb: (() => void) | null = null;
+    let unsubscribeNative: (() => void) | null = null;
     let cancelled = false;
 
     const setup = async () => {
+      // SCRUM-75: Native Capacitor push (Android / iOS)
+      if (NativePushService.isNative) {
+        await NativePushService.init();
+
+        // Auto-register if not yet done
+        if (NativePushService.pushStatus !== "available") {
+          const token = await NativePushService.requestPermissionAndRegister();
+          if (token) {
+            setHasToken(true);
+            setPermission("granted");
+          }
+        } else {
+          setHasToken(true);
+        }
+
+        // Foreground messages
+        unsubscribeNative = NativePushService.onForegroundMessage((msg) => {
+          if (cancelled) return;
+          const newNotif: InAppNotification = {
+            id: msg.id,
+            title: msg.title,
+            body: msg.body,
+            type: (msg.data?.type as any) || "medication",
+            timestamp: new Date(),
+            read: false,
+          };
+          setInAppNotifications(prev => [newNotif, ...prev].slice(0, 20));
+        });
+
+        return; // skip web FCM setup when native
+      }
+
+      // Web FCM path (existing)
       const initialized = await NotificationService.init();
       if (!initialized || cancelled) return;
 
@@ -53,7 +88,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
 
       // Escucha notificaciones foreground (app abierta)
-      unsubscribe = NotificationService.onForegroundMessage((payload) => {
+      unsubscribeWeb = NotificationService.onForegroundMessage((payload) => {
         const { title, body } = payload.notification || {};
         const data = payload.data || {};
 
@@ -82,11 +117,24 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
-      if (typeof unsubscribe === "function") unsubscribe();
+      if (typeof unsubscribeWeb === "function") unsubscribeWeb();
+      if (typeof unsubscribeNative === "function") unsubscribeNative();
     };
   }, [user]);
 
   const requestPermission = useCallback(async () => {
+    // SCRUM-75: native vs web
+    if (NativePushService.isNative) {
+      const token = await NativePushService.requestPermissionAndRegister();
+      if (token) {
+        setHasToken(true);
+        setPermission("granted");
+      } else {
+        setPermission(NativePushService.pushStatus === "denied" ? "denied" : "default");
+      }
+      return;
+    }
+
     const token = await NotificationService.requestPermissionAndGetToken();
     if (token) {
       setHasToken(true);

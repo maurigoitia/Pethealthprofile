@@ -284,7 +284,6 @@ export async function resolveClinicalKnowledgeContext(params: {
     ? `\n\nCONTEXTO NOTEBOOK KNOWLEDGE (${notebook.source}):\n${notebook.text.slice(0, 5000)}`
     : "";
 
-  const hasExternalSources = Boolean(external) || Boolean(notebook);
   const sourceLabel = notebook && external
     ? "local+external+notebook"
     : notebook

@@ -379,6 +379,7 @@ export function RegisterUserScreen() {
           )}
           <input
             type="text"
+            aria-label="Nombre completo"
             placeholder="Nombre completo"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -388,6 +389,7 @@ export function RegisterUserScreen() {
 
           <input
             type="email"
+            aria-label="Correo electrónico"
             placeholder="Correo electrónico"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -398,6 +400,8 @@ export function RegisterUserScreen() {
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
+              aria-label="Contraseña"
+              autocomplete="new-password"
               placeholder="Contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -407,6 +411,8 @@ export function RegisterUserScreen() {
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              aria-pressed={showPassword}
               className="absolute right-3 top-1/2 -translate-y-1/2 rounded-[14px] border border-[#E5E7EB] bg-[#F0FAF9] px-3 py-1 text-xs font-bold text-[#1A9B7D]"
             >
               {showPassword ? "Ocultar" : "Mostrar"}
@@ -418,6 +424,7 @@ export function RegisterUserScreen() {
             <select
               value={country}
               onChange={(e) => setCountry(e.target.value)}
+              aria-label="País de residencia"
               className="w-full px-4 py-4 rounded-[12px] border border-[#E5E7EB] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none appearance-none bg-white text-slate-700 cursor-pointer"
             >
               <option value="">🌍 ¿De dónde sos?</option>

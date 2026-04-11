@@ -186,7 +186,7 @@ export default defineConfig({
           // Paquetes pesados — cada uno en su propio chunk
           'vendor-heic': ['heic2any'],
           'vendor-jspdf': ['jspdf'],
-          'vendor-motion': ['motion'],
+          // 'vendor-motion': ['motion'], // motion not installed — removed to fix build
           'vendor-lucide': ['lucide-react'],
           // App code
           'app-utils': [

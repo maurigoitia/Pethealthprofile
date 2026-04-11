@@ -29,6 +29,7 @@ export function Header({ onPetClick, activePet }: HeaderProps) {
       {activePet && (
         <button
           onClick={onPetClick}
+          aria-label={`Ver perfil de ${activePet.name}`}
           className="w-full bg-white dark:bg-slate-900 rounded-[16px] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-slate-950/50 border border-slate-200 dark:border-slate-800 hover:scale-[1.02] active:scale-[0.98] transition-transform"
         >
           <div className="flex items-center gap-4">

@@ -2,6 +2,7 @@ import { getMessaging, getToken, isSupported, onMessage, type MessagePayload, ty
 import { doc, setDoc, collection, addDoc, getDocs, query, where, deleteDoc } from "firebase/firestore";
 import { app, auth, db } from "../../lib/firebase";
 import { parseDateSafe } from "../utils/dateUtils";
+import i18n from "../../i18n";
 
 // VAPID key — generala en Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
 const DEFAULT_VAPID_KEYS: Record<string, string> = {
@@ -329,7 +330,7 @@ class NotificationServiceClass {
       petId: params.petId,
       petName: params.petName,
       type: "medication",
-      title: `Hoy toca medicacion — ${params.petName}`,
+      title: i18n.t("notifications.push.medicationNow", { petName: params.petName }),
       body: `${params.medicationName} · ${params.dosage}`,
       scheduledFor: current.toISOString(),
       sourceEventId: params.sourceEventId,
@@ -353,7 +354,7 @@ class NotificationServiceClass {
         petId: params.petId,
         petName: params.petName,
         type: "medication",
-        title: `En 1 hora medicación — ${params.petName}`,
+        title: i18n.t("notifications.push.medication1h", { petName: params.petName }),
         body: `${params.medicationName} · ${params.dosage}`,
         scheduledFor: oneHourBefore.toISOString(),
         sourceEventId: params.sourceEventId,
@@ -376,7 +377,7 @@ class NotificationServiceClass {
         petId: params.petId,
         petName: params.petName,
         type: "medication",
-        title: `¡En 5 min! Medicación — ${params.petName}`,
+        title: i18n.t("notifications.push.medication5min", { petName: params.petName }),
         body: `${params.medicationName} · ${params.dosage}`,
         scheduledFor: fiveMinBefore.toISOString(),
         sourceEventId: params.sourceEventId,
@@ -423,7 +424,7 @@ class NotificationServiceClass {
         petId: params.petId,
         petName: params.petName,
         type: "appointment",
-        title: `Turno manana — ${params.petName}`,
+        title: i18n.t("notifications.push.appointmentTomorrow", { petName: params.petName }),
         body: `${params.title}${params.clinic ? ` · ${params.clinic}` : ""}`,
         scheduledFor: oneDayBefore.toISOString(),
         sourceEventId: params.appointmentId,
@@ -440,7 +441,7 @@ class NotificationServiceClass {
         petId: params.petId,
         petName: params.petName,
         type: "appointment",
-        title: `Turno en 2 horas — ${params.petName}`,
+        title: i18n.t("notifications.push.appointment2h", { petName: params.petName }),
         body: `${params.title}${params.veterinarian ? ` · ${params.veterinarian}` : ""}`,
         scheduledFor: twoHoursBefore.toISOString(),
         sourceEventId: params.appointmentId,
@@ -500,7 +501,7 @@ class NotificationServiceClass {
 
     const body = params.notes?.trim()
       ? params.notes.trim()
-      : `Recordatorio: ${params.title}`;
+      : i18n.t("notifications.push.reminderBody", { title: params.title });
 
     const payload: ScheduledNotification = {
       userId: user.uid,
