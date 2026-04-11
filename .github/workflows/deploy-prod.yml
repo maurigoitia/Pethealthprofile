@@ -1,23 +1,28 @@
 name: Deploy — Production
-
 on:
-  # Solo dispara cuando CI pasa en main — nunca en push directo
   workflow_run:
     workflows: ["CI — PR Checks"]
     types: [completed]
     branches: [main]
-  # También permite deploy manual desde GitHub Actions UI
   workflow_dispatch:
 
 jobs:
   deploy-prod:
     runs-on: ubuntu-latest
-    # Si viene de workflow_run, solo continúa si CI fue exitoso
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     environment: production
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/842879609097/locations/global/workloadIdentityPools/github-actions/providers/github
+          service_account: pessy-github-deploy@polar-scene-488615-i0.iam.gserviceaccount.com
 
       - uses: actions/setup-node@v4
         with:
@@ -34,16 +39,32 @@ jobs:
         run: npm run build
 
       - name: Deploy hosting to Production
-        run: npx firebase-tools deploy --only hosting:app --project polar-scene-488615-i0 --token "$FIREBASE_TOKEN"
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: npx firebase-tools deploy --only hosting:app --project polar-scene-488615-i0
 
       - name: Deploy functions to Production
-        run: npx firebase-tools deploy --only functions --project polar-scene-488615-i0 --token "$FIREBASE_TOKEN"
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: npx firebase-tools deploy --only functions --project polar-scene-488615-i0
 
       - name: Deploy Firestore and Storage rules
-        run: npx firebase-tools deploy --only firestore:rules,storage --project polar-scene-488615-i0 --token "$FIREBASE_TOKEN"
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: npx firebase-tools deploy --only firestore:rules,storage --project polar-scene-488615-i0
+
+      - name: Smoke test — verify pessy.app is up
+        run: |
+          echo "Waiting 15s for deploy to propagate..."
+          sleep 15
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 https://pessy.app)
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Smoke test FAILED — pessy.app returned HTTP $STATUS"
+            exit 1
+          fi
+          echo "✅ Smoke test passed — pessy.app is up (HTTP 200)"
+
+      - name: Smoke test — verify app.pessy.app is up
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 https://app.pessy.app)
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "❌ Smoke test FAILED — app.pessy.app returned HTTP $STATUS"
+            exit 1
+          fi
+          echo "✅ Smoke test passed — app.pessy.app is up (HTTP 200)"

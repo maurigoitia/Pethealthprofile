@@ -1,5 +1,4 @@
 name: Deploy — Staging (appqa)
-
 on:
   push:
     branches: [develop]
@@ -7,8 +6,18 @@ on:
 jobs:
   deploy-staging:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/842879609097/locations/global/workloadIdentityPools/github-actions/providers/github
+          service_account: pessy-github-deploy@polar-scene-488615-i0.iam.gserviceaccount.com
 
       - uses: actions/setup-node@v4
         with:
@@ -33,6 +42,4 @@ jobs:
           VITE_ENV: staging
 
       - name: Deploy to Firebase Staging (appqa)
-        run: npx firebase-tools deploy --only hosting:appqa --project polar-scene-488615-i0 --token "$FIREBASE_TOKEN"
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: npx firebase-tools deploy --only hosting:appqa --project polar-scene-488615-i0
