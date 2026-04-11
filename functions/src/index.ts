@@ -4,7 +4,7 @@ import { Resend } from "resend";
 export * from "./appointments";
 export { setAdminClaim, onAdminBootstrap } from "./admin/adminClaims";
 export { ingestHistory } from "./clinical/ingestHistory";
-export { onLostPetReport, onPetSighting, computeAdoptionMatches } from "./community";
+export { onLostPetReport, onPetSighting, computeAdoptionMatches, onNewAdoptionListing, scheduledExpireLostPets, scheduledExpireSearchAlerts, onFoundPetReport } from "./community";
 
 // Resend — email fallback para notificaciones de medicación
 // API key se configura en: firebase functions:secrets:set RESEND_API_KEY
