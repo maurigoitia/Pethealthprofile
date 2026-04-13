@@ -28,24 +28,18 @@ export default function RoutineChecklist({
   const totalCount = items.length;
 
   return (
-    <div
-      className="rounded-[16px] border border-[#E5E7EB] bg-white"
-      style={{ padding: "16px 18px" }}
-    >
+    <div className="rounded-3xl border border-[#E5E7EB] bg-white p-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-[#074738]">
             {(() => { const IconComp = ROUTINE_ICONS[icon] || Sun; return <IconComp size={20} strokeWidth={1.8} />; })()}
           </span>
-          <span
-            className="text-[14px] font-bold text-[#074738]"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-          >
+          <span className="text-sm font-[800] text-[#074738]">
             {title}
           </span>
         </div>
-        <span className="text-[14px] font-bold text-[#1A9B7D]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <span className="text-sm font-bold text-[#1A9B7D]">
           {completedCount}/{totalCount}
         </span>
       </div>
@@ -90,12 +84,11 @@ export default function RoutineChecklist({
 
               {/* Label */}
               <span
-                className={`text-[14px] font-medium transition-colors ${
+                className={`text-sm font-medium transition-colors ${
                   isDone
                     ? "text-[#9CA3AF] line-through"
-                    : "text-[#1A1A1A]"
+                    : "text-[#074738]"
                 }`}
-                style={{ fontFamily: "'Manrope', sans-serif" }}
               >
                 {item}
               </span>

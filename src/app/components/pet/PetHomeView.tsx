@@ -303,6 +303,7 @@ export function PetHomeView({
   const { updatePet } = usePet();
   const { user } = useAuth();
   const [showPreferences, setShowPreferences] = useState(false);
+  const [showAllTasks, setShowAllTasks] = useState(false);
   const [weather, setWeather] = useState<LiveWeatherSnapshot>({
     status: "loading",
     temperatureC: null,
@@ -421,6 +422,11 @@ export function PetHomeView({
     const order: Record<string, number> = { block: 0, alert: 1, recommendation: 2 };
     return [...intelligenceResult.recommendations].sort((a, b) => (order[a.kind] ?? 2) - (order[b.kind] ?? 2));
   }, [intelligenceResult]);
+
+  // ─── Critical alert for "Pessy te dice" (single most urgent) ───────────────
+  const criticalAlert = sortedRecommendations.find(
+    (rec) => rec.kind === "block" || rec.kind === "alert"
+  ) ?? null;
 
   // ─── Walk safety (simplified for badge) ─────────────────────────────────────
   const walkSafety: WalkSafetyState = useMemo(() => {
@@ -796,38 +802,29 @@ export function PetHomeView({
           </div>
         )}
 
-        {/* 4. DAILY HOOK - swipeable suggestion carousel */}
+        {/* 4. DAILY TASKS — max 2 visible, "Ver más" for rest */}
         <SectionTitle>Hoy con {activePet.name}</SectionTitle>
-        <div className="mx-3">
-          {dailySuggestions.length === 1 ? (
+        <div className="mx-4 space-y-2">
+          {(showAllTasks ? dailySuggestions : dailySuggestions.slice(0, 2)).map((s, i) => (
             <DailyHookCard
-              category={CATEGORY_LABELS[dailySuggestions[0].category] || dailySuggestions[0].category}
-              categoryIcon={dailySuggestions[0].icon}
-              title={dailySuggestions[0].title}
-              description={dailySuggestions[0].detail}
-              duration={dailySuggestions[0].duration}
-              points={dailySuggestions[0].points}
+              key={i}
+              category={CATEGORY_LABELS[s.category] || s.category}
+              categoryIcon={s.icon}
+              title={s.title}
+              description={s.detail}
+              duration={s.duration}
+              points={s.points}
+              steps={s.steps}
               onStart={() => { void gamification.addPoints("daily_checkin"); }}
             />
-          ) : (
-            <div
-              className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide"
-              style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
+          ))}
+          {dailySuggestions.length > 2 && !showAllTasks && (
+            <button
+              onClick={() => setShowAllTasks(true)}
+              className="w-full rounded-full border border-[#E5E7EB] bg-white py-2.5 text-xs font-bold text-[#074738] hover:bg-[#E0F2F1] transition-colors"
             >
-              {dailySuggestions.map((s, i) => (
-                <div key={i} className="min-w-[85%] snap-center flex-shrink-0">
-                  <DailyHookCard
-                    category={CATEGORY_LABELS[s.category] || s.category}
-                    categoryIcon={s.icon}
-                    title={s.title}
-                    description={s.detail}
-                    duration={s.duration}
-                    points={s.points}
-                    onStart={() => { void gamification.addPoints("daily_checkin"); }}
-                  />
-                </div>
-              ))}
-            </div>
+              Ver más actividades
+            </button>
           )}
         </div>
 
@@ -870,20 +867,33 @@ export function PetHomeView({
           </>
         )}
 
-        {/* 7. PESSY TE DICE - tips from intelligence engine */}
-        {sortedRecommendations.length > 0 && (
+        {/* 7. PESSY TE DICE — single critical alert only */}
+        {criticalAlert && (
           <>
             <SectionTitle>Pessy te dice</SectionTitle>
-            <div className="mx-3 space-y-1.5">
-              {sortedRecommendations.map((rec) => (
-                <PessyTip
-                  key={rec.id}
-                  icon={rec.icon}
-                  color={mapRecToTipColor(rec)}
-                  title={rec.title}
-                  description={rec.detail}
-                />
-              ))}
+            <div className="mx-4">
+              <PessyTip
+                icon={criticalAlert.icon}
+                color={mapRecToTipColor(criticalAlert)}
+                title={criticalAlert.title}
+                description={criticalAlert.detail}
+                actionLabel={
+                  criticalAlert.sourceModule === "medical_history" ? "Ver historial" :
+                  criticalAlert.sourceModule === "supply_tracker" ? "Ver recordatorios" :
+                  criticalAlert.sourceModule === "breed_profile" ? "Completar perfil" :
+                  criticalAlert.sourceModule === "weight_trend" ? "Ver historial" :
+                  criticalAlert.sourceModule === "recurring_conditions" ? "Ver historial" :
+                  undefined
+                }
+                onAction={
+                  criticalAlert.sourceModule === "medical_history" ? onViewHistory :
+                  criticalAlert.sourceModule === "supply_tracker" ? onMedicationsClick :
+                  criticalAlert.sourceModule === "breed_profile" ? onProfileClick :
+                  criticalAlert.sourceModule === "weight_trend" ? onViewHistory :
+                  criticalAlert.sourceModule === "recurring_conditions" ? onViewHistory :
+                  undefined
+                }
+              />
             </div>
           </>
         )}
