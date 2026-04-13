@@ -313,7 +313,7 @@ export function PetHomeView({
     uvIndex: null,
   });
   const [nudgedBreed, setNudgedBreed] = useState(false);
-  const [checkedRoutineItems, setCheckedRoutineItems] = useState<string[]>(() => activePetId ? loadCheckedItems(activePetId) : []);
+  const [checkedRoutineItems, setCheckedRoutineItems] = useState<string[]>(() => activePetId ? loadCheckedItemsLocal(activePetId) : []);
 
   const { getEventsByPetId, getActiveMedicationsByPetId, getAppointmentsByPetId } = useMedical();
   const gamification = useGamification();
