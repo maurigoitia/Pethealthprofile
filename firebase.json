@@ -22,11 +22,27 @@
     "rules": "storage.rules"
   },
   "emulators": {
-    "hosting":   { "port": 5002, "host": "127.0.0.1" },
-    "functions": { "port": 5001, "host": "127.0.0.1" },
-    "firestore": { "port": 8080, "host": "127.0.0.1" },
-    "auth":      { "port": 9099, "host": "127.0.0.1" },
-    "ui":        { "enabled": true, "port": 4000, "host": "127.0.0.1" },
+    "hosting": {
+      "port": 5002,
+      "host": "127.0.0.1"
+    },
+    "functions": {
+      "port": 5001,
+      "host": "127.0.0.1"
+    },
+    "firestore": {
+      "port": 8080,
+      "host": "127.0.0.1"
+    },
+    "auth": {
+      "port": 9099,
+      "host": "127.0.0.1"
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000,
+      "host": "127.0.0.1"
+    },
     "singleProjectMode": true
   },
   "hosting": [
@@ -440,6 +456,14 @@
         {
           "source": "/blog/frutas-para-perros",
           "destination": "/blog/frutas-para-perros/index.html"
+        },
+        {
+          "source": "/blog/app-mascotas-razones",
+          "destination": "/blog/app-mascotas-razones.html"
+        },
+        {
+          "source": "/blog/como-saber-si-tu-perro-esta-enfermo",
+          "destination": "/blog/como-saber-si-tu-perro-esta-enfermo.html"
         },
         {
           "source": "**",
@@ -929,4 +953,3 @@
     }
   ]
 }
-
