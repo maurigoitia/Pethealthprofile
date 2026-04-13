@@ -16,7 +16,7 @@ jobs:
           cache: 'npm'
 
       - name: Install root dependencies
-        run: npm ci
+        run: npm ci --force
 
       - name: Install functions dependencies
         run: cd functions && npm ci

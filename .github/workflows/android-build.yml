@@ -31,7 +31,7 @@ jobs:
           java-version: '21'
 
       - name: Install dependencies & build web
-        run: npm ci && npm run build
+        run: npm ci --force && npm run build
 
       - name: Sync Capacitor
         run: npx cap sync android

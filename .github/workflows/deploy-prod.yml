@@ -30,7 +30,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci && cd functions && npm ci
+        run: npm ci --force && cd functions && npm ci
 
       - name: TypeScript check (functions)
         run: cd functions && npx tsc --noEmit

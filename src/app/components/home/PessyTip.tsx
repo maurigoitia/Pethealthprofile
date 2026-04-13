@@ -1,90 +1,68 @@
-import React from 'react';
-import {
-  Lightbulb, AlertTriangle, ShieldAlert, Thermometer, Droplets,
-  Wind, CloudRain, Dog, Heart, Activity, Utensils, Star,
-} from 'lucide-react';
-import { MaterialIcon } from '../shared/MaterialIcon';
+"use client";
 
-const LUCIDE_MAP: Record<string, React.ElementType> = {
-  lightbulb: Lightbulb, tips_and_updates: Lightbulb,
-  warning: AlertTriangle, report: ShieldAlert,
-  thermostat: Thermometer, water_drop: Droplets,
-  air: Wind, rainy: CloudRain,
-  pets: Dog, favorite: Heart,
-  fitness_center: Activity, restaurant: Utensils,
-  star: Star,
-};
+import React, { useState } from "react";
 
 interface PessyTipProps {
   icon: string;
-  color: 'green' | 'blue' | 'orange';
+  color: "green" | "orange" | "blue" | "red";
   title: string;
   description: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
-const colorStyles = {
-  green: {
-    bg: 'bg-[#E0F2F1]',
-    text: 'text-[#074738]',
-  },
-  blue: {
-    bg: 'bg-[#E3F2FD]',
-    text: 'text-[#3B82F6]',
-  },
-  orange: {
-    bg: 'bg-[#FEF3C7]',
-    text: 'text-[#D97706]',
-  },
+const COLOR_MAP: Record<string, { bg: string; border: string; text: string; accent: string }> = {
+  green:  { bg: "bg-[#E0F2F1]", border: "border-[#1A9B7D]/20", text: "text-[#074738]", accent: "text-[#1A9B7D]" },
+  orange: { bg: "bg-[#FEF3C7]", border: "border-[#F59E0B]/20", text: "text-[#92400E]", accent: "text-[#D97706]" },
+  blue:   { bg: "bg-[#E0F2F1]", border: "border-[#1A9B7D]/20", text: "text-[#074738]", accent: "text-[#1A9B7D]" },
+  red:    { bg: "bg-[#FEE2E2]", border: "border-[#EF4444]/20", text: "text-[#991B1B]", accent: "text-[#EF4444]" },
 };
-
-export default function PessyTip({ icon, color, title, description }: PessyTipProps) {
-  const styles = colorStyles[color];
-
-  return (
-    <div
-      className="flex flex-row items-start gap-3 bg-white rounded-[16px] border border-[#E5E7EB]"
-      style={{ padding: '14px 16px' }}
-    >
-      {/* Icon container */}
-      <div
-        className={`flex items-center justify-center shrink-0 w-[32px] h-[32px] rounded-[10px] ${styles.bg}`}
-      >
-        {LUCIDE_MAP[icon]
-          ? React.createElement(LUCIDE_MAP[icon], { size: 18, strokeWidth: 1.8, className: styles.text })
-          : <MaterialIcon name={icon} className={`${styles.text} !text-[18px]`} />
-        }
-      </div>
-
-      {/* Text content */}
-      <div className="flex flex-col min-w-0">
-        <span
-          className="text-[13px] font-bold text-[#1A1A1A] leading-tight"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-        >
-          {title}
-        </span>
-        <span
-          className="text-[12px] text-[#6B7280] leading-snug mt-1"
-          style={{ fontFamily: "'Manrope', sans-serif" }}
-        >
-          {description}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 export function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h3
-      className="text-[12px] font-bold text-[#9CA3AF] uppercase tracking-[0.14em]"
-      style={{
-        margin: '20px 16px 12px',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        letterSpacing: '0.5px',
-      }}
-    >
+    <h3 className="text-[12px] font-bold text-[#9CA3AF] uppercase tracking-[0.14em] mx-4 mt-5 mb-3">
       {children}
     </h3>
+  );
+}
+
+export default function PessyTip({ icon, color, title, description, actionLabel, onAction }: PessyTipProps) {
+  const [expanded, setExpanded] = useState(false);
+  const c = COLOR_MAP[color] || COLOR_MAP.green;
+
+  return (
+    <button
+      onClick={() => setExpanded((v) => !v)}
+      className={`w-full text-left rounded-3xl border ${c.border} ${c.bg} p-4 transition-all`}
+    >
+      <div className="flex items-start gap-3">
+        <span className="text-xl shrink-0">{icon}</span>
+        <div className="min-w-0 flex-1">
+          <p className={`text-sm font-[800] ${c.text}`}>{title}</p>
+          {!expanded && (
+            <p className="text-[10px] text-[#9CA3AF] mt-0.5">Tocar para ver más</p>
+          )}
+          {expanded && (
+            <>
+              <p className={`text-xs ${c.text} opacity-80 mt-1 leading-relaxed`}>{description}</p>
+              {actionLabel && onAction && (
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAction();
+                  }}
+                  className={`inline-block mt-2 text-xs font-bold ${c.accent} underline underline-offset-2`}
+                >
+                  {actionLabel} →
+                </span>
+              )}
+            </>
+          )}
+        </div>
+        <span className={`text-xs ${c.accent} shrink-0 mt-1`}>
+          {expanded ? "▲" : "▼"}
+        </span>
+      </div>
+    </button>
   );
 }
