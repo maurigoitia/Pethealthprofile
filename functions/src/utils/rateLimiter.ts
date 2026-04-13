@@ -4,6 +4,7 @@ interface RateLimitResult {
   allowed: boolean;
   remaining: number;
   resetAt: Date;
+  resetInSeconds: number;
 }
 
 /**
@@ -36,18 +37,21 @@ export async function checkRateLimitByTier(
   if (!data || (data.windowStart && now - data.windowStart > windowMs)) {
     // New window
     await counterRef.set({ count: 1, windowStart: now });
-    return { allowed: true, remaining: maxRequests - 1, resetAt: new Date(now + windowMs) };
+    return { allowed: true, remaining: maxRequests - 1, resetAt: new Date(now + windowMs), resetInSeconds: Math.ceil(windowMs / 1000) };
   }
 
   if (data.count >= maxRequests) {
     const resetAt = new Date(data.windowStart + windowMs);
-    return { allowed: false, remaining: 0, resetAt };
+    const resetInSeconds = Math.max(0, Math.ceil((data.windowStart + windowMs - now) / 1000));
+    return { allowed: false, remaining: 0, resetAt, resetInSeconds };
   }
 
+  const resetInSeconds = Math.max(0, Math.ceil((data.windowStart + windowMs - now) / 1000));
   await counterRef.update({ count: admin.firestore.FieldValue.increment(1) });
   return {
     allowed: true,
     remaining: maxRequests - data.count - 1,
     resetAt: new Date(data.windowStart + windowMs),
+    resetInSeconds,
   };
 }

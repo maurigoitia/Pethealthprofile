@@ -11,11 +11,6 @@ function getKey(): Buffer {
 }
 
 interface GmailTokenPayload {
-  access_token: string;
-  refresh_token?: string;
-  expiry_date?: number;
-  scope?: string;
-  token_type?: string;
   [key: string]: unknown;
 }
 
