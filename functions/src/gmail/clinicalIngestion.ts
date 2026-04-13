@@ -1479,7 +1479,7 @@ async function fetchUserRefreshToken(uid: string): Promise<{ refreshToken: strin
   if (!payload) {
     throw new Error("gmail_token_not_found");
   }
-  const refreshToken = payload.refreshToken?.trim() || "";
+  const refreshToken = typeof payload.refreshToken === "string" ? payload.refreshToken.trim() : "";
   if (!refreshToken) {
     throw new Error("gmail_refresh_token_missing");
   }
