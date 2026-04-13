@@ -1484,7 +1484,7 @@ async function fetchUserRefreshToken(uid: string): Promise<{ refreshToken: strin
     throw new Error("gmail_refresh_token_missing");
   }
   const grantedScopes = Array.isArray(payload.grantedScopes)
-    ? payload.grantedScopes.filter((row): row is string => typeof row === "string")
+    ? payload.grantedScopes.filter((row: unknown): row is string => typeof row === "string")
     : [];
   return { refreshToken, grantedScopes };
 }

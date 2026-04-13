@@ -817,7 +817,7 @@ export const syncAppointmentCalendarEvent = functions
     }
     const refreshToken = asNonEmptyString(tokenPayloadCalendar.refreshToken);
     const grantedScopes = Array.isArray(tokenPayloadCalendar.grantedScopes)
-      ? tokenPayloadCalendar.grantedScopes.filter((scope): scope is string => typeof scope === "string")
+      ? tokenPayloadCalendar.grantedScopes.filter((scope: unknown): scope is string => typeof scope === "string")
       : [];
 
     if (!refreshToken) {
