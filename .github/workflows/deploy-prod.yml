@@ -42,7 +42,7 @@ jobs:
         run: npx firebase-tools deploy --only hosting:app --project polar-scene-488615-i0
 
       - name: Deploy functions to Production
-        run: npx firebase-tools deploy --only functions --project polar-scene-488615-i0
+        run: npx firebase-tools deploy --only functions --project polar-scene-488615-i0 --force
 
       - name: Deploy Firestore and Storage rules
         run: npx firebase-tools deploy --only firestore:rules,storage --project polar-scene-488615-i0
