@@ -25,7 +25,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci --ignore-optional && cd functions && npm ci
+        run: npm ci --force && cd functions && npm ci
 
       - name: TypeScript check (root)
         run: npx tsc --noEmit --skipLibCheck
