@@ -624,7 +624,7 @@ export const gmailAuthCallback = functions
         // SCRUM-7: Retrieve previous refresh token from Secret Manager (not Firestore)
         try {
           const previous = await loadGmailToken(uid);
-          const previousRefresh = previous?.refreshToken?.trim() || "";
+          const previousRefresh = typeof previous?.refreshToken === "string" ? previous.refreshToken.trim() : "";
           if (previousRefresh) {
             refreshToken = previousRefresh;
             console.warn(
@@ -817,7 +817,7 @@ export const syncAppointmentCalendarEvent = functions
     }
     const refreshToken = asNonEmptyString(tokenPayloadCalendar.refreshToken);
     const grantedScopes = Array.isArray(tokenPayloadCalendar.grantedScopes)
-      ? tokenPayloadCalendar.grantedScopes.filter((scope): scope is string => typeof scope === "string")
+      ? tokenPayloadCalendar.grantedScopes.filter((scope: unknown): scope is string => typeof scope === "string")
       : [];
 
     if (!refreshToken) {
@@ -951,8 +951,8 @@ export const disconnectGmailSync = functions
     // SCRUM-7: Load token from Secret Manager, revoke, then delete secret
     try {
       const existingPayload = await loadGmailToken(uid);
-      if (existingPayload?.refreshToken) {
-        await revokeGoogleToken(existingPayload.refreshToken);
+      if (typeof existingPayload?.refreshToken === "string" && existingPayload.refreshToken) {
+        await revokeGoogleToken(existingPayload.refreshToken as string);
       }
     } catch (error) {
       console.error("[disconnectGmailSync] Failed to load/revoke token:", error);
