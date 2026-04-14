@@ -56,6 +56,34 @@
         "destination": "/blog.html"
       },
       {
+        "source": "/blog/alimentos-prohibidos-perros",
+        "destination": "/blog/alimentos-prohibidos-perros/index.html"
+      },
+      {
+        "source": "/blog/cada-cuanto-banar-perro",
+        "destination": "/blog/cada-cuanto-banar-perro/index.html"
+      },
+      {
+        "source": "/blog/tu-mascota-todo-en-orden",
+        "destination": "/blog/tu-mascota-todo-en-orden/index.html"
+      },
+      {
+        "source": "/blog/vacunas-perros-argentina",
+        "destination": "/blog/vacunas-perros-argentina/index.html"
+      },
+      {
+        "source": "/blog/desparasitar-perros-cachorros",
+        "destination": "/blog/desparasitar-perros-cachorros/index.html"
+      },
+      {
+        "source": "/blog/cuanto-duerme-un-gato-adulto",
+        "destination": "/blog/cuanto-duerme-un-gato-adulto/index.html"
+      },
+      {
+        "source": "/blog/moquillo-en-perros-sintomas",
+        "destination": "/blog/moquillo-en-perros-sintomas/index.html"
+      },
+      {
         "source": "**",
         "destination": "/app.html"
       }
