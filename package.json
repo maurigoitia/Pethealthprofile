@@ -4,13 +4,17 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "dev": "npm run dev:pwa",
+    "dev:pwa": "vite",
+    "dev:landing": "node scripts/serve-landing.js",
+    "dev:blog": "node scripts/serve-blog.js",
     "build": "vite build",
-    "build:mobile": "npm run build && cp dist/app.html dist/index.html && npx cap sync",
+    "build:pwa": "vite build",
+    "build:mobile": "npm run build && cp dist/app.html dist/index.html && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npx cap sync",
     "cap:copy": "npx cap copy",
     "cap:open:android": "npx cap open android",
     "cap:open:ios": "npx cap open ios",
-    "cap:sync": "npx cap sync",
-    "dev": "vite",
+    "cap:sync": "LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 npx cap sync",
     "mobile:doctor": "npx cap doctor",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -20,7 +24,8 @@
     "e2e:debug": "playwright test --debug",
     "e2e:ui": "playwright test --ui",
     "e2e:report": "playwright show-report",
-    "prebuild": "node scripts/sync-blog.js && node scripts/sync-website.js"
+    "prebuild": "node scripts/sync-blog.js && node scripts/sync-website.js",
+    "postbuild": "node scripts/postbuild-website.js"
   },
   "dependencies": {
     "@capacitor/app": "^7.1.1",
