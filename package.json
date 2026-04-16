@@ -20,6 +20,8 @@
     "e2e:debug": "playwright test --debug",
     "e2e:ui": "playwright test --ui",
     "e2e:report": "playwright show-report",
+    "seed": "node scripts/seed-emulator.js",
+    "seed:reset": "node scripts/seed-emulator.js --reset",
     "prebuild": "node scripts/sync-blog.js && node scripts/sync-website.js"
   },
   "dependencies": {
