@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { ArrowLeft, Search, Star, MapPin, ShieldCheck, Stethoscope } from "lucide-react";
 import { db } from "../../../lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -73,6 +74,7 @@ function EmptyState() {
 }
 
 export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSpecialty, setActiveSpecialty] = useState("Todos");
   const [vets, setVets] = useState<VetProfile[]>([]);
@@ -245,7 +247,10 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
 
               {/* Action buttons */}
               <div className="flex gap-2 mt-3">
-                <button className="flex-1 border border-[#074738] text-[#074738] rounded-[10px] py-2 text-[11px] font-bold transition-all active:scale-[0.97]">
+                <button
+                  onClick={() => navigate(`/vet/${vet.id}`)}
+                  className="flex-1 border border-[#074738] text-[#074738] rounded-[10px] py-2 text-[11px] font-bold transition-all active:scale-[0.97]"
+                >
                   Ver perfil
                 </button>
                 <button className="flex-1 bg-[#074738] text-white rounded-[10px] py-2 text-[11px] font-bold shadow-[0_2px_8px_rgba(7,71,56,0.2)] transition-all active:scale-[0.97]">
