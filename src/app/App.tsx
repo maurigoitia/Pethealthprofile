@@ -1,6 +1,6 @@
 import { RouterProvider } from "react-router";
 import { Toaster } from "sonner";
-import { router } from "./routes.tsx";
+import { router } from "./routesV2.tsx";
 import { PetProvider } from "./contexts/PetContext";
 import { MedicalProvider } from "./contexts/MedicalContext";
 import { AuthProvider } from "./contexts/AuthContext";
