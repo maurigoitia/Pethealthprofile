@@ -189,6 +189,7 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/rutinas-eco", lazy: AppLayout, children: [{ index: true, lazy: lazyRouteWrapper("RutinasEcoRoute") }] }),
   withErrorBoundary({ path: "/cuidados", lazy: AppLayout, children: [{ index: true, lazy: lazyRouteWrapper("CuidadosRoute") }] }),
   withErrorBoundary({ path: "/buscar-vet", lazy: AppLayout, children: [{ index: true, lazy: lazyRouteWrapper("BuscarVetRoute") }] }),
+  withErrorBoundary({ path: "/vet/:vetId", lazy: AppLayout, children: [{ index: true, lazy: lazyRouteWrapper("VetDoctorProfileRoute") }] }),
   withErrorBoundary({ path: "/tienda", lazy: AppLayout, children: [{ index: true, lazy: lazyRouteWrapper("TiendaRoute") }] }),
 
   // ── Backward compatibility redirects ──

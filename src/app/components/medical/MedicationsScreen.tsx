@@ -483,17 +483,20 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
         {/* Header */}
         <div className={focusExperienceEnabled
           ? "px-4 pt-6 pb-6 bg-[linear-gradient(180deg,rgba(7,71,56,0.18)_0%,rgba(7,71,56,0.08)_40%,rgba(243,247,245,0)_100%)]"
-          : "bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 pt-6 pb-4"}>
+          : "bg-white border-b border-slate-100 sticky top-0 z-10 px-4 pt-6 pb-4"}>
           <div className="flex items-center gap-3 mb-4">
             <button onClick={onBack}
-              className={`size-10 rounded-full flex items-center justify-center ${focusExperienceEnabled ? "bg-white/80 dark:bg-slate-900/70 shadow-[0_2px_12px_rgba(0,0,0,0.06)]" : "bg-slate-100 dark:bg-slate-800"}`}>
-              <MaterialIcon name="arrow_back" className={`text-xl ${focusExperienceEnabled ? "text-[#074738]" : ""}`} />
+              className={`size-10 rounded-full flex items-center justify-center ${focusExperienceEnabled ? "bg-white/80 dark:bg-slate-900/70 shadow-[0_2px_12px_rgba(0,0,0,0.06)]" : "bg-[#E0F2F1]"}`}>
+              <MaterialIcon name="arrow_back" className={`text-xl ${focusExperienceEnabled ? "text-[#074738]" : "text-[#074738]"}`} />
             </button>
             <div>
               {focusExperienceEnabled && (
                 <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#074738] mb-1">Tratamientos</p>
               )}
-              <h1 className="text-2xl font-black text-slate-900 dark:text-white">
+              {!focusExperienceEnabled && (
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rutinas</p>
+              )}
+              <h1 className={`text-2xl font-black ${focusExperienceEnabled ? "text-slate-900 dark:text-white" : "text-[#074738]"}`}>
                 Tratamientos y medicación
               </h1>
               <p className={`text-sm ${focusExperienceEnabled ? "text-slate-600 dark:text-slate-300" : "text-slate-500"}`}>
@@ -510,18 +513,21 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
             </div>
           )}
 
-          <div className={`flex gap-2 p-1 ${focusExperienceEnabled ? "rounded-full bg-white/80 dark:bg-slate-900/70" : "bg-slate-100 dark:bg-slate-800 rounded-xl"}`}>
+          <div className={`flex gap-2 p-1 ${focusExperienceEnabled ? "rounded-full bg-white/80 dark:bg-slate-900/70" : "bg-[#E0F2F1] rounded-[14px]"}`}>
             {(["active", "history"] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-2.5 font-bold text-sm transition-all ${activeTab === tab
-                  ? `${focusExperienceEnabled ? "bg-[#074738] text-white rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.06)]" : "bg-white dark:bg-slate-900 text-[#074738] rounded-lg shadow-[0_2px_12px_rgba(0,0,0,0.06)]"}`
-                  : `${focusExperienceEnabled ? "text-slate-600 dark:text-slate-300 rounded-full" : "text-slate-600 dark:text-slate-400 rounded-lg"}`}`}>
-                {tab === "active" ? `Activos (${activeBaseItems.length})` : `Historial (${completedItems.length})`}
+                className={[
+                  "flex-1 py-2.5 font-semibold text-sm transition-all",
+                  activeTab === tab
+                    ? focusExperienceEnabled ? "bg-[#074738] text-white rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.06)]" : "bg-white text-[#074738] rounded-[10px] shadow-sm"
+                    : focusExperienceEnabled ? "text-slate-600 dark:text-slate-300 rounded-full" : "text-[#1A9B7D] rounded-[10px]"
+                ].join(" ")}>
+                {tab === "active" ? "Activos (" + activeBaseItems.length + ")" : "Historial (" + completedItems.length + ")"}
               </button>
             ))}
           </div>
           {activeTab === "active" && (
-            <div className={`mt-3 flex items-center justify-between border px-3 py-2 ${focusExperienceEnabled ? "rounded-[22px] border-[#074738]/10 bg-white/90 dark:border-slate-800 dark:bg-slate-900/70" : "rounded-xl border-slate-200 dark:border-slate-800 bg-[#F0FAF9] dark:bg-slate-900/70"}`}>
+            <div className={`mt-3 flex items-center justify-between border px-3 py-2 ${focusExperienceEnabled ? "rounded-[22px] border-[#074738]/10 bg-white/90 dark:border-slate-800 dark:bg-slate-900/70" : "rounded-[14px] border-[#E0F2F1] bg-[#F0FAF9]"}`}>
               <div>
                 <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Mostrar vencidos</p>
                 <p className="text-[11px] text-slate-500">{expiredItems.length} tratamiento(s) vencido(s)</p>
@@ -546,7 +552,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
         {/* List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {activeTab === "active" && reminderPills.length> 0 && (
-            <div className={`${focusExperienceEnabled ? "rounded-[24px]" : "rounded-[16px]"} bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3`}>
+            <div className={`${focusExperienceEnabled ? "rounded-[24px]" : "rounded-[16px]"} bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-3`}>
               <p className="text-[11px] font-black uppercase tracking-wide text-slate-500 mb-2">Recordatorios de hoy</p>
               <div className="flex flex-wrap gap-1.5">
                 {reminderPills.map((pill) => (
@@ -564,10 +570,10 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
 
           {shownItems.length === 0 ? (
             <div className="text-center py-16">
-              <div className="size-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MaterialIcon name="medication" className="text-4xl text-slate-400" />
+              <div className="size-20 bg-[#E0F2F1] rounded-full flex items-center justify-center mx-auto mb-4">
+                <MaterialIcon name="medication" className="text-4xl text-[#1A9B7D]" />
               </div>
-              <h3 className="font-black text-slate-900 dark:text-white mb-2">Sin registros</h3>
+              <h3 className="font-semibold text-slate-800 mb-2">Sin registros</h3>
               <p className="text-sm text-slate-500">Subí recetas y notas de tratamiento para verlos acá.</p>
             </div>
           ) : (
@@ -582,10 +588,10 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
               return (
                 <div
                   key={item.id}
-                  ref={highlightEventId === item.event.id ? highlightRef : undefined} className={`bg-white dark:bg-slate-900 rounded-[16px] border shadow-[0_2px_12px_rgba(0,0,0,0.06)] overflow-hidden transition-all ${
+                  ref={highlightEventId === item.event.id ? highlightRef : undefined} className={`bg-white rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden transition-all ${
                     highlightEventId === item.event.id
-                      ? "border-amber-400 ring-2 ring-amber-300/50"
-                      : "border-slate-200 dark:border-slate-800"
+                      ? "ring-2 ring-amber-300/50"
+                      : ""
                   }`}>
 
                   {/* Accent bar */}
@@ -601,19 +607,19 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                         <p className="text-xs text-slate-500">{item.provider}</p>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <span className={`text-[10px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full ${sc.bg} ${sc.color}`}>
+                        <span className={`text-[10px] font-semibold px-3 py-1 rounded-full ${sc.bg} ${sc.color}`}>
                           {needsReview ? "Por confirmar" : sc.label}
                         </span>
                         {/* Acciones editar / borrar */}
                         <button
                           onClick={() => setEditingItem(item)}
-                          className="size-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                          className="size-7 rounded-full bg-[#E0F2F1] flex items-center justify-center hover:bg-[#c8e6e0] transition-colors"
                           title="Editar">
-                          <MaterialIcon name="edit" className="text-sm text-slate-500" />
+                          <MaterialIcon name="edit" className="text-sm text-[#074738]" />
                         </button>
                         <button
                           onClick={() => { setDeletingItem(item); setDeleteStage("confirm"); }}
-                          className="size-7 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                          className="size-7 rounded-full bg-red-50 flex items-center justify-center hover:bg-red-100 transition-colors"
                           title="Eliminar">
                           <MaterialIcon name="delete" className="text-sm text-red-500" />
                         </button>
@@ -630,18 +636,18 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
 
                     {/* Dosis + Frecuencia */}
                     <div className="grid grid-cols-2 gap-2 mb-3">
-                      <div className="bg-[#F0FAF9] dark:bg-slate-800 rounded-xl p-3">
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Dosis</p>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white">{item.dosage}</p>
+                      <div className="bg-[#E0F2F1] rounded-[12px] p-3">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Dosis</p>
+                        <p className="text-sm font-semibold text-slate-800">{item.dosage}</p>
                       </div>
-                      <div className="bg-[#F0FAF9] dark:bg-slate-800 rounded-xl p-3">
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">Frecuencia</p>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white">{item.frequency}</p>
+                      <div className="bg-[#E0F2F1] rounded-[12px] p-3">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Frecuencia</p>
+                        <p className="text-sm font-semibold text-slate-800">{item.frequency}</p>
                       </div>
                     </div>
 
                     {/* Fechas y duración */}
-                    <div className="bg-[#F0FAF9] dark:bg-slate-800 rounded-xl p-3 mb-3 space-y-1.5">
+                    <div className="bg-[#E0F2F1] rounded-[12px] p-3 mb-3 space-y-1.5">
                       <div className="flex justify-between text-xs">
                         <span className="text-slate-400">Inicio</span>
                         <span className="font-semibold text-slate-700 dark:text-slate-300">{formatDate(item.startDate)}</span>
@@ -709,19 +715,19 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                     </div>
 
                     {(item.status === "active" || item.status === "chronic") && (
-                      <div className="mb-3 p-3 rounded-xl bg-[#F0FAF9]/70 border border-emerald-100">
+                      <div className="mb-3 p-3 rounded-[12px] bg-[#F0FAF9] border border-[#E0F2F1]">
                         <div className="flex items-center justify-between text-xs mb-2">
                           <span className="text-slate-500">Última dosis</span>
                           <span className="font-semibold text-slate-700">{formatDoseMoment(item.lastDoseAt)}</span>
                         </div>
                         <div className="flex items-center justify-between text-xs mb-3">
                           <span className="text-slate-500">Próxima dosis</span>
-                          <span className="font-bold text-[#074738]">{nextDoseLabel(item.lastDoseAt || item.startDate, item.frequency)}</span>
+                          <span className="font-semibold text-[#074738]">{nextDoseLabel(item.lastDoseAt || item.startDate, item.frequency)}</span>
                         </div>
                         {!needsReview && (
                           <button
                             onClick={() => void registerDoseNow(item)}
-                            className="w-full py-2 rounded-xl bg-[#074738] text-white text-xs font-bold hover:bg-[#245ecf] transition-colors">
+                            className="w-full py-3 rounded-[14px] bg-[#074738] text-white text-xs font-semibold active:scale-[0.97] transition-all">
                             Marcar dosis dada ahora
                           </button>
                         )}
@@ -735,7 +741,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                           <button
                             onClick={() => confirmMedicationEvent(item.event)}
                             disabled={Boolean(confirmingByEvent[item.event.id])}
-                            className="flex-1 px-3 py-2 rounded-xl bg-[#1A9B7D] text-white text-xs font-bold disabled:opacity-60">
+                            className="flex-1 px-3 py-2 rounded-[14px] bg-[#1A9B7D] text-white text-xs font-semibold disabled:opacity-60 active:scale-[0.97] transition-all">
                             {confirmingByEvent[item.event.id] ? "Confirmando..." : "Confirmar tratamiento"}
                           </button>
                         </div>
@@ -755,7 +761,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                               treatmentNotes: [...(item.event.treatmentNotes || []), note],
                             });
                           }}
-                          className="w-full mb-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1.5 hover:bg-[#F0FAF9] dark:hover:bg-slate-800 transition-colors">
+                          className="w-full mb-3 py-2.5 rounded-[14px] border border-[#E0F2F1] text-xs font-semibold text-[#074738] flex items-center justify-center gap-1.5 hover:bg-[#E0F2F1] transition-colors active:scale-[0.97]">
                           <MaterialIcon name="check_circle" className="text-sm text-slate-400" />
                           Ya no lo toma — marcar como finalizado
                         </button>
@@ -770,7 +776,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                       {isExpanded && (<div className="overflow-hidden">
                             <div className="mt-3 space-y-2">
                               {(item.event.treatmentNotes || []).map((note) => (
-                                <div key={note.id} className="p-3 rounded-xl bg-[#F0FAF9] dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+                                <div key={note.id} className="p-3 rounded-[12px] bg-[#F0FAF9] border border-[#E0F2F1]">
                                   <div className="flex items-center justify-between mb-1">
                                     <span className="text-[10px] uppercase tracking-wide font-black text-[#074738]">
                                       {NOTE_LABELS[note.interpretedAs]}
@@ -785,11 +791,11 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                                   value={draftNoteByEvent[item.event.id] || ""}
                                   onChange={(e) => setDraftNoteByEvent((prev) => ({ ...prev, [item.event.id]: e.target.value }))}
                                   placeholder="Ej: se redujo dosis por indicación veterinaria"
-                                  className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-[#074738]"
+                                  className="flex-1 px-3 py-2 rounded-[12px] border border-[#E0F2F1] bg-[#F0FAF9] text-xs focus:outline-none focus:ring-2 focus:ring-[#074738]"
                                 />
                                 <button onClick={() => saveNote(item.event)}
                                   disabled={Boolean(savingNoteByEvent[item.event.id])}
-                                  className="px-4 py-2 rounded-xl bg-[#074738] text-white text-xs font-bold disabled:opacity-60">
+                                  className="px-4 py-2 rounded-[12px] bg-[#074738] text-white text-xs font-semibold disabled:opacity-60 active:scale-[0.97] transition-all">
                                   {savingNoteByEvent[item.event.id] ? "..." : "Agregar"}
                                 </button>
                               </div>

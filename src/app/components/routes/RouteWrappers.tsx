@@ -121,6 +121,12 @@ const TiendaScreen = lazy(() =>
 const CuidadosScreen = lazy(() =>
   import("../cuidados/CuidadosScreen").then((m) => ({ default: m.CuidadosScreen }))
 );
+const ComunidadScreen = lazy(() =>
+  import("../comunidad/ComunidadScreen").then((m) => ({ default: m.ComunidadScreen }))
+);
+const VetDoctorProfile = lazy(() =>
+  import("../vet/VetDoctorProfile")
+);
 
 // ---------------------------------------------------------------------------
 // 1. HistorialRoute — Timeline + MonthSummary + ActionTray
@@ -184,18 +190,13 @@ function TratamientosRoute() {
 }
 
 // ---------------------------------------------------------------------------
-// 4. ComunidadRoute — LostPetFeed
+// 4. ComunidadRoute — ComunidadScreen (static timeline MVP)
 // ---------------------------------------------------------------------------
 
 function ComunidadRoute() {
-  const navigate = useNavigate();
-
   return (
     <Suspense fallback={<ScreenLoader label="Cargando comunidad..." />}>
-      <LostPetFeed
-        onReport={() => navigate("/comunidad/reportar")}
-        onBack={() => navigate("/inicio")}
-      />
+      <ComunidadScreen />
     </Suspense>
   );
 }
@@ -323,6 +324,19 @@ export function TiendaRoute() {
   return (
     <Suspense fallback={<div className="flex items-center justify-center h-screen bg-[#F0FAF9]"><div className="size-8 rounded-full border-2 border-[#074738] border-t-transparent animate-spin" /></div>}>
       <TiendaScreen onBack={() => navigate(-1)} />
+    </Suspense>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// VetDoctorProfileRoute
+// ---------------------------------------------------------------------------
+
+export function VetDoctorProfileRoute() {
+  const navigate = useNavigate();
+  return (
+    <Suspense fallback={<ScreenLoader label="Cargando perfil del veterinario..." />}>
+      <VetDoctorProfile onBack={() => navigate(-1)} />
     </Suspense>
   );
 }

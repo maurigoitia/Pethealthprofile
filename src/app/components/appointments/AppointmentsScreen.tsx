@@ -690,16 +690,17 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
   return (
     <div className="min-h-screen bg-[#F0FAF9] dark:bg-[#101622] flex flex-col">
       <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
-        <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 pt-6 pb-4">
+        <div className="bg-white border-b border-slate-100 sticky top-0 z-10 px-4 pt-6 pb-4">
           <div className="flex items-center gap-3 mb-4">
             <button
               onClick={onBack}
-              className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center"
+              className="size-10 rounded-full bg-[#E0F2F1] flex items-center justify-center"
             >
-              <MaterialIcon name="arrow_back" className="text-xl" />
+              <MaterialIcon name="arrow_back" className="text-xl text-[#074738]" />
             </button>
             <div className="flex-1">
-              <h1 className="text-2xl font-black text-slate-900 dark:text-white">Citas</h1>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Agenda</p>
+              <h1 className="text-2xl font-black text-[#074738]">Citas</h1>
               <p className="text-sm text-slate-500">{upcoming.length} próximas · {past.length} pasadas</p>
             </div>
             <button
@@ -710,15 +711,15 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
             </button>
           </div>
 
-          <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          <div className="flex gap-2 bg-[#E0F2F1] p-1 rounded-[14px]">
             {(["upcoming", "past"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-2.5 rounded-lg font-bold text-sm transition-all ${
+                className={`flex-1 py-2.5 rounded-[10px] font-semibold text-sm transition-all ${
                   activeTab === tab
-                    ? "bg-white dark:bg-slate-900 text-[#074738] shadow-sm"
-                    : "text-slate-600 dark:text-slate-400"
+                    ? "bg-white text-[#074738] shadow-sm"
+                    : "text-[#1A9B7D]"
                 }`}
               >
                 {tab === "upcoming" ? `Próximas (${upcoming.length})` : `Pasadas (${past.length})`}
@@ -730,10 +731,10 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {renderedAppointments.length === 0 ? (
             <div className="text-center py-16">
-              <div className="size-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MaterialIcon name="event" className="text-4xl text-slate-400" />
+              <div className="size-20 bg-[#E0F2F1] rounded-full flex items-center justify-center mx-auto mb-4">
+                <MaterialIcon name="event" className="text-4xl text-[#1A9B7D]" />
               </div>
-              <h3 className="font-black text-slate-900 dark:text-white mb-2">
+              <h3 className="font-semibold text-slate-800 mb-2">
                 {activeTab === "upcoming" ? "No hay citas próximas" : "Sin citas pasadas"}
               </h3>
               {activeTab === "upcoming" && (
@@ -744,7 +745,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
               {activeTab === "upcoming" && (
                 <button
                   onClick={() => openCreateAppointmentModal()}
-                  className="px-6 py-3 rounded-xl bg-[#074738] text-white font-bold shadow-lg shadow-[#074738]/30"
+                  className="px-6 py-3 rounded-[14px] bg-[#074738] text-white font-semibold shadow-lg shadow-[#074738]/30 active:scale-[0.97] transition-all"
                 >
                   Agendar cita
                 </button>
@@ -763,40 +764,38 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
               return (
                 <div
                   key={appointment.id}
-                  className={`bg-white dark:bg-slate-900 rounded-2xl border overflow-hidden shadow-sm ${
-                    pastAppointment
-                      ? "border-slate-100 dark:border-slate-800 opacity-70"
-                      : "border-slate-200 dark:border-slate-800"
+                  className={`bg-white rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden ${
+                    pastAppointment ? "opacity-70" : ""
                   }`}
                 >
                   <div className="h-1" style={{ backgroundColor: pastAppointment ? "#94a3b8" : typeConfig.accent }} />
 
                   <div className="p-4">
                     <div className="flex gap-4">
-                      <div className="shrink-0 w-14 flex flex-col items-center bg-slate-50 dark:bg-slate-800 rounded-xl py-2.5">
+                      <div className="shrink-0 w-14 flex flex-col items-center bg-[#E0F2F1] rounded-[12px] py-2.5">
                         <span className="text-[10px] font-black uppercase text-slate-400">{formatted.month}</span>
-                        <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">{formatted.day}</span>
+                        <span className="text-2xl font-black text-[#074738] leading-none">{formatted.day}</span>
                         <span className="text-[10px] text-slate-400">{formatted.year}</span>
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 className="font-black text-sm text-slate-900 dark:text-white leading-snug flex-1">
+                          <h3 className="font-semibold text-sm text-slate-800 leading-snug flex-1">
                             {cleanText(appointment.title)}
                           </h3>
                           {pastAppointment ? (
-                            <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full shrink-0 ${
-                              appointment.status === "completed" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                            <span className={`text-[10px] font-semibold px-3 py-1 rounded-full shrink-0 ${
+                              appointment.status === "completed" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"
                             }`}>
                               {appointment.status === "completed" ? "Completada" : "Cancelada"}
                             </span>
                           ) : (
-                            <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-full shrink-0 ${
+                            <span className={`text-[10px] font-semibold px-3 py-1 rounded-full shrink-0 ${
                               isToday
-                                ? "bg-red-100 text-red-700"
+                                ? "bg-red-50 text-red-600"
                                 : isSoon
-                                  ? "bg-amber-100 text-amber-700"
-                                  : "bg-[#074738]/10 text-[#074738]"
+                                  ? "bg-amber-50 text-amber-600"
+                                  : "bg-[#E0F2F1] text-[#074738]"
                             }`}>
                               {isToday ? "Hoy" : isTomorrow ? "Mañana" : `${daysFromNow}d`}
                             </span>
@@ -809,7 +808,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                           {appointment.time && appointment.time.trim() && (
                             <>
                               <span className="text-slate-300">·</span>
-                              <MaterialIcon name="schedule" className="text-slate-400 text-sm" />
+                              <MaterialIcon name="schedule" className="text-[#1A9B7D] text-sm" />
                               <span className="text-xs text-slate-500">{appointment.time}</span>
                             </>
                           )}
@@ -817,7 +816,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
 
                         {(appointment.veterinarian || appointment.clinic) && (
                           <div className="flex items-center gap-1.5">
-                            <MaterialIcon name="person" className="text-slate-400 text-sm" />
+                            <MaterialIcon name="person" className="text-[#1A9B7D] text-sm" />
                             <span className="text-xs text-slate-500 truncate">
                               {cleanText(appointment.veterinarian || appointment.clinic)}
                             </span>
@@ -825,8 +824,8 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                         )}
 
                         {appointment.notes && (
-                          <div className="mt-2 bg-amber-50 dark:bg-amber-950/20 rounded-lg px-3 py-2">
-                            <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
+                          <div className="mt-2 bg-amber-50 rounded-[12px] px-3 py-2">
+                            <p className="text-[11px] text-amber-600 leading-relaxed">
                               {cleanText(appointment.notes)}
                             </p>
                           </div>
@@ -841,24 +840,24 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                     </div>
 
                     {(!appointment.isVirtual) || (!pastAppointment && appointment.isVirtual) ? (
-                      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+                      <div className="mt-3 pt-3 border-t border-slate-100">
                         {appointment.isVirtual ? (
                           <div className="grid grid-cols-3 gap-2">
                             <button
                               onClick={() => handleDismissSuggestedAppointment(appointment)}
-                              className="py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs active:scale-95 transition-transform"
+                              className="py-2.5 rounded-[14px] bg-[#E0F2F1] text-[#074738] font-semibold text-xs active:scale-[0.97] transition-all"
                             >
                               Descartar
                             </button>
                             <button
                               onClick={() => handleEditSuggestedAppointment(appointment)}
-                              className="py-2.5 rounded-xl bg-amber-100 text-amber-700 font-bold text-xs active:scale-95 transition-transform"
+                              className="py-2.5 rounded-[14px] bg-amber-50 text-amber-600 font-semibold text-xs active:scale-[0.97] transition-all"
                             >
                               Editar
                             </button>
                             <button
                               onClick={() => handleAddSuggestedAppointment(appointment)}
-                              className="py-2.5 rounded-xl bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-500/25 active:scale-95 transition-transform"
+                              className="py-2.5 rounded-[14px] bg-[#1A9B7D] text-white font-semibold text-xs shadow-lg shadow-[#1A9B7D]/25 active:scale-[0.97] transition-all"
                             >
                               Agregar
                             </button>
@@ -869,19 +868,19 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                               <>
                                 <button
                                   onClick={() => addToCalendar(appointment)}
-                                  className="py-2.5 rounded-xl bg-[#074738]/10 text-[#074738] font-bold text-xs active:scale-95 transition-transform"
+                                  className="py-2.5 rounded-[14px] bg-[#E0F2F1] text-[#074738] font-semibold text-xs active:scale-[0.97] transition-all"
                                 >
                                   Calendario
                                 </button>
                                 <button
                                   onClick={() => handleCancel(appointment)}
-                                  className="py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs active:scale-95 transition-transform"
+                                  className="py-2.5 rounded-[14px] bg-[#E0F2F1] text-[#074738] font-semibold text-xs active:scale-[0.97] transition-all"
                                 >
                                   Cancelar
                                 </button>
                                 <button
                                   onClick={() => handleComplete(appointment)}
-                                  className="py-2.5 rounded-xl bg-[#074738] text-white font-bold text-xs shadow-lg shadow-[#074738]/25 active:scale-95 transition-transform"
+                                  className="py-2.5 rounded-[14px] bg-[#074738] text-white font-semibold text-xs shadow-lg shadow-[#074738]/25 active:scale-[0.97] transition-all"
                                 >
                                   Completada
                                 </button>
@@ -889,7 +888,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                             )}
                             <button
                               onClick={() => handleDelete(appointment)}
-                              className="py-2.5 rounded-xl bg-red-100 text-red-700 font-bold text-xs active:scale-95 transition-transform"
+                              className="py-2.5 rounded-[14px] bg-red-50 text-red-600 font-semibold text-xs active:scale-[0.97] transition-all"
                             >
                               Eliminar
                             </button>
@@ -904,10 +903,10 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
           )}
         </div>
 
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <div className="p-4 border-t border-slate-100 bg-white">
           <button
             onClick={() => openCreateAppointmentModal()}
-            className="w-full py-4 rounded-xl bg-[#074738] text-white font-bold shadow-lg shadow-[#074738]/30 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            className="w-full py-4 rounded-[14px] bg-[#074738] text-white font-semibold shadow-lg shadow-[#074738]/30 flex items-center justify-center gap-2 active:scale-[0.97] transition-all"
           >
             <MaterialIcon name="add_circle" className="text-xl" />
             Agendar nueva cita
