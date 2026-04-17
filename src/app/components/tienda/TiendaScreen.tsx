@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, UtensilsCrossed, ShoppingBag, Pill, Star } from "lucide-react";
 import { collection, addDoc } from "firebase/firestore";
-import { db } from "../../firebase";
+import { db } from "../../../lib/firebase";
 
 interface TiendaScreenProps {
   onBack: () => void;
