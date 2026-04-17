@@ -112,6 +112,15 @@ const IdentidadScreen = lazy(() =>
 const VetSearchScreen = lazy(() =>
   import("../vet/VetSearchScreen").then((m) => ({ default: m.VetSearchScreen }))
 );
+const RutinasScreen = lazy(() =>
+  import("../rutinas/RutinasScreen").then((m) => ({ default: m.RutinasScreen }))
+);
+const TiendaScreen = lazy(() =>
+  import("../tienda/TiendaScreen").then((m) => ({ default: m.TiendaScreen }))
+);
+const CuidadosScreen = lazy(() =>
+  import("../cuidados/CuidadosScreen").then((m) => ({ default: m.CuidadosScreen }))
+);
 
 // ---------------------------------------------------------------------------
 // 1. HistorialRoute — Timeline + MonthSummary + ActionTray
@@ -275,11 +284,21 @@ function IdentidadRoute() {
 }
 
 function RutinasEcoRoute() {
-  return <ComingSoon title="Rutinas" />;
+  const navigate = useNavigate();
+  return (
+    <Suspense fallback={<ScreenLoader label="Cargando rutinas..." />}>
+      <RutinasScreen onBack={() => navigate(-1)} />
+    </Suspense>
+  );
 }
 
 function CuidadosRoute() {
-  return <ComingSoon title="Cuidados" />;
+  const navigate = useNavigate();
+  return (
+    <Suspense fallback={<ScreenLoader label="Cargando bienestar..." />}>
+      <CuidadosScreen onBack={() => navigate(-1)} />
+    </Suspense>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -291,6 +310,19 @@ function BuscarVetRoute() {
   return (
     <Suspense fallback={<ScreenLoader label="Cargando veterinarios..." />}>
       <VetSearchScreen onBack={() => navigate("/inicio")} />
+    </Suspense>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TiendaRoute — TiendaScreen
+// ---------------------------------------------------------------------------
+
+export function TiendaRoute() {
+  const navigate = useNavigate();
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen bg-[#F0FAF9]"><div className="size-8 rounded-full border-2 border-[#074738] border-t-transparent animate-spin" /></div>}>
+      <TiendaScreen onBack={() => navigate(-1)} />
     </Suspense>
   );
 }
