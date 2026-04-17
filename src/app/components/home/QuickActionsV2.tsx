@@ -87,7 +87,7 @@ export function QuickActionsV2({
         <ActionButton
           icon={<MapPin size={20} strokeWidth={1.8} />}
           label="Buscar veterinaria"
-          onClick={() => navigate("/explorar")}
+          onClick={() => navigate("/buscar-vet")}
           iconBg="bg-[#FEF3C7]"
           iconColor="text-[#D97706]"
         />

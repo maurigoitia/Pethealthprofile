@@ -14,6 +14,7 @@ export default function VetDashboard() {
   const [tab, setTab] = useState<"home"|"patients"|"profile">("home");
   const [vp, setVp] = useState<VP|null>(null); const [cons, setCons] = useState<CS[]>([]); const [stats, setStats] = useState({today:0,pending:0,patients:0});
   const [loadingData, setLoadingData] = useState(true); const [selCon, setSelCon] = useState<string|null>(null);
+  const [consultationTab, setConsultationTab] = useState<"pending"|"in_progress"|"completed">("pending");
   useEffect(() => { if(!user) return; (async()=>{ try {
     const ps = await getDoc(doc(db,"vetProfiles",user.uid)); if(ps.exists()) setVp(ps.data() as VP);
     const snap = await getDocs(query(collection(db,"consultations"),where("vetId","==",user.uid),orderBy("createdAt","desc"),limit(10)));
@@ -46,14 +47,69 @@ export default function VetDashboard() {
         <button onClick={()=>setTab("patients")} className="bg-white rounded-[16px] p-5 text-left shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-[rgba(0,0,0,0.04)] active:translate-y-[-1px] transition-all duration-150 min-h-[140px] flex flex-col justify-center items-center gap-3"><div className="size-12 rounded-2xl bg-[#E0F2F1] flex items-center justify-center"><span className="material-symbols-outlined text-[#074738]" aria-hidden="true" style={{fontSize:"24px"}}>pets</span></div><div className="text-center"><p className="font-bold text-slate-900 text-sm">Mis pacientes</p><p className="text-slate-500 text-xs mt-0.5">Ver historial</p></div></button>
         <button onClick={()=>navigate("/vet/new-consultation")} className="bg-[#074738] rounded-[16px] p-5 text-left shadow-[0_4px_12px_rgba(7,71,56,0.3)] active:scale-[0.97] transition-all duration-150 min-h-[140px] flex flex-col justify-center items-center gap-3"><div className="size-12 rounded-2xl bg-white/10 flex items-center justify-center"><span className="material-symbols-outlined text-[#1A9B7D]" aria-hidden="true" style={{fontSize:"24px"}}>add_circle</span></div><div className="text-center"><p className="font-bold text-white text-sm">Nueva consulta</p><p className="text-white/60 text-xs mt-0.5">Registrar atención</p></div></button>
       </div></div>
-      <div className="px-5 mt-6"><div className="flex items-center justify-between mb-3"><h2 className="text-lg font-black text-slate-900" style={{fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Consultas recientes</h2><button onClick={()=>setTab("patients")} className="text-[#074738] text-sm font-bold">Ver todas</button></div>
-        {loadingData ? <div className="bg-white rounded-[16px] p-6 text-center border border-slate-100"><div className="mx-auto size-8 rounded-full border-3 border-[#074738]/20 border-t-[#074738] animate-spin"/></div>
-        : cons.length===0 ? <div className="bg-white rounded-[16px] p-8 text-center border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)]"><span className="material-symbols-outlined text-slate-300 mb-3" aria-hidden="true" style={{fontSize:"48px"}}>clinical_notes</span><h3 className="font-bold text-slate-900 mb-1">Sin consultas aún</h3><p className="text-slate-500 text-sm mb-4">Comenzá registrando tu primera consulta.</p><button onClick={()=>navigate("/vet/new-consultation")} className="px-5 py-2.5 rounded-[12px] bg-[#074738] text-white font-bold text-sm">Crear consulta</button></div>
-        : <div className="space-y-3">{cons.map(c=>(
-          <button key={c.id} onClick={()=>setSelCon(c.id)} className="w-full bg-white rounded-[16px] p-4 text-left border border-[rgba(0,0,0,0.04)] shadow-[0_2px_8px_rgba(0,0,0,0.04)] active:translate-y-[-1px] transition-all duration-150">
-            <div className="flex items-start justify-between"><div className="flex-1"><div className="flex items-center gap-2 mb-1"><span className="material-symbols-outlined text-[#074738]" aria-hidden="true" style={{fontSize:"18px"}}>pets</span><p className="font-bold text-slate-900 text-sm">{c.petName}</p></div><p className="text-slate-500 text-xs">Tutor: {c.tutorName}</p><p className="text-slate-600 text-xs mt-1">{c.reason}</p></div><span className={`px-2 py-1 rounded-full text-[10px] font-bold ${sc[c.status]}`}>{sl[c.status]}</span></div>
-          </button>
-        ))}</div>}
+      <div className="px-5 mt-6">
+        <h2 className="text-lg font-black text-slate-900 mb-3" style={{fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Consultas recientes</h2>
+        {/* Tab pills */}
+        <div className="flex gap-2 mb-4 bg-white rounded-[12px] p-1 border border-slate-100">
+          {(["pending","in_progress","completed"] as const).map(t=>{
+            const labels:{[k:string]:string}={pending:"Pendientes",in_progress:"En curso",completed:"Completadas"};
+            const pendingCount = cons.filter(c=>c.status==="pending").length;
+            const isActive = consultationTab===t;
+            return (
+              <button key={t} onClick={()=>setConsultationTab(t)} className={`flex-1 py-2 relative flex items-center justify-center gap-1 rounded-[10px] text-[11px] font-black uppercase tracking-wide transition-all ${isActive?"bg-[#074738] text-white":"text-slate-400"}`}>
+                {labels[t]}
+                {t==="pending" && pendingCount>0 && (
+                  <span className={`inline-flex items-center justify-center size-4 rounded-full text-[9px] font-black ${isActive?"bg-[#1A9B7D] text-white":"bg-[#1A9B7D] text-white"}`}>{pendingCount}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        {(()=>{
+          const filteredCons = cons.filter(c=>c.status===consultationTab);
+          const tabLabel:{[k:string]:string}={pending:"pendientes",in_progress:"en curso",completed:"completadas"};
+          if(loadingData) return <div className="bg-white rounded-[16px] p-6 text-center border border-slate-100"><div className="mx-auto size-8 rounded-full border-3 border-[#074738]/20 border-t-[#074738] animate-spin"/></div>;
+          if(filteredCons.length===0) return (
+            <div className="bg-white rounded-[16px] p-8 text-center border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
+              <span className="material-symbols-outlined text-slate-300 mb-3" aria-hidden="true" style={{fontSize:"48px"}}>clinical_notes</span>
+              <h3 className="font-bold text-slate-900 mb-1">Sin consultas {tabLabel[consultationTab]}</h3>
+              <p className="text-slate-500 text-sm">Las consultas {tabLabel[consultationTab]} de tus pacientes aparecerán acá.</p>
+            </div>
+          );
+          return (
+            <div className="space-y-3">
+              {filteredCons.map(c=>(
+                <button key={c.id} onClick={()=>setSelCon(c.id)} className="w-full bg-white rounded-[16px] p-4 text-left border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] active:scale-[0.97] transition-all">
+                  <div className="flex items-start gap-3">
+                    <div className="size-11 rounded-full bg-[#E0F2F1] flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[#074738]" style={{fontSize:"20px"}}>pets</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-slate-900 text-sm">{c.petName}</p>
+                      <p className="text-[11px] text-slate-400 font-medium">Tutor: {c.tutorName}</p>
+                      <p className="text-xs text-slate-600 mt-1 truncate">{c.reason}</p>
+                      {c.createdAt && (
+                        <div className="flex items-center gap-1 mt-2">
+                          <div className="flex items-center gap-1 bg-[#F0FAF9] border border-[#E0F2F1] rounded-full px-2 py-0.5">
+                            <span className="material-symbols-outlined text-[#1A9B7D]" style={{fontSize:"10px"}}>calendar_today</span>
+                            <span className="text-[10px] font-bold text-[#074738]">{new Date(c.createdAt).toLocaleDateString("es-AR",{day:"numeric",month:"short"})}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${sc[c.status]}`}>{sl[c.status]}</span>
+                      <span className="material-symbols-outlined text-slate-300" style={{fontSize:"16px"}}>chevron_right</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+              <div className="flex justify-end pt-1">
+                <button onClick={()=>setTab("patients")} className="text-[#074738] text-sm font-bold">Ver todas ({filteredCons.length})</button>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div><VetBottomNav currentTab={tab} onTabChange={setTab}/></div>
   );

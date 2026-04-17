@@ -58,7 +58,7 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
     }
   };
 
-  const menuItems = [
+  const accountItems = [
     {
       icon: "group",
       title: "Co-tutores",
@@ -77,6 +77,9 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
       subtitle: "Gestionar alertas y recordatorios",
       onClick: () => setCurrentScreen("notifications"),
     },
+  ];
+
+  const configItems = [
     {
       icon: "lock",
       title: "Privacidad y seguridad",
@@ -220,33 +223,104 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
           <StorageUsageWidget />
         </div>
 
-        {/* Menu Items */}
-        <div
-          className="px-6 space-y-3"
-        >
-          {menuItems.map((item, index) => (
-            <button
-              key={index}
-              onClick={item.onClick}
-              className="w-full bg-white dark:bg-slate-900 rounded-[16px] p-4 flex items-center gap-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-slate-800"
-            >
-              <div className="size-10 rounded-lg bg-[#074738]/10 text-[#074738] flex items-center justify-center shrink-0">
-                <MaterialIcon name={item.icon} className="text-xl" />
+        {/* Menu Sections */}
+        <div className="px-6 space-y-6">
+          {/* Section: Tu Cuenta */}
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 mb-2">
+              Tu Cuenta
+            </p>
+            <div className="bg-white dark:bg-slate-900 rounded-[16px] overflow-hidden border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-slate-800">
+              {accountItems.map((item, index) => (
+                <button
+                  key={index}
+                  onClick={item.onClick}
+                  className={`w-full p-4 flex items-center gap-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 active:bg-slate-100${index < accountItems.length - 1 ? " border-b border-slate-100 dark:border-slate-800" : ""}`}
+                >
+                  <div className="size-10 rounded-xl bg-[#074738]/10 text-[#074738] flex items-center justify-center shrink-0">
+                    <MaterialIcon name={item.icon} className="text-xl" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-bold text-sm text-slate-900 dark:text-white">
+                      {item.title}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {item.subtitle}
+                    </p>
+                  </div>
+                  <MaterialIcon name="chevron_right" className="text-slate-400 text-xl" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Section: Mascota */}
+          {pets.length > 0 && (
+            <div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 mb-2">
+                Mascota
+              </p>
+              <div className="bg-white dark:bg-slate-900 rounded-[16px] overflow-hidden border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-slate-800">
+                {pets.map((pet, index) => (
+                  <button
+                    key={pet.id ?? index}
+                    onClick={() => navigate("/historial")}
+                    className={`w-full p-4 flex items-center gap-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 active:bg-slate-100${index < pets.length - 1 ? " border-b border-slate-100 dark:border-slate-800" : ""}`}
+                  >
+                    {pet.photoURL ? (
+                      <img
+                        src={pet.photoURL}
+                        alt={pet.name}
+                        className="size-10 rounded-full object-cover shrink-0"
+                      />
+                    ) : (
+                      <div className="size-10 rounded-xl bg-[#1A9B7D]/10 text-[#1A9B7D] flex items-center justify-center shrink-0">
+                        <MaterialIcon name="pets" className="text-xl" />
+                      </div>
+                    )}
+                    <div className="flex-1 text-left">
+                      <p className="font-bold text-sm text-slate-900 dark:text-white">
+                        {pet.name}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Ver historial
+                      </p>
+                    </div>
+                    <MaterialIcon name="chevron_right" className="text-slate-400 text-xl" />
+                  </button>
+                ))}
               </div>
-              <div className="flex-1 text-left">
-                <p className="font-bold text-sm text-slate-900 dark:text-white">
-                  {item.title}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {item.subtitle}
-                </p>
-              </div>
-              <MaterialIcon
-                name="chevron_right"
-                className="text-slate-400 text-xl"
-              />
-            </button>
-          ))}
+            </div>
+          )}
+
+          {/* Section: Configuración */}
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 mb-2">
+              Configuración
+            </p>
+            <div className="bg-white dark:bg-slate-900 rounded-[16px] overflow-hidden border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:border-slate-800">
+              {configItems.map((item, index) => (
+                <button
+                  key={index}
+                  onClick={item.onClick}
+                  className={`w-full p-4 flex items-center gap-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 active:bg-slate-100${index < configItems.length - 1 ? " border-b border-slate-100 dark:border-slate-800" : ""}`}
+                >
+                  <div className="size-10 rounded-xl bg-[#074738]/10 text-[#074738] flex items-center justify-center shrink-0">
+                    <MaterialIcon name={item.icon} className="text-xl" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-bold text-sm text-slate-900 dark:text-white">
+                      {item.title}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {item.subtitle}
+                    </p>
+                  </div>
+                  <MaterialIcon name="chevron_right" className="text-slate-400 text-xl" />
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Logout Button */}
