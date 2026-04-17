@@ -5,7 +5,7 @@ import { useMedical } from "../../contexts/MedicalContext";
 import { useGamification } from "../../contexts/GamificationContext";
 import { usePet, type PetPreferences } from "../../contexts/PetContext";
 import { toTimestampSafe } from "../../utils/dateUtils";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { useAuth } from "../../contexts/AuthContext";
 import { PetPhoto } from "./PetPhoto";
@@ -28,7 +28,7 @@ import DailyHookCard from "../home/DailyHookCard";
 import HealthPulse from "../home/HealthPulse";
 import RoutineChecklist from "../home/RoutineChecklist";
 import ProfileNudge from "../home/ProfileNudge";
-import QuickActions from "../home/QuickActions";
+import { QuickActionsV2 } from "../home/QuickActionsV2";
 import PessyTip, { SectionTitle } from "../home/PessyTip";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -314,6 +314,7 @@ export function PetHomeView({
   });
   const [nudgedBreed, setNudgedBreed] = useState(false);
   const [checkedRoutineItems, setCheckedRoutineItems] = useState<string[]>(() => activePetId ? loadCheckedItemsLocal(activePetId) : []);
+  const [pendingReviewCount, setPendingReviewCount] = useState(0);
 
   const { getEventsByPetId, getActiveMedicationsByPetId, getAppointmentsByPetId } = useMedical();
   const gamification = useGamification();
@@ -681,6 +682,18 @@ export function PetHomeView({
     };
   }, []);
 
+  // ─── Pending email reviews (real-time) ──────────────────────────────────────
+  useEffect(() => {
+    if (!activePetId) { setPendingReviewCount(0); return; }
+    const q = query(
+      collection(db, "pending_reviews"),
+      where("petId", "==", activePetId),
+      where("status", "==", "pending"),
+    );
+    const unsub = onSnapshot(q, (snap) => setPendingReviewCount(snap.size), () => setPendingReviewCount(0));
+    return unsub;
+  }, [activePetId]);
+
   // ─── Medical counts ─────────────────────────────────────────────────────────
   const appointmentCount = upcomingAppointments.length;
   const medicationCount = activeMedications.length;
@@ -764,6 +777,15 @@ export function PetHomeView({
             lastVetVisitDaysAgo={medicalHistoryInputs.lastVetVisitDaysAgo}
             recurringConditions={medicalHistoryInputs.recurringConditions || []}
             upcomingAppointments={upcomingAppointments.length}
+          />
+        </div>
+
+        {/* 3a. QUICK ACTIONS — always visible, action-oriented */}
+        <div className="mt-3">
+          <QuickActionsV2
+            pendingReviewCount={pendingReviewCount}
+            upcomingAppointments={appointmentCount}
+            activeMedications={medicationCount}
           />
         </div>
 
@@ -852,22 +874,7 @@ export function PetHomeView({
           </div>
         ) : null}
 
-        {/* 6. QUICK ACTIONS - only if pet has medical data */}
-        {(appointmentCount > 0 || medicationCount > 0 || historyCount > 0) && (
-          <>
-            <SectionTitle>Servicios</SectionTitle>
-            <QuickActions
-              appointments={appointmentCount}
-              medications={medicationCount}
-              historyCount={historyCount}
-              onAppointmentsClick={onAppointmentsClick}
-              onMedicationsClick={onMedicationsClick}
-              onHistoryClick={onViewHistory}
-            />
-          </>
-        )}
-
-        {/* 7. PESSY TE DICE — single critical alert only */}
+        {/* 6. PESSY TE DICE — single critical alert only */}
         {criticalAlert && (
           <>
             <SectionTitle>Pessy te dice</SectionTitle>

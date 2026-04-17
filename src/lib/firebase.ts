@@ -1,8 +1,8 @@
 import { getApps, initializeApp } from "firebase/app";
-import { browserLocalPersistence, getAuth, setPersistence } from "firebase/auth";
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
+import { browserLocalPersistence, connectAuthEmulator, getAuth, setPersistence } from "firebase/auth";
+import { connectFirestoreEmulator, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getFunctions } from "firebase/functions";
+import { connectFunctionsEmulator, getFunctions } from "firebase/functions";
 import { getMessaging, isSupported } from "firebase/messaging";
 
 // SEC-001 FIX: Toda la Firebase config viene de variables de entorno VITE_*.
@@ -55,6 +55,22 @@ export const db = initializeFirestore(app, {
 });
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
+
+// ─── Firebase Local Emulators ────────────────────────────────────────────────
+// Set VITE_USE_FIREBASE_EMULATORS=true in .env.local to connect to emulators.
+// Android Emulator routes host's localhost via 10.0.2.2 — detect via Capacitor.
+if (import.meta.env.VITE_USE_FIREBASE_EMULATORS === "true") {
+  const isAndroidEmulator =
+    typeof (window as any)?.Capacitor !== "undefined" &&
+    (window as any).Capacitor?.getPlatform?.() === "android";
+  const emulatorHost = isAndroidEmulator ? "10.0.2.2" : "127.0.0.1";
+
+  connectAuthEmulator(auth, `http://${emulatorHost}:9099`, { disableWarnings: false });
+  connectFirestoreEmulator(db, emulatorHost, 8080);
+  connectFunctionsEmulator(functions, emulatorHost, 5001);
+
+  console.info(`[firebase] 🔧 Emuladores activos — host: ${emulatorHost}`);
+}
 
 // Persistencia de sesión estable para demo local/web.
 void setPersistence(auth, browserLocalPersistence).catch((error) => {
