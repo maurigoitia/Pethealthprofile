@@ -74,9 +74,9 @@ export default defineConfig({
         globIgnores: ['**/vendor-heic*.js'],
         // SPA fallback — serve app.html for all navigation requests
         // so React Router handles client-side routing.
-        // index.html is the React SPA entry point (Vite default output).
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/offline\.html$/],
+        // app.html is the SPA entry point; index.html is the landing page.
+        navigateFallback: '/app.html',
+        navigateFallbackDenylist: [/^\/api\//, /^\/offline\.html$/, /^\/blog/, /^\/team\//],
         runtimeCaching: [
           {
             urlPattern: /vendor-heic.*\.js$/i,
