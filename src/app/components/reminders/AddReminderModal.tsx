@@ -110,7 +110,7 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
 
         {/* Header */}
         <div className="px-5 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
-          <div className={`size-10 rounded-xl flex items-center justify-center ${selectedType.bg}`}>
+          <div className={`size-10 rounded-[12px] flex items-center justify-center ${selectedType.bg}`}>
             <MaterialIcon name={selectedType.icon} className={`text-xl ${selectedType.color}`} />
           </div>
           <div className="flex-1">
@@ -130,7 +130,7 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
               {TYPE_OPTIONS.map(opt => (
                 <button key={opt.id}
                   onClick={() => { setType(opt.id); suggestDate(opt.id); }}
-                  className={`p-3 rounded-2xl border-2 flex flex-col items-center gap-1.5 transition-all ${
+                  className={`p-3 rounded-[16px] border-2 flex flex-col items-center gap-1.5 transition-all ${
                     type === opt.id
                       ? `border-current ${opt.bg} ${opt.color}`
                       : "border-slate-200 dark:border-slate-700 text-slate-500"
@@ -151,7 +151,7 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
               onChange={e => setTitle(e.target.value)}
               onFocus={autoTitle}
               placeholder={`Ej: ${selectedType.label} de ${activePet?.name || "tu mascota"}`}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-[#F0FAF9] dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-sm font-medium focus:outline-none focus:border-[#1A9B7D]"
+              className="w-full px-4 py-3 rounded-[12px] border border-slate-200 dark:border-slate-700 bg-[#F0FAF9] dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-sm font-medium focus:outline-none focus:border-[#1A9B7D]"
             />
           </div>
 
@@ -161,14 +161,14 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
               <p className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">Fecha *</p>
               <input type="date" value={dueDate} min={today}
                 onChange={e => setDueDate(e.target.value)}
-                className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-[#F0FAF9] dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#1A9B7D]"
+                className="w-full px-3 py-3 rounded-[12px] border border-slate-200 dark:border-slate-700 bg-[#F0FAF9] dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#1A9B7D]"
               />
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">Hora (opcional)</p>
               <input type="time" value={dueTime}
                 onChange={e => setDueTime(e.target.value)}
-                className="w-full px-3 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-[#F0FAF9] dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#1A9B7D]"
+                className="w-full px-3 py-3 rounded-[12px] border border-slate-200 dark:border-slate-700 bg-[#F0FAF9] dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-[#1A9B7D]"
               />
             </div>
           </div>
@@ -179,7 +179,7 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
             <div className="flex gap-2 flex-wrap">
               {REPEAT_OPTIONS.map(opt => (
                 <button key={opt.id} onClick={() => setRepeat(opt.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
                     repeat === opt.id
                       ? "bg-[#1A9B7D] text-white"
                       : "bg-[#E0F2F1] dark:bg-slate-800 text-slate-600 dark:text-slate-400"
@@ -195,12 +195,12 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
             <p className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2">Notas (opcional)</p>
             <textarea rows={2} value={notes} onChange={e => setNotes(e.target.value)}
               placeholder="Ej: Llevar carnet de vacunación"
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-[#F0FAF9] dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-sm resize-none focus:outline-none focus:border-[#1A9B7D]"
+              className="w-full px-4 py-3 rounded-[12px] border border-slate-200 dark:border-slate-700 bg-[#F0FAF9] dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 text-sm resize-none focus:outline-none focus:border-[#1A9B7D]"
             />
           </div>
 
           {/* Notificación */}
-          <div className="flex items-center justify-between py-3 px-4 bg-[#F0FAF9] dark:bg-slate-800 rounded-xl">
+          <div className="flex items-center justify-between py-3 px-4 bg-[#F0FAF9] dark:bg-slate-800 rounded-[16px]">
             <div className="flex items-center gap-3">
               <MaterialIcon name="notifications" className="text-[#1A9B7D] text-xl" />
               <div>
@@ -222,7 +222,7 @@ export function AddReminderModal({ isOpen, onClose }: AddReminderModalProps) {
         {/* Botón guardar */}
         <div className="px-5 pb-8 pt-3 border-t border-slate-100 dark:border-slate-800">
           <button onClick={handleSave} disabled={saving}
-            className="w-full h-14 rounded-[16px] bg-[#1A9B7D] text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-[#1A9B7D]/25 disabled:opacity-60 active:scale-[0.98] transition-transform">
+            className="w-full h-14 rounded-[14px] bg-[#1A9B7D] text-white font-bold text-base flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(26,155,125,0.3)] disabled:opacity-60 active:scale-[0.97] transition-all">
             {saving
               ? <><div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>Guardando...</span></>
               : <><MaterialIcon name="check_circle" className="text-xl" /><span>Guardar recordatorio</span></>}
