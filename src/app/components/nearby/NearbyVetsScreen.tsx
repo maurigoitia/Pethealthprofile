@@ -185,7 +185,7 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
                 Habilitá el acceso a la ubicación para encontrar veterinarias cercanas
               </p>
               <button onClick={searchInMaps}
-                className="px-6 py-3 rounded-[14px] bg-[#1A9B7D] text-white font-bold shadow-lg shadow-[#1A9B7D]/30">
+                className="px-6 py-3 rounded-[14px] bg-[#1A9B7D] text-white font-bold shadow-[0_4px_12px_rgba(26,155,125,0.3)] active:scale-[0.97] transition-all">
                 Buscar en Google Maps
               </button>
             </div>
@@ -208,11 +208,11 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
               </p>
               <div className="flex gap-3 justify-center">
                 <button onClick={requestLocation}
-                  className="px-5 py-3 rounded-[14px] border-2 border-[#1A9B7D] text-[#1A9B7D] font-bold">
+                  className="px-5 py-3 rounded-[14px] border-2 border-[#1A9B7D] text-[#1A9B7D] font-bold active:scale-[0.97] transition-all">
                   Reintentar
                 </button>
                 <button onClick={searchInMaps}
-                  className="px-5 py-3 rounded-[14px] bg-[#1A9B7D] text-white font-bold shadow-lg shadow-[#1A9B7D]/30">
+                  className="px-5 py-3 rounded-[14px] bg-[#1A9B7D] text-white font-bold shadow-[0_4px_12px_rgba(26,155,125,0.3)] active:scale-[0.97] transition-all">
                   Abrir Maps
                 </button>
               </div>
@@ -267,12 +267,12 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
 
                     <div className="flex gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
                       <button onClick={() => callVet(vet)}
-                        className="flex-1 py-2.5 rounded-[12px] bg-[#E0F2F1] dark:bg-slate-800 text-[#074738] dark:text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-transform">
+                        className="flex-1 py-2.5 rounded-[12px] bg-[#E0F2F1] dark:bg-slate-800 text-[#074738] dark:text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-[0.97] transition-all">
                         <MaterialIcon name="phone" className="text-sm" />
                         Llamar
                       </button>
                       <button onClick={() => openInMaps(vet)}
-                        className="flex-1 py-2.5 rounded-[12px] bg-[#1A9B7D] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-[#1A9B7D]/25 active:scale-95 transition-transform">
+                        className="flex-1 py-2.5 rounded-[12px] bg-[#1A9B7D] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-[0_4px_12px_rgba(26,155,125,0.3)] active:scale-[0.97] transition-all">
                         <MaterialIcon name="directions" className="text-sm" />
                         Cómo llegar
                       </button>
@@ -283,7 +283,7 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
 
               {/* Botón ver más en Maps */}
               <button onClick={searchInMaps}
-                className="w-full py-3 rounded-[14px] border-2 border-[#E0F2F1] dark:border-slate-700 text-[#074738] dark:text-slate-400 font-bold text-sm flex items-center justify-center gap-2">
+                className="w-full py-3 rounded-[14px] border-2 border-[#E0F2F1] dark:border-slate-700 text-[#074738] dark:text-slate-400 font-bold text-sm flex items-center justify-center gap-2 active:scale-[0.97] transition-all">
                 <MaterialIcon name="open_in_new" className="text-sm" />
                 Ver más en Google Maps
               </button>

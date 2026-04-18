@@ -307,9 +307,9 @@ export function WellbeingProtocolPreviewScreen() {
   }));
 
   return (
-    <div className="min-h-screen bg-[#f5f7f8] text-slate-900">
+    <div className="min-h-screen bg-[#F0FAF9] text-slate-900">
       <div className="mx-auto flex min-h-screen max-w-md flex-col px-4 pb-10 pt-6">
-        <div className="rounded-[28px] bg-gradient-to-br from-[#074738] via-[#0c5e4b] to-[#159a79] p-5 text-white shadow-[0_24px_60px_rgba(7,71,56,0.28)]">
+        <div className="rounded-[16px] bg-gradient-to-br from-[#074738] via-[#0c5e4b] to-[#159a79] p-5 text-white shadow-[0_4px_12px_rgba(26,155,125,0.3)]">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/70">
@@ -320,13 +320,13 @@ export function WellbeingProtocolPreviewScreen() {
                 {PREVIEW_INPUT.profile.name} · {PREVIEW_INPUT.profile.breed} · {activityHeadline.badge}
               </p>
             </div>
-            <div className="rounded-2xl bg-white/14 px-3 py-2 text-right backdrop-blur">
+            <div className="rounded-[16px] bg-white/14 px-3 py-2 text-right backdrop-blur">
               <p className="text-[11px] uppercase tracking-[0.2em] text-white/60">Hoy</p>
               <p className="text-2xl font-semibold">{adherenceScore} de 100</p>
             </div>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+          <div className="mt-5 rounded-[16px] border border-white/15 bg-white/10 p-4 backdrop-blur">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 rounded-full bg-amber-300/20 p-2 text-amber-100">
                 <MaterialIcon name="warning" className="text-lg" />
@@ -348,7 +348,7 @@ export function WellbeingProtocolPreviewScreen() {
             {(["activity", "assistance", "attention"] as WellbeingRoutineKind[]).map((kind) => {
               const status = eligibility.byRoutineKind[kind].status;
               return (
-                <div key={kind} className="rounded-2xl bg-white/10 p-3 backdrop-blur">
+                <div key={kind} className="rounded-[16px] bg-white/10 p-3 backdrop-blur">
                   <p className="text-[11px] uppercase tracking-[0.2em] text-white/60">
                     {TASK_KIND_META[kind].label}
                   </p>
@@ -361,13 +361,13 @@ export function WellbeingProtocolPreviewScreen() {
           </div>
         </div>
 
-        <section className="mt-5 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="mt-5 rounded-[16px] border border-slate-200 bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Vista home</p>
               <h2 className="mt-1 text-xl font-semibold text-slate-900">Rutinas sugeridas</h2>
             </div>
-            <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+            <div className="rounded-full bg-[#E0F2F1] px-3 py-1 text-xs font-medium text-slate-600">
               Thor
             </div>
           </div>
@@ -379,7 +379,7 @@ export function WellbeingProtocolPreviewScreen() {
               return (
                 <div
                   key={task.id}
-                  className={`rounded-2xl border p-4 transition ${
+                  className={`rounded-[16px] border p-4 transition ${
                     task.blocked
                       ? "border-rose-200 bg-rose-50"
                       : isDone
@@ -407,10 +407,10 @@ export function WellbeingProtocolPreviewScreen() {
                       <button
                         type="button"
                         onClick={() => toggleTask(task.id)}
-                        className={`rounded-full px-3 py-2 text-xs font-semibold transition ${
+                        className={`rounded-[14px] px-3 py-2 text-xs font-semibold transition active:scale-[0.97] transition-all ${
                           isDone
                             ? "bg-emerald-600 text-white"
-                            : "bg-slate-900 text-white hover:bg-slate-800"
+                            : "bg-[#074738] text-white hover:bg-[#0a5a48] shadow-[0_4px_12px_rgba(26,155,125,0.3)]"
                         }`}
                       >
                         {isDone ? "Hecho" : "Marcar"}
@@ -419,13 +419,13 @@ export function WellbeingProtocolPreviewScreen() {
                   </div>
 
                   {task.blocked && task.blockedReason ? (
-                    <div className="mt-3 rounded-xl bg-white/80 p-3 text-sm text-rose-700">
+                    <div className="mt-3 rounded-[16px] bg-white/80 p-3 text-sm text-rose-700">
                       {task.blockedReason}
                     </div>
                   ) : null}
 
                   {isDone ? (
-                    <div className="mt-4 rounded-xl bg-white/80 p-3">
+                    <div className="mt-4 rounded-[16px] bg-white/80 p-3">
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
                         Feedback instantáneo
                       </p>
@@ -442,10 +442,10 @@ export function WellbeingProtocolPreviewScreen() {
                                   [task.id]: option.value,
                                 }))
                               }
-                              className={`rounded-full px-3 py-2 text-sm font-medium transition ${
+                              className={`rounded-[14px] px-3 py-2 text-sm font-medium transition active:scale-[0.97] transition-all ${
                                 selected
-                                  ? "bg-[#074738] text-white"
-                                  : "bg-slate-100 text-slate-700"
+                                  ? "bg-[#074738] text-white shadow-[0_4px_12px_rgba(26,155,125,0.3)]"
+                                  : "bg-[#E0F2F1] text-slate-700"
                               }`}
                             >
                               {option.label}
@@ -461,17 +461,17 @@ export function WellbeingProtocolPreviewScreen() {
           </div>
         </section>
 
-        <section className="mt-5 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="mt-5 rounded-[16px] border border-slate-200 bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Vista timeline</p>
           <h2 className="mt-1 text-xl font-semibold text-slate-900">Alertas y decisiones del día</h2>
           <div className="mt-4 space-y-3">
             {timelineEntries.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-5 text-sm text-slate-500">
+              <div className="rounded-[16px] border border-dashed border-slate-200 px-4 py-5 text-sm text-slate-500">
                 Todavía no hay tareas completadas en esta preview.
               </div>
             ) : (
               timelineEntries.map((entry) => (
-                <div key={entry.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div key={entry.id} className="rounded-[16px] border border-slate-200 bg-white p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <div className="inline-flex items-center gap-2 rounded-full bg-[#074738]/10 px-2.5 py-1 text-xs font-semibold text-[#074738]">
@@ -490,11 +490,11 @@ export function WellbeingProtocolPreviewScreen() {
           </div>
         </section>
 
-        <section className="mt-5 rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="mt-5 rounded-[16px] border border-slate-200 bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Lineage clínico</p>
           <h2 className="mt-1 text-xl font-semibold text-slate-900">Señales que usó Pessy</h2>
           <div className="mt-4 space-y-3">
-            <div className="rounded-2xl bg-slate-50 p-4">
+            <div className="rounded-[16px] bg-[#E0F2F1] p-4">
               <p className="text-sm font-semibold text-slate-900">Alerta activa</p>
               <p className="mt-1 text-sm text-slate-600">
                 {PREVIEW_INPUT.alerts[0].title} · severidad {PREVIEW_INPUT.alerts[0].severity}
@@ -503,7 +503,7 @@ export function WellbeingProtocolPreviewScreen() {
                 {PREVIEW_INPUT.alerts[0].sourceMeta.sourceCollection} / {PREVIEW_INPUT.alerts[0].sourceMeta.sourceId}
               </p>
             </div>
-            <div className="rounded-2xl bg-slate-50 p-4">
+            <div className="rounded-[16px] bg-[#E0F2F1] p-4">
               <p className="text-sm font-semibold text-slate-900">Condición asociada</p>
               <p className="mt-1 text-sm text-slate-600">
                 {PREVIEW_INPUT.conditions[0].normalizedName} · {PREVIEW_INPUT.conditions[0].sourceMeta.sourceTruthLevel}
