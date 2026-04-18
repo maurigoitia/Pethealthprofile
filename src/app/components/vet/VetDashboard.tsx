@@ -27,7 +27,7 @@ export default function VetDashboard() {
   if(tab==="patients") return <><VetPatientList onSelectConsultation={setSelCon}/><VetBottomNav currentTab={tab} onTabChange={setTab}/></>;
   if(tab==="profile") return <><VetProfileScreen onBack={()=>setTab("home")}/><VetBottomNav currentTab={tab} onTabChange={setTab}/></>;
   const name = userName||vp?.fullName?.split(" ")[0]||"Doctor";
-  const sc:Record<string,string>={pending:"bg-amber-100 text-amber-700",in_progress:"bg-blue-100 text-blue-700",completed:"bg-emerald-100 text-emerald-700"};
+  const sc:Record<string,string>={pending:"bg-amber-100 text-amber-700",in_progress:"bg-[#E0F2F1] text-[#074738]",completed:"bg-emerald-100 text-emerald-700"};
   const sl:Record<string,string>={pending:"Pendiente",in_progress:"En curso",completed:"Completada"};
   return (
     <div className="min-h-screen" style={{background:"#F0FAF9",fontFamily:"'Manrope',sans-serif"}}><div className="max-w-md mx-auto pb-24">
@@ -44,8 +44,8 @@ export default function VetDashboard() {
         </div>
       </div>
       <div className="px-5 mt-5"><div className="grid grid-cols-2 gap-3">
-        <button onClick={()=>setTab("patients")} className="bg-white rounded-[16px] p-5 text-left shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-[rgba(0,0,0,0.04)] active:translate-y-[-1px] transition-all duration-150 min-h-[140px] flex flex-col justify-center items-center gap-3"><div className="size-12 rounded-2xl bg-[#E0F2F1] flex items-center justify-center"><span className="material-symbols-outlined text-[#074738]" aria-hidden="true" style={{fontSize:"24px"}}>pets</span></div><div className="text-center"><p className="font-bold text-slate-900 text-sm">Mis pacientes</p><p className="text-slate-500 text-xs mt-0.5">Ver historial</p></div></button>
-        <button onClick={()=>navigate("/vet/new-consultation")} className="bg-[#074738] rounded-[16px] p-5 text-left shadow-[0_4px_12px_rgba(7,71,56,0.3)] active:scale-[0.97] transition-all duration-150 min-h-[140px] flex flex-col justify-center items-center gap-3"><div className="size-12 rounded-2xl bg-white/10 flex items-center justify-center"><span className="material-symbols-outlined text-[#1A9B7D]" aria-hidden="true" style={{fontSize:"24px"}}>add_circle</span></div><div className="text-center"><p className="font-bold text-white text-sm">Nueva consulta</p><p className="text-white/60 text-xs mt-0.5">Registrar atención</p></div></button>
+        <button onClick={()=>setTab("patients")} className="bg-white rounded-[16px] p-5 text-left shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-[rgba(0,0,0,0.04)] active:translate-y-[-1px] transition-all duration-150 min-h-[140px] flex flex-col justify-center items-center gap-3"><div className="size-11 rounded-[12px] bg-[#E0F2F1] flex items-center justify-center"><span className="material-symbols-outlined text-[#074738]" aria-hidden="true" style={{fontSize:"24px"}}>pets</span></div><div className="text-center"><p className="font-bold text-slate-900 text-sm">Mis pacientes</p><p className="text-slate-500 text-xs mt-0.5">Ver historial</p></div></button>
+        <button onClick={()=>navigate("/vet/new-consultation")} className="bg-[#074738] rounded-[16px] p-5 text-left shadow-[0_4px_12px_rgba(7,71,56,0.3)] active:scale-[0.97] transition-all duration-150 min-h-[140px] flex flex-col justify-center items-center gap-3"><div className="size-11 rounded-[12px] bg-white/10 flex items-center justify-center"><span className="material-symbols-outlined text-[#1A9B7D]" aria-hidden="true" style={{fontSize:"24px"}}>add_circle</span></div><div className="text-center"><p className="font-bold text-white text-sm">Nueva consulta</p><p className="text-white/60 text-xs mt-0.5">Registrar atención</p></div></button>
       </div></div>
       <div className="px-5 mt-6">
         <h2 className="text-lg font-black text-slate-900 mb-3" style={{fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Consultas recientes</h2>

@@ -91,7 +91,7 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
               </p>
             </div>
             <button onClick={() => setShowAdd(true)}
-              className="size-10 rounded-full bg-[#1A9B7D] flex items-center justify-center shadow-md shadow-[#1A9B7D]/30">
+              className="size-10 rounded-full bg-[#1A9B7D] flex items-center justify-center shadow-[0_4px_12px_rgba(26,155,125,0.3)] active:scale-[0.97] transition-all">
               <MaterialIcon name="add" className="text-white text-xl" />
             </button>
           </div>
@@ -127,7 +127,7 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
                     <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1">¡Todo al día!</h3>
                     <p className="text-sm text-slate-500 max-w-xs">No tenés recordatorios pendientes. Agregá uno para no olvidar nada.</p>
                     <button onClick={() => setShowAdd(true)}
-                      className="mt-5 px-6 py-3 rounded-[14px] bg-[#1A9B7D] text-white font-bold text-sm">
+                      className="mt-5 px-6 py-3 rounded-[14px] bg-[#1A9B7D] text-white font-bold text-sm active:scale-[0.97] transition-all">
                       Agregar recordatorio
                     </button>
                   </div>
@@ -154,12 +154,12 @@ export function RemindersScreen({ onBack }: RemindersScreenProps) {
 
                           return (
                             <div key={r.id}
-                              layout className="relative overflow-hidden rounded-2xl">
+                              layout className="relative overflow-hidden rounded-[16px]">
                               {/* Swipe actions background */}
                               {isSwiped && (
                                 <div className="absolute inset-0 flex items-center justify-end gap-2 pr-3 bg-[#E0F2F1] dark:bg-slate-800 rounded-[12px]">
                                   <button onClick={() => { deleteReminder(r.id); setSwipedId(null); }}
-                                    className="size-10 rounded-xl bg-red-500 flex items-center justify-center">
+                                    className="size-11 rounded-[12px] bg-red-500 flex items-center justify-center active:scale-[0.97] transition-all">
                                     <MaterialIcon name="delete" className="text-white text-lg" />
                                   </button>
                                 </div>

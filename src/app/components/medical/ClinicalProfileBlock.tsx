@@ -57,7 +57,7 @@ export function ClinicalProfileBlock({ snapshot, petName }: ClinicalProfileBlock
                     <p className="text-[9px] font-black uppercase tracking-wide text-slate-400 mb-1">Temas activos</p>
                     <ChipList
                         items={snapshot.activeConditions}
-                        tone="bg-blue-100 text-blue-700 border border-blue-200/60"
+                        tone="bg-[#E0F2F1] text-[#074738]"
                     />
                 </div>
             )}
