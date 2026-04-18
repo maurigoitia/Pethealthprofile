@@ -993,31 +993,46 @@ export const sendScheduledNotifications = functions
         const { token } = await getUserTokenAndTimezone(userId);
         const tokenMissing = !token;
 
-        if (tokenMissing) {
-          console.warn(`[CRON] Sin token para usuario ${userId} — marcando sent y reprogramando cadena`);
-          await docSnap.ref.update({ sent: true, sentAt: nowIso, error: "no_token" });
-          // No hacemos return: dejamos que la lógica de repeat corra igual
-          // para que la cadena recurrente no se rompa cuando el usuario aún no tiene token.
-        } else {
-          await sendPushMessage({
-            token,
-            title: notification.title || "Pessy",
-            body: notification.body || "",
-            type,
-            petId: notification.petId,
-            petName: notification.petName,
-            sourceEventId: notification.sourceEventId,
-            notificationId: docSnap.id,
-          });
+        // ── Canal PUSH ──────────────────────────────────────────────────
+        let pushSentAt: string | null = null;
+        let pushError: string | null = null;
 
-          // Email fallback para medicaciones (solo pre-aviso de 15 min o menos)
-          if (type === "medication") {
-            const scheduledFor = notification.scheduledFor as string;
-            const repeatRootId = (notification.repeatRootId as string) || "";
-            const isPre5 = repeatRootId.endsWith("_pre5");
-            const isPre60 = repeatRootId.endsWith("_pre60");
-            // Solo mandamos email en el aviso de 5 min (isPre5) — es el más cercano a la toma
-            if (isPre5) {
+        if (tokenMissing) {
+          console.warn(`[CRON] Sin token push para usuario ${userId}`);
+          pushError = "no_token";
+        } else {
+          try {
+            await sendPushMessage({
+              token,
+              title: notification.title || "Pessy",
+              body: notification.body || "",
+              type,
+              petId: notification.petId,
+              petName: notification.petName,
+              sourceEventId: notification.sourceEventId,
+              notificationId: docSnap.id,
+            });
+            pushSentAt = nowIso;
+          } catch (pushErr) {
+            console.error(`[CRON] Error push para usuario ${userId}:`, pushErr);
+            pushError = pushErr instanceof Error ? pushErr.message : "push_error";
+          }
+        }
+
+        // ── Canal EMAIL (medication) — independiente del push ───────────
+        // Se evalúa siempre, tenga o no token push.
+        let emailSentAt: string | null = null;
+        let emailError: string | null = null;
+
+        if (type === "medication") {
+          const scheduledFor = notification.scheduledFor as string;
+          const repeatRootId = (notification.repeatRootId as string) || "";
+          const isPre5 = repeatRootId.endsWith("_pre5");
+          const isPre60 = repeatRootId.endsWith("_pre60");
+          // Mandamos email en aviso pre-5min y en la dosis exacta
+          const shouldSendEmail = isPre5 || (!isPre60 && !isPre5);
+          if (shouldSendEmail) {
+            try {
               const userEmail = await getUserEmail(userId);
               if (userEmail) {
                 await sendEmailReminder({
@@ -1026,27 +1041,29 @@ export const sendScheduledNotifications = functions
                   medicationName: ((notification.body as string) || "").split(" · ")[0] || "Medicación",
                   dosage: ((notification.body as string) || "").split(" · ")[1] || "",
                   scheduledFor,
-                  minutesBefore: 5,
+                  minutesBefore: isPre5 ? 5 : 0,
                 });
+                emailSentAt = nowIso;
+              } else {
+                emailError = "no_email";
               }
-            } else if (!isPre60 && !isPre5) {
-              // Es la dosis exacta — también mandamos email
-              const userEmail = await getUserEmail(userId);
-              if (userEmail) {
-                await sendEmailReminder({
-                  toEmail: userEmail,
-                  petName: (notification.petName as string) || "tu mascota",
-                  medicationName: ((notification.body as string) || "").split(" · ")[0] || "Medicación",
-                  dosage: ((notification.body as string) || "").split(" · ")[1] || "",
-                  scheduledFor,
-                  minutesBefore: 0,
-                });
-              }
+            } catch (emailErr) {
+              console.error(`[CRON] Error email para usuario ${userId}:`, emailErr);
+              emailError = emailErr instanceof Error ? emailErr.message : "email_error";
             }
           }
-
-          await docSnap.ref.update({ sent: true, sentAt: nowIso });
         }
+
+        // ── Persistir estado por canal ──────────────────────────────────
+        const updatePayload: Record<string, unknown> = {
+          sent: true,
+          sentAt: nowIso,
+          ...(pushSentAt && { pushSentAt }),
+          ...(pushError && { pushError }),
+          ...(emailSentAt && { emailSentAt }),
+          ...(emailError && { emailError }),
+        };
+        await docSnap.ref.update(updatePayload);
 
         if (notification.repeat !== "none" && Number(notification.repeatInterval) > 0) {
           const currentScheduled = new Date(notification.scheduledFor as string);
