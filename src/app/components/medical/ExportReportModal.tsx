@@ -745,9 +745,9 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
   };
 
   const options = [
-    { id: "health" as ReportType, icon: "description", title: "Resumen Estructurado de Cuidado", subtitle: "Estado actual, recordatorios y cronologia", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-500", dot: "bg-teal-600" },
-    { id: "vaccine" as ReportType, icon: "vaccines", title: "Cartilla de Vacunación", subtitle: "Cobertura vigente y próximos refuerzos", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-500", dot: "bg-teal-600" },
-    { id: "treatment" as ReportType, icon: "medication", title: "Plan de Cuidados", subtitle: "Rutinas actuales y proximos pasos sugeridos", color: "text-teal-700", bg: "bg-teal-50", border: "border-teal-500", dot: "bg-teal-600" },
+    { id: "health" as ReportType, icon: "description", title: "Resumen Estructurado de Cuidado", subtitle: "Estado actual, recordatorios y cronologia", color: "text-[#074738]", bg: "bg-[#E0F2F1]", border: "border-[#1A9B7D]", dot: "bg-[#1A9B7D]" },
+    { id: "vaccine" as ReportType, icon: "vaccines", title: "Cartilla de Vacunación", subtitle: "Cobertura vigente y próximos refuerzos", color: "text-[#074738]", bg: "bg-[#E0F2F1]", border: "border-[#1A9B7D]", dot: "bg-[#1A9B7D]" },
+    { id: "treatment" as ReportType, icon: "medication", title: "Plan de Cuidados", subtitle: "Rutinas actuales y proximos pasos sugeridos", color: "text-[#074738]", bg: "bg-[#E0F2F1]", border: "border-[#1A9B7D]", dot: "bg-[#1A9B7D]" },
   ];
 
   if (!isOpen) return null;
@@ -755,11 +755,11 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
   return (
     <>
       <div className="fixed inset-0 z-40 bg-slate-900/60" onClick={onClose} />
-      <div className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-xl max-h-[82vh] flex flex-col max-w-md mx-auto">
+      <div className="fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 rounded-t-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] max-h-[82vh] flex flex-col max-w-md mx-auto">
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-slate-700 cursor-pointer" onClick={onClose} />
         </div>
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-teal-50 to-white dark:from-slate-800 dark:to-slate-900">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 bg-[#E0F2F1] dark:bg-slate-800">
           <h2 className="text-xl font-black text-slate-900 dark:text-white">Exportar PDF</h2>
           <p className="text-sm text-slate-500 mt-0.5">Resumen legible de tu mascota para compartir cuando lo necesites</p>
         </div>
@@ -768,8 +768,8 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             const selected = selectedReport === opt.id;
             return (
               <button key={opt.id} onClick={() => setSelectedReport(opt.id)}
-                className={`w-full p-4 rounded-2xl border-2 flex items-center gap-4 transition-all text-left ${selected ? `${opt.border} ${opt.bg}` : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50"}`}>
-                <div className={`size-10 rounded-xl flex items-center justify-center ${selected ? opt.bg : "bg-slate-200 dark:bg-slate-700"}`}>
+                className={`w-full p-4 rounded-[16px] border-2 flex items-center gap-4 active:scale-[0.97] transition-all text-left ${selected ? `${opt.border} ${opt.bg}` : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/50"}`}>
+                <div className={`size-10 rounded-[12px] flex items-center justify-center ${selected ? opt.bg : "bg-[#E0F2F1] dark:bg-slate-700"}`}>
                   <MaterialIcon name={opt.icon} className={`text-xl ${selected ? opt.color : "text-slate-500"}`} />
                 </div>
                 <div className="flex-1">
@@ -785,7 +785,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         </div>
         <div className="px-5 pb-8 pt-3 border-t border-slate-100 dark:border-slate-800">
           <button onClick={generatePDF} disabled={isGenerating}
-            className="w-full h-14 rounded-2xl bg-teal-600 text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-teal-600/25 disabled:opacity-60 active:scale-[0.98] transition-transform">
+            className="w-full h-14 rounded-[14px] bg-[#074738] text-white font-bold text-base flex items-center justify-center gap-2 shadow-[0_4px_12px_rgba(26,155,125,0.3)] disabled:opacity-60 active:scale-[0.97] transition-all">
             {isGenerating
               ? <><div className="size-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /><span>Generando PDF...</span></>
               : <><MaterialIcon name="download" className="text-xl" /><span>Descargar PDF</span></>}
