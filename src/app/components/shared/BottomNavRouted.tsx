@@ -14,12 +14,12 @@ interface BottomNavRoutedProps {
   onAddDocument?: () => void;
 }
 
-type TabId = "inicio" | "identidad" | "cuidados" | "servicios";
+type TabId = "inicio" | "identidad" | "rutinas" | "servicios";
 
 const TAB_ROUTES: Record<TabId, string> = {
   inicio: "/inicio",
   identidad: "/identidad",
-  cuidados: "/cuidados",
+  rutinas: "/rutinas",
   servicios: "/buscar-vet",
 };
 
@@ -27,13 +27,14 @@ function resolveActiveTab(pathname: string): TabId {
   if (pathname === "/inicio" || pathname === "/home") return "inicio";
   if (pathname.startsWith("/identidad")) return "identidad";
   if (
+    pathname.startsWith("/rutinas") ||
     pathname.startsWith("/cuidados") ||
     pathname.startsWith("/turnos") ||
     pathname.startsWith("/tratamientos") ||
     pathname.startsWith("/historial") ||
     pathname.startsWith("/rutinas-eco")
   )
-    return "cuidados";
+    return "rutinas";
   if (
     pathname.startsWith("/buscar-vet") ||
     pathname.startsWith("/vet/") ||
@@ -82,7 +83,7 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
                 <div />
               )}
 
-              <TabButton active={activeTab === "cuidados"} label="Cuidados" onClick={() => handleNav("cuidados")}>
+              <TabButton active={activeTab === "rutinas"} label="Rutinas" onClick={() => handleNav("rutinas")}>
                 <Heart size={iconSize} strokeWidth={strokeWidth} />
               </TabButton>
 
@@ -121,7 +122,7 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
               <div className="px-3" />
             )}
 
-            <StandardTab active={activeTab === "cuidados"} label="Cuidados" onClick={() => handleNav("cuidados")}>
+            <StandardTab active={activeTab === "rutinas"} label="Rutinas" onClick={() => handleNav("rutinas")}>
               <Heart size={20} />
             </StandardTab>
 
