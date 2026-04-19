@@ -13,6 +13,7 @@ import {
   ShieldAlert,
   Users,
   Pill,
+  PlusCircle,
 } from "lucide-react";
 import { doc, updateDoc } from "firebase/firestore";
 import { usePet } from "../../contexts/PetContext";
@@ -99,6 +100,7 @@ function getNextWalkTime(walkTimes?: string[]): string | null {
   const sorted = [...walkTimes].sort();
   for (const t of sorted) {
     const [h, m] = t.split(":").map(Number);
+    if (isNaN(h) || isNaN(m)) continue;
     if (h * 60 + m > nowMinutes) return t;
   }
   // All walks passed today — show first walk of tomorrow
@@ -166,12 +168,12 @@ function getRecommendations(
         category: "actividad",
         isActionable: false,
       });
-    } else if (energy === "low" && ageYears !== null && ageYears > 7) {
+    } else if (energy === "low") {
       recs.push({
         id: "gentle-walk",
         icon: <Wind className="w-5 h-5 text-[#1A9B7D]" />,
         title: "Paseo suave",
-        description: `${petName} es senior. Una caminata corta y sin esfuerzo es perfecta para mantener la circulación.`,
+        description: `Una caminata corta y sin esfuerzo es perfecta para ${petName} hoy.`,
         category: "actividad",
         isActionable: false,
       });
@@ -280,7 +282,7 @@ export function RutinasHub({ onBack }: Props) {
     ? getRecommendations(pet, ageYears, energy)
     : [{
         id: "add-pet",
-        icon: "PlusCircle",
+        icon: <PlusCircle className="w-5 h-5 text-[#1A9B7D]" />,
         title: "Agregá tu mascota",
         description: "Creá el perfil de tu mascota para ver recomendaciones personalizadas.",
         category: "cuidado" as const,
@@ -481,12 +483,10 @@ export function RutinasHub({ onBack }: Props) {
         )}
 
         {/* ── Footer note ── */}
+        {/* [Capa futura] Motor de recomendación IA: contextualización por clima, ubicación,
+            comportamiento histórico y patrones de uso. NotebookLM / cuaderno por mascota. */}
         <p className="text-xs text-slate-400 text-center pb-2 leading-relaxed">
-          Rutinas mejora con el tiempo a medida que conocemos más a {petName}.{" "}
-          <span className="italic">
-            Capa futura — requiere motor de recomendación IA: contextualización por clima,
-            ubicación, comportamiento histórico y patrones de uso.
-          </span>
+          Rutinas mejora con el tiempo a medida que conocemos más a {petName}.
         </p>
       </div>
     </div>
