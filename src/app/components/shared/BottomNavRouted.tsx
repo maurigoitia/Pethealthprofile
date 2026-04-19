@@ -6,31 +6,39 @@
  * the current URL path — no more viewMode state.
  */
 import { useLocation, useNavigate } from "react-router";
-import { Home, Users, Plus, CalendarClock, User } from "lucide-react";
+import { Home, Shield, Plus, Heart, Compass } from "lucide-react";
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 
 interface BottomNavRoutedProps {
   onAddDocument?: () => void;
 }
 
-type TabId = "inicio" | "comunidad" | "rutinas" | "perfil";
+type TabId = "inicio" | "identidad" | "cuidados" | "servicios";
 
 const TAB_ROUTES: Record<TabId, string> = {
   inicio: "/inicio",
-  comunidad: "/comunidad",
-  rutinas: "/historial",
-  perfil: "/perfil",
+  identidad: "/identidad",
+  cuidados: "/cuidados",
+  servicios: "/buscar-vet",
 };
 
 function resolveActiveTab(pathname: string): TabId {
-  if (pathname.startsWith("/comunidad")) return "comunidad";
+  if (pathname === "/inicio" || pathname === "/home") return "inicio";
+  if (pathname.startsWith("/identidad")) return "identidad";
   if (
-    pathname.startsWith("/historial") ||
+    pathname.startsWith("/cuidados") ||
     pathname.startsWith("/turnos") ||
-    pathname.startsWith("/tratamientos")
+    pathname.startsWith("/tratamientos") ||
+    pathname.startsWith("/historial") ||
+    pathname.startsWith("/rutinas-eco")
   )
-    return "rutinas";
-  if (pathname.startsWith("/perfil")) return "perfil";
+    return "cuidados";
+  if (
+    pathname.startsWith("/buscar-vet") ||
+    pathname.startsWith("/vet/") ||
+    pathname.startsWith("/comunidad")
+  )
+    return "servicios";
   return "inicio";
 }
 
@@ -59,8 +67,8 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
                 <Home size={iconSize} strokeWidth={strokeWidth} />
               </TabButton>
 
-              <TabButton active={activeTab === "comunidad"} label="Comunidad" onClick={() => handleNav("comunidad")} focus>
-                <Users size={iconSize} strokeWidth={strokeWidth} />
+              <TabButton active={activeTab === "identidad"} label="Identidad" onClick={() => handleNav("identidad")} focus>
+                <Shield size={iconSize} strokeWidth={strokeWidth} />
               </TabButton>
 
               {onAddDocument ? (
@@ -73,12 +81,12 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
                 <div />
               )}
 
-              <TabButton active={activeTab === "rutinas"} label="Rutinas" onClick={() => handleNav("rutinas")} focus>
-                <CalendarClock size={iconSize} strokeWidth={strokeWidth} />
+              <TabButton active={activeTab === "cuidados"} label="Cuidados" onClick={() => handleNav("cuidados")} focus>
+                <Heart size={iconSize} strokeWidth={strokeWidth} />
               </TabButton>
 
-              <TabButton active={activeTab === "perfil"} label="Perfil" onClick={() => handleNav("perfil")} focus>
-                <User size={iconSize} strokeWidth={strokeWidth} />
+              <TabButton active={activeTab === "servicios"} label="Servicios" onClick={() => handleNav("servicios")} focus>
+                <Compass size={iconSize} strokeWidth={strokeWidth} />
               </TabButton>
             </div>
           </div>
@@ -97,8 +105,8 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
               <Home size={20} strokeWidth={activeTab === "inicio" ? 2 : 1.5} />
             </StandardTab>
 
-            <StandardTab active={activeTab === "comunidad"} label="Comunidad" onClick={() => handleNav("comunidad")}>
-              <Users size={20} strokeWidth={activeTab === "comunidad" ? 2 : 1.5} />
+            <StandardTab active={activeTab === "identidad"} label="Identidad" onClick={() => handleNav("identidad")}>
+              <Shield size={20} strokeWidth={activeTab === "identidad" ? 2 : 1.5} />
             </StandardTab>
 
             {onAddDocument ? (
@@ -112,12 +120,12 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
               <div className="px-3" />
             )}
 
-            <StandardTab active={activeTab === "rutinas"} label="Rutinas" onClick={() => handleNav("rutinas")}>
-              <CalendarClock size={20} strokeWidth={activeTab === "rutinas" ? 2 : 1.5} />
+            <StandardTab active={activeTab === "cuidados"} label="Cuidados" onClick={() => handleNav("cuidados")}>
+              <Heart size={20} strokeWidth={activeTab === "cuidados" ? 2 : 1.5} />
             </StandardTab>
 
-            <StandardTab active={activeTab === "perfil"} label="Perfil" onClick={() => handleNav("perfil")}>
-              <User size={20} strokeWidth={activeTab === "perfil" ? 2 : 1.5} />
+            <StandardTab active={activeTab === "servicios"} label="Servicios" onClick={() => handleNav("servicios")}>
+              <Compass size={20} strokeWidth={activeTab === "servicios" ? 2 : 1.5} />
             </StandardTab>
           </div>
         </div>
