@@ -342,6 +342,15 @@ export function VetDoctorProfileRoute() {
 }
 
 // ---------------------------------------------------------------------------
+// RutinasHubRoute — vida diaria + recomendaciones embrión
+// ---------------------------------------------------------------------------
+
+export async function RutinasHubRoute() {
+  const { RutinasHub } = await import("../rutinas/RutinasHub");
+  return { Component: () => <RutinasHub onBack={() => window.history.back()} /> };
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 
