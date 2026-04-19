@@ -17,7 +17,6 @@
  *   /explorar        → Nearby Places (unified RecommendationFeed)
  *   /perfil          → User Profile / Settings
  */
-import type { ReactNode } from "react";
 import { createBrowserRouter, Navigate } from "react-router";
 import { RegisterUserScreen } from "./components/auth/RegisterUserScreen";
 import { RegisterPetStep1 } from "./components/pet/RegisterPetStep1";
@@ -28,12 +27,10 @@ import { VerifyReportScreen } from "./components/medical/VerifyReportScreen";
 import { EmailLinkSignInScreen } from "./components/auth/EmailLinkSignInScreen";
 import { RouteErrorFallback } from "./components/shared/RouteErrorFallback";
 import { ClinicalReviewScreen } from "./components/medical/ClinicalReviewScreen";
-import LandingEcosystemPreviewPage from "./pages/LandingEcosystemPreviewPage";
-import LandingSocialPage from "./pages/LandingSocialPage";
 import EmpezarLandingPage from "./pages/EmpezarLandingPage";
 import LegalPage from "./pages/LegalPage";
 import { RequestAccessScreen } from "./components/auth/RequestAccessScreen";
-import { isProductionAppHost, isNativeAppContext } from "./utils/runtimeFlags";
+import { isNativeAppContext } from "./utils/runtimeFlags";
 import { VetLoginScreen } from "./components/vet/VetLoginScreen";
 import { VetRegisterScreen } from "./components/vet/VetRegisterScreen";
 import VetDashboard from "./components/vet/VetDashboard";
@@ -53,80 +50,11 @@ const withErrorBoundary = <T extends Record<string, unknown>>(route: T): T => ({
   errorElement: <RouteErrorFallback />,
 });
 
-function PreviewOnlyRoute({ children }: { children: ReactNode }) {
-  return isProductionAppHost() ? <Navigate to="/" replace /> : <>{children}</>;
-}
-
-const previewRoutesEnabled =
-  import.meta.env.DEV || import.meta.env.VITE_ENABLE_PREVIEW_ROUTES === "true";
-
-const previewRoutes = previewRoutesEnabled
-  ? [
-      withErrorBoundary({
-        path: "/preview/landing-ecosistema",
-        element: (
-          <PreviewOnlyRoute>
-            <LandingEcosystemPreviewPage />
-          </PreviewOnlyRoute>
-        ),
-      }),
-      withErrorBoundary({
-        path: "/preview/wellbeing",
-        lazy: async () => {
-          const module = await import("./pages/WellbeingProductPreviewPage");
-          const Page = module.default;
-          return {
-            Component: function PreviewWellbeingRoute() {
-              return (
-                <PreviewOnlyRoute>
-                  <Page />
-                </PreviewOnlyRoute>
-              );
-            },
-          };
-        },
-      }),
-      withErrorBoundary({
-        path: "/preview/wellbeing-master",
-        lazy: async () => {
-          const module = await import("./pages/WellbeingMasterBookPreviewPage");
-          const Page = module.default;
-          return {
-            Component: function PreviewWellbeingMasterRoute() {
-              return (
-                <PreviewOnlyRoute>
-                  <Page />
-                </PreviewOnlyRoute>
-              );
-            },
-          };
-        },
-      }),
-      withErrorBoundary({
-        path: "/preview/vaccination-card",
-        lazy: async () => {
-          const module = await import("./pages/VaccinationCardPreviewPage");
-          const Page = module.default;
-          return {
-            Component: function PreviewVaccinationCardRoute() {
-              return (
-                <PreviewOnlyRoute>
-                  <Page />
-                </PreviewOnlyRoute>
-              );
-            },
-          };
-        },
-      }),
-    ]
-  : [];
-
 function RootRoute() {
   const host = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
   if (isNativeAppContext()) return <Navigate to="/inicio" replace />;
   if (host === "app.pessy.app") return <Navigate to="/inicio" replace />;
-  if (host === "localhost" || host === "127.0.0.1") return <Navigate to="/inicio" replace />;
-  return <LandingEcosystemPreviewPage />;
+  return <Navigate to="/inicio" replace />;
 }
 
 function CatchAllRedirect() {
@@ -180,7 +108,6 @@ export const router = createBrowserRouter([
     { index: true, lazy: lazyRouteWrapper("ComunidadRoute") },
     { path: "reportar", lazy: lazyRouteWrapper("ReportarPerdidoRoute") },
   ]}),
-  withErrorBoundary({ path: "/explorar", lazy: AppLayout, children: [{ index: true, lazy: lazyRouteWrapper("ExplorarRoute") }] }),
   withErrorBoundary({ path: "/perfil", lazy: AppLayout, children: [{ index: true, lazy: lazyRouteWrapper("PerfilRoute") }] }),
 
   // ── Ecosistema Digital — nuevas rutas (Lovable handoff) ──
@@ -190,7 +117,6 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/cuidados", lazy: AppLayout, children: [{ index: true, lazy: lazyRouteWrapper("CuidadosRoute") }] }),
   withErrorBoundary({ path: "/buscar-vet", lazy: AppLayout, children: [{ index: true, lazy: lazyRouteWrapper("BuscarVetRoute") }] }),
   withErrorBoundary({ path: "/vet/:vetId", lazy: AppLayout, children: [{ index: true, lazy: lazyRouteWrapper("VetDoctorProfileRoute") }] }),
-  withErrorBoundary({ path: "/tienda", lazy: AppLayout, children: [{ index: true, lazy: lazyRouteWrapper("TiendaRoute") }] }),
 
   // ── Backward compatibility redirects ──
   withErrorBoundary({ path: "/app", element: <Navigate to="/inicio" replace /> }),
@@ -200,9 +126,6 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/soluciones/vacunas", element: <Navigate to="/historial" replace /> }),
   withErrorBoundary({ path: "/soluciones/medicacion", element: <Navigate to="/tratamientos" replace /> }),
   withErrorBoundary({ path: "/soluciones/historial", element: <Navigate to="/historial" replace /> }),
-
-  // ── Preview routes ──
-  ...previewRoutes,
 
   // ── Catch-all ──
   withErrorBoundary({ path: "*", element: <CatchAllRedirect /> }),

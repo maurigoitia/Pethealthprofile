@@ -1,6 +1,5 @@
 export { default as AppErrorBoundary } from './AppErrorBoundary';
 export { default as AppMockups } from './AppMockups';
-export { default as BottomNav } from './BottomNav';
 export { default as EmptyState } from './EmptyState';
 export { default as Header } from './Header';
 export { default as ImageWithFallback } from './ImageWithFallback';

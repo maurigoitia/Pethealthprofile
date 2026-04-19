@@ -86,19 +86,9 @@ const MedicationsScreen = lazy(() =>
     default: m.MedicationsScreen,
   }))
 );
-const LostPetFeed = lazy(() =>
-  import("../community/LostPetFeed.tsx").then((m) => ({
-    default: m.LostPetFeed,
-  }))
-);
 const ReportLostPet = lazy(() =>
-  import("../community/ReportLostPet.tsx").then((m) => ({
+  import("../comunidad/ReportLostPet.tsx").then((m) => ({
     default: m.ReportLostPet,
-  }))
-);
-const RecommendationFeed = lazy(() =>
-  import("../lifestyle/RecommendationFeed.tsx").then((m) => ({
-    default: m.RecommendationFeed,
   }))
 );
 const UserProfileScreen = lazy(() =>
@@ -114,9 +104,6 @@ const VetSearchScreen = lazy(() =>
 );
 const RutinasScreen = lazy(() =>
   import("../rutinas/RutinasScreen").then((m) => ({ default: m.RutinasScreen }))
-);
-const TiendaScreen = lazy(() =>
-  import("../tienda/TiendaScreen").then((m) => ({ default: m.TiendaScreen }))
 );
 const CuidadosScreen = lazy(() =>
   import("../cuidados/CuidadosScreen").then((m) => ({ default: m.CuidadosScreen }))
@@ -219,20 +206,6 @@ function ReportarPerdidoRoute() {
 }
 
 // ---------------------------------------------------------------------------
-// 6. ExplorarRoute — RecommendationFeed
-// ---------------------------------------------------------------------------
-
-function ExplorarRoute() {
-  const navigate = useNavigate();
-
-  return (
-    <Suspense fallback={<ScreenLoader label="Cargando explorar..." />}>
-      <RecommendationFeed onBack={() => navigate("/inicio")} />
-    </Suspense>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // 7. PerfilRoute — UserProfileScreen
 // ---------------------------------------------------------------------------
 
@@ -316,19 +289,6 @@ function BuscarVetRoute() {
 }
 
 // ---------------------------------------------------------------------------
-// TiendaRoute — TiendaScreen
-// ---------------------------------------------------------------------------
-
-export function TiendaRoute() {
-  const navigate = useNavigate();
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen bg-[#F0FAF9]"><div className="size-8 rounded-full border-2 border-[#074738] border-t-transparent animate-spin" /></div>}>
-      <TiendaScreen onBack={() => navigate(-1)} />
-    </Suspense>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // VetDoctorProfileRoute
 // ---------------------------------------------------------------------------
 
@@ -351,7 +311,6 @@ export {
   TratamientosRoute,
   ComunidadRoute,
   ReportarPerdidoRoute,
-  ExplorarRoute,
   PerfilRoute,
   IdentidadRoute,
   RutinasEcoRoute,
