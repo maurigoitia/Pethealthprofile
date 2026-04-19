@@ -5,6 +5,7 @@
  * to real routes using react-router. Active tab is derived from
  * the current URL path — no more viewMode state.
  */
+import React from "react";
 import { useLocation, useNavigate } from "react-router";
 import { Home, Shield, Plus, Heart, Compass } from "lucide-react";
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
@@ -52,7 +53,7 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
   const strokeWidth = 1.8;
 
   const handleNav = (tab: TabId) => {
-    if (tab === activeTab && tab === "inicio") return; // already home
+    if (tab === activeTab) return; // already on this tab
     navigate(TAB_ROUTES[tab]);
   };
 
@@ -63,11 +64,11 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
         <div className="max-w-md mx-auto px-4">
           <div className="rounded-full bg-[#074738] px-5 py-3 shadow-[0_8px_32px_rgba(7,71,56,0.25)]">
             <div className="grid grid-cols-5 items-center">
-              <TabButton active={activeTab === "inicio"} label="Inicio" onClick={() => handleNav("inicio")} focus>
+              <TabButton active={activeTab === "inicio"} label="Inicio" onClick={() => handleNav("inicio")}>
                 <Home size={iconSize} strokeWidth={strokeWidth} />
               </TabButton>
 
-              <TabButton active={activeTab === "identidad"} label="Identidad" onClick={() => handleNav("identidad")} focus>
+              <TabButton active={activeTab === "identidad"} label="Identidad" onClick={() => handleNav("identidad")}>
                 <Shield size={iconSize} strokeWidth={strokeWidth} />
               </TabButton>
 
@@ -81,11 +82,11 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
                 <div />
               )}
 
-              <TabButton active={activeTab === "cuidados"} label="Cuidados" onClick={() => handleNav("cuidados")} focus>
+              <TabButton active={activeTab === "cuidados"} label="Cuidados" onClick={() => handleNav("cuidados")}>
                 <Heart size={iconSize} strokeWidth={strokeWidth} />
               </TabButton>
 
-              <TabButton active={activeTab === "servicios"} label="Servicios" onClick={() => handleNav("servicios")} focus>
+              <TabButton active={activeTab === "servicios"} label="Servicios" onClick={() => handleNav("servicios")}>
                 <Compass size={iconSize} strokeWidth={strokeWidth} />
               </TabButton>
             </div>
@@ -102,11 +103,11 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
         <div className="pessy-glass rounded-2xl border border-white/40 shadow-[0_-2px_20px_rgba(7,71,56,0.08)] px-2 py-2">
           <div className="flex items-center justify-around">
             <StandardTab active={activeTab === "inicio"} label="Inicio" onClick={() => handleNav("inicio")}>
-              <Home size={20} strokeWidth={activeTab === "inicio" ? 2 : 1.5} />
+              <Home size={20} />
             </StandardTab>
 
             <StandardTab active={activeTab === "identidad"} label="Identidad" onClick={() => handleNav("identidad")}>
-              <Shield size={20} strokeWidth={activeTab === "identidad" ? 2 : 1.5} />
+              <Shield size={20} />
             </StandardTab>
 
             {onAddDocument ? (
@@ -121,11 +122,11 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
             )}
 
             <StandardTab active={activeTab === "cuidados"} label="Cuidados" onClick={() => handleNav("cuidados")}>
-              <Heart size={20} strokeWidth={activeTab === "cuidados" ? 2 : 1.5} />
+              <Heart size={20} />
             </StandardTab>
 
             <StandardTab active={activeTab === "servicios"} label="Servicios" onClick={() => handleNav("servicios")}>
-              <Compass size={20} strokeWidth={activeTab === "servicios" ? 2 : 1.5} />
+              <Compass size={20} />
             </StandardTab>
           </div>
         </div>
@@ -140,24 +141,19 @@ function TabButton({
   label,
   onClick,
   children,
-  focus,
 }: {
   active: boolean;
   label: string;
   onClick: () => void;
   children: React.ReactNode;
-  focus?: boolean;
 }) {
-  if (focus) {
-    return (
-      <button onClick={onClick} className="flex items-center justify-center" aria-label={label} aria-current={active ? "page" : undefined}>
-        <div className={`size-11 rounded-full flex items-center justify-center transition-all duration-150 ${active ? "bg-white/18 text-white" : "text-white/70"}`}>
-          {children}
-        </div>
-      </button>
-    );
-  }
-  return null;
+  return (
+    <button onClick={onClick} className="flex items-center justify-center" aria-label={label} aria-current={active ? "page" : undefined}>
+      <div className={`size-11 rounded-full flex items-center justify-center transition-all duration-150 ${active ? "bg-white/18 text-white" : "text-white/70"}`}>
+        {children}
+      </div>
+    </button>
+  );
 }
 
 // ── Standard tab button ──
@@ -172,6 +168,9 @@ function StandardTab({
   onClick: () => void;
   children: React.ReactNode;
 }) {
+  const strokeWidth = active ? 2 : 1.5;
+  const icon = React.cloneElement(children as React.ReactElement, { strokeWidth });
+
   return (
     <button
       onClick={onClick}
@@ -184,7 +183,7 @@ function StandardTab({
           active ? "bg-[#074738] text-white shadow-[0_2px_8px_rgba(7,71,56,0.25)]" : "text-[#9CA3AF]"
         }`}
       >
-        {children}
+        {icon}
       </div>
       <span className={`text-[10px] font-bold tracking-wider ${active ? "text-[#074738]" : "text-[#9CA3AF]"}`}>
         {label}
