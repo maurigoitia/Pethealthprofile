@@ -270,7 +270,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
           >
             <Syringe size={22} className="text-[#1A9B7D]" />
             <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">
-              Carnet vacunas
+              Carnet de vacunación
             </span>
           </button>
 
@@ -281,7 +281,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
           >
             <Share2 size={22} className="text-[#1A9B7D]" />
             <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">
-              Compartir con vet
+              Compartir con el veterinario
             </span>
           </button>
 
@@ -343,7 +343,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
               className="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
               style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             >
-              Estado actual de salud
+              Salud y actividad
             </span>
           </div>
 

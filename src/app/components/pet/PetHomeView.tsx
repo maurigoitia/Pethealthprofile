@@ -845,7 +845,7 @@ export function PetHomeView({
             <button
               type="button"
               onClick={() => setShowPreferences(true)}
-              className="w-full rounded-[16px] border border-[#C8E6C9] bg-[#E8F5E9] flex items-center gap-3 text-left transition-colors hover:bg-[#C8E6C9]"
+              className="w-full rounded-[16px] border border-[#1A9B7D]/20 bg-[#E0F2F1] flex items-center gap-3 text-left transition-colors hover:bg-[#C8E6E3]"
               style={{ padding: "14px 16px" }}
             >
               <span className="text-[22px]">🎯</span>
