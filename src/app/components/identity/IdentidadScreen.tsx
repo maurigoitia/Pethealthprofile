@@ -53,8 +53,8 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
         (e) =>
           e.extractedData.documentType === "vaccine" && e.status === "completed"
       )
-      .map((e, idx) => ({
-        id: idx,
+      .map((e) => ({
+        id: e.id,
         name:
           e.extractedData.diagnosis ||
           e.extractedData.suggestedTitle ||
@@ -112,7 +112,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
           return "current" as const;
         })(),
       }));
-  }, [activePet?.id, getEventsByPetId]);
+  }, [activePet?.id, events, getEventsByPetId]);
 
   // No active pet — empty state
   if (!activePet) {
@@ -151,9 +151,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
   const activeForPet = activeMedications.filter(
     (m) => m.petId === activePet.id
   );
-  const petEvents = events.filter(
-    (e) => !(e as { deletedAt?: unknown }).deletedAt && e.petId === activePet.id
-  );
+  const petEvents = getEventsByPetId(activePet.id);
 
   const dataRows: { label: string; value: string }[] = [
     { label: "Especie", value: activePet.species || "—" },
@@ -407,7 +405,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
               name: activePet.name,
               breed: activePet.breed ?? "",
               birthDate: activePet.birthDate ?? "",
-              microchip: (activePet as Record<string, unknown>).microchip as string ?? "",
+              microchip: activePet.microchip ?? "",
               photo: activePet.photo ?? "",
             }}
             vaccines={vaccines}
