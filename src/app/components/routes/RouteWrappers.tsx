@@ -364,7 +364,6 @@ export {
   PerfilRoute,
   IdentidadRoute,
   RutinasEcoRoute,
-  RutinasHubRoute,
   CuidadosRoute,
   BuscarVetRoute,
 };
