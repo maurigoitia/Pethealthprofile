@@ -27,7 +27,7 @@ export default function VetDashboard() {
   if(tab==="patients") return <><VetPatientList onSelectConsultation={setSelCon}/><VetBottomNav currentTab={tab} onTabChange={setTab}/></>;
   if(tab==="profile") return <><VetProfileScreen onBack={()=>setTab("home")}/><VetBottomNav currentTab={tab} onTabChange={setTab}/></>;
   const name = userName||vp?.fullName?.split(" ")[0]||"Doctor";
-  const sc:Record<string,string>={pending:"bg-amber-100 text-amber-700",in_progress:"bg-[#E0F2F1] text-[#074738]",completed:"bg-emerald-100 text-emerald-700"};
+  const sc:Record<string,string>={pending:"bg-amber-100 text-amber-700",in_progress:"bg-[#EEEDF9] text-[#5048CA]",completed:"bg-emerald-100 text-emerald-700"};
   const sl:Record<string,string>={pending:"Pendiente",in_progress:"En curso",completed:"Completada"};
   return (
     <div className="min-h-screen" style={{background:"#F0FAF9",fontFamily:"'Manrope',sans-serif"}}><div className="max-w-md mx-auto pb-24">
