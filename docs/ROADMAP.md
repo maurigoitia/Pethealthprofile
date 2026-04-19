@@ -28,7 +28,7 @@ Pessy se estructura en 4 pilares:
 | Pilar | Descripción | Estado |
 |---|---|---|
 | **Día a Día** | Check-in diario, rutina, tips, hook cards | ✅ Producción |
-| **Historial Clínico** | Timeline, escaneo de docs, ingesta Gmail, certif. vacunas | ✅ Producción |
+| **Historial** | Timeline, escaneo de docs, ingesta Gmail, certif. vacunas | ✅ Producción |
 | **Identidad Digital** | Carnet digital, portal vet, co-tutor, validación matrícula | 🔄 Beta |
 | **Comunidad** | Perdidos, adopción, búsqueda activa, alertas geo | 🔄 Beta |
 
@@ -54,7 +54,7 @@ Pessy se estructura en 4 pilares:
 - GDPR: borrado de cuenta, DPA, terms acceptance
 - Consentimiento Gmail con modal accesible
 
-### Historial Clínico
+### Historial
 - Timeline de eventos médicos
 - Scanner de documentos (DocumentScannerModal)
 - Ingesta de Gmail → parseo clínico → IA → Firestore

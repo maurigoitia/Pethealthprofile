@@ -2,7 +2,7 @@
 
 ## 🎯 ¿Qué es PESSY?
 
-**PESSY** es una aplicación de seguimiento de salud para mascotas con IA integrada, diseñada con un enfoque mobile-first. Permite a los dueños de mascotas escanear documentos médicos (vacunas, análisis, recetas), llevar un historial médico completo, y gestionar citas de forma automatizada.
+**PESSY** es una plataforma que organiza la vida cotidiana con mascotas, integrando información, rutinas y servicios en un solo lugar, diseñada con un enfoque mobile-first. Permite a los dueños de mascotas escanear documentos médicos (vacunas, análisis, recetas), llevar un historial médico completo, y gestionar citas de forma automatizada.
 
 ---
 
