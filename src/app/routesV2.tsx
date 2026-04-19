@@ -14,7 +14,6 @@
  *   /tratamientos    → Medications / Treatments
  *   /comunidad       → Lost Pets Feed (+ future Adoption)
  *   /comunidad/reportar → Report Lost Pet
- *   /explorar        → Nearby Places (unified RecommendationFeed)
  *   /perfil          → User Profile / Settings
  */
 import { createBrowserRouter, Navigate } from "react-router";
