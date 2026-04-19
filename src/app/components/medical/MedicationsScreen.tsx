@@ -543,7 +543,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
             </div>
           )}
           {editFeedback && (
-            <div className="mt-3 rounded-xl border border-emerald-200 bg-[#F0FAF9] px-3 py-2">
+            <div className="mt-3 rounded-[12px] border border-emerald-200 bg-[#F0FAF9] px-3 py-2">
               <p className="text-xs font-semibold text-emerald-700">{editFeedback}</p>
             </div>
           )}
@@ -627,7 +627,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                     </div>
 
                     {needsReview && (
-                      <div className="mb-3 p-2.5 rounded-xl bg-amber-50 border border-amber-200">
+                      <div className="mb-3 p-2.5 rounded-[12px] bg-amber-50 border border-amber-200">
                         <p className="text-[11px] font-semibold text-amber-700">
                           {item.event.reviewReasons?.[0] || "Revisión manual requerida antes de guardar como definitivo."}
                         </p>
