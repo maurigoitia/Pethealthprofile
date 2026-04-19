@@ -276,7 +276,18 @@ export function RutinasHub({ onBack }: Props) {
   const ageYears = getAgeYears(pet?.birthDate);
   const energy = pet ? classifyEnergy(pet, ageYears) : "medium";
   const completeness = pet ? getDataCompleteness(pet) : "minimal";
-  const recommendations = pet ? getRecommendations(pet, ageYears, energy) : [];
+  const recommendations = pet
+    ? getRecommendations(pet, ageYears, energy)
+    : [{
+        id: "add-pet",
+        icon: "PlusCircle",
+        title: "Agregá tu mascota",
+        description: "Creá el perfil de tu mascota para ver recomendaciones personalizadas.",
+        category: "cuidado" as const,
+        isActionable: true,
+        ctaLabel: "Ir al inicio",
+        ctaRoute: "/inicio",
+      }];
   const nextWalk = getNextWalkTime(pet?.preferences?.walkTimes);
 
   const energyCfg = ENERGY_CONFIG[energy];
