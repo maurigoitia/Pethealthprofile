@@ -175,9 +175,9 @@ export default function VetDoctorProfile({ onBack }: VetDoctorProfileProps) {
         {/* Verified */}
         {vet.verified && (
           <div className="flex items-center gap-1.5 mt-4 justify-center">
-            <ShieldCheck size={16} color="#1A9B7D" />
-            <span className="text-xs text-[#1A9B7D] font-semibold">
-              Veterinario verificado por Pessy
+            <span className="bg-[#EEEDF9] text-[#5048CA] text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+              <ShieldCheck size={12} color="#5048CA" />
+              Verificado ✓
             </span>
           </div>
         )}

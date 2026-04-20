@@ -57,18 +57,29 @@ function SkeletonCard() {
   );
 }
 
-function EmptyState() {
+function EmptyState({ query }: { query: string }) {
+  const mapsUrl = `https://www.google.com/maps/search/veterinaria${query ? `+${encodeURIComponent(query)}` : ""}`;
   return (
     <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
       <div className="w-16 h-16 rounded-full bg-[#E0F2F1] flex items-center justify-center mb-4">
         <Stethoscope size={28} color="#1A9B7D" />
       </div>
       <p className="font-bold text-slate-700 text-sm" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
-        Aún no hay veterinarios registrados
+        {query ? `Sin resultados para "${query}"` : "Sin veterinarios disponibles"}
       </p>
-      <p className="text-slate-400 text-xs mt-1" style={{ fontFamily: "Manrope, sans-serif" }}>
-        Los vets verificados aparecerán acá
+      <p className="text-slate-400 text-xs mt-1 mb-5" style={{ fontFamily: "Manrope, sans-serif" }}>
+        {query ? "Probá con otro nombre o especialidad" : "Todavía no hay vets verificados en tu zona"}
       </p>
+      <a
+        href={mapsUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 px-5 py-3 rounded-[14px] bg-[#074738] text-white text-sm font-bold active:scale-[0.97] transition-transform"
+        style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
+      >
+        <MapPin size={15} />
+        Buscar en Google Maps
+      </a>
     </div>
   );
 }
@@ -185,7 +196,7 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
             <SkeletonCard />
           </>
         ) : filteredVets.length === 0 ? (
-          <EmptyState />
+          <EmptyState query={searchQuery} />
         ) : (
           filteredVets.map((vet) => (
             <div
@@ -220,12 +231,12 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
                   >
                     {vet.fullName}
                   </p>
-                  <span className="inline-block mt-1 text-[10px] font-black text-[#1A9B7D] bg-[#E0F2F1] px-2 py-0.5 rounded-full">
+                  <span className="inline-block mt-1 text-[12px] font-bold text-[#1A9B7D] bg-[#E0F2F1] px-2.5 py-1 rounded-full">
                     {vet.specialty}
                   </span>
                   <div className="flex items-center gap-3 mt-1.5">
-                    <span className="flex items-center gap-1 text-[11px] font-bold text-slate-600">
-                      <Star size={11} fill="#F59E0B" color="#F59E0B" />
+                    <span className="flex items-center gap-1 text-[12px] font-bold text-slate-600">
+                      <Star size={12} fill="#F59E0B" color="#F59E0B" />
                       {vet.rating.toFixed(1)}
                     </span>
                     <span className="flex items-center gap-1 text-[11px] text-slate-400">

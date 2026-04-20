@@ -60,24 +60,24 @@ export function QuickActionsV2({
       )}
 
       {/* ── Action buttons grid ── */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         <ActionButton
-          icon={<CalendarPlus size={20} strokeWidth={1.8} />}
+          icon={<CalendarPlus size={22} strokeWidth={1.8} />}
           label="Agregar turno"
-          sublabel={upcomingAppointments > 0 ? `${upcomingAppointments} proximo${upcomingAppointments > 1 ? "s" : ""}` : undefined}
+          sublabel={upcomingAppointments > 0 ? `${upcomingAppointments} próximo${upcomingAppointments > 1 ? "s" : ""}` : undefined}
           onClick={() => navigate("/turnos")}
           iconBg="bg-[#E0F2F1]"
           iconColor="text-[#1A9B7D]"
         />
         <ActionButton
-          icon={<FileUp size={20} strokeWidth={1.8} />}
+          icon={<FileUp size={22} strokeWidth={1.8} />}
           label="Subir documento"
           onClick={openScanner}
           iconBg="bg-[#EDE9FE]"
           iconColor="text-[#5048CA]"
         />
         <ActionButton
-          icon={<Stethoscope size={20} strokeWidth={1.8} />}
+          icon={<Stethoscope size={22} strokeWidth={1.8} />}
           label="Ver historial"
           sublabel={activeMedications > 0 ? `${activeMedications} tratamiento${activeMedications > 1 ? "s" : ""} activo${activeMedications > 1 ? "s" : ""}` : undefined}
           onClick={() => navigate("/historial")}
@@ -85,7 +85,7 @@ export function QuickActionsV2({
           iconColor="text-[#1A9B7D]"
         />
         <ActionButton
-          icon={<MapPin size={20} strokeWidth={1.8} />}
+          icon={<MapPin size={22} strokeWidth={1.8} />}
           label="Buscar veterinaria"
           onClick={() => navigate("/buscar-vet")}
           iconBg="bg-[#FEF3C7]"
@@ -116,14 +116,14 @@ function ActionButton({
   return (
     <button
       onClick={onClick}
-      className="rounded-2xl p-3 text-left border border-[#E5E7EB] bg-white transition-all active:scale-[0.97] hover:border-[#1A9B7D]/30"
+      className="rounded-[16px] p-4 text-left border border-[#E5E7EB] bg-white transition-all active:scale-[0.97] hover:border-[#1A9B7D]/30 min-h-[88px]"
     >
-      <div className={`size-10 rounded-xl ${iconBg} flex items-center justify-center mb-2`}>
+      <div className={`size-11 rounded-[12px] ${iconBg} flex items-center justify-center mb-2.5`}>
         <span className={iconColor}>{icon}</span>
       </div>
-      <p className="text-sm font-bold text-[#074738] leading-tight">{label}</p>
+      <p className="text-[14px] font-bold text-[#074738] leading-tight">{label}</p>
       {sublabel && (
-        <p className="text-[11px] text-[#6B7280] mt-0.5 font-medium">{sublabel}</p>
+        <p className="text-[12px] text-[#6B7280] mt-0.5 font-medium">{sublabel}</p>
       )}
     </button>
   );

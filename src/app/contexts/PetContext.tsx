@@ -60,6 +60,7 @@ export interface Pet {
   weightHistory?: WeightEntry[];
   coTutors?: CoTutor[];
   coTutorUids?: string[];
+  microchip?: string;
   preferences?: PetPreferences;
 }
 

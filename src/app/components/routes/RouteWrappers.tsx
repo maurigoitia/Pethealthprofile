@@ -342,6 +342,22 @@ export function VetDoctorProfileRoute() {
 }
 
 // ---------------------------------------------------------------------------
+// RutinasHubRoute — vida diaria + recomendaciones embrión
+// ---------------------------------------------------------------------------
+
+const RutinasHubLazy = lazy(() =>
+  import("../rutinas/RutinasHub").then((m) => ({ default: m.RutinasHub }))
+);
+
+export function RutinasHubRoute() {
+  return (
+    <Suspense fallback={<ScreenLoader label="Cargando rutinas..." />}>
+      <RutinasHubLazy onBack={() => window.history.back()} />
+    </Suspense>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 

@@ -4,6 +4,8 @@ import { auth, db } from "../../lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 // SCRUM-48: Sentry user tracking
 import { setSentryUser } from "../config/sentryConfig";
+// Native push notifications (Capacitor FCM/APNs)
+import { NativePushService } from "../services/nativePushService";
 // SCRUM-104: i18n auto-detect from user country
 import { changeLanguage, getLangFromCountry, getStoredLang } from "../../i18n";
 
@@ -159,8 +161,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!firebaseUser.displayName && profile.fullName && profile.fullName !== firebaseUser.email?.split("@")[0]) {
           updateProfile(firebaseUser, { displayName: profile.fullName }).catch(() => {});
         }
+
+        // Inicializar push nativo (Capacitor FCM/APNs) — fire-and-forget, nunca bloquea el login
+        NativePushService.init().then(() => {
+          NativePushService.requestPermissionAndRegister(firebaseUser.uid).catch(() => {});
+        }).catch(() => {});
       } else {
         clearProfile();
+        // Limpiar listeners de push al cerrar sesión
+        NativePushService.destroy().catch(() => {});
       }
 
       clearTimeout(safetyTimer);
