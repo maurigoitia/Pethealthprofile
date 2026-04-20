@@ -1,12 +1,29 @@
+import { useEffect } from "react";
 import { useNavigate, useRouteError } from "react-router";
 
 export function RouteErrorFallback() {
   const navigate = useNavigate();
   const error = useRouteError() as any;
+
+  // Auto-reload on chunk/module load errors (stale SW hashes after deploy)
+  useEffect(() => {
+    if (error instanceof Error) {
+      const isChunkError =
+        (error as any).name === "ChunkLoadError" ||
+        error.message.includes("Loading chunk") ||
+        error.message.includes("CSS chunk") ||
+        error.message.includes("Failed to fetch dynamically imported module") ||
+        error.message.includes("Importing a module script failed");
+      if (isChunkError) {
+        window.location.reload();
+      }
+    }
+  }, [error]);
+
   const message =
     error?.status === 404
       ? "La pantalla no existe o fue movida."
-      : "Ocurri√≥ un error inesperado en esta pantalla.";
+      : "Ocurrió un error inesperado en esta pantalla.";
 
   return (
     <div
@@ -27,7 +44,7 @@ export function RouteErrorFallback() {
             Reintentar
           </button>
           <button
-            onClick={() => navigate("/home")}
+            onClick={() => navigate("/inicio")}
             className="w-full py-4 rounded-2xl border-2 border-[#074738] text-[#074738] font-bold"
           >
             Ir al inicio

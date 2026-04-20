@@ -20,6 +20,22 @@ export class AppErrorBoundary extends React.Component<AppErrorBoundaryProps, App
 
   componentDidCatch(error: unknown) {
     console.error("App runtime error:", error);
+
+    // Auto-recover from chunk load errors that happen after a new SW deploy.
+    // The new service worker precaches fresh chunk hashes; old in-memory
+    // import() references pointing to stale hashes fail with these messages.
+    if (error instanceof Error) {
+      const isChunkError =
+        error.name === "ChunkLoadError" ||
+        error.message.includes("Loading chunk") ||
+        error.message.includes("CSS chunk") ||
+        error.message.includes("Failed to fetch dynamically imported module") ||
+        error.message.includes("Importing a module script failed");
+      if (isChunkError) {
+        window.location.reload();
+        return;
+      }
+    }
   }
 
   private handleReload = () => {
