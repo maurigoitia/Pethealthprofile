@@ -539,7 +539,7 @@ export default function HomeScreen() {
   }
 
   return withTermsNotice(
-    <div className="bg-[#F0FAF9] dark:bg-[#101622] text-slate-900 dark:text-slate-100 min-h-screen font-['Manrope',sans-serif]">
+    <div className="pessy-grain bg-[#F0FAF9] dark:bg-[#101622] text-slate-900 dark:text-slate-100 min-h-screen font-['Manrope',sans-serif]">
       {/* Sidebar */}
       <Sidebar
         isOpen={showSidebar}

@@ -280,7 +280,7 @@ export function LoginScreen() {
           <button
             type="submit"
             disabled={loading || authLoading}
-            className="w-full rounded-[14px] bg-[#074738] py-4 font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60 hover:bg-[#1A9B7D] transition-colors shadow-[0_4px_12px_rgba(26,155,125,0.3)]"
+            className="pessy-cta-glow w-full rounded-[14px] bg-[#074738] py-4 font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60 hover:bg-[#1A9B7D] transition-colors active:scale-[0.97]"
             style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             {authLoading ? "Validando sesión..." : loading ? "Ingresando..." : "Ingresar"}
