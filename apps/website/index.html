@@ -137,16 +137,16 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
     <li><a href="#equipo" class="text-[11px] font-bold text-tx3 hover:text-dk transition tracking-wide uppercase">Equipo</a></li>
   </ul>
   <a href="/inicio?src=landing" class="hidden md:inline-flex bg-dk text-white px-5 py-2.5 rounded-full text-[11px] font-extrabold tracking-wide hover:bg-[#063d30] transition shadow-lg shadow-dk/10">Entrar</a>
-  <button class="md:hidden text-dk" onclick="document.getElementById('mm').classList.add('open')" aria-label="Abrir menu"><span class="ms text-2xl">menu</span></button>
+  <button class="md:hidden text-dk" id="mmOpen" aria-label="Abrir menu"><span class="ms text-2xl">menu</span></button>
 </div>
 </nav>
 <div class="mm" id="mm">
-  <button class="absolute top-5 right-6 text-dk" onclick="this.parentElement.classList.remove('open')" aria-label="Cerrar menu"><span class="ms text-2xl">close</span></button>
-  <a href="#identidad" class="text-lg font-extrabold text-dk" onclick="this.parentElement.classList.remove('open')">Identidad</a>
-  <a href="#comofunciona" class="text-lg font-extrabold text-dk" onclick="this.parentElement.classList.remove('open')">Como funciona</a>
-  <a href="#planes" class="text-lg font-extrabold text-dk" onclick="this.parentElement.classList.remove('open')">Planes</a>
-  <a href="#equipo" class="text-lg font-extrabold text-dk" onclick="this.parentElement.classList.remove('open')">Equipo</a>
-  <a href="/inicio?src=landing" class="bg-dk text-white px-8 py-3 rounded-full font-extrabold mt-4" onclick="this.parentElement.classList.remove('open')">Entrar</a>
+  <button class="absolute top-5 right-6 text-dk" id="mmClose" aria-label="Cerrar menu"><span class="ms text-2xl">close</span></button>
+  <a href="#identidad" class="text-lg font-extrabold text-dk mm-link">Identidad</a>
+  <a href="#comofunciona" class="text-lg font-extrabold text-dk mm-link">Como funciona</a>
+  <a href="#planes" class="text-lg font-extrabold text-dk mm-link">Planes</a>
+  <a href="#equipo" class="text-lg font-extrabold text-dk mm-link">Equipo</a>
+  <a href="/inicio?src=landing" class="bg-dk text-white px-8 py-3 rounded-full font-extrabold mt-4 mm-link">Entrar</a>
 </div>
 
 <main>
@@ -560,7 +560,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
     <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 equipo-grid">
       <div class="text-center group">
         <div class="founder-img w-full aspect-square rounded-[2rem] mb-4 shadow-lg shadow-dk/8 border-2 border-white bg-bgm overflow-hidden">
-          <img src="/team/mauri-real.jpeg" alt="Mauri" class="w-full h-full object-cover">
+          <img src="/team/mauricio.jpg" alt="Mauri" class="w-full h-full object-cover" style="object-position:25% center">
         </div>
         <div class="font-brand font-extrabold text-dk text-base mb-0.5">Mauri</div>
         <div class="text-[10px] text-green2 font-bold uppercase tracking-wider mb-0.5">Cofundador</div>
@@ -569,7 +569,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
       </div>
       <div class="text-center group">
         <div class="founder-img w-full aspect-square rounded-[2rem] mb-4 shadow-lg shadow-dk/8 border-2 border-white bg-bgm overflow-hidden">
-          <img src="/team/ronald.jpg" alt="Ronald" class="w-full h-full object-cover">
+          <img src="/team/ronald-v2.jpg" alt="Ronald" class="w-full h-full object-cover">
         </div>
         <div class="font-brand font-extrabold text-dk text-base mb-0.5">Ronald</div>
         <div class="text-[10px] text-green2 font-bold uppercase tracking-wider mb-0.5">Cofundador</div>
@@ -578,7 +578,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
       </div>
       <div class="text-center group">
         <div class="founder-img w-full aspect-square rounded-[2rem] mb-4 shadow-lg shadow-purple2/8 border-2 border-white bg-purplebg/20 overflow-hidden">
-          <img src="/team/founder-2.jpg" alt="Ary" class="w-full h-full object-cover">
+          <img src="/team/ary-v2.jpg" alt="Ary" class="w-full h-full object-cover">
         </div>
         <div class="font-brand font-extrabold text-dk text-base mb-0.5">Ary</div>
         <div class="text-[10px] text-purple2 font-bold uppercase tracking-wider mb-0.5">Marketing</div>
@@ -587,7 +587,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
       </div>
       <div class="text-center group relative">
         <div class="founder-img w-full aspect-square rounded-[2rem] mb-4 shadow-lg shadow-dk/8 border-2 border-white bg-bgm overflow-hidden">
-          <img src="/team/founder-3.jpg" alt="Thor" class="w-full h-full object-cover">
+          <img src="/team/pessy-dog-cover.jpg" alt="Thor" class="w-full h-full object-cover">
         </div>
         <div class="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm border border-border2/20 flex items-center justify-center shadow-md"><img src="https://pessy.app/pwa-192x192.png" alt="" class="w-5 h-5 rounded-sm"></div>
         <div class="font-brand font-extrabold text-dk text-base mb-0.5">Thor</div>
@@ -1001,6 +1001,16 @@ document.querySelectorAll('.faq-q').forEach(q=>{q.addEventListener('click',()=>{
 
 // === Smooth scroll ===
 document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',e=>{const h=a.getAttribute('href');if(h==='#')return;e.preventDefault();const t=document.querySelector(h);if(t)t.scrollIntoView({behavior:'smooth'})})});
+
+// === Mobile menu ===
+(function(){
+  var mm=document.getElementById('mm');
+  var open=document.getElementById('mmOpen');
+  var close=document.getElementById('mmClose');
+  if(open)open.addEventListener('click',function(){mm.classList.add('open')});
+  if(close)close.addEventListener('click',function(){mm.classList.remove('open')});
+  document.querySelectorAll('.mm-link').forEach(function(l){l.addEventListener('click',function(){mm.classList.remove('open')})});
+})();
 
 // === Nav scroll ===
 window.addEventListener('scroll',()=>{const n=document.getElementById('nav'),y=window.scrollY;if(y>50){n.style.background='rgba(240,250,249,.92)';n.style.backdropFilter='blur(20px)';n.style.webkitBackdropFilter='blur(20px)';n.style.boxShadow='0 1px 0 rgba(200,217,210,.25)'}else{n.style.background='transparent';n.style.backdropFilter='none';n.style.webkitBackdropFilter='none';n.style.boxShadow='none'}},{passive:true});
