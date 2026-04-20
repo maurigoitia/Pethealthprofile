@@ -231,12 +231,12 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
                   >
                     {vet.fullName}
                   </p>
-                  <span className="inline-block mt-1 text-[10px] font-black text-[#1A9B7D] bg-[#E0F2F1] px-2 py-0.5 rounded-full">
+                  <span className="inline-block mt-1 text-[12px] font-bold text-[#1A9B7D] bg-[#E0F2F1] px-2.5 py-1 rounded-full">
                     {vet.specialty}
                   </span>
                   <div className="flex items-center gap-3 mt-1.5">
-                    <span className="flex items-center gap-1 text-[11px] font-bold text-slate-600">
-                      <Star size={11} fill="#F59E0B" color="#F59E0B" />
+                    <span className="flex items-center gap-1 text-[12px] font-bold text-slate-600">
+                      <Star size={12} fill="#F59E0B" color="#F59E0B" />
                       {vet.rating.toFixed(1)}
                     </span>
                     <span className="flex items-center gap-1 text-[11px] text-slate-400">

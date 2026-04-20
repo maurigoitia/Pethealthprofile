@@ -387,14 +387,14 @@ export function RutinasHub({ onBack }: Props) {
                       >
                         {rec.title}
                       </p>
-                      <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">
+                      <p className="text-[13px] text-slate-600 mt-0.5 leading-relaxed">
                         {rec.description}
                       </p>
                       {rec.isActionable && rec.ctaLabel && rec.ctaRoute && (
                         <button
                           type="button"
                           onClick={() => navigate(rec.ctaRoute!)}
-                          className="mt-2 text-xs font-bold text-[#1A9B7D] hover:underline min-h-[44px] flex items-center"
+                          className="mt-2 text-[13px] font-bold text-[#1A9B7D] hover:underline min-h-[44px] flex items-center"
                         >
                           {rec.ctaLabel} →
                         </button>
