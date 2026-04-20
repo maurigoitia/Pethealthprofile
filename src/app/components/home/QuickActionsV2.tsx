@@ -12,6 +12,7 @@ import {
   Stethoscope,
   MapPin,
   AlertCircle,
+  Pill,
 } from "lucide-react";
 import { useAppLayout } from "../layout/AppLayout";
 
@@ -77,19 +78,19 @@ export function QuickActionsV2({
           iconColor="text-[#5048CA]"
         />
         <ActionButton
-          icon={<Stethoscope size={22} strokeWidth={1.8} />}
-          label="Ver historial"
-          sublabel={activeMedications > 0 ? `${activeMedications} tratamiento${activeMedications > 1 ? "s" : ""} activo${activeMedications > 1 ? "s" : ""}` : undefined}
-          onClick={() => navigate("/historial")}
+          icon={<Pill size={22} strokeWidth={1.8} />}
+          label="Tratamientos"
+          sublabel={activeMedications > 0 ? `${activeMedications} activo${activeMedications > 1 ? "s" : ""}` : "Ver todos"}
+          onClick={() => navigate("/tratamientos")}
           iconBg="bg-[#E0F2F1]"
           iconColor="text-[#1A9B7D]"
         />
         <ActionButton
-          icon={<MapPin size={22} strokeWidth={1.8} />}
-          label="Buscar veterinaria"
-          onClick={() => navigate("/buscar-vet")}
-          iconBg="bg-[#FEF3C7]"
-          iconColor="text-[#D97706]"
+          icon={<Stethoscope size={22} strokeWidth={1.8} />}
+          label="Ver historial"
+          onClick={() => navigate("/historial")}
+          iconBg="bg-[#F0F0FF]"
+          iconColor="text-[#5048CA]"
         />
       </div>
     </div>
