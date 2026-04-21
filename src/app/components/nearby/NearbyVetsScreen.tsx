@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 
 import { MaterialIcon } from "../shared/MaterialIcon";
+import { useBookAppointment } from "../../hooks/useBookAppointment";
+import { AddAppointmentModal } from "../appointments/AddAppointmentModal";
 
 interface VetClinic {
   place_id: string;
@@ -28,6 +30,7 @@ function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number): num
 }
 
 export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
+  const { isOpen: bookingOpen, initialValues: bookingValues, openBooking, onClose: closeBooking } = useBookAppointment();
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error" | "denied">("idle");
   const [vets, setVets] = useState<VetClinic[]>([]);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -272,9 +275,14 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
                         Llamar
                       </button>
                       <button onClick={() => openInMaps(vet)}
-                        className="flex-1 py-2.5 rounded-[12px] bg-[#1A9B7D] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-[0_4px_12px_rgba(26,155,125,0.3)] active:scale-[0.97] transition-all">
+                        className="flex-1 py-2.5 rounded-[12px] bg-[#E0F2F1] dark:bg-slate-800 text-[#074738] dark:text-slate-300 font-bold text-xs flex items-center justify-center gap-1.5 active:scale-[0.97] transition-all">
                         <MaterialIcon name="directions" className="text-sm" />
                         Cómo llegar
+                      </button>
+                      <button onClick={() => openBooking(vet.name, vet.name)}
+                        className="flex-1 py-2.5 rounded-[12px] bg-[#1A9B7D] text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-[0_4px_12px_rgba(26,155,125,0.3)] active:scale-[0.97] transition-all">
+                        <MaterialIcon name="event" className="text-sm" />
+                        Agendar
                       </button>
                     </div>
                   </div>
@@ -291,6 +299,12 @@ export function NearbyVetsScreen({ onBack }: NearbyVetsScreenProps) {
           )}
         </div>
       </div>
+
+      <AddAppointmentModal
+        isOpen={bookingOpen}
+        onClose={closeBooking}
+        initialValues={bookingValues}
+      />
     </div>
   );
 }
