@@ -15,10 +15,12 @@ import EmpezarLandingPage from "./pages/EmpezarLandingPage";
 import LegalPage from "./pages/LegalPage";
 import { RequestAccessScreen } from "./components/auth/RequestAccessScreen";
 import { isProductionAppHost, isNativeAppContext } from "./utils/runtimeFlags";
-import { VetLoginScreen } from "./components/vet/VetLoginScreen";
-import { VetRegisterScreen } from "./components/vet/VetRegisterScreen";
-import VetDashboard from "./components/vet/VetDashboard";
-import { VetNewConsultation } from "./components/vet/VetNewConsultation";
+// Vet professional mode — excluded from production MVP (separate app, V2)
+// import { VetLoginScreen } from "./components/vet/VetLoginScreen";
+// import { VetRegisterScreen } from "./components/vet/VetRegisterScreen";
+// import VetDashboard from "./components/vet/VetDashboard";
+// import { VetNewConsultation } from "./components/vet/VetNewConsultation";
+import { NearbyVetsScreen } from "./components/nearby/NearbyVetsScreen";
 
 const AdminAccessRequests = () => import("./components/auth/AdminAccessRequests").then(m => ({ Component: m.AdminAccessRequests }));
 
@@ -165,11 +167,16 @@ export const router = createBrowserRouter([
   ...previewRoutes,
   withErrorBoundary({ path: "/email-link", Component: EmailLinkSignInScreen }),
   withErrorBoundary({ path: "/verify/:hash", Component: VerifyReportScreen }),
-  // Vet routes — independent from AppLayout (vets have their own VetBottomNav)
-  withErrorBoundary({ path: "/vet", element: <Navigate to="/vet/login" replace /> }),
-  withErrorBoundary({ path: "/vet/login", Component: VetLoginScreen }),
-  withErrorBoundary({ path: "/vet/register", Component: VetRegisterScreen }),
-  withErrorBoundary({ path: "/vet/dashboard", Component: VetDashboard }),
-  withErrorBoundary({ path: "/vet/new-consultation", Component: VetNewConsultation }),
+  // /buscar-vet — ruta canónica real para usuarios (reemplaza overlay interno)
+  withErrorBoundary({
+    path: "/buscar-vet",
+    element: <NearbyVetsScreen onBack={() => window.history.back()} />,
+  }),
+  // Vet professional mode — excluded from production MVP
+  // withErrorBoundary({ path: "/vet", element: <Navigate to="/vet/login" replace /> }),
+  // withErrorBoundary({ path: "/vet/login", Component: VetLoginScreen }),
+  // withErrorBoundary({ path: "/vet/register", Component: VetRegisterScreen }),
+  // withErrorBoundary({ path: "/vet/dashboard", Component: VetDashboard }),
+  // withErrorBoundary({ path: "/vet/new-consultation", Component: VetNewConsultation }),
   withErrorBoundary({ path: "*", element: <CatchAllRedirect /> }),
 ]);
