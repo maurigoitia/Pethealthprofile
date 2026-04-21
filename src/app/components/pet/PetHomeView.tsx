@@ -1,15 +1,13 @@
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { useMedical } from "../../contexts/MedicalContext";
-import { useGamification } from "../../contexts/GamificationContext";
 import { usePet, type PetPreferences } from "../../contexts/PetContext";
-import { toTimestampSafe } from "../../utils/dateUtils";
-import { doc, getDoc, setDoc, collection, query, where, onSnapshot } from "firebase/firestore";
-import { db } from "../../../lib/firebase";
 import { useAuth } from "../../contexts/AuthContext";
+import { toTimestampSafe } from "../../utils/dateUtils";
 import { PetPhoto } from "./PetPhoto";
-
+import { useGamification } from "../../contexts/GamificationContext";
+import { db } from "../../../lib/firebase";
+import { collection, doc, getDoc, getDocs, setDoc } from "firebase/firestore";
 
 const PetPreferencesEditor = lazy(() =>
   import("./PetPreferencesEditor.tsx").then((m) => ({ default: m.PetPreferencesEditor }))
@@ -25,11 +23,21 @@ import {
 } from "../../../domain/intelligence/pessyIntelligenceEngine";
 
 import DailyHookCard from "../home/DailyHookCard";
-import HealthPulse from "../home/HealthPulse";
 import RoutineChecklist from "../home/RoutineChecklist";
+import { MissionDetailScreen } from "../home/MissionDetailScreen";
+import { MISSIONS } from "../home/missionData";
 import ProfileNudge from "../home/ProfileNudge";
-import { QuickActionsV2 } from "../home/QuickActionsV2";
+import QuickActions from "../home/QuickActions";
 import PessyTip, { SectionTitle } from "../home/PessyTip";
+import PessyDailyCheckin from "../home/PessyDailyCheckin";
+import { EcosystemRow } from "../home/EcosystemRow";
+import PersonalityOnboarding from "./PersonalityOnboarding";
+import BreedInsightCard from "../home/BreedInsightCard";
+import { VaccineAlertBanner } from "../home/VaccineAlertBanner";
+import { detectWalkPattern } from "../../../domain/intelligence/walkPatternDetector";
+import { useWalks } from "../../contexts/WalkContext";
+import { WalkLogModal } from "../walks/WalkLogModal";
+import { MascotPresence } from "../shared/MascotPresence";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -59,6 +67,9 @@ interface PetHomeViewProps {
   onPetClick: () => void;
   onAppointmentsClick: () => void;
   onMedicationsClick: () => void;
+  onOpenScanner?: () => void;
+  onOpenNearbyVets?: () => void;
+  onSwitchToRutinas?: () => void;
   pets: Array<{
     id: string;
     name: string;
@@ -151,6 +162,18 @@ function resolveThermalProfile(species: PetSpecies, groupIds: WellbeingSpeciesGr
 
 const WMO_RAIN_CODES = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82];
 
+/** Parses an age string like "6 meses", "2 años", "1 año 3 meses" → total months */
+function parseAgeToMonths(age?: string | null): number | null {
+  if (!age) return null;
+  const lower = age.toLowerCase();
+  const yearMatch = lower.match(/(\d+)\s*(año|year)/);
+  const monthMatch = lower.match(/(\d+)\s*(mes|month)/);
+  const years = yearMatch ? parseInt(yearMatch[1]) : 0;
+  const months = monthMatch ? parseInt(monthMatch[1]) : 0;
+  if (!yearMatch && !monthMatch) return null;
+  return years * 12 + months;
+}
+
 function computeFoodDaysLeft(prefs: PetPreferences | undefined): number | null {
   if (!prefs?.foodBagKg || !prefs?.foodDailyGrams || !prefs?.foodLastPurchase) return null;
   const totalGrams = prefs.foodBagKg * 1000;
@@ -219,17 +242,12 @@ function WeatherPill({
 
 // ─── ROUTINE STORAGE HELPERS ──────────────────────────────────────────────────
 
-// ─── Routine persistence: localStorage (cache) + Firestore (source of truth) ─
-function getRoutineDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function getRoutineStorageKey(petId: string): string {
-  return `pessy_routine_${petId}_${getRoutineDate()}`;
+  const today = new Date().toISOString().slice(0, 10);
+  return `pessy_routine_${petId}_${today}`;
 }
 
-/** Read from localStorage cache (instant, works offline) */
-function loadCheckedItemsLocal(petId: string): string[] {
+function loadCheckedItems(petId: string): string[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(getRoutineStorageKey(petId));
@@ -239,50 +257,129 @@ function loadCheckedItemsLocal(petId: string): string[] {
   }
 }
 
-/** Save to both localStorage (instant) and Firestore (persistent, cross-device) */
-function saveCheckedItems(petId: string, userId: string, items: string[]) {
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(getRoutineStorageKey(petId), JSON.stringify(items));
-  }
-  const date = getRoutineDate();
-  const docId = `${petId}_${date}`;
-  setDoc(doc(db, "routine_completions", docId), {
-    petId,
-    userId,
-    date,
-    checkedItems: items,
-    updatedAt: new Date().toISOString(),
-  }, { merge: true }).catch(() => {
-    // Firestore write failed — localStorage still has the data, will retry on next toggle
-  });
+function saveCheckedItems(petId: string, items: string[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(getRoutineStorageKey(petId), JSON.stringify(items));
 }
 
-/** Load from Firestore (cross-device sync); falls back to localStorage */
-async function loadCheckedItemsFromFirestore(petId: string): Promise<string[] | null> {
-  try {
-    const date = getRoutineDate();
-    const docId = `${petId}_${date}`;
-    const snap = await getDoc(doc(db, "routine_completions", docId));
-    if (snap.exists()) {
-      const data = snap.data();
-      return Array.isArray(data.checkedItems) ? data.checkedItems : null;
+// ─── TYPES ────────────────────────────────────────────────────────────────────
+
+/** Personality data stored in Firestore: users/{uid}/pets/{petId}/personality/{topic} */
+type Personality = Record<string, { value: string }>;
+
+/** Extended recommendation — adds optional mission mode fields */
+type EnhancedTip = PessyIntelligenceRecommendation & {
+  isMission?: boolean;
+  missionPoints?: number;
+};
+
+// ─── CONTEXTUAL TIPS FROM REAL DATA ──────────────────────────────────────────
+// These override generic tips — if there's real medication/appointment data,
+// it shows FIRST (kind: "alert") before breed/weather recommendations.
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildContextualTips(petName: string, medications: any[], appointments: any[], personality?: Personality, species?: string, breed?: string): EnhancedTip[] {
+  // Hour-of-day context for time-sensitive missions
+  const currentHour = new Date().getHours();
+  const isEvening = currentHour >= 18 || currentHour < 6;
+  const isDog = !species || species === "dog";
+  const tips: EnhancedTip[] = [];
+
+  // Active medications → always relevant, show name + dosage
+  medications.slice(0, 2).forEach((med, i) => {
+    const daysLeft = med.endDate
+      ? Math.ceil((new Date(med.endDate).getTime() - Date.now()) / 86_400_000)
+      : null;
+
+    if (daysLeft !== null && daysLeft <= 3 && daysLeft >= 0) {
+      // Treatment ending soon — urgent
+      const when = daysLeft === 0 ? "hoy" : daysLeft === 1 ? "mañana" : `en ${daysLeft} días`;
+      tips.push({
+        id: `med-ending-${i}`,
+        code: "med_ending",
+        title: `${med.name} termina ${when}`,
+        detail: `Consultá con el vet si ${petName} necesita continuar el tratamiento.`,
+        slot: "alert",
+        icon: "medication",
+        kind: "alert",
+        sourceModule: "contextual",
+      });
+    } else {
+      // Active treatment — already shown in Medical Profile card, skip duplicate tip
     }
-    return null;
-  } catch {
-    return null;
+  });
+
+  // Upcoming appointment within 7 days
+  const nextAppt = appointments[0];
+  if (nextAppt) {
+    const iso = nextAppt.dateTime || (nextAppt.date ? `${nextAppt.date}T${nextAppt.time || "09:00"}:00` : "");
+    if (iso) {
+      const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000);
+      if (days >= 0 && days <= 7) {
+        const when = days === 0 ? "hoy" : days === 1 ? "mañana" : `en ${days} días`;
+        const dateLabel = new Date(iso).toLocaleDateString("es-AR", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+        tips.push({
+          id: "appt-upcoming",
+          code: "appt_upcoming",
+          title: `Cita con el vet ${when}`,
+          detail: dateLabel,
+          slot: days <= 1 ? "alert" : "recommendation",
+          icon: "event",
+          kind: days <= 1 ? "alert" : "recommendation",
+          sourceModule: "contextual",
+        });
+      }
+    }
   }
+
+  // Personality-aware mission tips — solo perros, con contexto de raza
+  const training = personality?.training_level?.value;
+  if (training && isDog) {
+    const breedHint = breed ? ` (${breed})` : "";
+    const missionTitle = training === "none"
+      ? `Enseñarle 'Sentado' a ${petName}`
+      : training === "partial"
+        ? `Reforzar 'Quieto' con ${petName}${breedHint}`
+        : `Practicar 'Espera la señal' con ${petName}${breedHint}`;
+    tips.push({
+      id: "mission-training",
+      code: "mission_training",
+      title: missionTitle,
+      detail: training === "none" ? "5 min. Recompensá cada intento." : training === "partial" ? "10 min con más distancia." : "Con distracciones activas.",
+      slot: "recommendation",
+      icon: "school",
+      kind: "recommendation",
+      sourceModule: "mission",
+      isMission: true,
+    });
+  }
+
+  // Rutina de calma — solo en la tarde/noche (18hs en adelante o antes de las 6am)
+  const sleep = personality?.sleep_habits?.value;
+  if (sleep && isEvening) {
+    tips.push({
+      id: "mission-sleep",
+      code: "mission_sleep",
+      title: sleep === "with_owner" ? `Noche cómoda para los dos` : `Rutina de calma para ${petName}`,
+      detail: sleep === "with_owner" ? `Definí el espacio de ${petName} en la cama.` : `10 min de calma antes de separarse.`,
+      slot: "recommendation",
+      icon: "bedtime",
+      kind: "recommendation",
+      sourceModule: "mission",
+      isMission: true,
+    });
+  }
+
+  return tips;
 }
 
 // ─── RECOMMENDATION COLOR MAPPING ────────────────────────────────────────────
 
 function mapRecToTipColor(rec: PessyIntelligenceRecommendation): "green" | "blue" | "orange" {
-  const segment = rec.slot?.toLowerCase() || "";
-  if (segment.includes("block") || segment.includes("alert") || rec.kind === "block" || rec.kind === "alert") {
-    return "orange";
-  }
-  if (segment.includes("training") || segment.includes("routine")) {
-    return "green";
-  }
+  if (rec.kind === "block" || rec.kind === "alert") return "orange";
+  // Contextual tips (real data: medications, appointments) show in green
+  if (rec.sourceModule === "contextual") return "green";
+  if (rec.slot?.includes("training") || rec.slot?.includes("routine")) return "green";
   return "blue";
 }
 
@@ -293,6 +390,9 @@ function mapRecToTipColor(rec: PessyIntelligenceRecommendation): "green" | "blue
 export function PetHomeView({
   onViewHistory,
   onProfileClick,
+  onOpenScanner,
+  onOpenNearbyVets,
+  onSwitchToRutinas,
   onPetClick,
   onAppointmentsClick,
   onMedicationsClick,
@@ -302,8 +402,11 @@ export function PetHomeView({
 }: PetHomeViewProps) {
   const { updatePet } = usePet();
   const { user } = useAuth();
+  const { walks } = useWalks();
+  const walkPattern = useMemo(() => detectWalkPattern(walks), [walks]);
   const [showPreferences, setShowPreferences] = useState(false);
-  const [showAllTasks, setShowAllTasks] = useState(false);
+  const [personality, setPersonality] = useState<Personality>({});
+  const [showPersonalityOnboarding, setShowPersonalityOnboarding] = useState(false);
   const [weather, setWeather] = useState<LiveWeatherSnapshot>({
     status: "loading",
     temperatureC: null,
@@ -313,11 +416,21 @@ export function PetHomeView({
     uvIndex: null,
   });
   const [nudgedBreed, setNudgedBreed] = useState(false);
-  const [checkedRoutineItems, setCheckedRoutineItems] = useState<string[]>(() => activePetId ? loadCheckedItemsLocal(activePetId) : []);
-  const [pendingReviewCount, setPendingReviewCount] = useState(0);
-
-  const { getEventsByPetId, getActiveMedicationsByPetId, getAppointmentsByPetId } = useMedical();
-  const gamification = useGamification();
+  const [checkedRoutineItems, setCheckedRoutineItems] = useState<string[]>([]);
+  const { totalPoints: points, addPoints: addPointsToContext } = useGamification();
+  const [completedMissions, setCompletedMissions] = useState<Set<string>>(new Set());
+  const [activeMissionCode, setActiveMissionCode] = useState<string | null>(null);
+  const [preWalkDismissed, setPreWalkDismissed] = useState(false);
+  const [breedInsightDismissed, setBreedInsightDismissed] = useState(false);
+  const [showWalkLogModal, setShowWalkLogModal] = useState(false);
+  const {
+    getEventsByPetId,
+    getActiveMedicationsByPetId,
+    getAppointmentsByPetId,
+    getClinicalConditionsByPetId,
+    getProfileSnapshotByPetId,
+    getPendingActionsByPetId,
+  } = useMedical();
 
   const currentIndex = pets.findIndex((pet) => pet.id === activePetId);
   const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
@@ -328,15 +441,69 @@ export function PetHomeView({
   const appointments = activePetId ? getAppointmentsByPetId(activePetId) : [];
   const activeMedications = activePetId ? getActiveMedicationsByPetId(activePetId) : [];
 
+  // ─── Medical intelligence summary ───────────────────────────────────────────
+  const profileSnapshot = activePetId ? getProfileSnapshotByPetId(activePetId) : null;
+  const clinicalConditions = activePetId ? getClinicalConditionsByPetId(activePetId) : [];
+
+  // Chronic/active conditions: prefer profile snapshot, fallback to raw clinical conditions
+  const chronicConditions: string[] = profileSnapshot?.activeConditions?.length
+    ? profileSnapshot.activeConditions
+    : profileSnapshot?.recurrentPathologies?.length
+      ? profileSnapshot.recurrentPathologies
+      : clinicalConditions
+          .filter((c) => c.status === "active" || c.pattern === "chronic")
+          .map((c) => c.normalizedName)
+          .slice(0, 4);
+
+  const hasMedicalSummary =
+    chronicConditions.length > 0 ||
+    activeMedications.length > 0;
+
   const upcomingAppointments = appointments.filter((appointment) => {
     const dateValue = appointment.dateTime || `${appointment.date || ""}T${appointment.time || "00:00"}:00`;
     return toTimestampSafe(dateValue, 0) >= Date.now();
   });
 
   const species = resolveSpecies(activePet?.species, activePet?.breed);
-  const groupIds = resolveGroupIds(species, activePet?.breed || "");
+  const ageMonths = parseAgeToMonths(activePet?.age);
+  const showPreWalkPrompt = useMemo(() => {
+    if (preWalkDismissed || !activePet) return false;
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTimeInMinutes = currentHour * 60 + currentMinutes;
+    const usualWalkTimeInMinutes = (walkPattern.usualWalkHour || 0) * 60;
+    const withinTimeWindow = Math.abs(currentTimeInMinutes - usualWalkTimeInMinutes) <= 30;
+    return (
+      walkPattern.hasEstablishedPattern &&
+      withinTimeWindow &&
+      walkPattern.daysSinceLastWalk >= 1
+    );
+  }, [walkPattern, activePet, preWalkDismissed]);
+  const isPuppy = species === "dog" && ageMonths !== null && ageMonths < 12;
+  const baseGroupIds = resolveGroupIds(species, activePet?.breed || "");
+  // Inject dog.puppy group if age indicates a puppy (< 12 months)
+  const groupIds: WellbeingSpeciesGroupId[] = (isPuppy && !baseGroupIds.includes("dog.puppy"))
+    ? (["dog.puppy", ...baseGroupIds] as WellbeingSpeciesGroupId[])
+    : baseGroupIds;
   const thermalProfile = resolveThermalProfile(species, groupIds);
   const foodDaysLeft = computeFoodDaysLeft(activePet?.preferences);
+
+  // ─── Insight banners ────────────────────────────────────────────────────────
+  // "Thor lleva 3 días sin salir → [Registrar paseo]"
+  const showNoWalkInsight = useMemo(() => {
+    if (!activePet) return false;
+    if (species !== "dog") return false;
+    if (showPreWalkPrompt) return false; // Pre-walk prompt already covers this
+    return walkPattern.daysSinceLastWalk >= 3;
+  }, [activePet, species, showPreWalkPrompt, walkPattern.daysSinceLastWalk]);
+
+  // "Alimento de Thor se está agotando → [Reponer en MercadoLibre]"
+  const showFoodLowInsight = useMemo(() => {
+    if (!activePet) return false;
+    if (foodDaysLeft === null || foodDaysLeft === undefined) return false;
+    return foodDaysLeft <= 3 && foodDaysLeft > 0;
+  }, [activePet, foodDaysLeft]);
 
   // ─── Profile completeness ───────────────────────────────────────────────────
   const missingItems: string[] = [];
@@ -393,6 +560,11 @@ export function PetHomeView({
   }, [petEvents, activeMedications.length, upcomingAppointments.length]);
 
   // ─── Intelligence engine ────────────────────────────────────────────────────
+  const hasVaccineOnRecord = petEvents.some((e: any) => e.extractedData?.documentType === "vaccine");
+  const hasSeparationAnxiety = (activePet?.preferences?.fears || []).some((f: string) =>
+    f.toLowerCase().includes("sola") || f.toLowerCase().includes("separac") || f.toLowerCase().includes("ansiedad")
+  );
+
   const intelligenceResult = useMemo(() => {
     if (!activePet?.breed) return null;
     const wc = weather.weatherCode;
@@ -401,6 +573,7 @@ export function PetHomeView({
       species,
       breed: activePet.breed,
       ageLabel: activePet.age || "",
+      ageWeeks: ageMonths !== null ? ageMonths * 4 : null,
       groupIds,
       temperatureC: weather.temperatureC,
       humidityPct: weather.humidityPct,
@@ -414,20 +587,111 @@ export function PetHomeView({
       favoriteActivities: activePet.preferences?.favoriteActivities,
       walkTimes: activePet.preferences?.walkTimes,
       foodDaysLeft,
+      isPuppy,
+      hasSeparationAnxiety,
+      isUnvaccinated: isPuppy && !hasVaccineOnRecord,
       ...medicalHistoryInputs,
     });
-  }, [activePet?.id, activePet?.breed, activePet?.name, activePet?.age, activePet?.preferences, species, groupIds, weather, foodDaysLeft, medicalHistoryInputs]);
+  }, [activePet?.id, activePet?.breed, activePet?.name, activePet?.age, activePet?.preferences, species, groupIds, weather, foodDaysLeft, isPuppy, hasSeparationAnxiety, hasVaccineOnRecord, medicalHistoryInputs]);
 
   const sortedRecommendations = useMemo(() => {
-    if (!intelligenceResult) return [];
+    // Contextual tips from real data (meds, appointments) always come first
+    const contextual = buildContextualTips(activePet?.name || "", activeMedications, upcomingAppointments, personality, activePet?.species, activePet?.breed);
+    const intelligence = intelligenceResult?.recommendations || [];
     const order: Record<string, number> = { block: 0, alert: 1, recommendation: 2 };
-    return [...intelligenceResult.recommendations].sort((a, b) => (order[a.kind] ?? 2) - (order[b.kind] ?? 2));
+    const all = [...contextual, ...intelligence].sort((a, b) => (order[a.kind] ?? 2) - (order[b.kind] ?? 2));
+    // Max 4 tips — show what matters, not everything
+    return all.slice(0, 4);
+  }, [activePet?.name, activeMedications, upcomingAppointments, intelligenceResult, personality]);
+
+  // ─── Extract daily hook from intelligence recommendations ──────────────────
+  const dailyHook = useMemo(() => {
+    const dailyActivityRec = intelligenceResult?.recommendations?.find(
+      (rec) => rec.code === "daily_activity_suggestion"
+    );
+    if (!dailyActivityRec) return null;
+    
+    // Map recommendation to DailyHookCard props
+    const categoryMap: Record<string, string> = {
+      outdoor: "park",
+      indoor: "home",
+      grooming: "content_cut",
+      training: "school",
+      social: "people",
+    };
+    
+    // Extract duration from detail (e.g., "30-45 minutos")
+    const durationMatch = dailyActivityRec.detail.match(/\(([^)]+)\)/);
+    const duration = durationMatch ? durationMatch[1] : "30 min";
+    
+    // Estimate points based on duration (simple heuristic)
+    const points = duration.includes("45") || duration.includes("60") ? 50 : 30;
+    
+    return {
+      category: "Actividad del día",
+      categoryIcon: categoryMap[dailyActivityRec.icon] || "sports_handball",
+      title: dailyActivityRec.title,
+      description: dailyActivityRec.detail.split("(")[0].trim(),
+      duration,
+      points,
+    };
   }, [intelligenceResult]);
 
-  // ─── Critical alert for "Pessy te dice" (single most urgent) ───────────────
-  const criticalAlert = sortedRecommendations.find(
-    (rec) => rec.kind === "block" || rec.kind === "alert"
-  ) ?? null;
+  // ─── Personality — load from Firestore, trigger onboarding if not done ──────
+  useEffect(() => {
+    if (!user || !activePetId) return;
+    setPersonality({});
+    setShowPersonalityOnboarding(false);
+    getDocs(collection(db, "users", user.uid, "pets", activePetId, "personality"))
+      .then((snap) => {
+        const data: Personality = {};
+        snap.docs.forEach((d) => { data[d.id] = d.data() as { value: string }; });
+        setPersonality(data);
+        // Show onboarding if the pet has never completed it
+        const completed = snap.docs.find((d) => d.id === "onboardingComplete");
+        if (!completed) {
+          // Delay slightly so the home screen renders first
+          setTimeout(() => setShowPersonalityOnboarding(true), 800);
+        }
+      })
+      .catch(() => {}); // Non-critical — graceful fallback
+  }, [user, activePetId]);
+
+  // ─── Load mission completions from Firestore (daily, per pet) ───────────────
+  useEffect(() => {
+    if (!user || !activePetId) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const codes = Object.keys(MISSIONS);
+    const completed = new Set<string>();
+    Promise.all(
+      codes.map(async (code) => {
+        const ref = doc(db, "users", user.uid, "pets", activePetId, "missions", code);
+        const snap = await getDoc(ref);
+        if (snap.exists() && snap.data().completedDate === today) completed.add(code);
+      })
+    ).then(() => setCompletedMissions(new Set(completed))).catch(() => {});
+  }, [user, activePetId]);
+
+  // ─── Handle mission complete — persist to Firestore, award points once ──────
+  const handleMissionComplete = useCallback(
+    async (missionCode: string) => {
+      if (completedMissions.has(missionCode)) {
+        setActiveMissionCode(null);
+        return;
+      }
+      const missionDef = MISSIONS[missionCode];
+      const pts = missionDef?.points ?? 0;
+      const today = new Date().toISOString().slice(0, 10);
+      if (user && activePetId) {
+        const ref = doc(db, "users", user.uid, "pets", activePetId, "missions", missionCode);
+        setDoc(ref, { completedDate: today, points: pts }).catch(() => {});
+      }
+      void addPointsToContext("mission_completed", { missionCode });
+      setCompletedMissions((prev) => new Set([...prev, missionCode]));
+      setActiveMissionCode(null);
+    },
+    [user, activePetId, completedMissions]
+  );
 
   // ─── Walk safety (simplified for badge) ─────────────────────────────────────
   const walkSafety: WalkSafetyState = useMemo(() => {
@@ -504,48 +768,50 @@ export function PetHomeView({
   }, [groupIds, species, walkSafety.status, activePet?.name]);
 
   // ─── Routine items ──────────────────────────────────────────────────────────
+  // Only show MEDICAL items (meds, appointments, treatments) — not generic tips.
+  // Generic care tips like "Agua fresca" or "Paseo corto" are things anyone
+  // knows to do — they don't justify downloading an app.
   const currentHour = new Date().getHours();
   const currentRoutineItems = useMemo(() => {
-    const routineGroup = resolveRoutineGroupId(groupIds, species);
-    const routine = WELLBEING_MASTER_BOOK.routines.find((r) => r.groupId === routineGroup);
-    if (!routine) return null;
-    // Before 14:00 → morning routine
-    // 14:00-21:00 → evening routine
-    // After 21:00 → sleep message (no checklist)
-    return currentHour < 14
-      ? routine.morningRoutine
-      : currentHour < 21
-        ? routine.eveningRoutine
-        : null; // Sleep time - no routine
-  }, [groupIds, species, currentHour]);
+    if (!activePet) return null;
+    if (currentHour >= 21) return null; // Sleep time
+
+    const items: string[] = [];
+
+    // Active medications due today
+    activeMedications
+      .filter((m) => m.petId === activePet.id && m.active)
+      .forEach((m) => {
+        const time = m.nextDoseAt
+          ? new Date(m.nextDoseAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })
+          : null;
+        items.push(time ? `💊 ${m.name} — ${time}` : `💊 ${m.name}`);
+      });
+
+    // Upcoming appointments today
+    const todayStr = new Date().toISOString().slice(0, 10);
+    upcomingAppointments
+      .filter((a) => a.petId === activePet.id && (a.date || "").startsWith(todayStr))
+      .forEach((a) => {
+        const icon = a.type === "vaccine" ? "💉" : "🩺";
+        items.push(`${icon} ${a.title}${a.time ? ` — ${a.time}` : ""}`);
+      });
+
+    // If no medical items, return null so the section stays hidden
+    return items.length > 0 ? items : null;
+  }, [activePet, activeMedications, upcomingAppointments, currentHour]);
 
   const routineTitle = currentHour < 14
-    ? "Rutina de la mañana"
-    : currentHour < 21
-      ? "Rutina de la tarde"
-      : "Descanso";
+    ? "Pendiente hoy"
+    : "Pendiente esta tarde";
 
-  const routineIcon = currentHour < 14
-    ? "wb_sunny"
-    : currentHour < 21
-      ? "wb_twilight"
-      : "bedtime";
+  const routineIcon = currentHour < 14 ? "wb_sunny" : "wb_twilight";
 
-  // ─── Load checked routine items: localStorage first (instant), then Firestore ─
+  // ─── Load checked routine items from localStorage ───────────────────────────
   useEffect(() => {
-    if (!activePetId) return;
-    // Instant load from localStorage cache
-    setCheckedRoutineItems(loadCheckedItemsLocal(activePetId));
-    // Then sync from Firestore (cross-device, persistent)
-    loadCheckedItemsFromFirestore(activePetId).then((firestoreItems) => {
-      if (firestoreItems && firestoreItems.length > 0) {
-        setCheckedRoutineItems(firestoreItems);
-        // Update localStorage cache with Firestore truth
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(getRoutineStorageKey(activePetId), JSON.stringify(firestoreItems));
-        }
-      }
-    });
+    if (activePetId) {
+      setCheckedRoutineItems(loadCheckedItems(activePetId));
+    }
   }, [activePetId]);
 
   const handleRoutineToggle = useCallback(
@@ -553,15 +819,15 @@ export function PetHomeView({
       setCheckedRoutineItems((prev) => {
         const wasChecked = prev.includes(item);
         const next = wasChecked ? prev.filter((i) => i !== item) : [...prev, item];
-        if (activePetId && user?.uid) saveCheckedItems(activePetId, user.uid, next);
+        if (activePetId) saveCheckedItems(activePetId, next);
         // Award points only when checking an item (not unchecking)
         if (!wasChecked) {
-          void gamification.addPoints("complete_routine");
+          void addPointsToContext("routine_completed");
         }
         return next;
       });
     },
-    [activePetId, user?.uid]
+    [activePetId]
   );
 
   // ─── Nudge for new user without breed ───────────────────────────────────────
@@ -682,18 +948,6 @@ export function PetHomeView({
     };
   }, []);
 
-  // ─── Pending email reviews (real-time) ──────────────────────────────────────
-  useEffect(() => {
-    if (!activePetId) { setPendingReviewCount(0); return; }
-    const q = query(
-      collection(db, "pending_reviews"),
-      where("petId", "==", activePetId),
-      where("status", "==", "pending"),
-    );
-    const unsub = onSnapshot(q, (snap) => setPendingReviewCount(snap.size), () => setPendingReviewCount(0));
-    return unsub;
-  }, [activePetId]);
-
   // ─── Medical counts ─────────────────────────────────────────────────────────
   const appointmentCount = upcomingAppointments.length;
   const medicationCount = activeMedications.length;
@@ -707,7 +961,7 @@ export function PetHomeView({
 
   return (
     <div className="bg-[#F0FAF9] dark:bg-[#0D1B16] min-h-screen font-['Manrope',sans-serif]">
-      <div id="main-content" role="main" className="max-w-md mx-auto pb-24">
+      <div className="max-w-md mx-auto pb-24">
 
         {/* 1. HERO - Pet photo with name overlay + blob */}
         <div className="relative h-[220px] overflow-hidden pessy-fade-up">
@@ -720,191 +974,376 @@ export function PetHomeView({
           <div className="absolute bottom-0 left-0 right-0 h-[120px] bg-gradient-to-t from-[rgba(7,71,56,0.92)] via-[rgba(7,71,56,0.4)] to-transparent" />
           {/* Decorative blob — pessy.app organic feel */}
           <div className="pessy-blob absolute -top-10 -right-10 w-[120px] h-[120px] bg-[rgba(26,155,125,0.15)]" style={{ animationDelay: '2s' }} />
-          <div className="absolute bottom-3.5 left-4 text-white">
-            <h1
-              className="text-[26px] font-[900] leading-none"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            >
-              {activePet.name}
-            </h1>
-            <p className="text-xs opacity-80 mt-0.5">{activePet.breed}</p>
+          <div className="absolute bottom-3.5 left-4 text-white flex items-end gap-2">
+            <MascotPresence species={activePet.species as "dog" | "cat"} size={28} ambient />
+            <div>
+              <h1
+                className="text-[26px] font-[900] leading-none"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                {activePet.name}
+              </h1>
+              <p className="text-xs opacity-80 mt-0.5">{activePet.breed}</p>
+            </div>
           </div>
           {/* Gamification points badge top-right */}
           <div className="absolute top-3 right-3 bg-[rgba(7,71,56,0.85)] text-white text-xs font-[800] px-3 py-1.5 rounded-full flex items-center gap-1 backdrop-blur-sm">
-            <MaterialIcon name="star" className="!text-sm" /> {gamification.totalPoints} pts
+            <MaterialIcon name="star" className="!text-sm" /> {points} pts
           </div>
         </div>
 
-        {/* Pet selector for multiple pets */}
-        {hasMultiplePets && (
-          <div className="mx-3 mt-2 flex items-center gap-2 overflow-x-auto pb-1">
-            {pets.map((pet) => (
-              <button
-                key={pet.id}
-                onClick={() => onPetChange(pet.id)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
-                  pet.id === activePetId
-                    ? "bg-[#074738] text-white"
-                    : "bg-white text-[#9CA3AF] border border-[#E5E7EB]"
-                }`}
-              >
-                {pet.name}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* 2. WEATHER STRIP - 3 pills */}
-        {weather.status === "ready" && (
-          <div className="flex gap-1.5 mx-3 mt-2.5">
-            <WeatherPill emoji="🌡️" value={`${weather.temperatureC}°C`} label="Ahora" />
-            <WeatherPill emoji="💧" value={`${weather.humidityPct}%`} label="Humedad" />
-            <WeatherPill
-              emoji={walkSafety.status === "safe" ? "✅" : walkSafety.status === "caution" ? "⚠️" : "🚫"}
-              value={walkSafety.badge}
-              label="Paseo"
-              highlight={walkSafety.status === "safe"}
+        {/* ── DAILY HOOK CARD — AI-powered activity suggestion ─────────────── */}
+        {dailyHook && (
+          <div className="mx-3 mt-4">
+            <DailyHookCard
+              category={dailyHook.category}
+              categoryIcon={dailyHook.categoryIcon}
+              title={dailyHook.title}
+              description={dailyHook.description}
+              duration={dailyHook.duration}
+              points={dailyHook.points}
+              onStart={(pts) => {
+                void addPointsToContext("daily_checkin");
+              }}
             />
           </div>
         )}
 
-        {/* 3. HEALTH PULSE - at-a-glance pet health status */}
-        <div className="mx-3 mt-2">
-          <HealthPulse
-            petName={activePet.name}
-            overdueVaccines={medicalHistoryInputs.overdueVaccineCount}
-            activeMedications={activeMedications.length}
-            lastVetVisitDaysAgo={medicalHistoryInputs.lastVetVisitDaysAgo}
-            recurringConditions={medicalHistoryInputs.recurringConditions || []}
-            upcomingAppointments={upcomingAppointments.length}
-          />
-        </div>
-
-        {/* 3a. QUICK ACTIONS — always visible, action-oriented */}
-        <div className="mt-3">
-          <QuickActionsV2
-            pendingReviewCount={pendingReviewCount}
-            upcomingAppointments={appointmentCount}
-            activeMedications={medicationCount}
-          />
-        </div>
-
-        {/* 3b. PREFERENCES NUDGE — appears if pet has no preferences set */}
-        {activePet && !activePet.preferences?.personality?.length && !activePet.preferences?.fears?.length && !activePet.preferences?.favoriteActivities?.length && (
-          <div className="mx-3 mt-2">
-            <button
-              type="button"
-              onClick={() => setShowPreferences(true)}
-              className="w-full rounded-[16px] border border-[#C8E6C9] bg-[#E8F5E9] flex items-center gap-3 text-left transition-colors hover:bg-[#C8E6C9]"
-              style={{ padding: "14px 16px" }}
-            >
-              <span className="text-[22px]">🎯</span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-[800] text-[#074738]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  Contanos sobre {activePet.name}
-                </p>
-                <p className="text-[11px] font-[500] text-[#6B7280] mt-0.5">
-                  Personalidad, actividades y miedos — para sugerencias más precisas
+        {/* ── MEDICAL PROFILE SUMMARY ─────────────────────────────────────── */}
+        {hasMedicalSummary && (
+          <div className="mx-3 mt-4 rounded-[20px] border border-[#074738]/10 bg-white overflow-hidden"
+            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+            <div className="h-1 bg-[#074738]" />
+            <div className="px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <MaterialIcon name="local_hospital" className="text-[#074738] !text-[15px]" />
+                <p className="text-[11px] font-black uppercase tracking-widest text-[#074738]">
+                  Perfil médico
                 </p>
               </div>
-              <span className="text-[#1A9B7D] text-lg shrink-0">→</span>
-            </button>
+
+              {profileSnapshot?.narrative ? (
+                <p className="text-[12px] text-slate-600 leading-relaxed mb-2.5 line-clamp-2">
+                  {profileSnapshot.narrative}
+                </p>
+              ) : null}
+
+              {chronicConditions.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                    Condiciones activas
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {chronicConditions.slice(0, 4).map((condition, i) => (
+                      <span
+                        key={i}
+                        className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-100"
+                      >
+                        {condition}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeMedications.length > 0 && (
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
+                    Medicación activa
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {activeMedications.slice(0, 3).map((med, i) => (
+                      <span
+                        key={i}
+                        className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100"
+                      >
+                        {med.name}{med.dosage ? ` · ${med.dosage}` : ""}
+                      </span>
+                    ))}
+                    {activeMedications.length > 3 && (
+                      <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-500">
+                        +{activeMedications.length - 3}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* 4. PROFILE NUDGE - only if incomplete */}
-        {profileIncomplete && (
-          <div className="mx-3 mt-2">
-            <ProfileNudge
-              petName={activePet.name}
-              species={species}
-              missingItems={missingItems}
-              onComplete={onProfileClick}
-            />
+        {/* ── VACCINE ALERT BANNER — Connection Rule: 1-tap to book vet ── */}
+        {onOpenNearbyVets && (
+          <VaccineAlertBanner
+            petName={activePet.name}
+            onOpenNearbyVets={onOpenNearbyVets}
+          />
+        )}
+
+        {/* ── NO-WALK INSIGHT BANNER — Connection Rule: 3+ days without walk ── */}
+        {showNoWalkInsight && (
+          <div className="mx-3 mt-3">
+            <div className="bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-800/30 rounded-2xl p-4 flex items-center gap-3">
+              <div className="size-10 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center shrink-0">
+                <MaterialIcon name="directions_walk" className="text-sky-600 dark:text-sky-400 text-xl" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black text-slate-900 dark:text-white leading-tight">
+                  {activePet.name} lleva {walkPattern.daysSinceLastWalk} día{walkPattern.daysSinceLastWalk !== 1 ? "s" : ""} sin salir
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Los {species === "dog" ? "perros" : "gatos"} necesitan actividad regular
+                </p>
+              </div>
+              <button
+                onClick={() => setShowWalkLogModal(true)}
+                className="shrink-0 px-3 py-2 rounded-xl bg-sky-600 text-white text-xs font-black flex items-center gap-1 active:scale-[0.96] transition-transform"
+              >
+                <MaterialIcon name="add" className="text-sm" />
+                Paseo
+              </button>
+            </div>
           </div>
         )}
 
-        {/* 4. DAILY TASKS — max 2 visible, "Ver más" for rest */}
-        <SectionTitle>Hoy con {activePet.name}</SectionTitle>
-        <div className="mx-4 space-y-2">
-          {(showAllTasks ? dailySuggestions : dailySuggestions.slice(0, 2)).map((s, i) => (
-            <DailyHookCard
-              key={i}
-              category={CATEGORY_LABELS[s.category] || s.category}
-              categoryIcon={s.icon}
-              title={s.title}
-              description={s.detail}
-              duration={s.duration}
-              points={s.points}
-              steps={s.steps}
-              onStart={() => { void gamification.addPoints("daily_checkin"); }}
-            />
-          ))}
-          {dailySuggestions.length > 2 && !showAllTasks && (
-            <button
-              onClick={() => setShowAllTasks(true)}
-              className="w-full rounded-full border border-[#E5E7EB] bg-white py-2.5 text-xs font-bold text-[#074738] hover:bg-[#E0F2F1] transition-colors"
-            >
-              Ver más actividades
-            </button>
-          )}
+        {/* ── FOOD LOW-STOCK INSIGHT — Connection Rule: food running out → buy ── */}
+        {showFoodLowInsight && (
+          <div className="mx-3 mt-3">
+            <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/30 rounded-2xl p-4 flex items-center gap-3">
+              <div className="size-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center shrink-0">
+                <MaterialIcon name="restaurant" className="text-orange-600 dark:text-orange-400 text-xl" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black text-slate-900 dark:text-white leading-tight">
+                  Alimento de {activePet.name} se agota en {foodDaysLeft} día{foodDaysLeft !== 1 ? "s" : ""}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {activePet.preferences?.foodBrand ? `Come ${activePet.preferences.foodBrand}` : "Reponé antes de que se acabe"}
+                </p>
+              </div>
+              <a
+                href={`https://listado.mercadolibre.com.ar/${encodeURIComponent(`alimento ${activePet.preferences?.foodBrand || ""} ${species === "cat" ? "gato" : "perro"}`.trim())}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 px-3 py-2 rounded-xl bg-orange-500 text-white text-xs font-black flex items-center gap-1 active:scale-[0.96] transition-transform"
+              >
+                <MaterialIcon name="shopping_bag" className="text-sm" />
+                Reponer
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* ── SECTION 2: Cork/Fizz — the ONE most important thing right now ── */}
+        <div className="mx-3 mt-4">
+          <PessyDailyCheckin
+            petName={activePet.name}
+            petId={activePetId}
+            species={species}
+            medications={activeMedications.map((m) => ({ name: m.name, dosage: m.dosage }))}
+            nextAppointment={upcomingAppointments[0] ?? null}
+            pendingActions={getPendingActionsByPetId(activePetId)}
+            onPointsEarned={(total) => setPoints(total)}
+          />
         </div>
 
-        {/* 5. ROUTINE CHECKLIST - morning, evening, or sleep based on time */}
-        {currentRoutineItems && currentRoutineItems.length > 0 ? (
-          <div className="mx-3 mt-2">
-            <RoutineChecklist
-              title={routineTitle}
-              icon={routineIcon}
-              items={currentRoutineItems}
-              checkedItems={checkedRoutineItems}
-              onToggle={handleRoutineToggle}
+
+
+        {/* ── PRE-WALK PROMPT CARD ── */}
+        {showPreWalkPrompt && (
+          <div className="mx-3 mt-3 bg-white rounded-[16px] border border-[#E5E7EB] transition-all" style={{ padding: "14px 16px" }}>
+            <div className="flex flex-col gap-3">
+              <p className="text-[13px] font-bold text-[#1A1A1A]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                Son las {new Date().getHours()}:{String(new Date().getMinutes()).padStart(2, "0")} — ¿hoy salen con {activePet.name}?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowWalkLogModal(true);
+                    setPreWalkDismissed(true);
+                  }}
+                  className="flex-1 px-3 py-1.5 rounded-full bg-[#074738] text-white text-[11px] font-bold active:scale-[0.96] transition-transform"
+                >
+                  ¡Sí, salimos!
+                </button>
+                <button
+                  onClick={() => setPreWalkDismissed(true)}
+                  className="flex-1 px-3 py-1.5 rounded-full border border-[#D1D5DB] text-[11px] font-bold text-[#6B7280] active:scale-[0.96] transition-transform"
+                >
+                  Hoy no
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── SECTION 3: Quick actions — 2 buttons max ── */}
+        {(historyCount > 0 || medicationCount > 0 || appointmentCount > 0) && (
+          <div className="mx-3 mt-3 flex gap-3">
+            {historyCount > 0 && (
+              <button
+                onClick={onViewHistory}
+                className="flex-1 flex items-center gap-2 bg-white rounded-2xl border border-[#E5E7EB] px-4 py-3 active:scale-[0.97] transition-transform"
+                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+              >
+                <MaterialIcon name="history" className="text-[#1A9B7D] !text-xl shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#074738]">Historial</p>
+                  <p className="text-[10px] text-slate-400">{historyCount} eventos</p>
+                </div>
+              </button>
+            )}
+            {medicationCount > 0 ? (
+              <button
+                onClick={onMedicationsClick}
+                className="flex-1 flex items-center gap-2 bg-white rounded-2xl border border-[#E5E7EB] px-4 py-3 active:scale-[0.97] transition-transform"
+                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+              >
+                <MaterialIcon name="medication" className="text-[#1A9B7D] !text-xl shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#074738]">Medicaciones</p>
+                  <p className="text-[10px] text-slate-400">{medicationCount} activa{medicationCount !== 1 ? "s" : ""}</p>
+                </div>
+              </button>
+            ) : appointmentCount > 0 ? (
+              <button
+                onClick={onAppointmentsClick}
+                className="flex-1 flex items-center gap-2 bg-white rounded-2xl border border-[#E5E7EB] px-4 py-3 active:scale-[0.97] transition-transform"
+                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
+              >
+                <MaterialIcon name="event" className="text-[#1A9B7D] !text-xl shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-[#074738]">Turnos</p>
+                  <p className="text-[10px] text-slate-400">{appointmentCount} próximo{appointmentCount !== 1 ? "s" : ""}</p>
+                </div>
+              </button>
+            ) : null}
+          </div>
+        )}
+
+        {/* ── SECTION 4: Pessy te dice — 1-2 real tips ── */}
+        {sortedRecommendations.length === 0 && historyCount === 0 && (
+          <div className="mx-3 mt-3">
+            <div className="bg-white rounded-2xl border border-[#E5E7EB] p-4" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+              <div className="flex items-start gap-3">
+                <div className="size-10 rounded-xl bg-[#E0F2F1] flex items-center justify-center shrink-0">
+                  <span className="text-lg">📋</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-[#074738]">
+                    {activePet?.name ? `Sumá el primer registro de ${activePet.name}` : "Sumá el primer registro"}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                    {activePet?.breed
+                      ? `Con el historial de un ${activePet.breed}, Pessy puede darte sugerencias específicas.`
+                      : "Con tu historial, Pessy puede darte sugerencias útiles."}
+                  </p>
+                  <button
+                    onClick={onOpenScanner}
+                    className="mt-3 px-4 py-2 rounded-xl bg-[#074738] text-white text-xs font-bold"
+                  >
+                    Agregar documento
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {sortedRecommendations.length > 0 && (
+          <div className="mx-3 mt-3 space-y-2">
+            {/* Cork/Fizz introduces the recommendations */}
+            <div className="flex items-center gap-2 mb-1">
+              <MascotPresence species={activePet?.species as "dog" | "cat"} size={20} ambient />
+              <span className="text-xs font-semibold text-[#074738]/60 dark:text-[#1A9B7D]/60">
+                {activePet?.species === "cat" ? "Fizz" : "Cork"} dice
+              </span>
+            </div>
+            {sortedRecommendations.slice(0, 2).map((rec) => {
+              const enhanced = rec as EnhancedTip;
+              const missionCode = enhanced.isMission ? enhanced.code : undefined;
+              return (
+                <PessyTip
+                  key={rec.id}
+                  icon={rec.icon}
+                  color={mapRecToTipColor(rec)}
+                  title={rec.title}
+                  description={rec.detail}
+                  isMission={enhanced.isMission}
+                  missionPoints={enhanced.missionPoints}
+                  isCompleted={enhanced.isMission && enhanced.code ? completedMissions.has(enhanced.code) : false}
+                  onMissionStart={enhanced.isMission && enhanced.code ? () => setActiveMissionCode(enhanced.code!) : undefined}
+                  onMissionComplete={(total) => setPoints(total)}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── BREED INSIGHT CARD ── */}
+        {activePet?.breed && !breedInsightDismissed && (
+          <div className="mx-3 mt-3">
+            <BreedInsightCard
+              petName={activePet.name}
+              breed={activePet.breed}
+              ageMonths={ageMonths || 0}
+              onAction={(actionType) => {
+                if (actionType === "walk") {
+                  setShowWalkLogModal(true);
+                }
+                if (actionType === "vet") {
+                  onAppointmentsClick?.();
+                }
+                if (actionType === "routines") {
+                  onSwitchToRutinas?.();
+                }
+              }}
+              onDismiss={() => setBreedInsightDismissed(true)}
             />
           </div>
-        ) : currentRoutineItems === null ? (
-          <div className="mx-3 mt-2">
-            <div className="rounded-[16px] border border-[#E5E7EB] bg-white flex items-center gap-3" style={{ padding: "14px 16px" }}>
-              <span className="text-[#074738]">
-                <MaterialIcon name="bedtime" className="!text-[22px]" />
-              </span>
-              <span className="text-[13px] font-[800] text-[#074738]">
-                {activePet.name} ya descansa. Mañana seguimos.
-              </span>
-            </div>
-          </div>
-        ) : null}
-
-        {/* 6. PESSY TE DICE — single critical alert only */}
-        {criticalAlert && (
-          <>
-            <SectionTitle>Pessy te dice</SectionTitle>
-            <div className="mx-4">
-              <PessyTip
-                icon={criticalAlert.icon}
-                color={mapRecToTipColor(criticalAlert)}
-                title={criticalAlert.title}
-                description={criticalAlert.detail}
-                actionLabel={
-                  criticalAlert.sourceModule === "medical_history" ? "Ver historial" :
-                  criticalAlert.sourceModule === "supply_tracker" ? "Ver recordatorios" :
-                  criticalAlert.sourceModule === "breed_profile" ? "Completar perfil" :
-                  criticalAlert.sourceModule === "weight_trend" ? "Ver historial" :
-                  criticalAlert.sourceModule === "recurring_conditions" ? "Ver historial" :
-                  undefined
-                }
-                onAction={
-                  criticalAlert.sourceModule === "medical_history" ? onViewHistory :
-                  criticalAlert.sourceModule === "supply_tracker" ? onMedicationsClick :
-                  criticalAlert.sourceModule === "breed_profile" ? onProfileClick :
-                  criticalAlert.sourceModule === "weight_trend" ? onViewHistory :
-                  criticalAlert.sourceModule === "recurring_conditions" ? onViewHistory :
-                  undefined
-                }
-              />
-            </div>
-          </>
         )}
       </div>
+
+      {/* ─── Personality Onboarding (one-time quiz) ──────────────────────── */}
+      {showPersonalityOnboarding && activePet && (
+        <PersonalityOnboarding
+          petName={activePet.name}
+          petId={activePetId}
+          species={species}
+          onComplete={() => {
+            setShowPersonalityOnboarding(false);
+            // Reload personality so tips update immediately
+            if (user && activePetId) {
+              getDocs(collection(db, "users", user.uid, "pets", activePetId, "personality"))
+                .then((snap) => {
+                  const data: Personality = {};
+                  snap.docs.forEach((d) => { data[d.id] = d.data() as { value: string }; });
+                  setPersonality(data);
+                })
+                .catch(() => {});
+            }
+          }}
+        />
+      )}
+
+      {/* ─── Mission Detail Screen ────────────────────────────────────────── */}
+      {activeMissionCode && activePet && (
+        <MissionDetailScreen
+          missionCode={activeMissionCode}
+          petName={activePet.name}
+          onComplete={() => handleMissionComplete(activeMissionCode)}
+          onClose={() => setActiveMissionCode(null)}
+        />
+      )}
+
+      {/* ─── Walk Log Modal ───────────────────────────────────────────────── */}
+      {activePet && (
+        <WalkLogModal
+          isOpen={showWalkLogModal}
+          onClose={() => setShowWalkLogModal(false)}
+          petId={activePetId}
+          petName={activePet.name}
+        />
+      )}
 
       {/* ─── Preferences Editor Modal ─────────────────────────────────────── */}
       {showPreferences && activePet && (
