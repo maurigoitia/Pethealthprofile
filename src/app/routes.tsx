@@ -136,6 +136,7 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/forgot-password", Component: ForgotPasswordScreen }),
   withErrorBoundary({ path: "/solicitar-acceso", Component: RequestAccessScreen }),
   withErrorBoundary({ path: "/admin/access-requests", lazy: AdminAccessRequests }),
+  withErrorBoundary({ path: "/admin/hanging-users", lazy: () => import("./components/auth/AdminHangingUsers").then(m => ({ Component: m.AdminHangingUsers })) }),
   withErrorBoundary({ path: "/app", element: <Navigate to="/inicio" replace /> }),
   withErrorBoundary({ path: "/inicio", Component: HomeScreen }),
   withErrorBoundary({
