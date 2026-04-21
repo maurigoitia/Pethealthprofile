@@ -28,6 +28,7 @@ export function RegisterPetStep2() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPreparingPhoto, setIsPreparingPhoto] = useState(false);
   const [error, setError] = useState("");
+  const [photoNotice, setPhotoNotice] = useState("");
 
   if (!authLoading && !user) {
     return <Navigate to="/login" replace />;
@@ -77,6 +78,7 @@ export function RegisterPetStep2() {
         isNeutered: formData.isNeutered,
       });
 
+      let photoUploadFailed = false;
       if (photoFile) {
         try {
           const normalizedForCallable = await preparePetPhotoForUpload(photoFile);
@@ -86,14 +88,24 @@ export function RegisterPetStep2() {
           });
           if (uploaded?.ok && uploaded.url) {
             await updatePet(petId, { photo: uploaded.url });
+          } else {
+            await updatePet(petId, { photo: "" });
+            photoUploadFailed = true;
           }
         } catch (uploadError: any) {
-          setError(uploadError?.message || "Mascota creada, pero no pudimos subir la foto. Podés hacerlo desde el perfil.");
           console.error("Upload de foto en alta de mascota falló:", uploadError);
+          await updatePet(petId, { photo: "" });
+          photoUploadFailed = true;
         }
       }
 
-      navigate("/home");
+      if (photoUploadFailed) {
+        setPhotoNotice("Tu mascota fue creada. Podés agregar la foto desde tu perfil.");
+        // Give the user a moment to read the notice, then navigate
+        setTimeout(() => navigate("/home"), 2500);
+      } else {
+        navigate("/home");
+      }
     } catch (err: any) {
       console.error("Error finalizing pet registration:", err);
       setError(err?.message || "No se pudo finalizar el registro.");
@@ -212,6 +224,11 @@ export function RegisterPetStep2() {
             />
           </label>
 
+          {photoNotice && (
+            <p className="text-[#1A9B7D] text-sm font-semibold text-center bg-[#E0F2F1] rounded-[10px] px-4 py-3">
+              {photoNotice}
+            </p>
+          )}
           {error && <p className="text-red-500 text-sm font-semibold text-center">{error}</p>}
 
           <button

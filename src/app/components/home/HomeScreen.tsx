@@ -343,45 +343,19 @@ export default function HomeScreen() {
     );
   }
 
-  // Empty state: No pets registered
+  // Empty state: No pets registered — redirect to registration unless a co-tutor invite is pending
   if (pets.length === 0) {
+    const hasPendingInvite = !!readPendingCoTutorInvite();
+    if (!hasPendingInvite) {
+      return <Navigate to="/register-pet" replace />;
+    }
+    // Invite is pending but joinWithCode hasn't started yet — show a brief loading state
     return withTermsNotice(
-      <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen">
-        <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24">
-          <div className="flex-1 flex items-center justify-center px-6">
-            <div className="text-center space-y-6">
-              <div className="size-32 mx-auto bg-[#074738]/10 rounded-full flex items-center justify-center">
-                <span className="material-symbols-outlined text-[#074738]" aria-hidden="true" style={{ fontSize: "64px" }}>
-                  folder_shared
-                </span>
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  ¡Bienvenido a PESSY!
-                </h2>
-                <p className="text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
-                  Agrega tu primera mascota. Pessy hace el resto.
-                </p>
-              </div>
-              <button
-                onClick={handleAddNewPet}
-                className="px-6 py-3 bg-[#074738] text-white rounded-[14px] font-semibold transition-colors shadow-[0_4px_12px_rgba(26,155,125,0.3)]"
-              >
-                Agregar primera mascota
-              </button>
-            </div>
-          </div>
+      <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen flex items-center justify-center px-6">
+        <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 p-8 text-center">
+          <p className="text-base font-bold text-slate-900 dark:text-white">Procesando invitación...</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Un momento, por favor.</p>
         </div>
-        <BottomNav
-          currentTab={currentTab}
-          onTabChange={handleTabChange}
-          onAddDocument={() => setShowScanner(true)}
-          onNavigate={handleBottomNavNavigate}
-        />
-        <DocumentScannerModal
-          isOpen={showScanner}
-          onClose={() => setShowScanner(false)}
-        />
       </div>
     );
   }

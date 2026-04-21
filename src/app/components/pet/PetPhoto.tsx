@@ -26,7 +26,11 @@ export function PetPhoto({
     setImageError(false);
   }, [normalizedSrc]);
 
-  const shouldShowFallback = !normalizedSrc || imageError;
+  // Treat SVG base64 placeholders and empty strings the same as a missing photo
+  const isPlaceholder =
+    normalizedSrc.startsWith("data:image/svg+xml") || normalizedSrc === "";
+
+  const shouldShowFallback = !normalizedSrc || isPlaceholder || imageError;
 
   if (shouldShowFallback) {
     return (
