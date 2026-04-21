@@ -770,7 +770,7 @@ export function PetHomeView({
 
         {/* 3. DAILY TASKS — contexto del día, primero para dar orientación inmediata */}
         <SectionTitle>Hoy con {activePet.name}</SectionTitle>
-        <div className="mx-4 space-y-2">
+        <div className="pessy-stagger mx-4 space-y-2">
           {(showAllTasks ? dailySuggestions : dailySuggestions.slice(0, 2)).map((s, i) => (
             <DailyHookCard
               key={i}

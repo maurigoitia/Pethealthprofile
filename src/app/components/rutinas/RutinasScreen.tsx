@@ -49,8 +49,9 @@ function getTodayIndex(): number {
 
 const MOCK_ITEMS: RutinaItem[] = [
   { id: "mock-1", name: "Rimadyl 50mg", time: "08:00", type: "medication" },
-  { id: "mock-2", name: "Control veterinario", time: "10:30", type: "appointment" },
-  { id: "mock-3", name: "Baño y cepillado", time: "16:00", type: "grooming" },
+  { id: "mock-2", name: "Antiparasitario mensual", time: "09:00", type: "vaccine" },
+  { id: "mock-3", name: "Control post-operatorio", time: "11:00", type: "appointment" },
+  { id: "mock-4", name: "Omeprazol 20mg", time: "20:00", type: "medication" },
 ];
 
 // ---------------------------------------------------------------------------

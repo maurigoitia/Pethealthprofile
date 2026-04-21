@@ -304,7 +304,7 @@ export function RegisterUserScreen() {
           </div>
           <a
             href="/solicitar-acceso"
-            className="block w-full rounded-[14px] bg-[#074738] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[0_4px_12px_rgba(26,155,125,0.3)]"
+            className="block w-full rounded-[14px] bg-[#074738] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-white pessy-cta-glow active:scale-[0.97]"
           >
             Solicitar acceso
           </a>
@@ -334,7 +334,7 @@ export function RegisterUserScreen() {
           </div>
           <a
             href="/solicitar-acceso"
-            className="block w-full rounded-[14px] bg-[#074738] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[0_4px_12px_rgba(26,155,125,0.3)]"
+            className="block w-full rounded-[14px] bg-[#074738] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-white pessy-cta-glow active:scale-[0.97]"
           >
             Solicitar acceso
           </a>

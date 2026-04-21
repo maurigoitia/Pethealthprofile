@@ -189,3 +189,17 @@ class NativePushServiceImpl {
 }
 
 export const NativePushService = new NativePushServiceImpl();
+
+/**
+ * Convenience function: request permissions, register, and persist token.
+ * Equivalent to NativePushService.requestPermissionAndRegister(userId).
+ * Safe to call on web — silently skips if Capacitor is unavailable.
+ */
+export async function initPushNotifications(userId: string): Promise<void> {
+  try {
+    await NativePushService.init();
+    await NativePushService.requestPermissionAndRegister(userId);
+  } catch {
+    // Not available in web/PWA — silently skip
+  }
+}

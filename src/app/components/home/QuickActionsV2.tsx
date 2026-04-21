@@ -61,7 +61,7 @@ export function QuickActionsV2({
       )}
 
       {/* ── Action buttons grid ── */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="pessy-stagger grid grid-cols-2 gap-3">
         <ActionButton
           icon={<CalendarPlus size={22} strokeWidth={1.8} />}
           label="Agregar turno"
