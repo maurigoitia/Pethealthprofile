@@ -47,9 +47,9 @@ v=spf1 include:_spf.google.com include:_spf.resend.com ~all
 
 ### Aliases Google Workspace (crear manualmente)
 Entrar a https://admin.google.com/ac/users y agregar:
-- `hola@pessy.app` → mauri@pessy.app (alias gratis)
-- `dmarc@pessy.app` → mauri@pessy.app (alias gratis)
-- `seguridad@pessy.app` → it@pessy.app (alias gratis)
+- `hola@pessy.app` → mauri@pessy.app ✅ Creado
+- `dmarc@pessy.app` → mauri@pessy.app ✅ Creado
+- `seguridad@pessy.app` → it@pessy.app ✅ Creado
 
 ### Resend DKIM
 Configurar en https://resend.com/domains:
