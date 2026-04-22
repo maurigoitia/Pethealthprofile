@@ -73,6 +73,27 @@
           ]
         },
         {
+          "source": "/.well-known/mta-sts.txt",
+          "headers": [
+            { "key": "Content-Type", "value": "text/plain" },
+            { "key": "Cache-Control", "value": "public, max-age=86400" }
+          ]
+        },
+        {
+          "source": "/.well-known/bimi.svg",
+          "headers": [
+            { "key": "Content-Type", "value": "image/svg+xml" },
+            { "key": "Cache-Control", "value": "public, max-age=86400" }
+          ]
+        },
+        {
+          "source": "/.well-known/security.txt",
+          "headers": [
+            { "key": "Content-Type", "value": "text/plain" },
+            { "key": "Cache-Control", "value": "public, max-age=86400" }
+          ]
+        },
+        {
           "source": "/assets/**",
           "headers": [
             {
