@@ -134,6 +134,12 @@ export default function HomeScreen() {
   const [inviteJoiningCode, setInviteJoiningCode] = useState("");
   const [inviteResolvedCode, setInviteResolvedCode] = useState("");
   const { activePetId, setActivePetId, pets, activePet, loading: petsLoading, joinWithCode } = usePet();
+  const [loadTimeout, setLoadTimeout] = useState(false);
+  useEffect(() => {
+    if (!petsLoading) { setLoadTimeout(false); return; }
+    const t = setTimeout(() => setLoadTimeout(true), 8000);
+    return () => clearTimeout(t);
+  }, [petsLoading]);
   const { user, loading: authLoading, userName, userRole, logout } = useAuth();
   const { currentQuestion, answerQuestion, dismissQuestion } = usePreferences();
   const focusExperienceEnabled = isFocusExperienceHost();
@@ -332,12 +338,30 @@ export default function HomeScreen() {
     return withTermsNotice(
       <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen flex items-center justify-center px-6">
         <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 p-8 text-center">
-          <p className="text-base font-bold text-slate-900 dark:text-white">
-            {inviteJoiningCode ? "Vinculando invitación..." : "Cargando tus datos..."}
-          </p>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {inviteJoiningCode ? "Estamos sumando esta mascota compartida a tu cuenta." : "Un momento, por favor."}
-          </p>
+          {loadTimeout && !inviteJoiningCode ? (
+            <>
+              <p className="text-base font-bold text-slate-900 dark:text-white">Problema de conexión</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 mb-4">
+                No pudimos cargar tus datos. Revisá tu conexión e intentá de nuevo.
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-3 bg-[#074738] text-white rounded-[14px] font-bold text-sm shadow-[0_4px_12px_rgba(26,155,125,0.3)] active:scale-[0.97] transition-transform"
+              >
+                Reintentar
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="mx-auto mb-4 size-10 rounded-full border-4 border-[#074738]/20 border-t-[#074738] animate-spin" />
+              <p className="text-base font-bold text-slate-900 dark:text-white">
+                {inviteJoiningCode ? "Vinculando invitación..." : "Cargando tus datos..."}
+              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {inviteJoiningCode ? "Estamos sumando esta mascota compartida a tu cuenta." : "Un momento, por favor."}
+              </p>
+            </>
+          )}
         </div>
       </div>
     );

@@ -27,6 +27,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
     const [notes, setNotes] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
+    const [successMsg, setSuccessMsg] = useState("");
 
     useEffect(() => {
         if (!isOpen) return;
@@ -38,6 +39,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
         setClinic(initialValues?.clinic || "");
         setNotes(initialValues?.notes || "");
         setSubmitError("");
+        setSuccessMsg("");
     }, [isOpen, initialValues]);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -76,7 +78,8 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
             await addAppointment(newAppointment);
             await onCreated?.(newAppointment);
 
-            onClose();
+            setSuccessMsg("Turno agendado ✓");
+            setTimeout(() => { setSuccessMsg(""); onClose(); }, 1500);
             // Reset form
             setTitle("");
             setDate("");
@@ -226,6 +229,11 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
                                 </div>
 
                                 {/* Submit */}
+                                {successMsg && (
+                                    <p className="text-sm font-semibold text-[#074738] text-center py-2">
+                                        {successMsg}
+                                    </p>
+                                )}
                                 {submitError && (
                                     <p className="text-sm font-semibold text-red-600 dark:text-red-400">
                                         {submitError}
