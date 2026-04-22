@@ -10,6 +10,7 @@ import { formatDateSafe, parseDateSafe, toDateKeySafe, toTimestampSafe } from ".
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 import { EditMedicationModal } from "./EditMedicationModal";
 import { DeleteMedicationModal } from "./DeleteMedicationModal";
+import { NotificationService } from "../../services/notificationService";
 
 interface MedicationsScreenProps {
   onBack: () => void;
@@ -227,6 +228,17 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   // Borrar con confirmación
   const [deletingItem, setDeletingItem] = useState<MedicationCardItem | null>(null);
 
+  // Agregar medicamento manual
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addForm, setAddForm] = useState({
+    name: "",
+    dosage: "",
+    frequency: "Diario",
+    startDate: new Date().toISOString().slice(0, 10),
+    notes: "",
+  });
+  const [addSaving, setAddSaving] = useState(false);
+
   const location = useLocation();
   const highlightEventId = new URLSearchParams(location.search).get("eventId") || "";
   const highlightRef = useRef<HTMLDivElement>(null);
@@ -237,7 +249,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
   }, [highlightEventId]);
 
   const { activePetId, activePet } = usePet();
-  const { getEventsByPetId, updateEvent, confirmEvent, activeMedications, updateMedication, addMedication } = useMedical();
+  const { getEventsByPetId, updateEvent, confirmEvent, activeMedications, updateMedication, addMedication, addEvent } = useMedical();
   const focusExperienceEnabled = isFocusExperienceHost();
 
   const medicationItems = useMemo(() => {
@@ -475,6 +487,69 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
 
 
 
+  const saveManualMedication = async () => {
+    if (!activePetId || !addForm.name.trim()) return;
+    setAddSaving(true);
+    try {
+      const now = new Date().toISOString();
+      const eventId = `manual_med_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      const newEvent = {
+        id: eventId,
+        petId: activePetId,
+        title: `Medicación: ${addForm.name.trim()}`,
+        documentUrl: "",
+        documentPreviewUrl: null,
+        fileName: "manual",
+        fileType: "image" as const,
+        status: "confirmed" as const,
+        workflowStatus: "confirmed" as const,
+        requiresManualConfirmation: false,
+        overallConfidence: 1,
+        validatedByHuman: true,
+        sourceTruthLevel: "human_confirmed" as const,
+        truthStatus: "human_confirmed" as const,
+        extractedData: {
+          documentType: "prescription" as const,
+          documentTypeConfidence: "high" as const,
+          eventDate: addForm.startDate || now,
+          eventDateConfidence: "high" as const,
+          appointmentTime: null,
+          detectedAppointments: [],
+          clinic: null,
+          provider: null,
+          providerConfidence: "high" as const,
+          diagnosis: null,
+          diagnosisConfidence: "high" as const,
+          observations: addForm.notes.trim() || null,
+          observationsConfidence: "high" as const,
+          medications: [{
+            name: addForm.name.trim(),
+            dosage: addForm.dosage.trim() || null,
+            frequency: addForm.frequency,
+            duration: null,
+            instructions: null,
+          }],
+          nextAppointmentDate: null,
+          nextAppointmentReason: null,
+          nextAppointmentConfidence: "low" as const,
+          suggestedTitle: null,
+          aiGeneratedSummary: null,
+        },
+        createdAt: now,
+        updatedAt: now,
+        treatmentNotes: [],
+        dismissedNextAppointment: false,
+      };
+      await addEvent(newEvent as any);
+      setShowAddModal(false);
+      setAddForm({ name: "", dosage: "", frequency: "Diario", startDate: new Date().toISOString().slice(0, 10), notes: "" });
+      setEditFeedback("Medicamento agregado correctamente.");
+      window.setTimeout(() => setEditFeedback(""), 5000);
+    } finally {
+      setAddSaving(false);
+    }
+  };
+
   return (
     <>
       <div className={`min-h-screen flex flex-col ${focusExperienceEnabled ? "bg-[#f3f7f5] dark:bg-[#101622]" : "bg-[#F0FAF9] dark:bg-[#101622]"}`}>
@@ -618,7 +693,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                           <MaterialIcon name="edit" className="text-sm text-[#074738]" />
                         </button>
                         <button
-                          onClick={() => { setDeletingItem(item); setDeleteStage("confirm"); }}
+                          onClick={() => { setDeletingItem(item); }}
                           className="size-7 rounded-full bg-red-50 flex items-center justify-center hover:bg-red-100 transition-colors"
                           title="Eliminar">
                           <MaterialIcon name="delete" className="text-sm text-red-500" />
@@ -811,6 +886,108 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
         </div>
       </div>
     </div>
+
+    {/* ─── FAB AGREGAR ─────────────────────────────────────────────────── */}
+    <button
+      onClick={() => setShowAddModal(true)}
+      className="fixed bottom-24 right-4 z-30 size-14 rounded-full bg-[#074738] text-white shadow-[0_4px_20px_rgba(7,71,56,0.35)] flex items-center justify-center active:scale-95 transition-all"
+      title="Agregar medicamento">
+      <MaterialIcon name="add" className="text-2xl" />
+    </button>
+
+    {/* ─── MODAL AGREGAR MEDICAMENTO ────────────────────────────────────── */}
+    {showAddModal && (
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40">
+        <div className="w-full max-w-md bg-[#F0FAF9] rounded-t-[24px] p-6 pb-10 shadow-xl">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-black text-[#074738]">Agregar medicamento</h2>
+            <button
+              onClick={() => setShowAddModal(false)}
+              className="size-8 rounded-full bg-[#E0F2F1] flex items-center justify-center">
+              <MaterialIcon name="close" className="text-base text-[#074738]" />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {/* Nombre */}
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                Nombre del medicamento *
+              </label>
+              <input
+                value={addForm.name}
+                onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Ej: Pimobendan"
+                className="w-full px-4 py-3 rounded-[14px] border border-[#E0F2F1] bg-white text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#074738]"
+              />
+            </div>
+
+            {/* Dosis */}
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                Dosis
+              </label>
+              <input
+                value={addForm.dosage}
+                onChange={(e) => setAddForm((f) => ({ ...f, dosage: e.target.value }))}
+                placeholder="Ej: 50mg"
+                className="w-full px-4 py-3 rounded-[14px] border border-[#E0F2F1] bg-white text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#074738]"
+              />
+            </div>
+
+            {/* Frecuencia */}
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                Frecuencia
+              </label>
+              <select
+                value={addForm.frequency}
+                onChange={(e) => setAddForm((f) => ({ ...f, frequency: e.target.value }))}
+                className="w-full px-4 py-3 rounded-[14px] border border-[#E0F2F1] bg-white text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#074738]">
+                <option>Diario</option>
+                <option>Cada 12hs</option>
+                <option>Cada 8hs</option>
+                <option>Semanal</option>
+              </select>
+            </div>
+
+            {/* Fecha inicio */}
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                Fecha inicio
+              </label>
+              <input
+                type="date"
+                value={addForm.startDate}
+                onChange={(e) => setAddForm((f) => ({ ...f, startDate: e.target.value }))}
+                className="w-full px-4 py-3 rounded-[14px] border border-[#E0F2F1] bg-white text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#074738]"
+              />
+            </div>
+
+            {/* Notas */}
+            <div>
+              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-widest mb-1">
+                Notas (opcional)
+              </label>
+              <textarea
+                value={addForm.notes}
+                onChange={(e) => setAddForm((f) => ({ ...f, notes: e.target.value }))}
+                placeholder="Ej: Indicado por Dr. García para cardiopatía"
+                rows={3}
+                className="w-full px-4 py-3 rounded-[14px] border border-[#E0F2F1] bg-white text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#074738] resize-none"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={() => void saveManualMedication()}
+            disabled={addSaving || !addForm.name.trim()}
+            className="mt-5 w-full py-4 rounded-[14px] bg-[#074738] text-white font-bold text-sm disabled:opacity-50 active:scale-[0.98] transition-all">
+            {addSaving ? "Guardando..." : "Guardar medicamento"}
+          </button>
+        </div>
+      </div>
+    )}
 
     {/* ─── MODALES ──────────────────────────────────────────────────────── */}
     <EditMedicationModal
