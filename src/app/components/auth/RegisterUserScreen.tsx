@@ -20,6 +20,7 @@ export function RegisterUserScreen() {
   const [password, setPassword] = useState("");
   const [country, setCountry] = useState("");
   const [error, setError] = useState("");
+  const [emailAlreadyInUse, setEmailAlreadyInUse] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showTermsStep, setShowTermsStep] = useState(false);
@@ -153,6 +154,7 @@ export function RegisterUserScreen() {
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setEmailAlreadyInUse(false);
     setLoading(true);
 
     const cleanEmail = email.trim().toLowerCase();
@@ -164,7 +166,7 @@ export function RegisterUserScreen() {
 
       await updateProfile(user, { displayName: name.trim() });
       const nowIso = new Date().toISOString();
-      await setDoc(doc(db, "users", user.uid), {
+      const userDocPayload = {
         fullName: name.trim(),
         name: name.trim(),
         email: cleanEmail,
@@ -207,7 +209,14 @@ export function RegisterUserScreen() {
         },
         ...(platformInviteCreatedBy ? { invitedBy: platformInviteCreatedBy } : {}),
         accessSource: refCode ? "invite" : accessToken ? "waitlist" : inviteCode ? "cotutor" : "direct",
-      });
+      };
+      // Ghost user fix: if setDoc fails, retry once before surfacing error
+      try {
+        await setDoc(doc(db, "users", user.uid), userDocPayload);
+      } catch (docErr) {
+        console.warn("[Register] setDoc falló, reintentando...", docErr);
+        await setDoc(doc(db, "users", user.uid), userDocPayload);
+      }
 
       void trackAcquisitionEvent("pessy_acquisition_register_success", {
         source: acquisitionSource,
@@ -231,7 +240,8 @@ export function RegisterUserScreen() {
       navigate(inviteCode ? "/home" : "/register-pet", { replace: true });
     } catch (err: any) {
       if (err?.code === "auth/email-already-in-use") {
-        setError("Ese correo ya está registrado.");
+        setEmailAlreadyInUse(true);
+        setError("Ya tenés una cuenta con ese email. Si no podés entrar, intentá con el enlace mágico desde el login.");
       } else if (err?.code === "auth/invalid-email") {
         setError("Correo electrónico inválido.");
       } else if (err?.code === "auth/weak-password") {
@@ -439,7 +449,20 @@ export function RegisterUserScreen() {
             </div>
           </div>
 
-          {error && <p className="text-red-500 text-sm font-semibold text-center">{error}</p>}
+          {error && (
+            <div className="text-center">
+              <p className="text-red-500 text-sm font-semibold">{error}</p>
+              {emailAlreadyInUse && (
+                <button
+                  type="button"
+                  onClick={() => navigate(inviteCode ? `/login?invite=${inviteCode}` : "/login")}
+                  className="mt-2 text-sm font-bold text-[#1A9B7D] underline underline-offset-2"
+                >
+                  Ir al login
+                </button>
+              )}
+            </div>
+          )}
 
           <button
             type="submit"
