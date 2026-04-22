@@ -13,6 +13,8 @@ interface DailyHookCardProps {
   points: number;
   steps?: string[];
   onStart?: (points: number) => void;
+  /** Fires once when all steps in a guided mission are completed */
+  onComplete?: (points: number) => void;
 }
 
 export default function DailyHookCard({
@@ -24,9 +26,11 @@ export default function DailyHookCard({
   points,
   steps,
   onStart,
+  onComplete,
 }: DailyHookCardProps) {
   const [showSteps, setShowSteps] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [pointsGranted, setPointsGranted] = useState(false);
 
   const allDone = steps ? completedSteps.size === steps.length : false;
 
@@ -35,6 +39,19 @@ export default function DailyHookCard({
       const next = new Set(prev);
       if (next.has(idx)) next.delete(idx);
       else next.add(idx);
+
+      // Fire onComplete (or onStart as fallback) once all steps checked — only once per session
+      if (steps && next.size === steps.length && !pointsGranted) {
+        setPointsGranted(true);
+        if (!isDailyActivityDone()) {
+          markDailyActivityDone();
+          if (onComplete) onComplete(points);
+          else if (onStart) onStart(points);
+        } else {
+          console.log('[Pessy] misión completada');
+        }
+      }
+
       return next;
     });
   };
