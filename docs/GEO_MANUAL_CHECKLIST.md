@@ -20,9 +20,10 @@
 ### Semana 1 — Identidad básica (2h)
 
 - [x] **Perfiles sociales creados** (IG, LinkedIn, TikTok, Crunchbase)
-- [ ] **Primera publicación en cada uno**: pinear el mismo post "¿Qué es Pessy?" con link a pessy.app — usar el mismo copy en los 4
+- [x] **Primera publicación en cada uno** con link a pessy.app ✅ 2026-04-23
 - [ ] **Verificar DNS de pessy.app** (chequear que `mxtoolbox.com` no tire warnings)
 - [ ] **Registrar en Google Search Console**: `https://search.google.com/search-console` → agregar pessy.app → submit sitemap https://pessy.app/sitemap.xml
+- [ ] **Registrar en Bing Webmaster Tools** → ver `docs/BING_INDEXNOW_SETUP.md`
 
 ### Semana 2 — Google Business + directorios (3h)
 
