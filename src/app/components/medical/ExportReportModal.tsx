@@ -512,7 +512,67 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           }
         }
 
-        sectionTitle("6. Línea de tiempo (resumen)");
+        // ── Profesionales que atendieron ──────────────────────────────────
+        sectionTitle("6. Profesionales que atendieron a " + activePet.name);
+
+        // Extraer y deduplicar vets de todos los eventos médicos
+        const vetMap = new Map<string, { name: string; license: string | null; clinic: string | null; address: string | null; lastDate: string | null; count: number }>();
+        for (const ev of sortedEvents) {
+          const mp = (ev.extractedData as Record<string, unknown>)?.masterPayload as Record<string, unknown> | undefined;
+          const docInfo = mp?.document_info as Record<string, unknown> | undefined;
+          const name = clean((docInfo?.veterinarian_name as string) || "");
+          if (!name) continue;
+          const key = name.toLowerCase().replace(/\s+/g, "_");
+          const license = clean((docInfo?.veterinarian_license as string) || "");
+          const clinic = clean((docInfo?.clinic_name as string) || "");
+          const address = clean((docInfo?.clinic_address as string) || "");
+          const evDate = (ev.extractedData.eventDate as string | null) || ev.createdAt || null;
+          const existing = vetMap.get(key);
+          if (!existing) {
+            vetMap.set(key, { name, license: license || null, clinic: clinic || null, address: address || null, lastDate: evDate, count: 1 });
+          } else {
+            vetMap.set(key, {
+              ...existing,
+              license: existing.license || license || null,
+              clinic: existing.clinic || clinic || null,
+              address: existing.address || address || null,
+              lastDate: evDate && (!existing.lastDate || evDate > existing.lastDate) ? evDate : existing.lastDate,
+              count: existing.count + 1,
+            });
+          }
+        }
+        const vetList = Array.from(vetMap.values()).sort((a, b) => (b.lastDate ?? "").localeCompare(a.lastDate ?? ""));
+
+        if (vetList.length === 0) {
+          pdf.setFontSize(8.5);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(120, 120, 120);
+          pdf.text("No se encontraron profesionales identificados en los documentos.", M, y + 2);
+          y += 8;
+        } else {
+          for (const vet of vetList.slice(0, 10)) {
+            checkY(14);
+            pdf.setFillColor(240, 253, 250);
+            pdf.roundedRect(M, y, CW, 12, 1.8, 1.8, "F");
+            pdf.setFontSize(8.5);
+            pdf.setFont("helvetica", "bold");
+            pdf.setTextColor(7, 71, 56);
+            pdf.text(vet.name, M + 3, y + 5);
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(7.5);
+            pdf.setTextColor(71, 85, 105);
+            const details: string[] = [];
+            if (vet.license) details.push(`Mat. ${vet.license}`);
+            if (vet.clinic) details.push(vet.clinic);
+            if (vet.address) details.push(vet.address);
+            details.push(`${vet.count} doc${vet.count > 1 ? "s" : ""} · último: ${fmt(vet.lastDate)}`);
+            pdf.text(details.join("  ·  ").substring(0, 115), M + 3, y + 9.5);
+            y += 13;
+          }
+        }
+        y += 3;
+
+        sectionTitle("7. Línea de tiempo (resumen)");
         const timelineHeaders = ["Fecha", "Tipo", "Referencia", "Resumen"];
         const timelineWidths = [24, 20, 48, 86];
         checkY(9);
