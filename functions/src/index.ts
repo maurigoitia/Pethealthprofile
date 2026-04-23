@@ -2272,12 +2272,9 @@ export const analyzeDocument = functions
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  const contextHint = typeof data?.contextHint === "string" ? data.contextHint.slice(0, 1200) : "";
-  const knowledgeContext = await resolveClinicalKnowledgeContext({
-    query: [contextHint, fileName, normalizedMimeType, today].filter(Boolean).join(" "),
-    maxSections: 7,
-  });
-  const prompt = `${ANALYSIS_PROMPT_TEMPLATE.replace("__TODAY__", today)}\n\n${knowledgeContext.contextText}`;
+  const _contextHint = typeof data?.contextHint === "string" ? data.contextHint.slice(0, 1200) : "";
+  void _contextHint;
+  const prompt = ANALYSIS_PROMPT_TEMPLATE.replace("__TODAY__", today);
 
   const startedAt = Date.now();
   const { rawText, totalTokenCount } = await callGeminiBackend({
@@ -2314,9 +2311,6 @@ export const analyzeDocument = functions
     tokensUsed: totalTokenCount,
     processingTimeMs: Date.now() - startedAt,
     resolvedMimeType: normalizedMimeType,
-    knowledgeVersion: knowledgeContext.version,
-    knowledgeSectionIds: knowledgeContext.sectionIds,
-    knowledgeSource: knowledgeContext.source,
   };
   });
 

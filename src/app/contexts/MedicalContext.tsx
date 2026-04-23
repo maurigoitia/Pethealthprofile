@@ -39,11 +39,8 @@ import {
   slugifyKey,
 } from "../utils/clinicalBrain";
 import { syncAppointmentWithGoogleCalendar } from "../services/calendarSyncService";
-import { isEmailSyncEnabled, isFocusHistoryExperimentHost } from "../utils/runtimeFlags";
-import { normalizeForHint, hasMailSyncHint, normalizeMedicationKey, extractTimeFromText, hasAppointmentLanguage, extractSpecialtyFromText, deriveAppointmentCandidateFromEvent } from "../utils/medicalContextHelpers";
-
-// Kill-switch operativo: desactiva visualización de datos provenientes de sincronización por mail.
-const EMAIL_SYNC_ENABLED = isEmailSyncEnabled();
+import { isFocusHistoryExperimentHost } from "../utils/runtimeFlags";
+import { normalizeMedicationKey, extractTimeFromText, hasAppointmentLanguage, extractSpecialtyFromText, deriveAppointmentCandidateFromEvent } from "../utils/medicalContextHelpers";
 
 // ─── Tipos episódicos (mirror de episodeCompiler) ──────────────────────────────
 export interface ClinicalEpisodeMedication {
@@ -87,35 +84,6 @@ export interface ClinicalProfileSnapshot {
   narrative: string;
   sourceEpisodeIds: string[];
 }
-
-const isMailSyncedEvent = (event: MedicalEvent): boolean => {
-  if (EMAIL_SYNC_ENABLED) return false;
-  const extracted = event.extractedData || {};
-  if (
-    extracted.sourceSender ||
-    extracted.sourceReceivedAt ||
-    extracted.sourceSubject ||
-    extracted.sourceFileName
-  ) {
-    return true;
-  }
-
-  const reviewHints = event.reviewReasons || [];
-  const textHints = [
-    event.title,
-    extracted.suggestedTitle,
-    extracted.observations,
-    extracted.aiGeneratedSummary,
-    ...reviewHints,
-  ];
-  return textHints.some((value) => hasMailSyncHint(value));
-};
-
-const isMailSyncedPendingAction = (action: PendingAction): boolean => {
-  if (EMAIL_SYNC_ENABLED) return false;
-  if (action.type === "sync_review") return true;
-  return hasMailSyncHint(action.title) || hasMailSyncHint(action.subtitle);
-};
 
 const normalizeProactiveScope = (value: string): string =>
   (value || "")
@@ -1146,7 +1114,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   };
 
   const getEventsByPetId = (petId: string) => {
-    const visibleEvents = events.filter((event) => event.petId === petId && !isMailSyncedEvent(event) && !event.deletedAt);
+    const visibleEvents = events.filter((event) => event.petId === petId && !event.deletedAt);
     return dedupeEvents(visibleEvents).sort((a, b) => {
       // Ordenar por fecha del documento (eventDate), si no existe usar createdAt (fecha de escaneo)
       const dateA = a.extractedData?.eventDate || a.createdAt;
@@ -1189,8 +1157,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     const visiblePendingActions = pendingActions.filter(
       (action) =>
         action.petId === petId &&
-        !action.completed &&
-        !isMailSyncedPendingAction(action)
+        !action.completed
     );
     return dedupePendingActions(visiblePendingActions)
       .sort((a, b) => toTimestampSafe(a.dueDate) - toTimestampSafe(b.dueDate));
@@ -1584,12 +1551,6 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   };
 
   const getAppointmentsByPetId = (petId: string) => {
-    const mailEventIds = new Set(
-      events
-        .filter((event) => event.petId === petId && isMailSyncedEvent(event))
-        .map((event) => event.id)
-    );
-
     const toTimestamp = (appointment: Appointment) => {
       const withTime = appointment.time
         ? `${appointment.date}T${appointment.time}:00`
@@ -1599,16 +1560,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       return toTimestampSafe(appointment.createdAt);
     };
 
-    const visibleAppointments = appointments.filter((appointment) => {
-      if (appointment.petId !== petId) return false;
-      if (EMAIL_SYNC_ENABLED) return true;
-      if (appointment.sourceEventId && mailEventIds.has(appointment.sourceEventId)) return false;
-      const hasTextHint =
-        hasMailSyncHint(appointment.notes || null) ||
-        hasMailSyncHint(appointment.title || null);
-      if (hasTextHint && Boolean(appointment.sourceEventId || appointment.sourceSuggestionKey)) return false;
-      return true;
-    });
+    const visibleAppointments = appointments.filter((appointment) => appointment.petId === petId);
 
     return dedupeAppointments(visibleAppointments)
       .sort((a, b) => toTimestamp(a) - toTimestamp(b));
