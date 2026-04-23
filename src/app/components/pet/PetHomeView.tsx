@@ -295,6 +295,7 @@ function mapRecToTipColor(rec: PessyIntelligenceRecommendation): "green" | "blue
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function PetHomeView({
+  userName,
   onViewHistory,
   onProfileClick,
   onPetClick,
