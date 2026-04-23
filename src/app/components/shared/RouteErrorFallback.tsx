@@ -61,10 +61,10 @@ export function RouteErrorFallback() {
             Reintentar
           </button>
           <button
-            onClick={() => navigate("/inicio")}
+            onClick={() => { window.location.href = "/"; }}
             className="w-full py-4 rounded-2xl border-2 border-[#074738] text-[#074738] font-bold"
           >
-            Ir al inicio
+            Volver a la página principal
           </button>
           <a
             href="/reset"
