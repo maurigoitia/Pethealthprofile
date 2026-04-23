@@ -57,18 +57,8 @@ export default function HomeScreenSimplified() {
 
   return (
     <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24">
-      {/* Hamburger Menu Button */}
-      <div className="fixed top-4 left-4 z-40">
-        <button
-          onClick={openSidebar}
-          className="size-10 rounded-full bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center hover:scale-110 transition-transform"
-        >
-          <MaterialIcon
-            name="menu"
-            className="text-[#074738] dark:text-emerald-400 text-xl"
-          />
-        </button>
-      </div>
+      {/* Hamburger removido — tapaba avatar del HomeHeaderV2. El sidebar se
+          accede desde el Bell del header v2 o desde Perfil. */}
 
       {focusExperienceEnabled ? (
         <Suspense fallback={<ScreenLoader label="Cargando inicio..." />}>
