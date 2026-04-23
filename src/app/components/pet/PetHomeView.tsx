@@ -846,8 +846,10 @@ export function PetHomeView({
           />
         </div>
 
-        {/* 5b. PREFERENCES NUDGE — appears if pet has no preferences set */}
-        {activePet && !(Array.isArray(activePet.preferences?.personality) ? activePet.preferences!.personality!.length : 0) && !(Array.isArray(activePet.preferences?.fears) ? activePet.preferences!.fears!.length : 0) && !(Array.isArray(activePet.preferences?.favoriteActivities) ? activePet.preferences!.favoriteActivities!.length : 0) && (
+        {/* 5b. PREFERENCES NUDGE — OCULTO (no estaba en UI kit v2)
+            User flag: estas cards amarillas/mint distorsionan el flow del kit.
+            Mover a un settings screen dedicado en el futuro. */}
+        {false && activePet && !(Array.isArray(activePet.preferences?.personality) ? activePet.preferences!.personality!.length : 0) && !(Array.isArray(activePet.preferences?.fears) ? activePet.preferences!.fears!.length : 0) && !(Array.isArray(activePet.preferences?.favoriteActivities) ? activePet.preferences!.favoriteActivities!.length : 0) && (
           <div className="mx-3 mt-2">
             <button
               type="button"
@@ -869,8 +871,8 @@ export function PetHomeView({
           </div>
         )}
 
-        {/* 6. PROFILE NUDGE - only if incomplete */}
-        {profileIncomplete && (
+        {/* 6. PROFILE NUDGE — OCULTO (no estaba en UI kit v2) */}
+        {false && profileIncomplete && (
           <div className="mx-3 mt-2">
             <ProfileNudge
               petName={activePet.name}
@@ -881,8 +883,8 @@ export function PetHomeView({
           </div>
         )}
 
-        {/* 7. PESSY TE DICE — single critical alert only */}
-        {criticalAlert && (
+        {/* 7. PESSY TE DICE — OCULTO (no estaba en UI kit v2) */}
+        {false && criticalAlert && (
           <>
             <SectionTitle>Pessy te dice</SectionTitle>
             <div className="mx-4">
