@@ -50,6 +50,7 @@ jobs:
           VITE_FIREBASE_MEASUREMENT_ID: ${{ vars.VITE_FIREBASE_MEASUREMENT_ID }}
           VITE_FIREBASE_VAPID_KEY: ${{ vars.VITE_FIREBASE_VAPID_KEY }}
           VITE_USE_BACKEND_ANALYSIS: ${{ vars.VITE_USE_BACKEND_ANALYSIS }}
+          VITE_GOOGLE_PLACES_KEY: ${{ vars.VITE_GOOGLE_PLACES_KEY }}
 
       - name: Deploy hosting to Production
         run: npx firebase-tools deploy --only hosting:app --project polar-scene-488615-i0
@@ -72,7 +73,7 @@ jobs:
           fi
           echo "✅ Smoke test passed — pessy.app is up (HTTP 200)"
 
-      - name: Smoke test — verify app.pessy.app/inicio is reachable
+      - name: Smoke test — verify pessy.app/inicio is reachable
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 20 https://pessy.app/inicio)
           echo "HTTP status: $STATUS"

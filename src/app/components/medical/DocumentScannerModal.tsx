@@ -8,12 +8,10 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { storage, db } from "../../../lib/firebase";
 import { extractMedicalData } from "../../services/analysisService";
-import { NotificationService } from "../../services/notificationService";
 import { MedicalEvent, ActiveMedication } from "../../types/medical";
 import { buildEventSemanticKey } from "../../utils/deduplication";
 import { evaluateDocumentForReview, ReviewTarget } from "../../utils/medicalRulesEngine";
 import { parseDateSafe } from "../../utils/dateUtils";
-import { downloadIcsEvent } from "../../utils/calendarExport";
 import { useStorageQuota } from "../../hooks/useStorageQuota";
 
 interface DocumentScannerModalProps {
@@ -21,28 +19,7 @@ interface DocumentScannerModalProps {
   onClose: () => void;
 }
 
-type UploadStage = "select" | "processing" | "treatment_questions" | "success" | "error";
-
-interface TreatmentQuestionItem {
-  id: string;
-  name: string;
-  dosage: string;
-  frequency: string;
-  duration: string;
-  reminderEnabled: boolean;
-  reminderInterval: "8" | "12" | "24" | "other";
-  reminderCustomHours: string;
-  firstDoseTime: string; // HH:mm — hora de la primera dosis hoy
-  addToCalendar: boolean;
-}
-
-interface PendingTreatmentContext {
-  eventId: string;
-  treatmentStart: string;
-  treatmentType: string;
-  provider: string | null;
-  items: TreatmentQuestionItem[];
-}
+type UploadStage = "select" | "processing" | "success" | "error";
 
 export function DocumentScannerModal({
   isOpen,
@@ -51,7 +28,7 @@ export function DocumentScannerModal({
   const navigate = useNavigate();
   const { user } = useAuth();
   const { activePet } = usePet();
-  const { addEvent, addMedication, getEventsByPetId } = useMedical();
+  const { addEvent, addMedication } = useMedical();
   const { canUpload, trackUpload } = useStorageQuota();
 
   const [uploadStage, setUploadStage] = useState<UploadStage>("select");
@@ -61,7 +38,14 @@ export function DocumentScannerModal({
   const [requiresReview, setRequiresReview] = useState(false);
   const [reviewReasons, setReviewReasons] = useState<string[]>([]);
   const [reviewTarget, setReviewTarget] = useState<ReviewTarget>("feed");
-  const [pendingTreatmentContext, setPendingTreatmentContext] = useState<PendingTreatmentContext | null>(null);
+  const [savedMedicationsCount, setSavedMedicationsCount] = useState<number>(0);
+  const [extractionPreview, setExtractionPreview] = useState<{
+    vetName: string | null;
+    date: string | null;
+    clinic: string | null;
+    diagnosis: string | null;
+    medications: string[];
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const parseDurationToEndDate = (duration: string | null | undefined, startDateIso: string): string | null => {
@@ -96,132 +80,6 @@ export function DocumentScannerModal({
 
   const handleFileSelect = () => {
     fileInputRef.current?.click();
-  };
-
-  const toLocalDate = (isoLike: string): string => {
-    const parsed = parseDateSafe(isoLike) || new Date();
-    return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
-  };
-
-  const toLocalTime = (isoLike: string): string => {
-    const parsed = parseDateSafe(isoLike) || new Date();
-    return `${String(parsed.getHours()).padStart(2, "0")}:${String(parsed.getMinutes()).padStart(2, "0")}`;
-  };
-
-  const parseHoursFromText = (value: string): number | null => {
-    if (!value) return null;
-    const match = value.toLowerCase().match(/(\d+)\s*h/);
-    if (!match) return null;
-    const num = Number(match[1]);
-    return Number.isFinite(num) && num > 0 ? num : null;
-  };
-
-  const reminderHoursToFrequencyText = (item: TreatmentQuestionItem): string => {
-    if (item.reminderInterval === "other") {
-      const custom = Number(item.reminderCustomHours);
-      if (Number.isFinite(custom) && custom > 0) {
-        return `Cada ${custom} horas`;
-      }
-    }
-    return `Cada ${item.reminderInterval} horas`;
-  };
-
-  const updateTreatmentItem = (id: string, updates: Partial<TreatmentQuestionItem>) => {
-    setPendingTreatmentContext((previous) => {
-      if (!previous) return previous;
-      return {
-        ...previous,
-        items: previous.items.map((item) => (item.id === id ? { ...item, ...updates } : item)),
-      };
-    });
-  };
-
-  const finalizeTreatments = async () => {
-    if (!pendingTreatmentContext || !activePet) return;
-
-    try {
-      setUploadStage("processing");
-      setProcessingStatus("Guardando tratamiento y recordatorios...");
-
-      const shouldRequestNotifications = pendingTreatmentContext.items.some((item) => item.reminderEnabled);
-      if (shouldRequestNotifications) {
-        await NotificationService.requestPermissionAndGetToken();
-      }
-
-      for (const item of pendingTreatmentContext.items) {
-        // Usar la hora de primera dosis elegida por el usuario como punto de inicio del recordatorio
-        const baseDate = pendingTreatmentContext.treatmentStart.slice(0, 10); // YYYY-MM-DD
-        const firstDose = item.firstDoseTime || "09:00";
-        const startDate = `${baseDate}T${firstDose}:00`;
-        const frequency = item.frequency.trim() || "Frecuencia no especificada";
-        const duration = item.duration.trim();
-        const endDate = parseDurationToEndDate(duration || null, startDate);
-
-        const medication: ActiveMedication = {
-          id: `med_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          petId: activePet.id,
-          userId: user?.uid,
-          name: item.name,
-          dosage: item.dosage || "",
-          frequency,
-          type: pendingTreatmentContext.treatmentType,
-          startDate,
-          endDate,
-          prescribedBy: pendingTreatmentContext.provider || null,
-          generatedFromEventId: pendingTreatmentContext.eventId,
-          active: true,
-        };
-
-        await addMedication(medication);
-
-        if (item.reminderEnabled) {
-          const reminderFrequency = reminderHoursToFrequencyText(item);
-          try {
-            await NotificationService.scheduleMedicationReminders({
-              petId: activePet.id,
-              petName: activePet.name,
-              medicationName: item.name,
-              dosage: item.dosage || "Según receta",
-              frequency: reminderFrequency,
-              startDate,
-              endDate,
-              sourceEventId: pendingTreatmentContext.eventId,
-              sourceMedicationId: medication.id,
-            });
-          } catch (scheduleError) {
-            console.warn("No se pudo programar recordatorio de medicación:", scheduleError);
-          }
-        }
-
-        if (item.addToCalendar) {
-          downloadIcsEvent(
-            {
-              title: `Tratamiento ${activePet.name}: ${item.name}`,
-              date: toLocalDate(startDate),
-              time: toLocalTime(startDate),
-              durationMinutes: 30,
-              location: pendingTreatmentContext.provider || "",
-              description: [
-                `Medicacion: ${item.name}`,
-                item.dosage ? `Dosis: ${item.dosage}` : null,
-                frequency ? `Frecuencia: ${frequency}` : null,
-                duration ? `Duracion: ${duration}` : null,
-              ]
-                .filter(Boolean)
-                .join(" · "),
-            },
-            `tratamiento-${item.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.ics`
-          );
-        }
-      }
-
-      setPendingTreatmentContext(null);
-      setUploadStage("success");
-    } catch (error) {
-      console.error("No se pudo guardar el tratamiento confirmado:", error);
-      setUploadStage("error");
-      setProcessingStatus("No se pudo guardar el tratamiento. Reintentá en unos segundos.");
-    }
   };
 
   const hashFile = async (file: File): Promise<string> => {
@@ -329,6 +187,17 @@ export function DocumentScannerModal({
       setReviewReasons(reviewDecision.reviewReasons);
       setReviewTarget(reviewDecision.reviewTarget);
 
+      // Armar preview legible de lo que se extrajo
+      const mp = (aiData as Record<string, unknown>)?.masterPayload as Record<string, unknown> | undefined;
+      const docInfo = mp?.document_info as Record<string, unknown> | undefined;
+      setExtractionPreview({
+        vetName: (docInfo?.veterinarian_name as string) || (aiData as Record<string, unknown>)?.provider as string || null,
+        date: (aiData.eventDate as string) || (docInfo?.date as string) || null,
+        clinic: (docInfo?.clinic_name as string) || (aiData as Record<string, unknown>)?.clinic as string || null,
+        diagnosis: (aiData.diagnosis as string) || (aiData.observations as string) || null,
+        medications: ((aiData.medications as Array<{ name: string }>) || []).map(m => m.name).filter(Boolean).slice(0, 3),
+      });
+
       const newEvent: MedicalEvent = {
         id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         petId: activePet.id,
@@ -384,38 +253,41 @@ export function DocumentScannerModal({
       }
 
       // Crear medicaciones activas detectadas en el documento cuando la extracción es confiable.
-      // Antes de persistir, pedimos completar datos clave de tratamiento.
+      // Se guardan con los defaults extraídos; el usuario puede editarlas luego desde MedicationsScreen.
       if (reviewDecision.shouldPersistDerivedData && aiData.medications && aiData.medications.length > 0) {
         const treatmentStart = aiData.eventDate || newEvent.createdAt;
-        const items: TreatmentQuestionItem[] = aiData.medications.map((med, index) => {
-          const detectedHours = parseHoursFromText(med.frequency || "");
-          const interval: TreatmentQuestionItem["reminderInterval"] = detectedHours === 8 || detectedHours === 12 || detectedHours === 24
-            ? (String(detectedHours) as "8" | "12" | "24")
-            : "other";
+        const baseDate = (treatmentStart || new Date().toISOString()).slice(0, 10);
+        const startDate = `${baseDate}T09:00:00`;
+        const treatmentType = typeMap[documentType] || "General";
 
-          return {
-            id: `${newEvent.id}_med_${index}`,
+        for (const med of aiData.medications) {
+          const frequency = (med.frequency && med.frequency.trim()) || "Frecuencia no especificada";
+          const duration = (med.duration && med.duration.trim()) || "";
+          const endDate = parseDurationToEndDate(duration || null, startDate);
+
+          const medication: ActiveMedication = {
+            id: `med_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            petId: activePet.id,
+            userId: user?.uid,
             name: med.name,
             dosage: med.dosage || "",
-            frequency: med.frequency || "Cada 24 horas",
-            duration: med.duration || "",
-            reminderEnabled: Boolean(med.frequency),
-            reminderInterval: interval,
-            reminderCustomHours: detectedHours && ![8, 12, 24].includes(detectedHours) ? String(detectedHours) : "",
-            firstDoseTime: new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false }),
-            addToCalendar: false,
+            frequency,
+            type: treatmentType,
+            startDate,
+            endDate,
+            prescribedBy: aiData.provider || null,
+            generatedFromEventId: newEvent.id,
+            active: true,
           };
-        });
 
-        setPendingTreatmentContext({
-          eventId: newEvent.id,
-          treatmentStart,
-          treatmentType: typeMap[documentType] || "General",
-          provider: aiData.provider || null,
-          items,
-        });
-        setUploadStage("treatment_questions");
-        return;
+          try {
+            await addMedication(medication);
+          } catch (medErr) {
+            console.warn("No se pudo guardar una medicación detectada:", medErr);
+          }
+        }
+
+        setSavedMedicationsCount(aiData.medications.length);
       }
 
       if (reviewDecision.requiresManualConfirmation) {
@@ -468,7 +340,8 @@ export function DocumentScannerModal({
       setRequiresReview(false);
       setReviewReasons([]);
       setReviewTarget("feed");
-      setPendingTreatmentContext(null);
+      setSavedMedicationsCount(0);
+      setExtractionPreview(null);
     }, 300);
   };
 
@@ -610,133 +483,6 @@ export function DocumentScannerModal({
               )}
 
               {/* SUCCESS STAGE */}
-              {uploadStage === "treatment_questions" && pendingTreatmentContext && (
-                <div className="p-6 space-y-5">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-black text-slate-900 dark:text-white">
-                      Confirmar tratamiento detectado
-                    </h3>
-                    <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                      {pendingTreatmentContext.items.length} registro(s)
-                    </span>
-                  </div>
-
-                  <p className="text-sm text-slate-600 dark:text-slate-300">
-                    Completá estos datos antes de guardar para activar recordatorios y calendario correctamente.
-                  </p>
-
-                  <div className="space-y-4">
-                    {pendingTreatmentContext.items.map((item) => (
-                      <div key={item.id} className="rounded-[16px] border border-slate-200 dark:border-slate-700 p-4 space-y-4 bg-white dark:bg-slate-800/40">
-                        <div>
-                          <p className="text-base font-bold text-slate-900 dark:text-white">{item.name}</p>
-                          {item.dosage && (
-                            <p className="text-xs text-slate-500 dark:text-slate-400">Dosis detectada: {item.dosage}</p>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-3">
-                          <label className="space-y-1">
-                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Cada cuánto lo toma</span>
-                            <input
-                              value={item.frequency}
-                              onChange={(event) => updateTreatmentItem(item.id, { frequency: event.target.value })}
-                              className="w-full rounded-[12px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
-                              placeholder="Ej: cada 12 horas"
-                            />
-                          </label>
-
-                          <label className="space-y-1">
-                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Por cuánto tiempo</span>
-                            <input
-                              value={item.duration}
-                              onChange={(event) => updateTreatmentItem(item.id, { duration: event.target.value })}
-                              className="w-full rounded-[12px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
-                              placeholder="Ej: 10 días / 2 semanas / crónico"
-                            />
-                          </label>
-                        </div>
-
-                        {/* Primera dosis — campo clave para calcular recordatorios */}
-                        <label className="space-y-1 block">
-                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">¿A qué hora le das la primera dosis hoy?</span>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="time"
-                              value={item.firstDoseTime}
-                              onChange={(event) => updateTreatmentItem(item.id, { firstDoseTime: event.target.value })}
-                              className="flex-1 rounded-[12px] border border-[#1A9B7D]/40 bg-[#1A9B7D]/5 px-3 py-2.5 text-sm font-bold text-[#074738] focus:outline-none focus:ring-2 focus:ring-[#1A9B7D]"
-                            />
-                            <span className="text-xs text-slate-500">A partir de esta hora calculamos las siguientes tomas</span>
-                          </div>
-                        </label>
-
-                        <div className="rounded-[12px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 space-y-3">
-                          <label className="flex items-center justify-between gap-3">
-                            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">Querés recordatorio</span>
-                            <input
-                              type="checkbox"
-                              checked={item.reminderEnabled}
-                              onChange={(event) => updateTreatmentItem(item.id, { reminderEnabled: event.target.checked })}
-                              className="size-4 accent-[#074738]"
-                            />
-                          </label>
-
-                          {item.reminderEnabled && (
-                            <div className="space-y-2">
-                              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Frecuencia del recordatorio</label>
-                              <div className="grid grid-cols-4 gap-2">
-                                {(["8", "12", "24", "other"] as const).map((option) => (
-                                  <button
-                                    key={option}
-                                    type="button"
-                                    onClick={() => updateTreatmentItem(item.id, { reminderInterval: option })}
-                                    className={`rounded-[14px] px-2 py-2 text-xs font-bold border active:scale-[0.97] transition-all ${
-                                      item.reminderInterval === option
-                                        ? "bg-[#074738] text-white border-[#074738]"
-                                        : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600"
-                                    }`}
-                                  >
-                                    {option === "other" ? "Otro" : `${option}h`}
-                                  </button>
-                                ))}
-                              </div>
-                              {item.reminderInterval === "other" && (
-                                <input
-                                  value={item.reminderCustomHours}
-                                  onChange={(event) => updateTreatmentItem(item.id, { reminderCustomHours: event.target.value })}
-                                  className="w-full rounded-[12px] border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
-                                  placeholder="Cada cuántas horas"
-                                  inputMode="numeric"
-                                />
-                              )}
-                            </div>
-                          )}
-
-                          <label className="flex items-center justify-between gap-3">
-                            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">Agregar al calendario (ICS)</span>
-                            <input
-                              type="checkbox"
-                              checked={item.addToCalendar}
-                              onChange={(event) => updateTreatmentItem(item.id, { addToCalendar: event.target.checked })}
-                              className="size-4 accent-[#074738]"
-                            />
-                          </label>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={finalizeTreatments}
-                    className="w-full py-3 rounded-[14px] bg-[#074738] hover:bg-[#1a9b7d] text-white font-bold shadow-[0_4px_12px_rgba(26,155,125,0.3)] active:scale-[0.97] transition-all"
-                  >
-                    Confirmar y guardar tratamiento
-                  </button>
-                </div>
-              )}
-
-              {/* SUCCESS STAGE */}
               {uploadStage === "success" && (
                 <div className="p-6 flex flex-col items-center justify-center min-h-[400px]">
                   <div className={`size-24 rounded-full flex items-center justify-center mb-6 ${
@@ -755,17 +501,50 @@ export function DocumentScannerModal({
                       Tipo detectado: {extractedType}
                     </p>
                   </div>
-                  {requiresReview && (
-                    <div className="w-full max-w-xs p-3 rounded-[16px] bg-amber-50 border border-amber-200 mb-6">
-                      <p className="text-xs font-bold text-amber-700 mb-1">
-                        Revisemos algunos datos antes de confirmarlos:
+                  {/* Preview de datos extraídos */}
+                  {extractionPreview && (extractionPreview.vetName || extractionPreview.date || extractionPreview.clinic || extractionPreview.diagnosis || extractionPreview.medications.length > 0) && (
+                    <div className="w-full max-w-xs mb-4 rounded-[16px] bg-[#F0FAF9] border border-[rgba(7,71,56,.08)] overflow-hidden">
+                      <p className="text-[10px] font-[800] text-[#1A9B7D] tracking-widest uppercase px-4 pt-3 pb-1">
+                        Lo que se encontró
                       </p>
-                      <ul className="text-xs text-amber-700 list-disc list-inside space-y-0.5">
-                        {reviewReasons.slice(0, 3).map((reason, index) => (
-                          <li key={`${reason}-${index}`}>{reason}</li>
-                        ))}
-                      </ul>
+                      <div className="px-4 pb-3 flex flex-col gap-1.5">
+                        {extractionPreview.vetName && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-[700] text-[#9CA3AF] w-16 shrink-0">Veterinario</span>
+                            <span className="text-[12px] font-[600] text-[#0F172A] truncate">{extractionPreview.vetName}</span>
+                          </div>
+                        )}
+                        {extractionPreview.date && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-[700] text-[#9CA3AF] w-16 shrink-0">Fecha</span>
+                            <span className="text-[12px] text-[#374151]">{extractionPreview.date}</span>
+                          </div>
+                        )}
+                        {extractionPreview.clinic && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-[700] text-[#9CA3AF] w-16 shrink-0">Clínica</span>
+                            <span className="text-[12px] text-[#374151] truncate">{extractionPreview.clinic}</span>
+                          </div>
+                        )}
+                        {extractionPreview.diagnosis && (
+                          <div className="flex items-start gap-2">
+                            <span className="text-[10px] font-[700] text-[#9CA3AF] w-16 shrink-0 pt-0.5">Hallazgo</span>
+                            <span className="text-[12px] text-[#374151] line-clamp-2">{extractionPreview.diagnosis}</span>
+                          </div>
+                        )}
+                        {extractionPreview.medications.length > 0 && (
+                          <div className="flex items-start gap-2">
+                            <span className="text-[10px] font-[700] text-[#9CA3AF] w-16 shrink-0 pt-0.5">Medicación</span>
+                            <span className="text-[12px] text-[#374151]">{extractionPreview.medications.join(", ")}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
+                  )}
+                  {savedMedicationsCount > 0 && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 text-center max-w-xs mb-4">
+                      {savedMedicationsCount} medicamento{savedMedicationsCount === 1 ? "" : "s"} guardado{savedMedicationsCount === 1 ? "" : "s"} — podés editarlos en Rutinas.
+                    </p>
                   )}
                   <button
                     onClick={requiresReview ? handleGoToReview : handleClose}

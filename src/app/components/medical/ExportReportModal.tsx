@@ -5,6 +5,7 @@ import { useMedical } from "../../contexts/MedicalContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { formatDateSafe } from "../../utils/dateUtils";
 import { loadJsPdf, savePdfWithFallback } from "../../utils/pdfExport";
+import { generateClinicalOverview } from "../../utils/clinicalOverview";
 
 interface ExportReportModalProps {
   isOpen: boolean;
@@ -40,8 +41,36 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       .replace(/\*(.*?)\*/g, "$1")
       .replace(/#{1,6}\s+/g, "")
       .replace(/`/g, "")
+      .replace(/[%Ï]/g, "")       // basura de encoding de emails
+      .replace(/^>+\s*/gm, "")    // quotes de email reply
       .replace(/\s+/g, " ")
       .trim();
+
+  // ── Filtros semánticos (regla dura: sin ruido) ─────────────────────────
+  const isEmailLike = (v?: string | null) => !!v && /@/.test(v);
+  const isNoisePlaceholder = (v?: string | null) => {
+    const s = (v || "").toLowerCase().trim();
+    return !s
+      || s.includes("sin interpretacion")
+      || s.includes("sin interpretación")
+      || s.includes("sin referencia")
+      || s.includes("pendiente de revisión")
+      || s === "—";
+  };
+  // Nombre de profesional usable: no vacío, no email
+  const cleanProfessional = (v?: string | null): string | null => {
+    const s = clean(v);
+    if (!s || isEmailLike(s)) return null;
+    return s;
+  };
+  // Para un evento: nombre de vet REAL (masterPayload > extractedData, nunca email)
+  const getRealProfessional = (event: any): string | null => {
+    const mp = (event.extractedData as Record<string, unknown>)?.masterPayload as Record<string, unknown> | undefined;
+    const docInfo = mp?.document_info as Record<string, unknown> | undefined;
+    const fromPayload = cleanProfessional(docInfo?.veterinarian_name as string);
+    if (fromPayload) return fromPayload;
+    return cleanProfessional(event.extractedData?.provider) || cleanProfessional(event.extractedData?.clinic);
+  };
 
   const getCanonicalSummary = (event: any) => {
     const extracted = event.extractedData || {};
@@ -266,7 +295,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       if (selectedReport === "health") {
         const sectionTitle = (title: string) => {
           checkY(16);
-          pdf.setFontSize(10.5);
+          pdf.setFontSize(11);
           pdf.setFont("helvetica", "bold");
           pdf.setTextColor(13, 148, 136);
           pdf.text(title, M, y);
@@ -274,10 +303,305 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           pdf.setDrawColor(13, 148, 136);
           pdf.setLineWidth(0.4);
           pdf.line(M, y, M + CW, y);
-          y += 4;
+          y += 5;
         };
 
-        sectionTitle("1. Perfil resumido");
+        const bullet = (text: string) => {
+          const lines = pdf.splitTextToSize(`•  ${text}`, CW - 4);
+          checkY(lines.length * 4 + 2);
+          pdf.text(lines, M + 1, y + 1);
+          y += lines.length * 4 + 1;
+        };
+
+        const bodyText = (text: string, color: [number, number, number] = [55, 65, 81]) => {
+          pdf.setFontSize(9);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(color[0], color[1], color[2]);
+          const lines = pdf.splitTextToSize(text, CW - 2);
+          checkY(lines.length * 4 + 2);
+          pdf.text(lines, M, y + 1);
+          y += lines.length * 4 + 2;
+        };
+
+        // Sólo fechas REALMENTE futuras (>= hoy a las 00:00)
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const futureAppointments = [...upcoming]
+          .filter((a) => {
+            if (!a.date) return false;
+            const d = new Date(a.date);
+            return !isNaN(d.getTime()) && d >= todayStart;
+          })
+          .sort((a, b) =>
+            toTs(`${a.date || ""}T${a.time || "00:00"}`) -
+            toTs(`${b.date || ""}T${b.time || "00:00"}`),
+          );
+
+        // Eventos últimos 60 días con contenido real
+        const sixtyDaysAgo = Date.now() - 1000 * 60 * 60 * 24 * 60;
+        const recentEvents = sortedEvents.filter((ev) => {
+          const d = toTs(ev.extractedData.eventDate || ev.createdAt);
+          return d >= sixtyDaysAgo;
+        });
+
+        // Estudios relevantes: con interpretación real, sin ruido de email
+        const relevantStudies = sortedEvents.filter((ev) => {
+          const t = ev.extractedData.documentType;
+          if (!["xray", "lab_test", "echocardiogram", "electrocardiogram"].includes(t)) return false;
+          const diag = clean(ev.extractedData.diagnosis || ev.extractedData.observations || "");
+          if (isNoisePlaceholder(diag)) return false;
+          return true;
+        });
+
+        // Mapa condición → tratamientos vinculados (vía event source)
+        // Reconstruimos condición a partir del event que originó el medicamento
+        const eventById = new Map(sortedEvents.map((e) => [e.id, e] as const));
+        const medsWithCondition = medications.map((med) => {
+          let condition: string | null = null;
+          const srcEvent = med.sourceEventId ? eventById.get(med.sourceEventId) : null;
+          if (srcEvent) {
+            const diag = clean(srcEvent.extractedData.diagnosis || "");
+            if (!isNoisePlaceholder(diag)) {
+              // tomar solo el primer diagnóstico antes del "("
+              condition = diag.split(/[(;]/)[0].trim();
+            }
+          }
+          return {
+            name: clean(med.name) || "Medicamento",
+            dosage: clean(med.dosage),
+            frequency: clean(med.frequency),
+            condition,
+          };
+        }).filter((m) => m.name.length > 0);
+
+        // Vets tratantes (de masterPayload, sin emails)
+        const vetMap = new Map<string, { name: string; license: string | null; clinic: string | null; lastDate: string | null }>();
+        for (const ev of sortedEvents) {
+          const name = getRealProfessional(ev);
+          if (!name) continue;
+          const mp = (ev.extractedData as Record<string, unknown>)?.masterPayload as Record<string, unknown> | undefined;
+          const docInfo = mp?.document_info as Record<string, unknown> | undefined;
+          const license = clean((docInfo?.veterinarian_license as string) || "");
+          const clinic = cleanProfessional((docInfo?.clinic_name as string) || "");
+          const key = name.toLowerCase().replace(/\s+/g, "_");
+          const evDate = ev.extractedData.eventDate || ev.createdAt || null;
+          const existing = vetMap.get(key);
+          if (!existing) {
+            vetMap.set(key, { name, license: license || null, clinic: clinic || null, lastDate: evDate });
+          } else {
+            vetMap.set(key, {
+              ...existing,
+              license: existing.license || license || null,
+              clinic: existing.clinic || clinic || null,
+              lastDate: evDate && (!existing.lastDate || evDate > existing.lastDate) ? evDate : existing.lastDate,
+            });
+          }
+        }
+        const vetList = Array.from(vetMap.values())
+          .sort((a, b) => (b.lastDate ?? "").localeCompare(a.lastDate ?? ""));
+
+        // ── 0. AI OVERVIEW (síntesis de 1-2 oraciones, arriba de todo) ─
+        const overviewFindings = Array.from(new Set(
+          recentEvents
+            .map((ev) => clean(ev.extractedData.diagnosis || "").split(/[(;]/)[0].trim())
+            .filter((d) => d && !isNoisePlaceholder(d))
+        )).slice(0, 5);
+
+        const overview = generateClinicalOverview({
+          petName: activePet.name,
+          activeConditionNames: activeConditions.map((c) => clean(c.normalizedName)).filter(Boolean),
+          activeMedicationNames: medsWithCondition.map((m) => m.name),
+          recentFindings: overviewFindings,
+          hasUpcomingAppointment: futureAppointments.length > 0,
+          hasPendingReviews: pendingManualReviewCount > 0,
+        });
+
+        if (overview) {
+          checkY(22);
+          // Card verde claro destacado
+          pdf.setFillColor(236, 253, 245);
+          pdf.roundedRect(M, y, CW, 20, 3, 3, "F");
+          pdf.setDrawColor(26, 155, 125);
+          pdf.setLineWidth(0.6);
+          pdf.line(M, y, M, y + 20); // borde izquierdo accent
+          pdf.setFontSize(8.5);
+          pdf.setFont("helvetica", "bold");
+          pdf.setTextColor(13, 148, 136);
+          pdf.text("RESUMEN", M + 4, y + 5.5);
+          pdf.setFontSize(9.5);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(15, 76, 52);
+          const overviewLines = pdf.splitTextToSize(overview, CW - 8);
+          pdf.text(overviewLines, M + 4, y + 11);
+          // Altura dinámica si el texto ocupa más
+          const cardH = Math.max(20, 11 + overviewLines.length * 4.2 + 2);
+          if (cardH > 20) {
+            // redibujar con altura correcta
+            pdf.setFillColor(236, 253, 245);
+            pdf.roundedRect(M, y, CW, cardH, 3, 3, "F");
+            pdf.setDrawColor(26, 155, 125);
+            pdf.line(M, y, M, y + cardH);
+            pdf.setFontSize(8.5);
+            pdf.setFont("helvetica", "bold");
+            pdf.setTextColor(13, 148, 136);
+            pdf.text("RESUMEN", M + 4, y + 5.5);
+            pdf.setFontSize(9.5);
+            pdf.setFont("helvetica", "normal");
+            pdf.setTextColor(15, 76, 52);
+            pdf.text(overviewLines, M + 4, y + 11);
+          }
+          y += cardH + 4;
+        }
+
+        // ── 1. Estado actual (1 oración) ────────────────────────────────
+        sectionTitle("Estado actual");
+        const stateParts: string[] = [];
+        if (activeConditions.length > 0) {
+          const names = activeConditions.slice(0, 3).map((c) => clean(c.normalizedName)).filter(Boolean);
+          stateParts.push(`${activePet.name} está en tratamiento activo por ${names.join(", ")}.`);
+        } else if (medsWithCondition.length > 0) {
+          stateParts.push(`${activePet.name} tiene tratamientos en curso.`);
+        } else {
+          stateParts.push(`${activePet.name} no tiene condiciones activas registradas.`);
+        }
+        if (recentEvents.length > 0) {
+          stateParts.push(`Seguimiento reciente: ${recentEvents.length} eventos en los últimos 60 días.`);
+        }
+        bodyText(stateParts.join(" "));
+
+        // ── 2. Diagnósticos principales ─────────────────────────────────
+        if (activeConditions.length > 0) {
+          sectionTitle("Diagnósticos principales");
+          pdf.setFontSize(9);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(55, 65, 81);
+          for (const c of activeConditions.slice(0, 6)) {
+            const name = clean(c.normalizedName);
+            if (!name) continue;
+            bullet(name);
+          }
+        }
+
+        // ── 3. Medicación actual ────────────────────────────────────────
+        if (medsWithCondition.length > 0) {
+          sectionTitle("Medicación actual");
+          pdf.setFontSize(9);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(55, 65, 81);
+          for (const m of medsWithCondition.slice(0, 10)) {
+            const parts = [m.name];
+            if (m.dosage) parts.push(m.dosage);
+            if (m.frequency) parts.push(m.frequency);
+            const line = parts.join(" · ");
+            const suffix = m.condition ? `  (para ${m.condition})` : "";
+            bullet(line + suffix);
+          }
+        }
+
+        // ── 4. Próximo turno ────────────────────────────────────────────
+        if (futureAppointments.length > 0) {
+          sectionTitle("Próximo turno");
+          pdf.setFontSize(9);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(55, 65, 81);
+          for (const a of futureAppointments.slice(0, 3)) {
+            const title = clean(a.title || "Turno");
+            const vet = cleanProfessional(a.veterinarian);
+            const when = fmtDateTime(a.date, a.time);
+            const parts = [when, title];
+            if (vet) parts.push(vet);
+            bullet(parts.join(" · "));
+          }
+        }
+
+        // ── 5. Resumen clínico reciente (últimos 60 días, narrativa) ────
+        if (recentEvents.length > 0) {
+          sectionTitle("Resumen clínico reciente");
+          pdf.setFontSize(9);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(55, 65, 81);
+
+          // Agrupar por tipo y extraer hallazgos únicos
+          const findingsByType = new Map<string, Set<string>>();
+          for (const ev of recentEvents) {
+            const t = toTypeLabel(ev.extractedData.documentType);
+            const diag = clean(ev.extractedData.diagnosis || "");
+            if (isNoisePlaceholder(diag)) continue;
+            const finding = diag.split(/[(;]/)[0].trim();
+            if (!finding) continue;
+            if (!findingsByType.has(t)) findingsByType.set(t, new Set());
+            findingsByType.get(t)!.add(finding);
+          }
+
+          // Estudios realizados (tipos únicos)
+          const studyTypes = new Set<string>();
+          for (const ev of recentEvents) {
+            const t = ev.extractedData.documentType;
+            if (["xray", "lab_test", "echocardiogram", "electrocardiogram"].includes(t)) {
+              studyTypes.add(toTypeLabel(t));
+            }
+          }
+
+          if (findingsByType.size > 0) {
+            for (const [type, findings] of findingsByType) {
+              const list = Array.from(findings).slice(0, 3).join(", ");
+              bullet(`${type}: ${list}`);
+            }
+          }
+          if (studyTypes.size > 0) {
+            bullet(`Estudios realizados: ${Array.from(studyTypes).join(", ")}`);
+          }
+          const activeMedCount = medsWithCondition.length;
+          if (activeMedCount > 0) {
+            bullet(`Se iniciaron ${activeMedCount} tratamiento${activeMedCount > 1 ? "s" : ""} farmacológico${activeMedCount > 1 ? "s" : ""}`);
+          }
+        }
+
+        // ── 6. Veterinarios tratantes (sin emails) ──────────────────────
+        if (vetList.length > 0) {
+          sectionTitle("Veterinarios tratantes");
+          pdf.setFontSize(9);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(55, 65, 81);
+          for (const vet of vetList.slice(0, 8)) {
+            const parts = [vet.name];
+            if (vet.license) parts.push(`Mat. ${vet.license}`);
+            if (vet.clinic) parts.push(vet.clinic);
+            bullet(parts.join(" · "));
+          }
+        }
+
+        // ── 7. Estudios relevantes (con hallazgos reales) ───────────────
+        if (relevantStudies.length > 0) {
+          sectionTitle("Estudios relevantes");
+          pdf.setFontSize(9);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(55, 65, 81);
+          for (const ev of relevantStudies.slice(0, 6)) {
+            const date = fmt(ev.extractedData.eventDate || ev.createdAt);
+            const type = toTypeLabel(ev.extractedData.documentType);
+            const diag = clean(ev.extractedData.diagnosis || "").split(/[(;]/)[0].trim();
+            bullet(`${date} · ${type}${diag ? ` — ${diag}` : ""}`);
+          }
+        }
+
+        // ── 8. Alertas (si existen) ─────────────────────────────────────
+        if (activeAlerts.length > 0 || pendingManualReviewCount > 0) {
+          sectionTitle("Alertas");
+          pdf.setFontSize(9);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(180, 83, 9);
+          if (pendingManualReviewCount > 0) {
+            bullet(`Hay ${pendingManualReviewCount} documento${pendingManualReviewCount > 1 ? "s" : ""} pendiente${pendingManualReviewCount > 1 ? "s" : ""} de revisión`);
+          }
+          if (activeAlerts.length > 0) {
+            bullet(`${activeAlerts.length} alerta${activeAlerts.length > 1 ? "s" : ""} clínica${activeAlerts.length > 1 ? "s" : ""} activa${activeAlerts.length > 1 ? "s" : ""}`);
+          }
+        }
+
+        // Skip resto de secciones legacy
+        if (false) {
+          sectionTitle("1. Perfil resumido (legacy)");
 
         pdf.setFontSize(8.6);
         pdf.setFont("helvetica", "normal");
@@ -512,7 +836,67 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           }
         }
 
-        sectionTitle("6. Línea de tiempo (resumen)");
+        // ── Profesionales que atendieron ──────────────────────────────────
+        sectionTitle("6. Profesionales que atendieron a " + activePet.name);
+
+        // Extraer y deduplicar vets de todos los eventos médicos
+        const vetMap = new Map<string, { name: string; license: string | null; clinic: string | null; address: string | null; lastDate: string | null; count: number }>();
+        for (const ev of sortedEvents) {
+          const mp = (ev.extractedData as Record<string, unknown>)?.masterPayload as Record<string, unknown> | undefined;
+          const docInfo = mp?.document_info as Record<string, unknown> | undefined;
+          const name = clean((docInfo?.veterinarian_name as string) || "");
+          if (!name) continue;
+          const key = name.toLowerCase().replace(/\s+/g, "_");
+          const license = clean((docInfo?.veterinarian_license as string) || "");
+          const clinic = clean((docInfo?.clinic_name as string) || "");
+          const address = clean((docInfo?.clinic_address as string) || "");
+          const evDate = (ev.extractedData.eventDate as string | null) || ev.createdAt || null;
+          const existing = vetMap.get(key);
+          if (!existing) {
+            vetMap.set(key, { name, license: license || null, clinic: clinic || null, address: address || null, lastDate: evDate, count: 1 });
+          } else {
+            vetMap.set(key, {
+              ...existing,
+              license: existing.license || license || null,
+              clinic: existing.clinic || clinic || null,
+              address: existing.address || address || null,
+              lastDate: evDate && (!existing.lastDate || evDate > existing.lastDate) ? evDate : existing.lastDate,
+              count: existing.count + 1,
+            });
+          }
+        }
+        const vetList = Array.from(vetMap.values()).sort((a, b) => (b.lastDate ?? "").localeCompare(a.lastDate ?? ""));
+
+        if (vetList.length === 0) {
+          pdf.setFontSize(8.5);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(120, 120, 120);
+          pdf.text("No se encontraron profesionales identificados en los documentos.", M, y + 2);
+          y += 8;
+        } else {
+          for (const vet of vetList.slice(0, 10)) {
+            checkY(14);
+            pdf.setFillColor(240, 253, 250);
+            pdf.roundedRect(M, y, CW, 12, 1.8, 1.8, "F");
+            pdf.setFontSize(8.5);
+            pdf.setFont("helvetica", "bold");
+            pdf.setTextColor(7, 71, 56);
+            pdf.text(vet.name, M + 3, y + 5);
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(7.5);
+            pdf.setTextColor(71, 85, 105);
+            const details: string[] = [];
+            if (vet.license) details.push(`Mat. ${vet.license}`);
+            if (vet.clinic) details.push(vet.clinic);
+            if (vet.address) details.push(vet.address);
+            details.push(`${vet.count} doc${vet.count > 1 ? "s" : ""} · último: ${fmt(vet.lastDate)}`);
+            pdf.text(details.join("  ·  ").substring(0, 115), M + 3, y + 9.5);
+            y += 13;
+          }
+        }
+        y += 3;
+
+        sectionTitle("7. Línea de tiempo (resumen)");
         const timelineHeaders = ["Fecha", "Tipo", "Referencia", "Resumen"];
         const timelineWidths = [24, 20, 48, 86];
         checkY(9);
@@ -552,6 +936,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           });
           y += 9;
         }
+        } // cierre if (false) legacy
       }
 
       // ──────────────────────────────────────────────────────────────────────

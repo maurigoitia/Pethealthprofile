@@ -9,6 +9,9 @@ import { doc, getDoc, setDoc, collection, query, where, onSnapshot } from "fireb
 import { db } from "../../../lib/firebase";
 import { useAuth } from "../../contexts/AuthContext";
 import { PetPhoto } from "./PetPhoto";
+import { HomeHeaderV2 } from "./HomeHeaderV2";
+import { HomeGreetingV2 } from "./HomeGreetingV2";
+import { PendienteHoyCard } from "./PendienteHoyCard";
 
 
 const PetPreferencesEditor = lazy(() =>
@@ -709,30 +712,17 @@ export function PetHomeView({
     <div className="bg-[#F0FAF9] dark:bg-[#0D1B16] min-h-screen font-['Manrope',sans-serif]">
       <div id="main-content" role="main" className="max-w-md mx-auto pb-24">
 
-        {/* 1. HERO - Pet photo with name overlay + blob */}
-        <div className="relative h-[220px] overflow-hidden pessy-fade-up">
-          <PetPhoto
-            src={activePet.photo}
-            alt={activePet.name}
-            className="w-full h-full object-cover"
-            fallbackClassName="rounded-none"
+        {/* 1. HEADER V2 + GREETING V2 — compact avatar + morning greeting */}
+        <div className="pessy-fade-up pt-2">
+          <HomeHeaderV2
+            petName={activePet.name}
+            petBreed={activePet.breed}
+            petPhoto={activePet.photo}
+            notificationCount={pendingReviewCount}
+            pointsTotal={gamification.totalPoints}
+            onBellClick={onViewHistory}
           />
-          <div className="absolute bottom-0 left-0 right-0 h-[120px] bg-gradient-to-t from-[rgba(7,71,56,0.92)] via-[rgba(7,71,56,0.4)] to-transparent" />
-          {/* Decorative blob — pessy.app organic feel */}
-          <div className="pessy-blob absolute -top-10 -right-10 w-[120px] h-[120px] bg-[rgba(26,155,125,0.15)]" style={{ animationDelay: '2s' }} />
-          <div className="absolute bottom-3.5 left-4 text-white">
-            <h1
-              className="text-[26px] font-[900] leading-none"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            >
-              {activePet.name}
-            </h1>
-            <p className="text-xs opacity-80 mt-0.5">{activePet.breed}</p>
-          </div>
-          {/* Gamification points badge top-right */}
-          <div className="absolute top-3 right-3 bg-[rgba(7,71,56,0.85)] text-white text-xs font-[800] px-3 py-1.5 rounded-full flex items-center gap-1 backdrop-blur-sm">
-            <MaterialIcon name="star" className="!text-sm" /> {gamification.totalPoints} pts
-          </div>
+          <HomeGreetingV2 userName={userName} petName={activePet.name} />
         </div>
 
         {/* Pet selector for multiple pets */}
@@ -767,6 +757,13 @@ export function PetHomeView({
             />
           </div>
         )}
+
+        {/* 2b. PENDIENTE HOY — card central v2 con meds + turnos del día */}
+        <PendienteHoyCard
+          medications={activeMedications.filter((m) => !activePet.id || m.petId === activePet.id)}
+          appointments={appointments.filter((a) => a.petId === activePet.id)}
+          petName={activePet.name}
+        />
 
         {/* 3. DAILY TASKS — contexto del día, primero para dar orientación inmediata */}
         <SectionTitle>Hoy con {activePet.name}</SectionTitle>
