@@ -3,13 +3,13 @@
 ## App Store (iOS) + Google Play
 
 **Titulo:** pessy
-**Subtitulo:** Salud y bienestar animal
+**Subtitulo:** Tu mascota, todo en orden
 
 ---
 
 ### Descripcion corta (Google Play, max 80 chars)
 
-Organizá la salud de tu mascota en un solo lugar.
+Tu mascota, sus cosas, todo en orden.
 
 ---
 

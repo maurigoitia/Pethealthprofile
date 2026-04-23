@@ -15,7 +15,7 @@
  *   gcloud auth application-default login
  */
 
-import admin from 'firebase-admin';
+import admin from '../functions/node_modules/firebase-admin/lib/index.js';
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 const PROJECT_ID    = 'polar-scene-488615-i0';

@@ -54,9 +54,16 @@ Manual deploy: GitHub Actions UI → `workflow_dispatch`.
 ## Product map
 
 ### Identity
-Pessy is a **personal AI assistant for pet care** — NOT a medical app, NOT a chatbot.
-Core promise: *"Pessy conecta a tu mascota con lo que necesita, sin que tengas que buscar."*
-Pessy never says "go look for it" — Pessy takes you there.
+Pessy organiza la vida cotidiana con mascotas, integrando información, rutinas y servicios en un solo lugar.  
+**Promesa de marca (Plano):** *"Tu mascota, sus cosas, todo en orden."*  
+**Pessy NO es una app médica. NO es una herramienta clínica. NO es un chatbot.**  
+Es simple, útil y cercana. Tono: humano, práctico, ordenado — nunca técnico ni clínico.
+
+**Misión:** Facilitar la vida cotidiana con mascotas ayudando a organizar información, rutinas y cuidados en un solo lugar, de forma simple y accesible.  
+**Visión:** Construir una plataforma que acompañe toda la vida de la mascota, donde su información esté siempre ordenada y disponible.  
+**Valores:** Claridad · Cercanía · Utilidad · Confianza · Proactividad
+
+**Regla de tono para agentes:** nunca usar "clínico", "médico", "historial clínico" en copy de UI. Usar "Historial", "salud", "cuidado".
 
 ### 4 Pillars (bottom nav)
 

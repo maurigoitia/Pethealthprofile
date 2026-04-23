@@ -22,6 +22,7 @@ export default defineConfig({
         description: 'Tu mascota, sus cosas, todo en orden.',
         theme_color: '#074738',
         background_color: '#F0FAF9',
+        start_url: '/inicio',
         display: 'standalone',
         orientation: 'portrait',
         lang: 'es',
@@ -66,7 +67,7 @@ export default defineConfig({
       },
       workbox: {
         cleanupOutdatedCaches: true,
-        clientsClaim: true,
+        clientsClaim: false,
         skipWaiting: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // heic2any (1.35 MB) solo lo necesitan usuarios que suben fotos iPhone en formato HEIC.
@@ -74,9 +75,23 @@ export default defineConfig({
         globIgnores: ['**/vendor-heic*.js'],
         // SPA fallback — serve app.html for all navigation requests
         // so React Router handles client-side routing.
-        // app.html is the SPA entry point; index.html is the landing page.
+        // index.html is the React SPA entry point (Vite default output).
         navigateFallback: '/app.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/offline\.html$/, /^\/blog/, /^\/team\//],
+        // Rutas excluidas del SW navigate-fallback:
+        // - /api/*          → backend, nunca interceptar
+        // - /offline.html   → página especial, sin SW
+        // - / (raíz exacta) → landing page marketing, siempre fresca desde la red
+        // - /empezar        → TikTok landing, idem — Google y usuarios ven siempre la última versión
+        // - /privacidad, /terminos, /legal → páginas legales, siempre desde la red
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /^\/offline\.html$/,
+          // /^\/$/ — removido: start_url del PWA es / y el SW debe manejarlo
+          /^\/empezar/,
+          /^\/privacidad/,
+          /^\/terminos/,
+          /^\/legal/,
+        ],
         runtimeCaching: [
           {
             urlPattern: /vendor-heic.*\.js$/i,

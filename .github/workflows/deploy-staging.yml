@@ -4,6 +4,9 @@ on:
     branches: [develop]
   workflow_dispatch:  # Allow manual trigger from GitHub UI + CLI
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   deploy-staging:
     runs-on: ubuntu-latest
