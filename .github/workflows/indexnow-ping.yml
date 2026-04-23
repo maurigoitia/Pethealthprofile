@@ -1,0 +1,78 @@
+name: IndexNow — notify Bing/Yandex of content changes
+
+# Security note: this workflow does NOT use untrusted input from github.event.*
+# (no PR titles/bodies, no commit messages interpolated in run: steps).
+# All external data comes from hardcoded paths or env vars we control.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/website/**'
+      - 'apps/blog/**'
+      - 'public/sitemap.xml'
+      - 'public/robots.txt'
+  workflow_dispatch:
+
+jobs:
+  ping-indexnow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed URLs and ping IndexNow
+        shell: bash
+        env:
+          INDEXNOW_KEY: d011ce80553b64c87db35f6f236b92643ce3fb5cb6a486bbe7bb1bab95932bc5
+        run: |
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          URLS=()
+          if echo "$CHANGED_FILES" | grep -q "apps/website/index.html"; then
+            URLS+=("https://pessy.app/")
+          fi
+          if echo "$CHANGED_FILES" | grep -q "public/sitemap.xml"; then
+            URLS+=("https://pessy.app/sitemap.xml")
+          fi
+
+          while IFS= read -r file; do
+            case "$file" in
+              apps/blog/articles/carnet-digital.html)       URLS+=("https://pessy.app/blog/carnet-digital") ;;
+              apps/blog/articles/tu-mascota-todo-en-orden.html) URLS+=("https://pessy.app/blog/tu-mascota-todo-en-orden") ;;
+              apps/blog/articles/vacunas-perros-argentina.html) URLS+=("https://pessy.app/blog/vacunas-perros-argentina") ;;
+              apps/blog/articles/alimentos-prohibidos-gatos/*)  URLS+=("https://pessy.app/blog/alimentos-prohibidos-gatos") ;;
+              apps/blog/articles/alimentos-prohibidos-perros/*) URLS+=("https://pessy.app/blog/alimentos-prohibidos-perros") ;;
+              apps/blog/articles/cada-cuanto-banar-perro/*)     URLS+=("https://pessy.app/blog/cada-cuanto-banar-perro") ;;
+              apps/blog/articles/frecuencia-bano/*)             URLS+=("https://pessy.app/blog/frecuencia-bano") ;;
+              apps/blog/articles/frutas-para-perros/*)          URLS+=("https://pessy.app/blog/frutas-para-perros") ;;
+            esac
+          done <<< "$CHANGED_FILES"
+
+          if [ ${#URLS[@]} -eq 0 ]; then
+            echo "No relevant URLs changed. Skipping IndexNow ping."
+            exit 0
+          fi
+
+          UNIQUE_URLS=$(printf "%s\n" "${URLS[@]}" | sort -u)
+          echo "URLs to ping:"
+          echo "$UNIQUE_URLS"
+
+          JSON_URLS=$(printf "%s\n" $UNIQUE_URLS | jq -R . | jq -s .)
+          PAYLOAD=$(jq -n \
+            --arg host "pessy.app" \
+            --arg key "$INDEXNOW_KEY" \
+            --arg keyLocation "https://pessy.app/${INDEXNOW_KEY}.txt" \
+            --argjson urls "$JSON_URLS" \
+            '{host: $host, key: $key, keyLocation: $keyLocation, urlList: $urls}')
+
+          echo "IndexNow payload:"
+          echo "$PAYLOAD"
+
+          curl -sS -X POST "https://api.indexnow.org/indexnow" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            -d "$PAYLOAD" \
+            -w "\nHTTP %{http_code}\n" || echo "IndexNow ping failed (non-fatal)"
