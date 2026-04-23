@@ -19,6 +19,7 @@ import {
   Measurement,
 } from "../types/medical";
 import { toDateKeySafe, toTimestampSafe } from "../utils/dateUtils";
+import { sanitizeLegacyExtracted } from "../utils/masterPayloadSanitizer";
 import { httpsCallable } from "firebase/functions";
 import { functions as firebaseFunctions } from "../../lib/firebase";
 
@@ -1952,17 +1953,18 @@ const safeParseExtractedData = (rawText: string): ExtractedData | null => {
   try {
     const parsed = JSON.parse(candidate);
     const record = asObject(parsed);
+    // Sanitize ANTES de guardar: no emails como vet, no placeholders, no encoding roto
     if (isAppointmentEventPayload(record)) {
       const masterPayload = toMasterPayload(record);
       const mapped = mapMasterPayloadToLegacy(masterPayload);
-      return sanitizeExtractedData(mapped, rawText);
+      return sanitizeLegacyExtracted(sanitizeExtractedData(mapped, rawText));
     }
     if (isMasterProtocolPayload(record)) {
       const masterPayload = toMasterPayload(record);
       const mapped = mapMasterPayloadToLegacy(masterPayload);
-      return sanitizeExtractedData(mapped, rawText);
+      return sanitizeLegacyExtracted(sanitizeExtractedData(mapped, rawText));
     }
-    return sanitizeExtractedData(record, rawText);
+    return sanitizeLegacyExtracted(sanitizeExtractedData(record, rawText));
   } catch {
     return null;
   }
