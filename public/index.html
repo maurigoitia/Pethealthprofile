@@ -99,6 +99,7 @@ a[href]:active,button:active{transform:scale(.97) translateY(1px)}
 .iphone::before{content:'';position:absolute;inset:-1px;border-radius:2.9rem;background:linear-gradient(155deg,rgba(255,255,255,.12),transparent 35%,transparent 65%,rgba(255,255,255,.04));pointer-events:none;z-index:5}
 .iphone-screen{border-radius:2.6rem;overflow:hidden;position:relative;aspect-ratio:393/852;background:linear-gradient(160deg,#052e22,#074738)}
 .iphone-screen>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.55) saturate(1.1) blur(.3px)}
+.iphone-decor{position:absolute;inset:0;background:radial-gradient(circle at 50% 20%,rgba(26,155,125,.25),transparent 60%),radial-gradient(circle at 80% 90%,rgba(80,72,202,.15),transparent 55%);pointer-events:none}
 .dynamic-island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:80px;height:24px;background:#000;border-radius:100px;z-index:80;display:flex;align-items:center;justify-content:flex-end;padding-right:8px}
 .di-cam{width:6px;height:6px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#2a2a4a,#0d0d1a);border:1.5px solid #111}
 .status-bar{position:absolute;top:0;left:0;right:0;z-index:70;display:flex;justify-content:space-between;align-items:center;padding:12px 20px 0;font-size:10px;font-weight:600;color:white}
@@ -212,7 +213,7 @@ a[href]:active,button:active{transform:scale(.97) translateY(1px)}
       <div class="iphone">
         <div class="ib ib-r"></div><div class="ib ib-l1"></div><div class="ib ib-l2"></div><div class="ib ib-l3"></div>
         <div class="iphone-screen">
-          <img src="https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=800" alt="Golden retriever feliz">
+          <div class="iphone-decor" aria-hidden="true"></div>
           <div class="dynamic-island"><div class="di-cam"></div></div>
           <div class="status-bar"><span style="font-size:11px;font-weight:600">9:41</span><div class="flex items-center gap-1"><svg viewBox="0 0 17 12" fill="white" width="16"><rect x="0" y="4" width="3" height="8" rx="1" opacity=".3"/><rect x="4.5" y="2.5" width="3" height="9.5" rx="1" opacity=".3"/><rect x="9" y="1" width="3" height="11" rx="1" opacity=".6"/><rect x="13.5" y="0" width="3" height="12" rx="1"/></svg><svg viewBox="0 0 27 13" fill="white" width="24"><rect x="0" y="1" width="22" height="11" rx="2" stroke="white" stroke-width="1" fill="none" opacity=".35"/><rect x="23.5" y="4.5" width="2" height="4" rx="1" opacity=".4"/><rect x="2" y="3" width="14" height="7" rx="1" fill="white"/></svg></div></div>
           <div class="lock-date" id="lsD"></div>
@@ -286,8 +287,8 @@ a[href]:active,button:active{transform:scale(.97) translateY(1px)}
         </div>
       </div>
       <div class="relative identidad-img">
-        <div class="rounded-[2rem] overflow-hidden aspect-[4/5] shadow-2xl shadow-dk/10 relative" style="background:linear-gradient(145deg,#d4ede8,#b5dcd0)">
-          <img src="https://images.unsplash.com/photo-1588943211346-0908a1fb0b01?w=800&q=85&auto=format&fit=crop" alt="Golden Retriever" class="w-full h-full object-cover" loading="lazy">
+        <div class="rounded-[2rem] overflow-hidden aspect-[4/5] shadow-2xl shadow-dk/10 relative flex items-center justify-center" style="background:linear-gradient(145deg,#d4ede8,#b5dcd0)">
+          <img src="/illustrations/dark_top_surprised_cork_head.svg" alt="Pessy mascota" class="w-[70%] h-auto" loading="lazy">
           <div class="absolute inset-0 bg-gradient-to-t from-dk/10 via-transparent to-transparent"></div>
         </div>
         <div class="blob -top-6 -right-6 w-24 h-24 bg-green2 opacity-[.06]"></div>
@@ -1000,31 +1001,11 @@ setTimeout(function() {
 function uc(){const n=new Date();document.getElementById('lsT').textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');let d=n.toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});document.getElementById('lsD').textContent=d.charAt(0).toUpperCase()+d.slice(1)}
 uc();setInterval(uc,1000);
 
-// === Region-based iPhone photo ===
-(function(){
-  const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'';const lang=(navigator.language||'').toLowerCase();
-  // Region → popular breed photo mapping (vivid Unsplash photos)
-  const regionPhotos={
-    latam:'photo-1587300003388-59208cc962cb',   // Golden Retriever (popular across LatAm)
-    mexico:'photo-1558788353-f76d92f33ddc',     // Chihuahua mix
-    brazil:'photo-1534361960057-19889db9621e',   // Labrador
-    europe:'photo-1552053831-71594a27632d',      // French Bulldog
-    usa:'photo-1587300003388-59208cc962cb',      // Golden Retriever
-    asia:'photo-1583337130417-13571f613b38',     // Shiba Inu
-    default:'photo-1587300003388-59208cc962cb'   // Golden Retriever
-  };
-  let region='default';
-  if(tz.includes('Buenos_Aires')||tz.includes('Argentina')||lang.startsWith('es-ar'))region='latam';
-  else if(tz.includes('Mexico')||lang.startsWith('es-mx'))region='mexico';
-  else if(tz.includes('Sao_Paulo')||tz.includes('Brazil')||lang.startsWith('pt-br'))region='brazil';
-  else if(tz.includes('Europe')||lang.startsWith('fr')||lang.startsWith('de')||lang.startsWith('it'))region='europe';
-  else if(tz.includes('America/New_York')||tz.includes('America/Chicago')||tz.includes('America/Los_Angeles')||lang.startsWith('en-us'))region='usa';
-  else if(tz.includes('Asia/Tokyo')||tz.includes('Asia/Seoul')||lang.startsWith('ja')||lang.startsWith('ko'))region='asia';
-  else if(tz.includes('America/')&&(lang.startsWith('es')))region='latam';
-  const photoId=regionPhotos[region]||regionPhotos.default;
-  const img=document.querySelector('.iphone-screen > img');
-  if(img)img.src='https://images.unsplash.com/'+photoId+'?auto=format&fit=crop&q=80&w=800';
-})();
+// === Region-based iPhone photo (REMOVED) ===
+// Antes se cargaban fotos de Unsplash rotatorias según timezone. Se eliminó
+// porque generaba SPOF (imagen externa no cargaba en algunas conexiones móviles)
+// y dejaba el mockup vacío con icono de imagen rota. El gradiente + notificación
+// son suficientes visualmente y evitan dependencia de terceros.
 
 // === Notifications ===
 const ns=[{t:"Thor va al 50% del dia",b:"Ya hizo el paseo. Falta una compra y un cuidado."},{t:"A Thor se le acaba algo",b:"Las bolsas vienen justas para esta semana."},{t:"Se viene algo de Thor",b:"Hay una visita agendada para el jueves."}];
