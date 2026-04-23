@@ -129,7 +129,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
             className="text-xl font-bold text-[#074738]"
             style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
-            Sin mascota activa
+            Seleccioná una mascota para continuar
           </h2>
           <p className="text-sm text-slate-500">
             Registrá tu mascota para ver su identidad digital.

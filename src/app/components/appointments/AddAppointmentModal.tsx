@@ -46,7 +46,7 @@ export function AddAppointmentModal({ isOpen, onClose, initialValues, sourceEven
         e.preventDefault();
         setSubmitError("");
         if (!activePet) {
-            setSubmitError("No hay mascota activa seleccionada.");
+            setSubmitError("Seleccioná una mascota primero.");
             return;
         }
         if (!user?.uid) {

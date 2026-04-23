@@ -123,7 +123,7 @@ export function HealthReportModal({ isOpen, onClose }: HealthReportModalProps) {
             <main className="max-w-4xl mx-auto p-4 md:p-6 space-y-4 pb-24">
               {!activePet || !reportData ? (
                 <div className="bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 p-6 text-center">
-                  <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">Sin mascota activa</h3>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white mb-2">Seleccioná una mascota para continuar</h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400">Selecciona una mascota para ver el reporte.</p>
                 </div>
               ) : (
