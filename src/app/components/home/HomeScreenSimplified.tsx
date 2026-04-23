@@ -34,21 +34,23 @@ function ScreenLoader({ label = "Cargando..." }: { label?: string }) {
 export default function HomeScreenSimplified() {
   const navigate = useNavigate();
   const { activePetId, setActivePetId, activePet, pets } = usePet();
-  const { userName, user } = useAuth();
+  const auth = useAuth();
   const { currentQuestion, answerQuestion, dismissQuestion } = usePreferences();
   const { openPetSelector, openPetProfile, openScanner, openExportReport, openSidebar } =
     useAppLayout();
   const focusExperienceEnabled = isFocusExperienceHost();
 
-  const safeUserName = (() => {
-    const fromContext = (userName || "").trim();
-    if (fromContext) return fromContext;
-    const fromDisplayName = (user?.displayName || "").trim().split(/\s+/)[0];
-    if (fromDisplayName) return fromDisplayName;
-    const fromEmail = (user?.email?.split("@")[0] || "").trim();
-    if (fromEmail) return fromEmail;
-    return "Tutor";
-  })();
+  // safeUserName: resolución explícita, sin IIFE (el minifier de Safari
+  // interpretaba mal el closure del IIFE → 'Can't find variable: userName')
+  const ctxName = typeof auth?.userName === "string" ? auth.userName.trim() : "";
+  const displayName = typeof auth?.user?.displayName === "string"
+    ? auth.user.displayName.trim().split(/\s+/)[0]
+    : "";
+  const emailName = typeof auth?.user?.email === "string"
+    ? auth.user.email.split("@")[0].trim()
+    : "";
+  const safeUserName = ctxName || displayName || emailName || "Tutor";
+  const user = auth?.user;
 
   // Guard: if no activePet, this shouldn't render (AppLayout handles it)
   if (!activePet) return null;
