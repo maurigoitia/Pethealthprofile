@@ -47,7 +47,7 @@ jobs:
         run: |
           set +e
           npx firebase-tools hosting:channel:deploy develop \
-            --only hosting:app \
+            --only app \
             --expires 30d \
             --project polar-scene-488615-i0 2>&1 | tee /tmp/firebase_deploy.log
           FIREBASE_EXIT=${PIPESTATUS[0]}
