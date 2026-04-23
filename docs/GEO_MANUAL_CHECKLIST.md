@@ -4,14 +4,12 @@
 
 ---
 
-## 🚨 ACCIÓN URGENTE (si no se hace, el Schema miente)
+## ✅ HECHO — Perfiles verificados en el Schema
 
-Nuestro Organization Schema declara estos `sameAs`. Si alguna URL devuelve 404, los crawlers lo detectan y bajan la confianza de la entidad.
-
-- [ ] **Instagram** → `https://www.instagram.com/pessy.app` — crear perfil o cambiar URL en schema
-- [ ] **LinkedIn Company** → `https://www.linkedin.com/company/pessy-app`
-- [ ] **X/Twitter** → `https://x.com/pessy_app`
-- [ ] **Product Hunt** → `https://www.producthunt.com/products/pessy`
+- [x] **Instagram** → `https://www.instagram.com/pessy_app`
+- [x] **LinkedIn Company** → `https://www.linkedin.com/company/pessy-app`
+- [x] **TikTok** → `https://www.tiktok.com/@pessy.app`
+- [x] **Crunchbase** → `https://www.crunchbase.com/organization/pessy`
 
 **Regla:** mismo nombre ("Pessy"), misma descripción ("App con IA que organiza rutinas, cuidados, papeles y compras de tu mascota"), mismo logo (`pessy-logo.svg`), mismo URL (`pessy.app`) en TODOS.
 
@@ -21,10 +19,10 @@ Nuestro Organization Schema declara estos `sameAs`. Si alguna URL devuelve 404, 
 
 ### Semana 1 — Identidad básica (2h)
 
-- [ ] **Crear 4 perfiles sociales** (Instagram, LinkedIn Company, X, Product Hunt) con handle `@pessy.app` o `@pessy_app`
-- [ ] **Primera publicación en cada uno**: pinear el mismo post "¿Qué es Pessy?" con link a pessy.app
+- [x] **Perfiles sociales creados** (IG, LinkedIn, TikTok, Crunchbase)
+- [ ] **Primera publicación en cada uno**: pinear el mismo post "¿Qué es Pessy?" con link a pessy.app — usar el mismo copy en los 4
 - [ ] **Verificar DNS de pessy.app** (chequear que `mxtoolbox.com` no tire warnings)
-- [ ] **Registrar en Google Search Console** (si no está): `https://search.google.com/search-console` → agregar pessy.app → submit sitemap
+- [ ] **Registrar en Google Search Console**: `https://search.google.com/search-console` → agregar pessy.app → submit sitemap https://pessy.app/sitemap.xml
 
 ### Semana 2 — Google Business + directorios (3h)
 
