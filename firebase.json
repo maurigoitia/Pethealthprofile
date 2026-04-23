@@ -487,6 +487,26 @@
           "destination": "/blog/como-saber-si-tu-perro-esta-enfermo.html"
         },
         {
+          "source": "/vs",
+          "destination": "/vs/index.html"
+        },
+        {
+          "source": "/vs/",
+          "destination": "/vs/index.html"
+        },
+        {
+          "source": "/vs/11pets",
+          "destination": "/vs/11pets.html"
+        },
+        {
+          "source": "/vs/pet-cloud",
+          "destination": "/vs/pet-cloud.html"
+        },
+        {
+          "source": "/vs/petbuddy",
+          "destination": "/vs/petbuddy.html"
+        },
+        {
           "source": "**",
           "destination": "/app.html"
         }
