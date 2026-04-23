@@ -43,17 +43,20 @@ jobs:
       # de producción. Channels duran hasta 30 días y no afectan a pessy.app.
       - name: Deploy to Firebase Preview Channel (develop)
         id: deploy
+        shell: bash
         run: |
-          CHANNEL="develop"
-          OUTPUT=$(npx firebase-tools hosting:channel:deploy "$CHANNEL" \
+          set +e
+          npx firebase-tools hosting:channel:deploy develop \
             --only hosting:app \
             --expires 30d \
-            --project polar-scene-488615-i0 2>&1)
-          echo "$OUTPUT"
-          URL=$(echo "$OUTPUT" | grep -oE 'https://[^[:space:]]+\.web\.app' | head -1)
-          echo "preview_url=$URL" >> "$GITHUB_OUTPUT"
+            --project polar-scene-488615-i0 2>&1 | tee /tmp/firebase_deploy.log
+          FIREBASE_EXIT=${PIPESTATUS[0]}
           echo ""
           echo "============================================="
+          echo "Firebase exit code: $FIREBASE_EXIT"
+          URL=$(grep -oE 'https://[^[:space:]]+\.web\.app' /tmp/firebase_deploy.log | head -1 || true)
+          echo "preview_url=$URL" >> "$GITHUB_OUTPUT"
           echo "🌐 QA URL: $URL"
           echo "📦 Commit: ${GITHUB_SHA:0:7}"
           echo "============================================="
+          exit $FIREBASE_EXIT
