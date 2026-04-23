@@ -38,5 +38,22 @@ jobs:
         env:
           VITE_ENV: staging
 
-      - name: Deploy to Firebase Staging (appqa)
-        run: npx firebase-tools deploy --only hosting:appqa --project polar-scene-488615-i0
+      # El site 'pessy-qa-app' no existe o el SA no tiene permisos para escribirlo.
+      # Usamos Preview Channel sobre el site 'app' (prod site) → URL temporal aislada
+      # de producción. Channels duran hasta 30 días y no afectan a pessy.app.
+      - name: Deploy to Firebase Preview Channel (develop)
+        id: deploy
+        run: |
+          CHANNEL="develop"
+          OUTPUT=$(npx firebase-tools hosting:channel:deploy "$CHANNEL" \
+            --only hosting:app \
+            --expires 30d \
+            --project polar-scene-488615-i0 2>&1)
+          echo "$OUTPUT"
+          URL=$(echo "$OUTPUT" | grep -oE 'https://[^[:space:]]+\.web\.app' | head -1)
+          echo "preview_url=$URL" >> "$GITHUB_OUTPUT"
+          echo ""
+          echo "============================================="
+          echo "🌐 QA URL: $URL"
+          echo "📦 Commit: ${GITHUB_SHA:0:7}"
+          echo "============================================="
