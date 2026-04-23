@@ -12,6 +12,7 @@ import { PetPhoto } from "./PetPhoto";
 import { HomeHeaderV2 } from "./HomeHeaderV2";
 import { HomeGreetingV2 } from "./HomeGreetingV2";
 import { PendienteHoyCard } from "./PendienteHoyCard";
+import { SafeBoundary } from "../shared/SafeBoundary";
 
 
 const PetPreferencesEditor = lazy(() =>
@@ -716,15 +717,19 @@ export function PetHomeView({
 
         {/* 1. HEADER V2 + GREETING V2 — compact avatar + morning greeting */}
         <div className="pessy-fade-up pt-2">
-          <HomeHeaderV2
-            petName={activePet.name}
-            petBreed={activePet.breed}
-            petPhoto={activePet.photo}
-            notificationCount={pendingReviewCount}
-            pointsTotal={gamification.totalPoints}
-            onBellClick={onViewHistory}
-          />
-          <HomeGreetingV2 userName={userName} petName={activePet.name} />
+          <SafeBoundary name="HomeHeaderV2">
+            <HomeHeaderV2
+              petName={activePet.name}
+              petBreed={activePet.breed}
+              petPhoto={activePet.photo}
+              notificationCount={pendingReviewCount}
+              pointsTotal={gamification.totalPoints}
+              onBellClick={onViewHistory}
+            />
+          </SafeBoundary>
+          <SafeBoundary name="HomeGreetingV2">
+            <HomeGreetingV2 userName={userName} petName={activePet.name} />
+          </SafeBoundary>
         </div>
 
         {/* Pet selector for multiple pets */}
@@ -761,11 +766,13 @@ export function PetHomeView({
         )}
 
         {/* 2b. PENDIENTE HOY — card central v2 con meds + turnos del día */}
-        <PendienteHoyCard
-          medications={activeMedications.filter((m) => !activePet.id || m.petId === activePet.id)}
-          appointments={appointments.filter((a) => a.petId === activePet.id)}
-          petName={activePet.name}
-        />
+        <SafeBoundary name="PendienteHoyCard">
+          <PendienteHoyCard
+            medications={activeMedications.filter((m) => !activePet.id || m.petId === activePet.id)}
+            appointments={appointments.filter((a) => a.petId === activePet.id)}
+            petName={activePet.name}
+          />
+        </SafeBoundary>
 
         {/* 3. DAILY TASKS — contexto del día, primero para dar orientación inmediata */}
         <SectionTitle>Hoy con {activePet.name}</SectionTitle>

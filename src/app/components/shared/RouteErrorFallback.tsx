@@ -33,10 +33,10 @@ export function RouteErrorFallback() {
       ? "La pantalla no existe o fue movida."
       : "Ocurrió un error inesperado en esta pantalla.";
 
-  // Mostrar detalles del error si URL tiene ?debug=1 (para diagnóstico en prod)
-  const showDebug = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("debug") === "1";
-  const errorDetails = showDebug && error
-    ? (error instanceof Error ? `${error.message}\n\n${error.stack || ""}` : String(error))
+  // Mostrar detalles del error SIEMPRE en pantalla (antes era ?debug=1).
+  // Mientras debuggeamos el crash de /inicio en mobile, visibilidad > estética.
+  const errorDetails = error
+    ? (error instanceof Error ? `${error.message}\n${(error.stack || "").slice(0, 500)}` : String(error).slice(0, 500))
     : null;
 
   return (
