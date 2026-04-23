@@ -914,6 +914,17 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
   const [showAll, setShowAll] = useState(false);
   const [activeFilter, setActiveFilter] = useState<TimelineFilter>("all");
   const [hideEmailNoise, setHideEmailNoise] = useState(true);
+  // Por default solo el año actual está expandido; el resto colapsado
+  const currentYear = String(new Date().getFullYear());
+  const [expandedYears, setExpandedYears] = useState<Set<string>>(() => new Set([currentYear]));
+  const toggleYear = (year: string) => {
+    setExpandedYears((prev) => {
+      const next = new Set(prev);
+      if (next.has(year)) next.delete(year);
+      else next.add(year);
+      return next;
+    });
+  };
   const [showEditModal, setShowEditModal] = useState(false);
   const [eventToEdit, setEventToEdit] = useState<MedicalEvent | null>(null);
   const [eventToDelete, setEventToDelete] = useState<MedicalEvent | null>(null);
@@ -1195,14 +1206,28 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
         </div>
       ) : (
         <div className="space-y-8">
-          {groupedByYear.map(([year, events], groupIndex) => (
+          {groupedByYear.map(([year, events], groupIndex) => {
+            const isExpanded = expandedYears.has(year);
+            const eventsCount = events.length;
+            return (
             <div key={year} className="space-y-4">
-              <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => toggleYear(year)}
+                className="w-full flex items-center gap-3 py-1 hover:opacity-80 transition-opacity"
+                aria-expanded={isExpanded}
+                aria-label={`${isExpanded ? "Contraer" : "Expandir"} año ${year}`}>
                 <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
-                <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400">{year}</p>
+                <span className="flex items-center gap-2">
+                  <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400">{year}</p>
+                  <span className="text-[9px] font-bold text-slate-400">
+                    {eventsCount} · {isExpanded ? "▾" : "▸"}
+                  </span>
+                </span>
                 <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
-              </div>
+              </button>
 
+              {!isExpanded ? null : (
               <div className="space-y-3">
                 {historicalEpisodesEnabled && annualSummaryByYear.has(year) && (
                   <div className="rounded-[24px] border border-[#074738]/15 bg-[#1A9B7D]/5 p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
@@ -1704,8 +1729,10 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                   );
                 })}
               </div>
+              )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
