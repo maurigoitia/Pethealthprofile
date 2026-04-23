@@ -38,7 +38,7 @@
 </script>
 <!-- Structured Data: FAQPage (rich snippets in Google) -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Pessy es gratis?","acceptedAnswer":{"@type":"Answer","text":"Si. El plan Base es gratis para siempre. Incluye una mascota, perfil digital, documentos y carnet digital."}},{"@type":"Question","name":"¿Funciona para perros y gatos?","acceptedAnswer":{"@type":"Answer","text":"Si. Pessy funciona para perros y gatos, cada uno con sus necesidades especificas."}},{"@type":"Question","name":"¿Mis datos estan seguros?","acceptedAnswer":{"@type":"Answer","text":"Si. Usamos encriptacion, no vendemos datos y podes eliminar tu cuenta cuando quieras."}},{"@type":"Question","name":"¿Puedo usarlo con mas de una mascota?","acceptedAnswer":{"@type":"Answer","text":"Si. Con el plan Familiar podes tener hasta 4 mascotas con todo incluido."}},{"@type":"Question","name":"¿Es una app o una web?","acceptedAnswer":{"@type":"Answer","text":"Pessy es una web app progresiva. La podes instalar como app desde el navegador sin pasar por tiendas."}}]}
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Pessy es gratis?","acceptedAnswer":{"@type":"Answer","text":"Si. El acceso es gratuito durante la beta. Incluye perfil digital, documentos, rutinas y carnet digital."}},{"@type":"Question","name":"¿Funciona para perros y gatos?","acceptedAnswer":{"@type":"Answer","text":"Si. Pessy funciona para perros y gatos, cada uno con sus necesidades especificas."}},{"@type":"Question","name":"¿Mis datos estan seguros?","acceptedAnswer":{"@type":"Answer","text":"Si. Usamos encriptacion, no vendemos datos y podes eliminar tu cuenta cuando quieras."}},{"@type":"Question","name":"¿Puedo usarlo con mas de una mascota?","acceptedAnswer":{"@type":"Answer","text":"Si. Con el plan Familiar podes tener hasta 4 mascotas con todo incluido."}},{"@type":"Question","name":"¿Es una app o una web?","acceptedAnswer":{"@type":"Answer","text":"Pessy es una web app progresiva. La podes instalar como app desde el navegador sin pasar por tiendas."}}]}
 </script>
 <!-- Structured Data: Organization -->
 <script type="application/ld+json">
@@ -60,8 +60,29 @@ h1,h2,h3,h4,h5{font-family:'Plus Jakarta Sans',sans-serif}
 html{scroll-behavior:smooth}
 ::selection{background:#1A9B7D;color:white}
 
-/* Grain overlay */
-body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.012;mix-blend-mode:multiply;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+/* Grain overlay — Plano "Functional Warm Tech" organic texture (opacity 0.018 per design system) */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.018;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' seed='2'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E")}
+
+/* ── Plano motion primitives ───────────────────────────────────────── */
+@keyframes pessy-fade-up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pessy-pulse-glow{0%,100%{box-shadow:0 4px 12px rgba(26,155,125,.30)}50%{box-shadow:0 4px 22px rgba(26,155,125,.55)}}
+@keyframes pessy-scale-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+
+.fade-up{animation:pessy-fade-up 500ms cubic-bezier(.16,1,.3,1) both}
+.fade-up-0{animation-delay:0ms}.fade-up-1{animation-delay:70ms}.fade-up-2{animation-delay:140ms}
+.fade-up-3{animation-delay:210ms}.fade-up-4{animation-delay:280ms}.fade-up-5{animation-delay:350ms}
+.cta-glow{animation:pessy-pulse-glow 2.5s ease-in-out infinite}
+.scale-in{animation:pessy-scale-in 500ms cubic-bezier(.16,1,.3,1) both}
+
+/* Scroll-triggered reveals — applied by IntersectionObserver */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity 500ms cubic-bezier(.16,1,.3,1),transform 500ms cubic-bezier(.16,1,.3,1)}
+.reveal.in{opacity:1;transform:translateY(0)}
+.reveal-d1{transition-delay:70ms}.reveal-d2{transition-delay:140ms}.reveal-d3{transition-delay:210ms}
+.reveal-d4{transition-delay:280ms}.reveal-d5{transition-delay:350ms}
+
+/* Button press: scale + micro drop (Plano Branding spec) */
+a[href],button{transition:transform 180ms cubic-bezier(.16,1,.3,1),box-shadow 180ms ease,background-color 180ms ease,border-color 180ms ease}
+a[href]:active,button:active{transform:scale(.97) translateY(1px)}
 
 /* Section labels */
 .sl{font-size:.625rem;font-weight:800;letter-spacing:.3em;text-transform:uppercase;color:#1A9B7D;margin-bottom:.75rem;display:block}
@@ -137,16 +158,16 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
     <li><a href="#equipo" class="text-[11px] font-bold text-tx3 hover:text-dk transition tracking-wide uppercase">Equipo</a></li>
   </ul>
   <a href="/inicio?src=landing" class="hidden md:inline-flex bg-dk text-white px-5 py-2.5 rounded-full text-[11px] font-extrabold tracking-wide hover:bg-[#063d30] transition shadow-lg shadow-dk/10">Entrar</a>
-  <button class="md:hidden text-dk" onclick="document.getElementById('mm').classList.add('open')" aria-label="Abrir menu"><span class="ms text-2xl">menu</span></button>
+  <button class="md:hidden text-dk" id="mmOpen" aria-label="Abrir menu"><span class="ms text-2xl">menu</span></button>
 </div>
 </nav>
 <div class="mm" id="mm">
-  <button class="absolute top-5 right-6 text-dk" onclick="this.parentElement.classList.remove('open')" aria-label="Cerrar menu"><span class="ms text-2xl">close</span></button>
-  <a href="#identidad" class="text-lg font-extrabold text-dk" onclick="this.parentElement.classList.remove('open')">Identidad</a>
-  <a href="#comofunciona" class="text-lg font-extrabold text-dk" onclick="this.parentElement.classList.remove('open')">Como funciona</a>
-  <a href="#planes" class="text-lg font-extrabold text-dk" onclick="this.parentElement.classList.remove('open')">Planes</a>
-  <a href="#equipo" class="text-lg font-extrabold text-dk" onclick="this.parentElement.classList.remove('open')">Equipo</a>
-  <a href="/inicio?src=landing" class="bg-dk text-white px-8 py-3 rounded-full font-extrabold mt-4" onclick="this.parentElement.classList.remove('open')">Entrar</a>
+  <button class="absolute top-5 right-6 text-dk" id="mmClose" aria-label="Cerrar menu"><span class="ms text-2xl">close</span></button>
+  <a href="#identidad" class="text-lg font-extrabold text-dk mm-link">Identidad</a>
+  <a href="#comofunciona" class="text-lg font-extrabold text-dk mm-link">Como funciona</a>
+  <a href="#planes" class="text-lg font-extrabold text-dk mm-link">Planes</a>
+  <a href="#equipo" class="text-lg font-extrabold text-dk mm-link">Equipo</a>
+  <a href="/inicio?src=landing" class="bg-dk text-white px-8 py-3 rounded-full font-extrabold mt-4 mm-link">Entrar</a>
 </div>
 
 <main>
@@ -168,15 +189,15 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
       </h1>
       <p class="sb mb-7 max-w-[440px] text-lg">Pessy es la app con IA que centraliza todo lo de tu mascota en un solo lugar — rutinas, cuidados, compras, papeles y mas. Te dice que ya esta, que falta y que se viene.</p>
       <div class="flex gap-3.5 flex-wrap mb-7">
-        <a href="/register-user?src=landing" class="bg-dk text-white px-7 py-3.5 rounded-full text-sm font-extrabold inline-flex items-center gap-2.5 shadow-xl shadow-dk/15 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-dk/20 transition-all duration-300">
+        <a href="/register-user?src=landing" class="cta-glow bg-dk text-white px-7 py-3.5 rounded-full text-sm font-extrabold inline-flex items-center gap-2.5 shadow-xl shadow-dk/15 hover:-translate-y-0.5 hover:bg-green2 transition-all duration-300">
           Probar ahora <span class="ms text-base">arrow_forward</span>
         </a>
-        <a href="#comofunciona" class="bg-white text-dk px-7 py-3.5 rounded-full text-sm font-extrabold inline-flex items-center gap-2 border border-border2 hover:border-dk/20 hover:shadow-lg transition-all duration-300">
+        <a href="#comofunciona" class="bg-white text-dk px-7 py-3.5 rounded-full text-sm font-extrabold inline-flex items-center gap-2 border border-dk/15 shadow-sm hover:border-dk/30 hover:shadow-md transition-all duration-300">
           <span class="ms text-base">play_circle</span> Ver producto
         </a>
       </div>
       <div class="flex gap-5 flex-wrap">
-        <span class="flex items-center gap-2 text-[12px] font-semibold text-tx3"><span class="ms text-sm text-green2">check_circle</span> Gratis para siempre</span>
+        <span class="flex items-center gap-2 text-[12px] font-semibold text-tx3"><span class="ms text-sm text-green2">check_circle</span> Gratis en beta</span>
         <span class="flex items-center gap-2 text-[12px] font-semibold text-tx3"><span class="ms text-sm text-green2">check_circle</span> Sin complicaciones</span>
         <span class="flex items-center gap-2 text-[12px] font-semibold text-tx3"><span class="ms text-sm text-green2">check_circle</span> Perros y gatos</span>
       </div>
@@ -213,15 +234,18 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
 </section>
 
 <!-- Proof bar -->
-<div class="border-y border-border2/40 py-5 px-6 bg-white/40 backdrop-blur-md relative">
+<div class="border-y border-border2/40 py-4 px-6 bg-white/40 backdrop-blur-md relative">
   <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 80% 100% at 50% 0%,rgba(224,242,241,.4),transparent)"></div>
-  <div class="max-w-[1120px] mx-auto flex items-center justify-center gap-10 flex-wrap text-[12px] relative z-10">
-    <div class="flex items-center gap-2.5"><span class="font-brand text-xl font-extrabold text-dk proof-n">+1000</span><span class="font-semibold text-tx3">Pet Parents</span></div>
-    <div class="w-px h-5 bg-border2/50 hidden sm:block"></div>
-    <div class="flex items-center gap-2.5"><span class="font-brand text-xl font-extrabold text-dk proof-n">+2500</span><span class="font-semibold text-tx3">Mascotas</span></div>
-    <div class="w-px h-5 bg-border2/50 hidden sm:block"></div>
-    <span class="flex items-center gap-2 font-semibold text-tx3"><span class="ms text-sm text-green2">smart_toy</span> Powered by AI</span>
-    <span class="flex items-center gap-2 font-semibold text-tx3"><span class="ms text-sm text-green2">verified</span> Data segura</span>
+  <div class="max-w-[1120px] mx-auto relative z-10">
+    <div class="flex items-center justify-center gap-5 sm:gap-10 flex-nowrap overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div class="flex items-center gap-2 shrink-0"><span class="font-brand text-lg font-extrabold text-dk proof-n">+1000</span><span class="text-[11px] font-semibold text-tx3 whitespace-nowrap">Pet Parents</span></div>
+      <div class="w-px h-4 bg-border2/50 shrink-0"></div>
+      <div class="flex items-center gap-2 shrink-0"><span class="font-brand text-lg font-extrabold text-dk proof-n">+2500</span><span class="text-[11px] font-semibold text-tx3 whitespace-nowrap">Mascotas</span></div>
+      <div class="w-px h-4 bg-border2/50 shrink-0"></div>
+      <span class="flex items-center gap-1.5 text-[11px] font-semibold text-tx3 shrink-0 whitespace-nowrap"><span class="ms text-sm text-green2">smart_toy</span> IA</span>
+      <div class="w-px h-4 bg-border2/50 shrink-0"></div>
+      <span class="flex items-center gap-1.5 text-[11px] font-semibold text-tx3 shrink-0 whitespace-nowrap"><span class="ms text-sm text-green2">verified</span> Seguro</span>
+    </div>
   </div>
 </div>
 
@@ -239,19 +263,19 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
 
         <!-- App-like mockup cards -->
         <div class="space-y-3 mb-8">
-          <div class="bg-white rounded-2xl p-4 border border-border2/20 shadow-sm flex items-center gap-3">
+          <div class="reveal bg-white rounded-2xl p-4 border border-border2/20 shadow-sm flex items-center gap-3 hover:border-green2/30 hover:shadow-md transition-all duration-300">
             <div class="w-10 h-10 rounded-xl bg-green2/10 flex items-center justify-center flex-shrink-0"><span class="ms text-green2">badge</span></div>
             <div class="flex-1"><div class="text-[10px] font-bold text-green2 uppercase tracking-wider">Perfil · 12 Feb</div><div class="text-sm font-bold text-dk">Documento guardado</div></div>
             <span class="ms text-green2 text-sm">check_circle</span>
           </div>
-          <div class="bg-white rounded-2xl p-4 border border-border2/20 shadow-sm flex items-center gap-3">
+          <div class="reveal reveal-d1 bg-white rounded-2xl p-4 border border-border2/20 shadow-sm flex items-center gap-3 hover:border-purple2/30 hover:shadow-md transition-all duration-300">
             <div class="w-10 h-10 rounded-xl bg-purple2/10 flex items-center justify-center flex-shrink-0"><span class="ms text-purple2">calendar_month</span></div>
             <div class="flex-1"><div class="text-[10px] font-bold text-purple2 uppercase tracking-wider">Rutinas · 05 Feb</div><div class="text-sm font-bold text-dk">Rutina organizada</div></div>
             <span class="ms text-green2 text-sm">check_circle</span>
           </div>
-          <div class="bg-white rounded-2xl p-4 border border-border2/20 shadow-sm flex items-center gap-3">
+          <div class="reveal reveal-d2 bg-white rounded-2xl p-4 border border-border2/20 shadow-sm flex items-center gap-3 hover:border-dk/20 hover:shadow-md transition-all duration-300">
             <div class="w-10 h-10 rounded-xl bg-dk/5 flex items-center justify-center flex-shrink-0"><span class="ms text-dk">shopping_bag</span></div>
-            <div class="flex-1"><div class="text-[10px] font-bold text-tx3 uppercase tracking-wider">Compras · 28 Ene</div><div class="text-sm font-bold text-dk">Compra por reponer</div></div>
+            <div class="flex-1"><div class="text-[10px] font-bold text-tx3 uppercase tracking-wider">Cuidados · 28 Ene</div><div class="text-sm font-bold text-dk">Recordatorio pendiente</div></div>
             <span class="ms text-dk/30 text-sm">schedule</span>
           </div>
         </div>
@@ -354,7 +378,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
               <div class="text-sm font-bold text-dk">Paseo de la tarde</div>
               <span class="text-[9px] font-bold text-green2 bg-green2/10 px-2 py-0.5 rounded-full uppercase">En orden</span>
             </div>
-            <div class="text-xs text-tx3 mb-3">Todos los dias · Proximo: 20:00 hs</div>
+            <div class="text-xs text-tx3 mb-3">Todos los dias · Proximo: 20:00</div>
             <div class="bg-green2 text-white text-center py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wider">Marcar rutina</div>
           </div>
           <div class="bg-white/60 rounded-xl p-3 border border-green2/10 flex items-center gap-2">
@@ -413,22 +437,22 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
   <div class="max-w-[1000px] mx-auto relative z-10">
     <div class="text-center max-w-lg mx-auto mb-12 eco-header">
       <span class="sl">ECOSISTEMA</span>
-      <h2 class="sh">Un lugar para sus rutinas, sus compras y sus cuidados.</h2>
-      <p class="sb text-lg">Pessy te va marcando lo que ya esta, lo que falta y lo que viene, sin llenarle de tecnicismos.</p>
+      <h2 class="sh">Todo lo de tu mascota, en un solo lugar.</h2>
+      <p class="sb text-lg">Pessy te dice que ya esta, que falta y que se viene — sin que tengas que buscarlo.</p>
     </div>
 
-    <div class="space-y-4 max-w-xl mx-auto mb-10 eco-features">
-      <div class="bg-white rounded-2xl p-5 border border-border2/20 shadow-sm flex items-start gap-4 transition-all duration-500 hover:shadow-lg">
-        <span class="ms text-green2 text-xl mt-0.5">visibility</span>
-        <p class="sb">Ves que ya esta, que falta y que se viene.</p>
+    <div class="grid sm:grid-cols-3 gap-3 max-w-2xl mx-auto mb-10 eco-features">
+      <div class="bg-white rounded-2xl px-4 py-4 border border-border2/20 shadow-sm flex items-center gap-3 transition-all duration-300 hover:shadow-md">
+        <span class="ms text-green2 text-xl shrink-0">visibility</span>
+        <p class="text-sm font-semibold text-dk leading-snug">Ves que ya esta, que falta y que se viene.</p>
       </div>
-      <div class="bg-white rounded-2xl p-5 border border-border2/20 shadow-sm flex items-start gap-4 transition-all duration-500 hover:shadow-lg">
-        <span class="ms text-green2 text-xl mt-0.5">notifications_active</span>
-        <p class="sb">Si se acerca algo, Pessy te avisa.</p>
+      <div class="bg-white rounded-2xl px-4 py-4 border border-border2/20 shadow-sm flex items-center gap-3 transition-all duration-300 hover:shadow-md">
+        <span class="ms text-green2 text-xl shrink-0">notifications_active</span>
+        <p class="text-sm font-semibold text-dk leading-snug">Si se acerca algo, Pessy te avisa.</p>
       </div>
-      <div class="bg-white rounded-2xl p-5 border border-border2/20 shadow-sm flex items-start gap-4 transition-all duration-500 hover:shadow-lg">
-        <span class="ms text-green2 text-xl mt-0.5">flag</span>
-        <p class="sb">Si se termino algo o falta algo, tambien te lo marca.</p>
+      <div class="bg-white rounded-2xl px-4 py-4 border border-border2/20 shadow-sm flex items-center gap-3 transition-all duration-300 hover:shadow-md">
+        <span class="ms text-green2 text-xl shrink-0">flag</span>
+        <p class="text-sm font-semibold text-dk leading-snug">Si falta algo, tambien te lo marca.</p>
       </div>
     </div>
 
@@ -440,21 +464,20 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
         <span class="text-[9px] font-bold text-green2 bg-green2/10 px-2 py-0.5 rounded-full uppercase">En orden</span>
       </div>
       <div class="bg-white rounded-2xl p-4 border border-border2/20 shadow-sm flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-purple2/10 flex items-center justify-center flex-shrink-0"><span class="ms text-purple2">shopping_bag</span></div>
-        <div class="flex-1"><div class="text-sm font-bold text-dk">Compra sugerida</div><div class="text-xs text-tx3">Bolsas sanitarias</div></div>
-        <span class="text-[9px] font-bold text-purple2 bg-purple2/10 px-2 py-0.5 rounded-full uppercase">En 15 dias</span>
+        <div class="w-10 h-10 rounded-xl bg-purple2/10 flex items-center justify-center flex-shrink-0"><span class="ms text-purple2">vaccines</span></div>
+        <div class="flex-1"><div class="text-sm font-bold text-dk">Vacuna proxima</div><div class="text-xs text-tx3">Antirrabica · 15 Mar</div></div>
+        <span class="text-[9px] font-bold text-purple2 bg-purple2/10 px-2 py-0.5 rounded-full uppercase">Proximo</span>
       </div>
     </div>
 
     <div class="flex flex-wrap justify-center gap-2.5 eco-buttons">
       <span class="bg-dk text-white px-5 py-2.5 rounded-full text-[11px] font-extrabold tracking-wide">Identidad digital</span>
       <span class="bg-white text-dk px-5 py-2.5 rounded-full text-[11px] font-bold border border-border2/30">Rutinas</span>
-      <span class="bg-white text-dk px-5 py-2.5 rounded-full text-[11px] font-bold border border-border2/30">Compras</span>
       <span class="bg-white text-dk px-5 py-2.5 rounded-full text-[11px] font-bold border border-border2/30">Cuidados</span>
       <span class="bg-white text-dk px-5 py-2.5 rounded-full text-[11px] font-bold border border-border2/30">Papeles</span>
-      <span class="bg-white text-dk px-5 py-2.5 rounded-full text-[11px] font-bold border border-border2/30">Co-tutores</span>
       <span class="bg-white text-dk px-5 py-2.5 rounded-full text-[11px] font-bold border border-border2/30">Recordatorios</span>
-      <span class="bg-white text-dk px-5 py-2.5 rounded-full text-[11px] font-bold border border-border2/30">Servicios</span>
+      <span class="bg-white text-dk px-5 py-2.5 rounded-full text-[11px] font-bold border border-border2/30">Veterinarios</span>
+      <span class="bg-white text-dk px-5 py-2.5 rounded-full text-[11px] font-bold border border-border2/30">Tienda</span>
     </div>
   </div>
 </section>
@@ -470,8 +493,8 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
   <div class="max-w-[1000px] mx-auto relative z-10">
     <div class="text-center max-w-lg mx-auto mb-14 planes-header">
       <span class="sl">SUSCRIPCIONES</span>
-      <h2 class="sh">Nuestras suscripciones</h2>
-      <p class="sb text-lg">Pensadas para resolver compras, envios y beneficios sin salir del ecosistema Pessy.</p>
+      <h2 class="sh">Elegí tu plan</h2>
+      <p class="sb text-lg">Empeza gratis. Suma mas cuando lo necesites.</p>
     </div>
 
     <div class="grid md:grid-cols-3 gap-6 planes-grid">
@@ -483,7 +506,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
           <h3 class="font-brand font-extrabold text-dk text-xl mb-1">Base</h3>
           <div class="flex items-baseline gap-1 mb-4">
             <span class="font-brand font-extrabold text-dk text-3xl">$0</span>
-            <span class="text-tx3 text-sm font-medium">/ para siempre</span>
+            <span class="text-tx3 text-sm font-medium">/ durante la beta</span>
           </div>
           <div class="space-y-3 mb-6">
             <div class="flex items-center gap-2.5 text-sm text-dk"><span class="ms text-green2 text-sm">check_circle</span><span>1 mascota</span></div>
@@ -507,10 +530,10 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
             <span class="text-white/40 text-sm font-medium">/ mensual</span>
           </div>
           <div class="space-y-3 mb-6">
-            <div class="flex items-center gap-2.5 text-sm text-white/80"><span class="ms text-green2 text-sm">check_circle</span><span>Compras desde Pessy</span></div>
-            <div class="flex items-center gap-2.5 text-sm text-white/80"><span class="ms text-green2 text-sm">check_circle</span><span>Envios premium</span></div>
-            <div class="flex items-center gap-2.5 text-sm text-white/80"><span class="ms text-green2 text-sm">check_circle</span><span>Alertas instantaneas</span></div>
-            <div class="flex items-center gap-2.5 text-sm text-white/80"><span class="ms text-green2 text-sm">check_circle</span><span>Co-tutores</span></div>
+            <div class="flex items-center gap-2.5 text-sm text-white/80"><span class="ms text-green2 text-sm">check_circle</span><span>Mascotas ilimitadas</span></div>
+            <div class="flex items-center gap-2.5 text-sm text-white/80"><span class="ms text-green2 text-sm">check_circle</span><span>Alertas prioritarias</span></div>
+            <div class="flex items-center gap-2.5 text-sm text-white/80"><span class="ms text-green2 text-sm">check_circle</span><span>Documentos ilimitados</span></div>
+            <div class="flex items-center gap-2.5 text-sm text-white/80"><span class="ms text-green2 text-sm">check_circle</span><span>Soporte prioritario</span></div>
           </div>
           <a href="/register-user?src=landing" class="block text-center bg-green2 text-white py-3.5 rounded-xl font-extrabold text-sm hover:-translate-y-0.5 hover:shadow-lg hover:shadow-green2/20 transition-all duration-300">Quiero premium</a>
         </div>
@@ -536,7 +559,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
       </div>
     </div>
 
-    <p class="text-center text-tx3 text-sm mt-8 font-medium">Los planes premium se habilitaran junto a las nuevas funcionalidades del ecosistema.</p>
+    <p class="text-center text-tx3 text-sm mt-8 font-medium">Durante la beta, toda la funcionalidad base es gratuita.</p>
   </div>
 </section>
 
@@ -560,7 +583,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
     <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 equipo-grid">
       <div class="text-center group">
         <div class="founder-img w-full aspect-square rounded-[2rem] mb-4 shadow-lg shadow-dk/8 border-2 border-white bg-bgm overflow-hidden">
-          <img src="/team/mauri-real.jpeg" alt="Mauri" class="w-full h-full object-cover" loading="lazy">
+          <img src="/team/mauricio.jpg" alt="Mauri" class="w-full h-full object-cover" style="object-position:25% center">
         </div>
         <div class="font-brand font-extrabold text-dk text-base mb-0.5">Mauri</div>
         <div class="text-[10px] text-green2 font-bold uppercase tracking-wider mb-0.5">Cofundador</div>
@@ -569,7 +592,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
       </div>
       <div class="text-center group">
         <div class="founder-img w-full aspect-square rounded-[2rem] mb-4 shadow-lg shadow-dk/8 border-2 border-white bg-bgm overflow-hidden">
-          <img src="/team/ronald.jpg" alt="Ronald" class="w-full h-full object-cover" loading="lazy">
+          <img src="/team/ronald-v2.jpg" alt="Ronald" class="w-full h-full object-cover">
         </div>
         <div class="font-brand font-extrabold text-dk text-base mb-0.5">Ronald</div>
         <div class="text-[10px] text-green2 font-bold uppercase tracking-wider mb-0.5">Cofundador</div>
@@ -578,7 +601,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
       </div>
       <div class="text-center group">
         <div class="founder-img w-full aspect-square rounded-[2rem] mb-4 shadow-lg shadow-purple2/8 border-2 border-white bg-purplebg/20 overflow-hidden">
-          <img src="/team/founder-2.jpg" alt="Ary" class="w-full h-full object-cover" loading="lazy">
+          <img src="/team/ary-v2.jpg" alt="Ary" class="w-full h-full object-cover">
         </div>
         <div class="font-brand font-extrabold text-dk text-base mb-0.5">Ary</div>
         <div class="text-[10px] text-purple2 font-bold uppercase tracking-wider mb-0.5">Marketing</div>
@@ -587,7 +610,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
       </div>
       <div class="text-center group relative">
         <div class="founder-img w-full aspect-square rounded-[2rem] mb-4 shadow-lg shadow-dk/8 border-2 border-white bg-bgm overflow-hidden">
-          <img src="/team/founder-3.jpg" alt="Thor" class="w-full h-full object-cover" loading="lazy">
+          <img src="/team/pessy-dog-cover.jpg" alt="Thor" class="w-full h-full object-cover">
         </div>
         <div class="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm border border-border2/20 flex items-center justify-center shadow-md"><img src="https://pessy.app/pwa-192x192.png" alt="" class="w-5 h-5 rounded-sm"></div>
         <div class="font-brand font-extrabold text-dk text-base mb-0.5">Thor</div>
@@ -626,7 +649,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
     <div class="text-center mb-12 testi-header">
       <span class="sl">TESTIMONIOS</span>
       <h2 class="sh">Lo que dicen quienes ya lo usan</h2>
-      <p class="sb text-lg">Personas reales que organizan la vida de sus mascotas con Pessy.</p>
+      <p class="sb text-lg">De la comunidad que esta creciendo con Pessy.</p>
     </div>
 
     <div class="grid md:grid-cols-2 gap-5 testi-grid">
@@ -670,61 +693,74 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
   </div>
 </section>
 
-<!-- ==================== BETA + VISION ==================== -->
+<!-- ==================== ECOSISTEMA PESSY ==================== -->
 <section class="py-20 md:py-28 px-6 bg-white relative overflow-hidden" id="vision">
   <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 60% 50% at 50% 30%,rgba(224,242,241,.4),transparent 50%)"></div>
   <div class="blob top-16 left-[4%] w-[12vw] h-[12vw] max-w-[140px] max-h-[140px] rounded-[58%_42%_35%_65%/48%_55%_45%_52%] bg-green2 opacity-[.03]"></div>
 
   <div class="max-w-[1000px] mx-auto relative z-10">
-    <div class="text-center mb-12 vision-header">
-      <div class="inline-flex items-center gap-2 bg-bgm text-dk px-4 py-2 rounded-full text-[10px] font-extrabold tracking-[.15em] uppercase mb-5 border border-green2/15 shadow-sm"><span class="w-1.5 h-1.5 rounded-full bg-green2 animate-pulse"></span> BETA CERRADA</div>
-      <h2 class="sh">Estamos construyendo el ecosistema</h2>
-      <p class="sb max-w-lg mx-auto text-lg">Hoy Pessy organiza la vida diaria de tu mascota. Es el punto de partida de algo mas grande.</p>
+    <div class="text-center mb-14 vision-header">
+      <span class="sl">EL ECOSISTEMA</span>
+      <h2 class="sh">Pessy es mas que una app</h2>
+      <p class="sb max-w-lg mx-auto text-lg">Un ecosistema construido alrededor de tu mascota — su identidad, sus cuidados, los servicios que necesita y lo que consume cada dia.</p>
     </div>
 
-    <div class="bg-bgm rounded-[2rem] p-7 md:p-9 mb-6 border border-border2/20 shadow-sm vision-current relative overflow-hidden">
-      <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(circle at 80% 20%,rgba(26,155,125,.05),transparent 50%)"></div>
-      <div class="relative z-10">
-        <div class="flex items-center gap-3.5 mb-6">
-          <div class="w-12 h-12 rounded-2xl bg-green2 flex items-center justify-center shadow-lg shadow-green2/20"><span class="ms text-white text-xl">rocket_launch</span></div>
-          <div><h3 class="font-brand font-extrabold text-dk text-lg">Lo que ya funciona</h3><p class="text-tx3 text-sm font-medium">Gratis durante la beta</p></div>
-        </div>
-        <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-3">
-          <div class="bg-white/70 backdrop-blur-sm rounded-xl px-4 py-4 text-center border border-border2/15 shadow-sm transition-all duration-300 hover:shadow-md"><span class="ms text-green2 text-xl block mb-2">badge</span><span class="text-sm font-bold text-dk">Perfil digital</span></div>
-          <div class="bg-white/70 backdrop-blur-sm rounded-xl px-4 py-4 text-center border border-border2/15 shadow-sm transition-all duration-300 hover:shadow-md"><span class="ms text-green2 text-xl block mb-2">calendar_month</span><span class="text-sm font-bold text-dk">Rutinas y cuidados</span></div>
-          <div class="bg-white/70 backdrop-blur-sm rounded-xl px-4 py-4 text-center border border-border2/15 shadow-sm transition-all duration-300 hover:shadow-md"><span class="ms text-green2 text-xl block mb-2">description</span><span class="text-sm font-bold text-dk">Documentos y papeles</span></div>
-          <div class="bg-white/70 backdrop-blur-sm rounded-xl px-4 py-4 text-center border border-border2/15 shadow-sm transition-all duration-300 hover:shadow-md"><span class="ms text-green2 text-xl block mb-2">notifications_active</span><span class="text-sm font-bold text-dk">Alertas inteligentes</span></div>
-        </div>
-      </div>
-    </div>
+    <!-- 3 pilares como identidad del producto — no fases -->
+    <div class="grid md:grid-cols-3 gap-6 vision-current">
 
-    <div class="bg-mint rounded-[2rem] p-7 md:p-9 border border-green2/10 relative overflow-hidden vision-future">
-      <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(circle at 20% 80%,rgba(26,155,125,.06),transparent 50%),radial-gradient(circle at 90% 20%,rgba(80,72,202,.04),transparent 50%)"></div>
-      <div class="blob -top-8 -right-8 w-28 h-28 bg-green2/6"></div>
-      <div class="relative z-10">
-        <div class="flex items-center gap-3.5 mb-6">
-          <div class="w-12 h-12 rounded-2xl bg-green2/15 flex items-center justify-center"><span class="ms text-green2 text-xl">explore</span></div>
-          <div><h3 class="font-brand font-extrabold text-dk text-lg">Hacia donde vamos</h3><p class="text-green2 text-sm font-medium">Ecosistema en construccion</p></div>
+      <!-- Pilar 1: Identidad y cuidados — ACTIVO, destaca del resto -->
+      <div class="bg-dk rounded-[2rem] p-7 relative overflow-hidden shadow-xl shadow-dk/15 transition-all duration-500 hover:shadow-2xl hover:shadow-dk/20">
+        <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(circle at 0% 100%,rgba(26,155,125,.18),transparent 60%),radial-gradient(circle at 100% 0%,rgba(80,72,202,.08),transparent 50%)"></div>
+        <div class="absolute top-5 right-5 bg-green2 text-white text-[9px] font-extrabold tracking-[.15em] uppercase px-3 py-1 rounded-full">Activo</div>
+        <div class="relative z-10">
+          <div class="w-12 h-12 rounded-2xl bg-green2/20 flex items-center justify-center mb-5"><span class="ms text-green2 text-xl">badge</span></div>
+          <h3 class="font-brand font-extrabold text-white text-lg mb-2">Identidad y cuidados</h3>
+          <p class="text-white/55 text-sm leading-relaxed mb-4">El perfil digital de tu mascota. Sus papeles, vacunas, rutinas y documentos, siempre a mano.</p>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2 text-sm text-white/80"><span class="ms text-green2 text-sm">check_circle</span><span>Perfil y documentos</span></div>
+            <div class="flex items-center gap-2 text-sm text-white/80"><span class="ms text-green2 text-sm">check_circle</span><span>Rutinas y alertas</span></div>
+            <div class="flex items-center gap-2 text-sm text-white/80"><span class="ms text-green2 text-sm">check_circle</span><span>Carnet digital</span></div>
+          </div>
+          <a href="/register-user?src=landing-eco" class="mt-6 block text-center bg-green2 text-white py-3 rounded-xl font-extrabold text-sm hover:-translate-y-0.5 hover:shadow-lg hover:shadow-green2/20 transition-all duration-300">Empezar gratis</a>
         </div>
-        <div class="grid sm:grid-cols-3 gap-4">
-          <div class="bg-white/60 backdrop-blur-sm border border-green2/8 rounded-2xl p-5 transition-all duration-500 hover:shadow-lg hover:shadow-green2/5">
-            <span class="ms text-green2 text-xl block mb-3">storefront</span>
-            <h4 class="font-brand font-bold text-dk text-base mb-1.5">Marketplace</h4>
-            <p class="text-tx2 text-sm leading-relaxed">Un espacio donde encontrar lo que tu mascota necesita, conectado con su perfil.</p>
-          </div>
-          <div class="bg-white/60 backdrop-blur-sm border border-green2/8 rounded-2xl p-5 transition-all duration-500 hover:shadow-lg hover:shadow-green2/5">
-            <span class="ms text-green2 text-xl block mb-3">medical_services</span>
-            <h4 class="font-brand font-bold text-dk text-base mb-1.5">Hub de servicios</h4>
-            <p class="text-tx2 text-sm leading-relaxed">Veterinarios, guarderias, paseadores. Todo integrado desde un solo lugar.</p>
-          </div>
-          <div class="bg-white/60 backdrop-blur-sm border border-green2/8 rounded-2xl p-5 transition-all duration-500 hover:shadow-lg hover:shadow-green2/5">
-            <span class="ms text-green2 text-xl block mb-3">loyalty</span>
-            <h4 class="font-brand font-bold text-dk text-base mb-1.5">Beneficios y compras</h4>
-            <p class="text-tx2 text-sm leading-relaxed">Compras recurrentes, envios y ventajas para quienes cuidan con Pessy.</p>
-          </div>
-        </div>
-        <p class="text-center text-tx3 text-sm mt-5 font-medium">Al lanzamiento, los planes se habilitaran junto a estas funcionalidades.</p>
       </div>
+
+      <!-- Pilar 2: Hub de servicios -->
+      <div class="bg-bgm rounded-[2rem] p-7 border border-border2/20 shadow-sm relative overflow-hidden transition-all duration-500 hover:shadow-xl hover:shadow-purple2/8">
+        <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(circle at 100% 0%,rgba(80,72,202,.05),transparent 60%)"></div>
+        <div class="relative z-10">
+          <div class="w-12 h-12 rounded-2xl bg-purple2/12 flex items-center justify-center mb-5"><span class="ms text-purple2 text-xl">medical_services</span></div>
+          <h3 class="font-brand font-extrabold text-dk text-lg mb-2">Hub de servicios</h3>
+          <p class="text-tx3 text-sm leading-relaxed mb-4">Veterinarios, guarderia, paseadores y peluqueria. Todo conectado con el perfil de tu mascota.</p>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2 text-sm text-dk"><span class="ms text-purple2 text-sm">check_circle</span><span>Buscar veterinarios</span></div>
+            <div class="flex items-center gap-2 text-sm text-dk"><span class="ms text-purple2 text-sm">check_circle</span><span>Agendar desde Pessy</span></div>
+            <div class="flex items-center gap-2 text-sm text-dk"><span class="ms text-purple2 text-sm">check_circle</span><span>Historial compartido</span></div>
+          </div>
+          <div class="mt-5 inline-flex items-center gap-1.5 bg-purple2/8 text-purple2 text-[10px] font-extrabold tracking-wider uppercase px-3 py-1.5 rounded-full border border-purple2/10">
+            <span class="w-1.5 h-1.5 rounded-full bg-purple2 animate-pulse"></span> Expandiendo
+          </div>
+        </div>
+      </div>
+
+      <!-- Pilar 3: Tienda y tarjeta -->
+      <div class="bg-bgm rounded-[2rem] p-7 border border-border2/20 shadow-sm relative overflow-hidden transition-all duration-500 hover:shadow-xl hover:shadow-dk/5">
+        <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(circle at 50% 100%,rgba(26,155,125,.04),transparent 60%)"></div>
+        <div class="relative z-10">
+          <div class="w-12 h-12 rounded-2xl bg-dk/6 flex items-center justify-center mb-5"><span class="ms text-dk/60 text-xl">storefront</span></div>
+          <h3 class="font-brand font-extrabold text-dk text-lg mb-2">Tienda y tarjeta Pessy</h3>
+          <p class="text-tx3 text-sm leading-relaxed mb-4">Compra lo que tu mascota necesita directamente desde su perfil. Con beneficios, envios y una tarjeta Pessy.</p>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2 text-sm text-dk/70"><span class="ms text-dk/40 text-sm">schedule</span><span>Tienda integrada</span></div>
+            <div class="flex items-center gap-2 text-sm text-dk/70"><span class="ms text-dk/40 text-sm">schedule</span><span>Tarjeta Pessy</span></div>
+            <div class="flex items-center gap-2 text-sm text-dk/70"><span class="ms text-dk/40 text-sm">schedule</span><span>Envios y beneficios</span></div>
+          </div>
+          <div class="mt-5 inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 text-[10px] font-extrabold tracking-wider uppercase px-3 py-1.5 rounded-full border border-amber-200">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> En desarrollo
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
@@ -772,7 +808,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
     <div class="text-center mb-10">
       <div class="inline-flex items-center gap-2 bg-bgm text-dk px-4 py-2 rounded-full text-[10px] font-extrabold tracking-[.15em] uppercase mb-5 border border-green2/15 shadow-sm"><span class="w-1.5 h-1.5 rounded-full bg-green2 animate-pulse"></span> COMUNIDAD</div>
       <h2 class="sh">Contanos de tu mascota y empezamos juntos.</h2>
-      <p class="sb text-lg max-w-lg mx-auto">Mas de 1000 personas ya organizan la vida de sus mascotas con Pessy. Dejanos tus datos y te preparamos todo.</p>
+      <p class="sb text-lg max-w-md mx-auto">Dejanos tus datos y te sumamos a la comunidad.</p>
     </div>
 
     <div class="bg-bgm rounded-[2rem] p-7 md:p-9 border border-border2/20 shadow-sm relative overflow-hidden">
@@ -941,8 +977,7 @@ revealFrom('.testi-grid > *', '.testi-grid', { y: 30, stagger: 0.1 });
 
 // Vision
 revealFrom('.vision-header > *', '#vision', { y: 25, stagger: 0.08 });
-revealFrom('.vision-current', '.vision-current', { y: 30 });
-revealFrom('.vision-future', '.vision-future', { y: 30 });
+revealFrom('.vision-current > *', '.vision-current', { y: 30, stagger: 0.1 });
 
 // FAQ
 revealFrom('.faq-header > *', '.faq-header', { y: 25, stagger: 0.08 });
@@ -956,7 +991,7 @@ revealFrom('.cta-section > *', '.cta-section', { y: 30, stagger: 0.1 });
 
 // Safety: ensure nothing stays invisible if ScrollTrigger fails
 setTimeout(function() {
-  document.querySelectorAll('.eco-features>*,.planes-grid>*,.faq-items>*,.equipo-grid>*,.testi-grid>*,.vision-current,.vision-future,.como-step1,.como-step2,.como-step3,.identidad-text>*,.identidad-img,.eco-cards>*,.eco-buttons>*,.eco-header>*,.como-header>*,.planes-header>*,.equipo-header>*,.testi-header>*,.vision-header>*,.faq-header>*,.comunidad-section>*,.cta-section>*').forEach(function(el){
+  document.querySelectorAll('.eco-features>*,.planes-grid>*,.faq-items>*,.equipo-grid>*,.testi-grid>*,.vision-current>*,.como-step1,.como-step2,.como-step3,.identidad-text>*,.identidad-img,.eco-cards>*,.eco-buttons>*,.eco-header>*,.como-header>*,.planes-header>*,.equipo-header>*,.testi-header>*,.vision-header>*,.faq-header>*,.comunidad-section>*,.cta-section>*').forEach(function(el){
     if(parseFloat(getComputedStyle(el).opacity)<0.1){el.style.transition='opacity .6s,transform .6s';el.style.opacity='1';el.style.transform='none'}
   });
 }, 2500);
@@ -999,8 +1034,26 @@ setInterval(()=>{ni=(ni+1)%ns.length;ne.style.opacity='0';ne.style.transform='tr
 // === FAQ ===
 document.querySelectorAll('.faq-q').forEach(q=>{q.addEventListener('click',()=>{const i=q.parentElement,w=i.classList.contains('active');document.querySelectorAll('.faq-i').forEach(x=>x.classList.remove('active'));if(!w)i.classList.add('active')})});
 
+// === Scroll reveal (.reveal elements via IntersectionObserver) ===
+(function(){
+  var io=new IntersectionObserver(function(entries){entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.12,rootMargin:'0px 0px -40px 0px'});
+  document.querySelectorAll('.reveal').forEach(function(el){io.observe(el)});
+  // Safety fallback
+  setTimeout(function(){document.querySelectorAll('.reveal').forEach(function(el){el.classList.add('in')})},2000);
+})();
+
 // === Smooth scroll ===
 document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',e=>{const h=a.getAttribute('href');if(h==='#')return;e.preventDefault();const t=document.querySelector(h);if(t)t.scrollIntoView({behavior:'smooth'})})});
+
+// === Mobile menu ===
+(function(){
+  var mm=document.getElementById('mm');
+  var open=document.getElementById('mmOpen');
+  var close=document.getElementById('mmClose');
+  if(open)open.addEventListener('click',function(){mm.classList.add('open')});
+  if(close)close.addEventListener('click',function(){mm.classList.remove('open')});
+  document.querySelectorAll('.mm-link').forEach(function(l){l.addEventListener('click',function(){mm.classList.remove('open')})});
+})();
 
 // === Nav scroll ===
 window.addEventListener('scroll',()=>{const n=document.getElementById('nav'),y=window.scrollY;if(y>50){n.style.background='rgba(240,250,249,.92)';n.style.backdropFilter='blur(20px)';n.style.webkitBackdropFilter='blur(20px)';n.style.boxShadow='0 1px 0 rgba(200,217,210,.25)'}else{n.style.background='transparent';n.style.backdropFilter='none';n.style.webkitBackdropFilter='none';n.style.boxShadow='none'}},{passive:true});

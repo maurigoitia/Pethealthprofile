@@ -1,5 +1,8 @@
+import React from "react";
 import { useNavigate } from "react-router";
 import { ChevronLeft, Star, Stethoscope, Syringe, Pill, Scissors } from "lucide-react";
+import { usePet } from "../../contexts/PetContext";
+import { useMedical } from "../../contexts/MedicalContext";
 
 interface Props {
   onBack: () => void;
@@ -12,65 +15,89 @@ interface HealthDimension {
   detail: string;
 }
 
-interface MockVet {
-  id: string;
-  name: string;
-  specialty: string;
-  rating: number;
-}
-
-const PET_NAME = "Luna";
-
-const MOCK_VETS: MockVet[] = [
-  { id: "v1", name: "Dra. Laura Méndez", specialty: "Medicina General", rating: 4.9 },
-  { id: "v2", name: "Dr. Carlos Ibáñez", specialty: "Dermatología", rating: 4.7 },
-];
-
 const STATUS_CONFIG = {
   ok:      { bg: "#ECFDF5", text: "#065F46", dot: "#10B981", label: "Al día" },
   warning: { bg: "#FFFBEB", text: "#92400E", dot: "#F59E0B", label: "Próximo" },
   alert:   { bg: "#FEF2F2", text: "#991B1B", dot: "#EF4444", label: "Atención" },
 };
 
+function daysUntil(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null;
+  const diff = new Date(dateStr).getTime() - Date.now();
+  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
 export function CuidadosScreen({ onBack }: Props) {
   const navigate = useNavigate();
+  const { activePet } = usePet();
+  const { activeMedications, appointments } = useMedical();
+
+  const petName = activePet?.name ?? "Tu mascota";
+
+  // ── Vacunas: buscar próxima cita tipo vaccine ──
+  const nextVaccineAppt = appointments
+    .filter((a) => a.status === "upcoming" && a.type === "vaccine" && a.date)
+    .sort((a, b) => (a.date! > b.date! ? 1 : -1))[0];
+  const vaccineStatus: HealthDimension["status"] = !nextVaccineAppt
+    ? "ok"
+    : daysUntil(nextVaccineAppt.date)! <= 7
+    ? "alert"
+    : daysUntil(nextVaccineAppt.date)! <= 30
+    ? "warning"
+    : "ok";
+  const vaccineDetail = nextVaccineAppt
+    ? `Próxima en ${daysUntil(nextVaccineAppt.date)} días`
+    : "Todas al día";
+
+  // ── Control médico: próxima cita general ──
+  const nextAppt = appointments
+    .filter((a) => a.status === "upcoming" && a.type !== "vaccine" && a.date)
+    .sort((a, b) => (a.date! > b.date! ? 1 : -1))[0];
+  const apptDays = nextAppt ? daysUntil(nextAppt.date) : null;
+  const apptStatus: HealthDimension["status"] = apptDays == null
+    ? "ok"
+    : apptDays <= 3
+    ? "alert"
+    : apptDays <= 14
+    ? "warning"
+    : "ok";
+  const apptDetail = nextAppt
+    ? apptDays === 0
+      ? "¡Hoy!"
+      : `En ${apptDays} días`
+    : "Sin turnos próximos";
+
+  // ── Medicamentos activos ──
+  const activeMeds = activeMedications.filter(
+    (m) => !activePet?.id || m.petId === activePet.id
+  );
+  const medStatus: HealthDimension["status"] = activeMeds.length === 0 ? "ok" : "warning";
+  const medDetail =
+    activeMeds.length === 0
+      ? "Sin medicación activa"
+      : activeMeds.length === 1
+      ? activeMeds[0].name
+      : `${activeMeds.length} medicamentos activos`;
+
+  // ── Grooming: heurística por raza (sin datos reales aún) ──
+  const groomingStatus: HealthDimension["status"] = "ok";
+  const groomingDetail = "Sin alerta";
 
   const dimensions: HealthDimension[] = [
-    {
-      icon: <Syringe size={18} strokeWidth={1.8} />,
-      label: "Vacunas",
-      status: "ok",
-      detail: "Todas al día",
-    },
-    {
-      icon: <Stethoscope size={18} strokeWidth={1.8} />,
-      label: "Control médico",
-      status: "warning",
-      detail: "Chequeo en 30 días",
-    },
-    {
-      icon: <Pill size={18} strokeWidth={1.8} />,
-      label: "Medicamentos",
-      status: "ok",
-      detail: "Rimadyl activo",
-    },
-    {
-      icon: <Scissors size={18} strokeWidth={1.8} />,
-      label: "Grooming",
-      status: "alert",
-      detail: "Hace 6 semanas",
-    },
+    { icon: <Syringe size={18} strokeWidth={1.8} />,     label: "Vacunas",         status: vaccineStatus, detail: vaccineDetail },
+    { icon: <Stethoscope size={18} strokeWidth={1.8} />, label: "Control médico",  status: apptStatus,    detail: apptDetail },
+    { icon: <Pill size={18} strokeWidth={1.8} />,        label: "Medicamentos",    status: medStatus,     detail: medDetail },
+    { icon: <Scissors size={18} strokeWidth={1.8} />,    label: "Grooming",        status: groomingStatus, detail: groomingDetail },
   ];
 
-  // Derive overall state from dimensions
   const hasAlert   = dimensions.some((d) => d.status === "alert");
   const hasWarning = dimensions.some((d) => d.status === "warning");
   const overall    = hasAlert ? "alert" : hasWarning ? "warning" : "ok";
 
   const overallConfig = {
-    ok:      { emoji: "😊", headline: `${PET_NAME} está muy bien`, sub: "Todo en orden. Seguí así.", color: "#10B981", bg: "#ECFDF5" },
-    warning: { emoji: "🙂", headline: `${PET_NAME} está bien`, sub: "Hay un par de cosas a tener en cuenta.", color: "#F59E0B", bg: "#FFFBEB" },
-    alert:   { emoji: "😟", headline: `${PET_NAME} necesita atención`, sub: "Hay items que requieren acción.", color: "#EF4444", bg: "#FEF2F2" },
+    ok:      { emoji: "😊", headline: `${petName} está muy bien`,      sub: "Todo en orden. ¡Seguí así!",                  bg: "#ECFDF5" },
+    warning: { emoji: "🙂", headline: `${petName} está bien`,          sub: "Hay un par de cosas a tener en cuenta.",      bg: "#FFFBEB" },
+    alert:   { emoji: "😟", headline: `${petName} necesita atención`,  sub: "Hay items que requieren acción pronto.",       bg: "#FEF2F2" },
   }[overall];
 
   return (
@@ -99,16 +126,7 @@ export function CuidadosScreen({ onBack }: Props) {
       <div className="px-4" style={{ display: "flex", flexDirection: "column", gap: 20, paddingTop: 16 }}>
 
         {/* ── Estado general ── */}
-        <div
-          style={{
-            borderRadius: 20,
-            padding: "24px 20px",
-            backgroundColor: overallConfig.bg,
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-          }}
-        >
+        <div style={{ borderRadius: 20, padding: "24px 20px", backgroundColor: overallConfig.bg, display: "flex", alignItems: "center", gap: 16 }}>
           <span style={{ fontSize: 52, lineHeight: 1 }}>{overallConfig.emoji}</span>
           <div>
             <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 17, fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
@@ -127,17 +145,7 @@ export function CuidadosScreen({ onBack }: Props) {
             {dimensions.map((dim) => {
               const cfg = STATUS_CONFIG[dim.status];
               return (
-                <div
-                  key={dim.label}
-                  style={{
-                    backgroundColor: cfg.bg,
-                    borderRadius: 16,
-                    padding: "14px 14px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 10,
-                  }}
-                >
+                <div key={dim.label} style={{ backgroundColor: cfg.bg, borderRadius: 16, padding: "14px", display: "flex", flexDirection: "column", gap: 10 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(255,255,255,.7)", display: "flex", alignItems: "center", justifyContent: "center", color: cfg.text }}>
                       {dim.icon}
@@ -156,37 +164,52 @@ export function CuidadosScreen({ onBack }: Props) {
           </div>
         </div>
 
-        {/* ── Veterinarios cerca ── */}
-        <div>
-          <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 10, fontWeight: 800, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 10 }}>
-            Veterinarios cerca
-          </p>
-          {MOCK_VETS.map((vet) => (
-            <div
-              key={vet.id}
-              style={{ backgroundColor: "#fff", borderRadius: 16, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, marginBottom: 10, boxShadow: "0 2px 8px rgba(0,0,0,.04)" }}
-            >
-              <div style={{ width: 40, height: 40, minWidth: 40, borderRadius: "50%", backgroundColor: "#E0F2F1", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, color: "#1A9B7D" }}>
-                {vet.name[0]}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "#1E293B", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{vet.name}</p>
-                <p style={{ fontSize: 11, color: "#94A3B8" }}>{vet.specialty}</p>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
-                <Star size={12} className="text-amber-500 fill-amber-500" />
-                <span style={{ fontSize: 11, fontWeight: 600, color: "#F59E0B" }}>{vet.rating}</span>
-              </div>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => navigate("/buscar-vet")}
-            style={{ width: "100%", border: "2px solid #074738", background: "none", color: "#074738", borderRadius: 12, padding: "12px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer", minHeight: 44 }}
-          >
-            Ver más veterinarios
-          </button>
-        </div>
+        {/* ── Próximos turnos ── */}
+        {appointments.filter((a) => a.status === "upcoming" && a.date).length > 0 && (
+          <div>
+            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 10, fontWeight: 800, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 10 }}>
+              Próximos turnos
+            </p>
+            {appointments
+              .filter((a) => a.status === "upcoming" && a.date)
+              .sort((a, b) => (a.date! > b.date! ? 1 : -1))
+              .slice(0, 3)
+              .map((appt) => {
+                const days = daysUntil(appt.date);
+                return (
+                  <div key={appt.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, marginBottom: 10, boxShadow: "0 2px 8px rgba(0,0,0,.04)" }}>
+                    <div style={{ width: 40, height: 40, minWidth: 40, borderRadius: "50%", backgroundColor: "#E0F2F1", display: "flex", alignItems: "center", justifyContent: "center", color: "#1A9B7D" }}>
+                      <Stethoscope size={18} strokeWidth={1.8} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#1E293B", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {appt.title || "Turno médico"}
+                      </p>
+                      <p style={{ fontSize: 11, color: "#94A3B8" }}>
+                        {appt.date} {appt.time ? `· ${appt.time}` : ""}
+                      </p>
+                    </div>
+                    {days != null && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 3, flexShrink: 0 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: days <= 3 ? "#EF4444" : days <= 14 ? "#F59E0B" : "#10B981", backgroundColor: days <= 3 ? "#FEF2F2" : days <= 14 ? "#FFFBEB" : "#ECFDF5", padding: "3px 8px", borderRadius: 99 }}>
+                          {days === 0 ? "¡Hoy!" : `${days}d`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        )}
+
+        {/* ── Buscar vet ── */}
+        <button
+          type="button"
+          onClick={() => navigate("/buscar-vet")}
+          style={{ width: "100%", border: "2px solid #074738", background: "none", color: "#074738", borderRadius: 12, padding: "12px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer", minHeight: 44 }}
+        >
+          Buscar veterinario
+        </button>
 
       </div>
     </div>
