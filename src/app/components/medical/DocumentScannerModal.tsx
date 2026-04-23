@@ -62,6 +62,13 @@ export function DocumentScannerModal({
   const [reviewReasons, setReviewReasons] = useState<string[]>([]);
   const [reviewTarget, setReviewTarget] = useState<ReviewTarget>("feed");
   const [pendingTreatmentContext, setPendingTreatmentContext] = useState<PendingTreatmentContext | null>(null);
+  const [extractionPreview, setExtractionPreview] = useState<{
+    vetName: string | null;
+    date: string | null;
+    clinic: string | null;
+    diagnosis: string | null;
+    medications: string[];
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const parseDurationToEndDate = (duration: string | null | undefined, startDateIso: string): string | null => {
@@ -328,6 +335,17 @@ export function DocumentScannerModal({
       setRequiresReview(reviewDecision.requiresManualConfirmation);
       setReviewReasons(reviewDecision.reviewReasons);
       setReviewTarget(reviewDecision.reviewTarget);
+
+      // Armar preview legible de lo que se extrajo
+      const mp = (aiData as Record<string, unknown>)?.masterPayload as Record<string, unknown> | undefined;
+      const docInfo = mp?.document_info as Record<string, unknown> | undefined;
+      setExtractionPreview({
+        vetName: (docInfo?.veterinarian_name as string) || (aiData as Record<string, unknown>)?.provider as string || null,
+        date: (aiData.eventDate as string) || (docInfo?.date as string) || null,
+        clinic: (docInfo?.clinic_name as string) || (aiData as Record<string, unknown>)?.clinic as string || null,
+        diagnosis: (aiData.diagnosis as string) || (aiData.observations as string) || null,
+        medications: ((aiData.medications as Array<{ name: string }>) || []).map(m => m.name).filter(Boolean).slice(0, 3),
+      });
 
       const newEvent: MedicalEvent = {
         id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -755,16 +773,44 @@ export function DocumentScannerModal({
                       Tipo detectado: {extractedType}
                     </p>
                   </div>
-                  {requiresReview && (
-                    <div className="w-full max-w-xs p-3 rounded-[16px] bg-amber-50 border border-amber-200 mb-6">
-                      <p className="text-xs font-bold text-amber-700 mb-1">
-                        Revisemos algunos datos antes de confirmarlos:
+                  {/* Preview de datos extraídos */}
+                  {extractionPreview && (extractionPreview.vetName || extractionPreview.date || extractionPreview.clinic || extractionPreview.diagnosis || extractionPreview.medications.length > 0) && (
+                    <div className="w-full max-w-xs mb-4 rounded-[16px] bg-[#F0FAF9] border border-[rgba(7,71,56,.08)] overflow-hidden">
+                      <p className="text-[10px] font-[800] text-[#1A9B7D] tracking-widest uppercase px-4 pt-3 pb-1">
+                        Lo que se encontró
                       </p>
-                      <ul className="text-xs text-amber-700 list-disc list-inside space-y-0.5">
-                        {reviewReasons.slice(0, 3).map((reason, index) => (
-                          <li key={`${reason}-${index}`}>{reason}</li>
-                        ))}
-                      </ul>
+                      <div className="px-4 pb-3 flex flex-col gap-1.5">
+                        {extractionPreview.vetName && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-[700] text-[#9CA3AF] w-16 shrink-0">Veterinario</span>
+                            <span className="text-[12px] font-[600] text-[#0F172A] truncate">{extractionPreview.vetName}</span>
+                          </div>
+                        )}
+                        {extractionPreview.date && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-[700] text-[#9CA3AF] w-16 shrink-0">Fecha</span>
+                            <span className="text-[12px] text-[#374151]">{extractionPreview.date}</span>
+                          </div>
+                        )}
+                        {extractionPreview.clinic && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-[700] text-[#9CA3AF] w-16 shrink-0">Clínica</span>
+                            <span className="text-[12px] text-[#374151] truncate">{extractionPreview.clinic}</span>
+                          </div>
+                        )}
+                        {extractionPreview.diagnosis && (
+                          <div className="flex items-start gap-2">
+                            <span className="text-[10px] font-[700] text-[#9CA3AF] w-16 shrink-0 pt-0.5">Hallazgo</span>
+                            <span className="text-[12px] text-[#374151] line-clamp-2">{extractionPreview.diagnosis}</span>
+                          </div>
+                        )}
+                        {extractionPreview.medications.length > 0 && (
+                          <div className="flex items-start gap-2">
+                            <span className="text-[10px] font-[700] text-[#9CA3AF] w-16 shrink-0 pt-0.5">Medicación</span>
+                            <span className="text-[12px] text-[#374151]">{extractionPreview.medications.join(", ")}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                   <button
