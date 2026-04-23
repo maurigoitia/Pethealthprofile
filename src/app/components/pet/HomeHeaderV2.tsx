@@ -41,7 +41,7 @@ export function HomeHeaderV2({
         <div className="min-w-0">
           <div
             className="text-[15px] font-[800] text-[#074738] truncate"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.01em" }}
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.025em" }}
           >
             {petName}
           </div>
