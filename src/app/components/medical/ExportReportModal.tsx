@@ -5,6 +5,7 @@ import { useMedical } from "../../contexts/MedicalContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { formatDateSafe } from "../../utils/dateUtils";
 import { loadJsPdf, savePdfWithFallback } from "../../utils/pdfExport";
+import { generateClinicalOverview } from "../../utils/clinicalOverview";
 
 interface ExportReportModalProps {
   isOpen: boolean;
@@ -398,6 +399,59 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         }
         const vetList = Array.from(vetMap.values())
           .sort((a, b) => (b.lastDate ?? "").localeCompare(a.lastDate ?? ""));
+
+        // ── 0. AI OVERVIEW (síntesis de 1-2 oraciones, arriba de todo) ─
+        const overviewFindings = Array.from(new Set(
+          recentEvents
+            .map((ev) => clean(ev.extractedData.diagnosis || "").split(/[(;]/)[0].trim())
+            .filter((d) => d && !isNoisePlaceholder(d))
+        )).slice(0, 5);
+
+        const overview = generateClinicalOverview({
+          petName: activePet.name,
+          activeConditionNames: activeConditions.map((c) => clean(c.normalizedName)).filter(Boolean),
+          activeMedicationNames: medsWithCondition.map((m) => m.name),
+          recentFindings: overviewFindings,
+          hasUpcomingAppointment: futureAppointments.length > 0,
+          hasPendingReviews: pendingManualReviewCount > 0,
+        });
+
+        if (overview) {
+          checkY(22);
+          // Card verde claro destacado
+          pdf.setFillColor(236, 253, 245);
+          pdf.roundedRect(M, y, CW, 20, 3, 3, "F");
+          pdf.setDrawColor(26, 155, 125);
+          pdf.setLineWidth(0.6);
+          pdf.line(M, y, M, y + 20); // borde izquierdo accent
+          pdf.setFontSize(8.5);
+          pdf.setFont("helvetica", "bold");
+          pdf.setTextColor(13, 148, 136);
+          pdf.text("RESUMEN", M + 4, y + 5.5);
+          pdf.setFontSize(9.5);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(15, 76, 52);
+          const overviewLines = pdf.splitTextToSize(overview, CW - 8);
+          pdf.text(overviewLines, M + 4, y + 11);
+          // Altura dinámica si el texto ocupa más
+          const cardH = Math.max(20, 11 + overviewLines.length * 4.2 + 2);
+          if (cardH > 20) {
+            // redibujar con altura correcta
+            pdf.setFillColor(236, 253, 245);
+            pdf.roundedRect(M, y, CW, cardH, 3, 3, "F");
+            pdf.setDrawColor(26, 155, 125);
+            pdf.line(M, y, M, y + cardH);
+            pdf.setFontSize(8.5);
+            pdf.setFont("helvetica", "bold");
+            pdf.setTextColor(13, 148, 136);
+            pdf.text("RESUMEN", M + 4, y + 5.5);
+            pdf.setFontSize(9.5);
+            pdf.setFont("helvetica", "normal");
+            pdf.setTextColor(15, 76, 52);
+            pdf.text(overviewLines, M + 4, y + 11);
+          }
+          y += cardH + 4;
+        }
 
         // ── 1. Estado actual (1 oración) ────────────────────────────────
         sectionTitle("Estado actual");
