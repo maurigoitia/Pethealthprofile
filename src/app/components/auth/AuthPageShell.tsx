@@ -11,13 +11,8 @@ interface AuthPageShellProps {
   children: ReactNode;
 }
 
-/* ── Pet photos for the left panel (Unsplash, royalty-free) ── */
-const petPhotos = [
-  "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=800&q=80", // golden retriever
-  "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=800&q=80", // orange cat
-  "https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?w=800&q=80", // dog on grass
-];
-const heroPhoto = petPhotos[Math.floor(Math.random() * petPhotos.length)];
+/* ── Hero illustration del design kit (local, sin dependencia externa) ── */
+const heroPhoto = "/illustrations/dark_top_surprised_cork_head.svg";
 
 export function AuthPageShell({
   eyebrow,
