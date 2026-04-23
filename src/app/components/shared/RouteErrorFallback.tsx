@@ -23,7 +23,7 @@ export function RouteErrorFallback() {
   const message =
     error?.status === 404
       ? "La pantalla no existe o fue movida."
-      : "Ocurrió un error inesperado en esta pantalla.";
+      : "Ocurri√≥ un error inesperado en esta pantalla.";
 
   return (
     <div
