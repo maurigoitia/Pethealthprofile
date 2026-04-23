@@ -67,7 +67,7 @@ export default defineConfig({
       },
       workbox: {
         cleanupOutdatedCaches: true,
-        clientsClaim: false,
+        clientsClaim: true,  // CRÍTICO: el nuevo SW toma control inmediato (antes: false → usuarios stuck con bundle viejo hasta cerrar pestaña)
         skipWaiting: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // heic2any (1.35 MB) solo lo necesitan usuarios que suben fotos iPhone en formato HEIC.

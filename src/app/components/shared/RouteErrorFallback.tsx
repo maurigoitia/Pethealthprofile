@@ -49,6 +49,12 @@ export function RouteErrorFallback() {
           >
             Ir al inicio
           </button>
+          <a
+            href="/reset"
+            className="block text-xs text-slate-400 underline mt-4"
+          >
+            ¿Sigue fallando? Resetear caché
+          </a>
         </div>
       </div>
     </div>
