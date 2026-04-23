@@ -106,7 +106,26 @@ function getRecommendedTrainingCommand(input: PessyIntelligenceInput) {
   return TRAINING_MASTER_BOOK.command_library.find((command) => command.id === "wait_signal") ?? null;
 }
 
-export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntelligenceResult {
+/**
+ * Normaliza input: asegura que TODOS los campos que deberían ser array lo sean.
+ * Previene crashes con .some/.includes/.filter sobre datos legacy mal tipados.
+ */
+function normalizeInput(input: PessyIntelligenceInput): PessyIntelligenceInput {
+  return {
+    ...input,
+    groupIds: Array.isArray(input.groupIds) ? input.groupIds : [],
+    fears: Array.isArray(input.fears) ? input.fears : [],
+    personality: Array.isArray(input.personality) ? input.personality : [],
+    favoriteActivities: Array.isArray(input.favoriteActivities) ? input.favoriteActivities : [],
+    walkTimes: Array.isArray(input.walkTimes) ? input.walkTimes : [],
+    recurringConditions: Array.isArray(input.recurringConditions) ? input.recurringConditions : undefined,
+  };
+}
+
+export function runPessyIntelligence(rawInput: PessyIntelligenceInput): PessyIntelligenceResult {
+  // Defense in depth: aunque PetContext y PetHomeView ya normalizan, acá garantizamos
+  // que si un consumer externo pasa datos crudos de Firestore, no crasheamos.
+  const input = normalizeInput(rawInput);
   const recommendations: PessyIntelligenceRecommendation[] = [];
   const thermalProfile = findThermalProfile(input);
   const segmentId = inferTrainingSegmentId(input);
