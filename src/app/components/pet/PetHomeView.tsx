@@ -412,10 +412,12 @@ export function PetHomeView({
       windSpeedKmh: weather.windSpeedKmh,
       uvIndex: weather.uvIndex,
       currentHour: new Date().getHours(),
-      fears: activePet.preferences?.fears,
-      personality: activePet.preferences?.personality,
-      favoriteActivities: activePet.preferences?.favoriteActivities,
-      walkTimes: activePet.preferences?.walkTimes,
+      // Normalizar arrays: datos legacy en Firestore pueden venir como string/null/objeto
+      // en lugar de array. '.some()' / '.includes()' en el engine crashean si no es array.
+      fears: Array.isArray(activePet.preferences?.fears) ? activePet.preferences!.fears! : [],
+      personality: Array.isArray(activePet.preferences?.personality) ? activePet.preferences!.personality! : [],
+      favoriteActivities: Array.isArray(activePet.preferences?.favoriteActivities) ? activePet.preferences!.favoriteActivities! : [],
+      walkTimes: Array.isArray(activePet.preferences?.walkTimes) ? activePet.preferences!.walkTimes! : [],
       foodDaysLeft,
       ...medicalHistoryInputs,
     });
@@ -837,7 +839,7 @@ export function PetHomeView({
         </div>
 
         {/* 5b. PREFERENCES NUDGE — appears if pet has no preferences set */}
-        {activePet && !activePet.preferences?.personality?.length && !activePet.preferences?.fears?.length && !activePet.preferences?.favoriteActivities?.length && (
+        {activePet && !(Array.isArray(activePet.preferences?.personality) ? activePet.preferences!.personality!.length : 0) && !(Array.isArray(activePet.preferences?.fears) ? activePet.preferences!.fears!.length : 0) && !(Array.isArray(activePet.preferences?.favoriteActivities) ? activePet.preferences!.favoriteActivities!.length : 0) && (
           <div className="mx-3 mt-2">
             <button
               type="button"

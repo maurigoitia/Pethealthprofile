@@ -274,8 +274,9 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
 
   // ─── MODULE: Rain & Storm ─────────────────────────────────────────────────
   if (input.isRaining || input.isStormy) {
-    const hasThunderFear = (input.fears || []).some((f) =>
-      f.toLowerCase().includes("trueno") || f.toLowerCase().includes("tormenta") || f.toLowerCase().includes("thunder")
+    const fearsArr = Array.isArray(input.fears) ? input.fears : [];
+    const hasThunderFear = fearsArr.some((f) =>
+      typeof f === "string" && (f.toLowerCase().includes("trueno") || f.toLowerCase().includes("tormenta") || f.toLowerCase().includes("thunder"))
     );
 
     if (input.isStormy && hasThunderFear) {
@@ -349,7 +350,7 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
       }
     } else if (hour >= 12 && hour < 16) {
       // Midday — check if walk scheduled conflicts with heat
-      if (input.walkTimes?.includes("14:00") && input.temperatureC !== null && input.temperatureC > 28) {
+      if (Array.isArray(input.walkTimes) && input.walkTimes.includes("14:00") && input.temperatureC !== null && input.temperatureC > 28) {
         recommendations.push({
           id: `${input.petName}_walk_conflict`,
           code: "walk_time_conflict",
@@ -434,9 +435,9 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
     );
 
     // Prefer activities matching pet's favorites
-    const favorites = input.favoriteActivities || [];
+    const favorites = Array.isArray(input.favoriteActivities) ? input.favoriteActivities : [];
     const categoryMap: Record<string, string> = { walk: "outdoor", park: "outdoor", cafe: "social", training: "training", swim: "outdoor" };
-    const preferredCategories = favorites.map((f) => categoryMap[f]).filter(Boolean);
+    const preferredCategories = favorites.map((f) => categoryMap[f as string]).filter(Boolean);
 
     let bestSuggestion = eligible.find((s) => preferredCategories.includes(s.category));
     if (!bestSuggestion && eligible.length > 0) {
@@ -595,8 +596,9 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
     const today = new Date();
     const month = today.getMonth(); // 0-indexed
     const day = today.getDate();
-    const hasNoiseFear = (input.fears || []).some((f) =>
-      f.toLowerCase().includes("fuego") || f.toLowerCase().includes("pirotecnia") || f.toLowerCase().includes("artifici")
+    const fearsArr2 = Array.isArray(input.fears) ? input.fears : [];
+    const hasNoiseFear = fearsArr2.some((f) =>
+      typeof f === "string" && (f.toLowerCase().includes("fuego") || f.toLowerCase().includes("pirotecnia") || f.toLowerCase().includes("artifici"))
     );
 
     // Alertar cerca de fechas con pirotecnia:
