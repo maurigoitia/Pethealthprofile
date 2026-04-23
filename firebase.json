@@ -315,6 +315,15 @@
           ]
         },
         {
+          "source": "/reset.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
+        },
+        {
           "source": "/workbox-*.js",
           "headers": [
             {
@@ -507,6 +516,10 @@
           "destination": "/vs/petbuddy.html"
         },
         {
+          "source": "/reset",
+          "destination": "/reset.html"
+        },
+        {
           "source": "**",
           "destination": "/app.html"
         }
@@ -530,6 +543,15 @@
       "headers": [
         {
           "source": "/sw.js",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "/reset.html",
           "headers": [
             {
               "key": "Cache-Control",
@@ -584,6 +606,15 @@
           ]
         },
         {
+          "source": "/reset.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
+        },
+        {
           "source": "/workbox-*.js",
           "headers": [
             {
@@ -622,6 +653,15 @@
       "headers": [
         {
           "source": "/sw.js",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "/reset.html",
           "headers": [
             {
               "key": "Cache-Control",
@@ -873,6 +913,15 @@
         },
         {
           "source": "/sw.js",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
+        },
+        {
+          "source": "/reset.html",
           "headers": [
             {
               "key": "Cache-Control",
