@@ -11,8 +11,25 @@
 | 3 | desparasitar perros cachorros | desparasitar-perros-cachorros | published | /blog/desparasitar-perros-cachorros/ |
 | 4 | cuánto duerme un gato adulto | cuanto-duerme-un-gato-adulto | published | /blog/cuanto-duerme-un-gato-adulto/ |
 | 5 | síntomas de moquillo en perros | moquillo-en-perros-sintomas | published | /blog/moquillo-en-perros-sintomas/ |
+| 6 | calendario de vacunas para cachorros en Argentina | vacunas-cachorros-calendario | published | /blog/vacunas-cachorros-calendario/ |
 
 ## Próximos keywords (por generar)
+
+### Bloque: Okara AI CMO — 10 temas sugeridos (alta prioridad)
+> Fuente: https://okara.ai/agent/cmo/7c61671c-d055-473b-990b-ea312a5720c3 · 23 Apr 2026
+
+| Semana | Slug propuesto | Keyword / Título en español |
+|--------|---------------|------------------------------|
+| 7 | `calendario-vacunas-perros-2026` | Calendario de vacunas para perros en 2026: todo lo que necesitás saber |
+| 7 | `organizar-documentos-mascota-veterinario` | Cómo organizar los documentos de tu mascota antes de ir al veterinario |
+| 8 | `que-decirle-a-quien-cuida-tu-mascota` | Qué decirle a quien cuida tu mascota (y la forma más fácil de compartirlo) |
+| 8 | `checklist-cachorro-nuevo-2026` | Checklist completo para tu cachorro nuevo en 2026: todo lo que necesitás en los primeros 30 días |
+| 9 | `antipulgas-gato-al-dia` | ¿El antipulgas de tu gato está al día? Cómo no perderte nunca una dosis |
+| 9 | `rutina-diaria-cuidado-mascotas` | Rutina diaria de cuidado: el sistema simple que todo dueño de perro o gato necesita |
+| 10 | `7-consejos-cuidado-mascotas` | 7 consejos de cuidado de mascotas que ojalá hubieras sabido antes |
+| 10 | `carnet-digital-mascota-2026` | Carnet de salud digital para mascotas: qué es y por qué tu mascota lo necesita en 2026 |
+| 11 | `compartir-info-mascota-guarderia` | Cómo compartir los datos de tu mascota con una guardería sin el ida y vuelta |
+| 11 | `calendario-vacunas-gatos-2026` | Calendario de vacunas para gatos en 2026: cuáles son obligatorias y cuándo vencen |
 
 ### Bloque: Salud general
 - convulsiones en perros causas

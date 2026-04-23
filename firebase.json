@@ -19,7 +19,9 @@
     "rules": "storage.rules"
   },
   "hosting": {
-    "predeploy": ["bash pre-deploy-check.sh"],
+    "predeploy": [
+      "bash pre-deploy-check.sh"
+    ],
     "public": "dist",
     "ignore": [
       "firebase.json",
@@ -84,12 +86,13 @@
         "destination": "/blog/moquillo-en-perros-sintomas/index.html"
       },
       {
+        "source": "/blog/vacunas-cachorros-calendario",
+        "destination": "/blog/vacunas-cachorros-calendario/index.html"
+      },
+      {
         "source": "**",
         "destination": "/app.html"
       }
-    ],
-    "predeploy": [
-      "bash pre-deploy-check.sh"
     ]
   }
 }
