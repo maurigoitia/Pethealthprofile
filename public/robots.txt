@@ -1,11 +1,71 @@
+# Pessy — pessy.app
+# Reglas para crawlers web + bots de IA (ChatGPT, Claude, Gemini, Perplexity)
+
 User-agent: *
 Allow: /
 Allow: /blog
 Allow: /blog/
 Allow: /empezar
-
-Sitemap: https://pessy.app/sitemap.xml
-
 Disallow: /admin
 Disallow: /private
 Disallow: /api/*
+Disallow: /app.html
+Disallow: /inicio
+Disallow: /historial
+Disallow: /rutinas-eco
+Disallow: /cuidados
+Disallow: /identidad
+Disallow: /buscar-vet
+Disallow: /vet
+
+# AI assistants — se permiten para aparecer en citaciones
+User-agent: GPTBot
+Allow: /
+Allow: /blog
+Disallow: /admin
+Disallow: /api/*
+Disallow: /app.html
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /blog
+Disallow: /admin
+Disallow: /api/*
+Disallow: /app.html
+
+User-agent: anthropic-ai
+Allow: /
+Allow: /blog
+Disallow: /admin
+Disallow: /api/*
+Disallow: /app.html
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /blog
+Disallow: /admin
+Disallow: /api/*
+Disallow: /app.html
+
+User-agent: Google-Extended
+Allow: /
+Allow: /blog
+Disallow: /admin
+Disallow: /api/*
+Disallow: /app.html
+
+User-agent: CCBot
+Allow: /
+Allow: /blog
+Disallow: /admin
+Disallow: /api/*
+Disallow: /app.html
+
+User-agent: Applebot-Extended
+Allow: /
+Allow: /blog
+Disallow: /admin
+Disallow: /api/*
+Disallow: /app.html
+
+Sitemap: https://pessy.app/sitemap.xml
