@@ -7,6 +7,14 @@ export function RouteErrorFallback() {
 
   // Auto-reload on chunk/module load errors (stale SW hashes after deploy)
   useEffect(() => {
+    // CRÍTICO: loguear siempre el error para diagnosticar en prod
+    // (antes el error se tragaba silencioso y solo veíamos el fallback)
+    if (error) {
+      console.error("[RouteErrorFallback] captured error:", error);
+      if (error instanceof Error && error.stack) {
+        console.error("[RouteErrorFallback] stack:", error.stack);
+      }
+    }
     if (error instanceof Error) {
       const isChunkError =
         (error as any).name === "ChunkLoadError" ||
@@ -25,6 +33,12 @@ export function RouteErrorFallback() {
       ? "La pantalla no existe o fue movida."
       : "Ocurrió un error inesperado en esta pantalla.";
 
+  // Mostrar detalles del error si URL tiene ?debug=1 (para diagnóstico en prod)
+  const showDebug = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("debug") === "1";
+  const errorDetails = showDebug && error
+    ? (error instanceof Error ? `${error.message}\n\n${error.stack || ""}` : String(error))
+    : null;
+
   return (
     <div
       className="min-h-screen flex items-center justify-center px-6"
@@ -36,6 +50,9 @@ export function RouteErrorFallback() {
         <h1 className="text-3xl font-black text-[#074738]">Pessy</h1>
         <p className="text-slate-500 mt-3 text-sm">Tuvimos un problema en esta vista.</p>
         <p className="mt-4 text-sm text-slate-700">{message}</p>
+        {errorDetails && (
+          <pre className="mt-4 text-[10px] text-left text-red-700 bg-red-50 p-2 rounded-lg overflow-auto max-h-40 whitespace-pre-wrap break-all">{errorDetails}</pre>
+        )}
         <div className="mt-8 space-y-3">
           <button
             onClick={() => window.location.reload()}
