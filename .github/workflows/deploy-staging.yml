@@ -2,6 +2,7 @@ name: Deploy — Staging (appqa)
 on:
   push:
     branches: [develop]
+  workflow_dispatch:  # Allow manual trigger from GitHub UI + CLI
 
 jobs:
   deploy-staging:
