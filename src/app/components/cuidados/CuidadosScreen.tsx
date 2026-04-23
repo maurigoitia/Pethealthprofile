@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router";
-import { ChevronLeft, Stethoscope, Syringe, Pill, Scissors, AlertTriangle } from "lucide-react";
+import { ChevronLeft, Stethoscope, Syringe, Pill, Scissors } from "lucide-react";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
 import { TreatingVetsList } from "../medical/TreatingVetsList";
@@ -95,15 +95,6 @@ export function CuidadosScreen({ onBack }: Props) {
   const hasWarning = dimensions.some((d) => d.status === "warning");
   const overall    = hasAlert ? "alert" : hasWarning ? "warning" : "ok";
 
-  // Score 0-100: cada dimensión aporta 25 puntos, se descuenta por warning/alert
-  const score = dimensions.reduce((acc, d) => {
-    if (d.status === "ok") return acc + 25;
-    if (d.status === "warning") return acc + 12;
-    return acc; // alert = 0
-  }, 0);
-
-  const scoreColor = score >= 75 ? "#10B981" : score >= 50 ? "#F59E0B" : "#EF4444";
-
   const overallConfig = {
     ok:      { emoji: "😊", headline: `${petName} está muy bien`,      sub: "Todo en orden. ¡Seguí así!",                  bg: "#ECFDF5" },
     warning: { emoji: "🙂", headline: `${petName} está bien`,          sub: "Hay un par de cosas a tener en cuenta.",      bg: "#FFFBEB" },
@@ -145,49 +136,6 @@ export function CuidadosScreen({ onBack }: Props) {
             <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>{overallConfig.sub}</p>
           </div>
         </div>
-
-        {/* ── Score bar ── */}
-        <div style={{ backgroundColor: "#fff", borderRadius: 16, padding: "16px", boxShadow: "0 2px 8px rgba(0,0,0,.04)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 700, color: "#0F172A" }}>
-              Puntuación de bienestar
-            </p>
-            <span style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 22, fontWeight: 800, color: scoreColor }}>
-              {score}
-            </span>
-          </div>
-          <div style={{ height: 8, borderRadius: 99, backgroundColor: "#F1F5F9", overflow: "hidden" }}>
-            <div
-              style={{
-                height: "100%",
-                width: `${score}%`,
-                borderRadius: 99,
-                backgroundColor: scoreColor,
-                transition: "width 0.6s cubic-bezier(.16,1,.3,1)",
-              }}
-            />
-          </div>
-          <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 6 }}>
-            {score >= 75 ? "Excelente estado general" : score >= 50 ? "Buen estado, hay cosas por atender" : "Requiere atención pronto"}
-          </p>
-        </div>
-
-        {/* ── Alertas activas ── */}
-        {(hasAlert || hasWarning) && (
-          <div style={{ backgroundColor: hasAlert ? "#FEF2F2" : "#FFFBEB", borderRadius: 16, padding: "14px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
-            <AlertTriangle size={18} strokeWidth={2} style={{ color: hasAlert ? "#EF4444" : "#F59E0B", flexShrink: 0, marginTop: 1 }} />
-            <div>
-              <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 700, color: "#0F172A" }}>
-                {hasAlert ? "Atención requerida" : "Próximas acciones"}
-              </p>
-              <ul style={{ fontSize: 12, color: "#64748B", marginTop: 4, paddingLeft: 14, display: "flex", flexDirection: "column", gap: 3 }}>
-                {dimensions.filter(d => d.status !== "ok").map(d => (
-                  <li key={d.label}>{d.label}: {d.detail}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
 
         {/* ── Dimensiones de salud ── */}
         <div>

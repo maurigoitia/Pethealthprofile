@@ -25,7 +25,7 @@ export function HelpSupportScreen({ onBack }: HelpSupportScreenProps) {
         "Puedes subir comprobantes de vacunación, análisis, radiografías, recetas, estudios y cualquier otro documento de tu mascota en formato imagen (JPG, PNG) o PDF.",
     },
     {
-      question: "¿Cómo cambio la mascota seleccionada?",
+      question: "¿Cómo cambio de mascota activa?",
       answer:
         'En la pantalla principal, toca la foto de tu mascota o el nombre en la parte superior. Se abrirá el selector de mascotas donde podrás elegir a cuál quieres ver.',
     },
