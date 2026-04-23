@@ -19,6 +19,30 @@
         <priority>0.8</priority>
     </url>
     <url>
+        <loc>https://pessy.app/vs/</loc>
+        <lastmod>2026-04-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://pessy.app/vs/11pets</loc>
+        <lastmod>2026-04-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://pessy.app/vs/pet-cloud</loc>
+        <lastmod>2026-04-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://pessy.app/vs/petbuddy</loc>
+        <lastmod>2026-04-23</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
         <loc>https://pessy.app/blog/tu-mascota-todo-en-orden.html</loc>
         <lastmod>2026-04-23</lastmod>
         <changefreq>monthly</changefreq>
