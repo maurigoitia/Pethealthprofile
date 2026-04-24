@@ -145,7 +145,10 @@ export function AuthPageShell({
         {/* Form container
             Mobile: sin card, el form va directo sobre el gradient (v2 kit style)
             Desktop: card blanca centrada */}
-        <div className="flex flex-1 items-start justify-center px-6 pb-8 lg:items-center lg:px-12 lg:py-0">
+        <div
+          className="flex flex-1 items-start justify-center px-6 lg:items-center lg:px-12 lg:py-0"
+          style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
+        >
           <div
             className="w-full max-w-md
                        lg:rounded-[16px] lg:border lg:border-[#E5E7EB] lg:bg-white

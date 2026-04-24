@@ -82,7 +82,11 @@ export function RegisterPetStep1() {
         >
           Registrar mascota
         </h2>
-        <p className="mt-2 text-sm font-medium text-[#9CA3AF]">Paso 1 de 2</p>
+        <div className="mt-3 flex items-center gap-2">
+          <span className="h-2 w-8 rounded-full bg-[#1A9B7D] transition-all" aria-label="Paso 1 activo" />
+          <span className="h-2 w-6 rounded-full bg-[#E0F2F1] transition-all" aria-label="Paso 2 pendiente" />
+          <span className="ml-1 text-xs font-semibold text-[#9CA3AF]">Paso 1 de 2</span>
+        </div>
       </div>
 
       <div className="space-y-5">

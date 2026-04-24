@@ -242,7 +242,7 @@ export function LoginScreen() {
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-[14px] border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold text-white hover:bg-white/20 transition-colors lg:border-[#E5E7EB] lg:bg-[#F0FAF9] lg:text-[#074738] lg:hover:bg-[#E0F2F1]"
+              className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] rounded-[14px] border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20 transition-colors lg:border-[#E5E7EB] lg:bg-[#F0FAF9] lg:text-[#074738] lg:hover:bg-[#E0F2F1]"
               style={{ fontFamily: "'Manrope', sans-serif" }}
             >
               {showPassword ? "Ocultar" : "Mostrar"}

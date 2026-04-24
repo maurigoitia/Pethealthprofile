@@ -141,6 +141,14 @@ service cloud.firestore {
         canJoinPetWithInvite(petId) ||
         canLeavePetAsCoTutor();
       allow delete: if isPetOwner(resource.data);
+
+      // ─── EXTRACTED VETS (populated by Cloud Function `extractVetsFromArchives`
+      //     + incremental client upserts desde MedicalContext tras addEvent).
+      // Read/write: owner o co-tutor del pet. La CF usa admin SDK y bypasea rules.
+      match /extractedVets/{vetId} {
+        allow read, create, update: if canAccessPetById(petId);
+        allow delete: if isPetOwnerById(petId);
+      }
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -513,6 +521,17 @@ service cloud.firestore {
     // ─────────────────────────────────────────────────────────────────
     // VERIFIED REPORTS (digital passport export)
     // ─────────────────────────────────────────────────────────────────
+
+    // ─────────────────────────────────────────────────────────────────
+    // LEARNING VIDEOS (curated educational content)
+    // Read: any authenticated user (shared content, no PII).
+    // Write: admin only — clients cannot mutate the curated catalog.
+    // ─────────────────────────────────────────────────────────────────
+
+    match /learningVideos/{videoId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
 
     match /verified_reports/{reportId} {
       allow read: if signedIn() && resource.data.ownerId == request.auth.uid;

@@ -1,0 +1,10 @@
+title,provider,url,thumbnailUrl,durationSeconds,language,species,conditions,ageRangeMinMonths,ageRangeMaxMonths,tags,active
+# REGLAS — Ver seed/learning-videos-RULES.md ANTES de poblar este archivo:
+# 1. Cada URL debe verificarse con: curl -A "Mozilla/5.0" "https://www.youtube.com/oembed?url=URL&format=json" — si devuelve "Not Found" NO usarla
+# 2. NO usar videos producidos por apps competidoras (Pawtrack, 11pets, Petbuddy, Pet Cloud, Paw AI, etc.)
+# 3. Idiomas soportados: es, en, fr, pt — al menos 3-5 videos por idioma para tener cobertura
+# 4. Solo canales educativos verificables (American Kennel Club oficial, Veterinaria Plataforma 23, Royal Canin oficial, Wamiz France, Petlove Brasil, Kikopup, Zak George, Cesar Millan, Jackson Galaxy)
+# 5. Sin emojis en title — solo texto plano
+# 6. species: dog | cat | rabbit | bird | reptile (lower-case)
+# 7. conditions vacío si video general; coma-separado si aplica (ej: "diabetes,artritis,dermatitis")
+# 8. Borrar estas líneas comentadas antes de ejecutar el script de seed

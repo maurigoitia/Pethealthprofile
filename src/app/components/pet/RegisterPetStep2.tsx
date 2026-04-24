@@ -89,20 +89,24 @@ export function RegisterPetStep2() {
           if (uploaded?.ok && uploaded.url) {
             await updatePet(petId, { photo: uploaded.url });
           } else {
-            await updatePet(petId, { photo: "" });
+            // NO pisar photo con "" — si ya había una URL (re-registro improbable pero posible),
+            // se preserva. Solo marcamos el flag para avisar al user.
             photoUploadFailed = true;
           }
         } catch (uploadError: any) {
           console.error("Upload de foto en alta de mascota falló:", uploadError);
-          await updatePet(petId, { photo: "" });
+          // NO pisar photo con "" — el bug 8a33c6d hizo perder URLs reales cuando CSP blob:
+          // bloqueaba uploads. Preservar valor previo.
           photoUploadFailed = true;
         }
       }
 
       if (photoUploadFailed) {
-        setPhotoNotice("Tu mascota fue creada. Podés agregar la foto desde tu perfil.");
-        // Give the user a moment to read the notice, then navigate
-        setTimeout(() => navigate("/home"), 2500);
+        // Antes: auto-navegaba en 2.5s perdiendo la noticia. Ahora espera acción
+        // del usuario: "Reintentar" queda acá mismo, "Saltar" navega.
+        setPhotoNotice(
+          "No pudimos subir la foto. Podés reintentar o seguir y agregarla después."
+        );
       } else {
         navigate("/home");
       }
@@ -128,7 +132,11 @@ export function RegisterPetStep2() {
         >
           Registrar mascota
         </h2>
-        <p className="mt-2 text-sm font-medium text-[#9CA3AF]">Paso 2 de 2</p>
+        <div className="mt-3 flex items-center gap-2">
+          <span className="h-2 w-6 rounded-full bg-[#1A9B7D] opacity-50 transition-all" aria-label="Paso 1 completo" />
+          <span className="h-2 w-8 rounded-full bg-[#1A9B7D] transition-all" aria-label="Paso 2 activo" />
+          <span className="ml-1 text-xs font-semibold text-[#9CA3AF]">Paso 2 de 2</span>
+        </div>
       </div>
 
       <div className="space-y-5">
@@ -225,9 +233,27 @@ export function RegisterPetStep2() {
           </label>
 
           {photoNotice && (
-            <p className="text-[#1A9B7D] text-sm font-semibold text-center bg-[#E0F2F1] rounded-[10px] px-4 py-3">
-              {photoNotice}
-            </p>
+            <div className="rounded-[12px] bg-amber-50 border border-amber-200 px-4 py-3 space-y-2">
+              <p className="text-amber-800 text-sm font-semibold text-center">
+                {photoNotice}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setPhotoNotice(""); handleFinish(); }}
+                  className="min-h-[44px] rounded-[10px] bg-amber-500 text-white text-xs font-bold active:scale-[0.97] transition-transform"
+                >
+                  Reintentar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/home")}
+                  className="min-h-[44px] rounded-[10px] border border-amber-300 text-amber-800 text-xs font-bold active:scale-[0.97] transition-transform"
+                >
+                  Seguir sin foto
+                </button>
+              </div>
+            </div>
           )}
           {error && <p className="text-red-500 text-sm font-semibold text-center">{error}</p>}
 

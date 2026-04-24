@@ -24,7 +24,6 @@ import { RegisterPetStep1 } from "./components/pet/RegisterPetStep1";
 import { RegisterPetStep2 } from "./components/pet/RegisterPetStep2";
 import { LoginScreen } from "./components/auth/LoginScreen";
 import { ForgotPasswordScreen } from "./components/auth/ForgotPasswordScreen";
-import { VerifyReportScreen } from "./components/medical/VerifyReportScreen";
 import { EmailLinkSignInScreen } from "./components/auth/EmailLinkSignInScreen";
 import { RouteErrorFallback } from "./components/shared/RouteErrorFallback";
 import { ClinicalReviewScreen } from "./components/medical/ClinicalReviewScreen";
@@ -121,11 +120,23 @@ const previewRoutes = previewRoutesEnabled
     ]
   : [];
 
+// Hostnames que sirven la app PWA (no la landing pública).
+// Incluye prod, staging Firebase, custom domain QA y dev local.
+const APP_HOSTS = new Set([
+  "app.pessy.app",
+  "pessy-qa-app.web.app",
+  "pessy-qa-app.firebaseapp.com",
+  "appqa.pessy.app",
+  "itpessy.web.app",
+  "pessy-focus-qa.web.app",
+  "localhost",
+  "127.0.0.1",
+]);
+
 function RootRoute() {
   const host = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
   if (isNativeAppContext()) return <Navigate to="/inicio" replace />;
-  if (host === "app.pessy.app") return <Navigate to="/inicio" replace />;
-  if (host === "localhost" || host === "127.0.0.1") return <Navigate to="/inicio" replace />;
+  if (APP_HOSTS.has(host)) return <Navigate to="/inicio" replace />;
   return <LandingEcosystemPreviewPage />;
 }
 
@@ -159,7 +170,6 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/terminos", Component: LegalPage }),
   withErrorBoundary({ path: "/legal", Component: LegalPage }),
   withErrorBoundary({ path: "/email-link", Component: EmailLinkSignInScreen }),
-  withErrorBoundary({ path: "/verify/:hash", Component: VerifyReportScreen }),
   withErrorBoundary({ path: "/review/:reviewId", Component: ClinicalReviewScreen }),
 
   // ── Vet portal ──

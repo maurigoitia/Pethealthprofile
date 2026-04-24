@@ -209,7 +209,6 @@ export default defineConfig({
           // App code
           'app-utils': [
             './src/app/utils/clinicalBrain',
-            './src/app/utils/medicalRulesEngine',
             './src/app/utils/deduplication',
           ],
         },

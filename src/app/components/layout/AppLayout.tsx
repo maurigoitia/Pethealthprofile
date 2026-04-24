@@ -43,6 +43,12 @@ const ExportReportModal = lazy(() =>
 
 const InviteFriendsModal = lazy(() => import("../pet/InviteFriendsModal.tsx"));
 
+const QuickSymptomLog = lazy(() =>
+  import("../medical/QuickSymptomLog.tsx").then((m) => ({
+    default: m.QuickSymptomLog,
+  }))
+);
+
 // ---------------------------------------------------------------------------
 // Context so child routes can trigger layout-level modals
 // ---------------------------------------------------------------------------
@@ -54,6 +60,7 @@ export interface AppLayoutActions {
   openExportReport: () => void;
   openInviteFriends: () => void;
   openSidebar: () => void;
+  openSymptomLog: () => void;
 }
 
 export const AppLayoutContext = createContext<AppLayoutActions>({
@@ -63,6 +70,7 @@ export const AppLayoutContext = createContext<AppLayoutActions>({
   openExportReport: () => {},
   openInviteFriends: () => {},
   openSidebar: () => {},
+  openSymptomLog: () => {},
 });
 
 export function useAppLayout() {
@@ -136,6 +144,7 @@ export default function AppLayout() {
   const [showPetProfile, setShowPetProfile] = useState(false);
   const [showExportReport, setShowExportReport] = useState(false);
   const [showInviteFriends, setShowInviteFriends] = useState(false);
+  const [showSymptomLog, setShowSymptomLog] = useState(false);
 
   // Sidebar
   const [showSidebar, setShowSidebar] = useState(false);
@@ -346,6 +355,7 @@ export default function AppLayout() {
     openExportReport: () => setShowExportReport(true),
     openInviteFriends: () => setShowInviteFriends(true),
     openSidebar: () => setShowSidebar(true),
+    openSymptomLog: () => setShowSymptomLog(true),
   };
 
   // -----------------------------------------------------------------------
@@ -401,6 +411,16 @@ export default function AppLayout() {
   // -----------------------------------------------------------------------
 
   if (!user) {
+    // Preservar ?invite=CODE si vino por link de co-tutor — si no lo guardamos
+    // antes del redirect el parametro se pierde y el usuario nuevo no sabe
+    // qué pasó.
+    const urlInvite = normalizeCoTutorInviteCode(
+      new URLSearchParams(location.search).get("invite")
+    );
+    if (urlInvite) {
+      rememberPendingCoTutorInvite(urlInvite);
+      return <Navigate to={`/login?invite=${urlInvite}`} replace />;
+    }
     return <Navigate to="/login" replace />;
   }
 
@@ -603,6 +623,12 @@ export default function AppLayout() {
           <InviteFriendsModal
             open={showInviteFriends}
             onClose={() => setShowInviteFriends(false)}
+          />
+        </Suspense>
+        <Suspense fallback={null}>
+          <QuickSymptomLog
+            isOpen={showSymptomLog}
+            onClose={() => setShowSymptomLog(false)}
           />
         </Suspense>
       </div>

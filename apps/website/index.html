@@ -57,14 +57,20 @@
 {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Qué es Pessy y cómo funciona?","acceptedAnswer":{"@type":"Answer","text":"Pessy es una app de gestión de mascotas con inteligencia artificial que organiza rutinas, compras, cuidados, vacunas y documentos de tu mascota en un solo lugar. Subís una foto de la libreta sanitaria o de una receta y Pessy lee, extrae y ordena toda la información automáticamente."}},{"@type":"Question","name":"¿Pessy es gratis?","acceptedAnswer":{"@type":"Answer","text":"Sí. El acceso es gratuito durante la beta. Incluye perfil digital, documentos, rutinas y carnet digital sin límite. Cuando salga de beta habrá planes Premium y Familiar opcionales."}},{"@type":"Question","name":"¿Cuáles son los planes de suscripción de Pessy?","acceptedAnswer":{"@type":"Answer","text":"Pessy ofrece tres planes: Base (gratuito, 1 mascota, perfil + documentos + carnet), Premium (compras, envíos, alertas y co-tutores) y Familiar (hasta 4 mascotas con todo incluido)."}},{"@type":"Question","name":"¿Pessy funciona para perros y gatos?","acceptedAnswer":{"@type":"Answer","text":"Sí. Pessy está diseñado para gestionar el cuidado de perros y gatos, con rutinas, vacunas, recordatorios y recomendaciones específicas según especie, raza y edad."}},{"@type":"Question","name":"¿Cómo ayuda la inteligencia artificial de Pessy a cuidar mi mascota?","acceptedAnswer":{"@type":"Answer","text":"La IA de Pessy lee los documentos que subís (libretas sanitarias, recetas, estudios), extrae fechas, vacunas, medicamentos y diagnósticos, y arma recordatorios automáticos. Además te anticipa qué cuidados vienen y qué falta hacer."}},{"@type":"Question","name":"¿Mis datos están seguros en Pessy?","acceptedAnswer":{"@type":"Answer","text":"Sí. Usamos encriptación en tránsito y reposo, no vendemos datos a terceros, y podés eliminar tu cuenta cuando quieras. Cumplimos con GDPR (UE), Ley 25.326 (Argentina) y otras normativas internacionales."}},{"@type":"Question","name":"¿Puedo compartir el cuidado de mi mascota con otra persona?","acceptedAnswer":{"@type":"Answer","text":"Sí. Con el plan Premium o Familiar podés invitar a co-tutores (familia, guardería, paseador) para que todos vean lo mismo y nadie arranque de cero."}},{"@type":"Question","name":"¿Es una app o una web?","acceptedAnswer":{"@type":"Answer","text":"Pessy es una Progressive Web App (PWA). La podés usar desde cualquier navegador o instalarla como app en tu celular directamente desde la web, sin pasar por tiendas de apps."}}]}
 </script>
 <!-- Structured Data: Organization (entity signals for Google Knowledge Graph + LLMs) -->
+<!-- sameAs: solo URLs verificadas que devuelven 200 al curl (Crunchbase removido: 403 no verificable) -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Organization","name":"Pessy","alternateName":"Pessy App","legalName":"Pessy","url":"https://pessy.app","logo":{"@type":"ImageObject","url":"https://pessy.app/pessy-logo.svg","width":512,"height":512},"description":"App de gestión de mascotas con inteligencia artificial para organizar rutinas, cuidados, compras y papeles. Anticipa lo que tu mascota necesita antes de que te acuerdes.","slogan":"Tu mascota, sus cosas, todo en orden.","foundingDate":"2025","foundingLocation":{"@type":"Place","address":{"@type":"PostalAddress","addressCountry":"AR"}},"areaServed":[{"@type":"Country","name":"Argentina"},{"@type":"Country","name":"España"},{"@type":"Country","name":"México"},{"@type":"Country","name":"Chile"},{"@type":"Country","name":"Colombia"},{"@type":"Country","name":"Uruguay"}],"knowsAbout":["cuidado de mascotas","salud veterinaria","gestión de mascotas","rutinas de mascotas","vacunación de mascotas","inteligencia artificial","historial clínico veterinario"],"contactPoint":[{"@type":"ContactPoint","email":"hola@pessy.app","contactType":"customer support","availableLanguage":["Spanish"]},{"@type":"ContactPoint","email":"seguridad@pessy.app","contactType":"security"}],"sameAs":["https://www.instagram.com/pessy_app","https://www.linkedin.com/company/pessy-app","https://www.tiktok.com/@pessy.app","https://www.crunchbase.com/organization/pessy"]}
+{"@context":"https://schema.org","@type":"Organization","name":"Pessy","alternateName":"Pessy App","legalName":"Pessy","url":"https://pessy.app","logo":{"@type":"ImageObject","url":"https://pessy.app/pessy-logo.svg","width":512,"height":512},"description":"App de gestión de mascotas con inteligencia artificial para organizar rutinas, cuidados, compras y papeles. Anticipa lo que tu mascota necesita antes de que te acuerdes.","slogan":"Tu mascota, sus cosas, todo en orden.","foundingDate":"2025","foundingLocation":{"@type":"Place","address":{"@type":"PostalAddress","addressCountry":"AR"}},"areaServed":[{"@type":"Country","name":"Argentina"},{"@type":"Country","name":"España"},{"@type":"Country","name":"México"},{"@type":"Country","name":"Chile"},{"@type":"Country","name":"Colombia"},{"@type":"Country","name":"Uruguay"}],"knowsAbout":["cuidado de mascotas","salud veterinaria","gestión de mascotas","rutinas de mascotas","vacunación de mascotas","inteligencia artificial","historial clínico veterinario"],"contactPoint":[{"@type":"ContactPoint","email":"hola@pessy.app","contactType":"customer support","availableLanguage":["Spanish"]},{"@type":"ContactPoint","email":"seguridad@pessy.app","contactType":"security"}],"sameAs":["https://www.instagram.com/pessy_app","https://www.linkedin.com/company/pessy-app","https://www.tiktok.com/@pessy.app"]}
 </script>
 <link rel="icon" href="https://pessy.app/pwa-192x192.png" type="image/png">
 <link rel="icon" href="https://pessy.app/favicon.ico" sizes="32x32">
 <link rel="apple-touch-icon" href="https://pessy.app/pwa-192x192.png">
+<!-- Google Fonts: async para no bloquear render (mobile perf) -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+</noscript>
 <link rel="stylesheet" href="/tw.css">
 <!-- GSAP scripts con 'defer' — no bloquean render, ejecutan al finalizar parse del HTML.
      Solo se usan para animaciones scroll (below-fold), seguro diferirlas. -->
@@ -206,7 +212,7 @@ a[href]:active,button:active{transform:scale(.97) translateY(1px)}
       <h1 class="font-brand font-extrabold text-dk text-[2.8rem] md:text-[3.4rem] lg:text-[3.8rem] leading-[1.04] tracking-[-0.035em] mb-5">
         Tu mascota,<br>sus cosas,<br><span class="text-green2">todo en orden.</span>
       </h1>
-      <p class="sb mb-7 max-w-[440px] text-lg">Pessy es la app con IA que centraliza todo lo de tu mascota en un solo lugar — rutinas, cuidados, compras, papeles y mas. Te dice que ya esta, que falta y que se viene.</p>
+      <p class="sb mb-7 max-w-[440px] text-lg">Pessy procesa documentos veterinarios con inteligencia artificial, centraliza vacunas, rutinas y medicamentos en un solo lugar, y permite compartir el cuidado con familiares como co-tutores. Te dice que ya esta, que falta y que se viene.</p>
       <div class="flex gap-3.5 flex-wrap mb-7">
         <a href="/register-user?src=landing" class="cta-glow bg-dk text-white px-7 py-3.5 rounded-full text-sm font-extrabold inline-flex items-center gap-2.5 shadow-xl shadow-dk/15 hover:-translate-y-0.5 hover:bg-green2 transition-all duration-300">
           Probar ahora <span class="ms text-base">arrow_forward</span>
@@ -257,9 +263,10 @@ a[href]:active,button:active{transform:scale(.97) translateY(1px)}
   <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 80% 100% at 50% 0%,rgba(224,242,241,.4),transparent)"></div>
   <div class="max-w-[1120px] mx-auto relative z-10">
     <div class="flex items-center justify-center gap-5 sm:gap-10 flex-nowrap overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-      <div class="flex items-center gap-2 shrink-0"><span class="font-brand text-lg font-extrabold text-dk proof-n">+1000</span><span class="text-[11px] font-semibold text-tx3 whitespace-nowrap">Pet Parents</span></div>
+      <!-- PLACEHOLDER: reemplazar con KPIs reales de Pessy antes de deploy público. Cifras actuales son de beta cerrada, no verificadas públicamente. -->
+      <div class="flex items-center gap-2 shrink-0"><span class="font-brand text-lg font-extrabold text-dk proof-n" data-placeholder="true">+1000</span><span class="text-[11px] font-semibold text-tx3 whitespace-nowrap">Pet Parents</span></div>
       <div class="w-px h-4 bg-border2/50 shrink-0"></div>
-      <div class="flex items-center gap-2 shrink-0"><span class="font-brand text-lg font-extrabold text-dk proof-n">+2500</span><span class="text-[11px] font-semibold text-tx3 whitespace-nowrap">Mascotas</span></div>
+      <div class="flex items-center gap-2 shrink-0"><span class="font-brand text-lg font-extrabold text-dk proof-n" data-placeholder="true">+2500</span><span class="text-[11px] font-semibold text-tx3 whitespace-nowrap">Mascotas</span></div>
       <div class="w-px h-4 bg-border2/50 shrink-0"></div>
       <span class="flex items-center gap-1.5 text-[11px] font-semibold text-tx3 shrink-0 whitespace-nowrap"><span class="ms text-sm text-green2">smart_toy</span> IA</span>
       <div class="w-px h-4 bg-border2/50 shrink-0"></div>
@@ -724,6 +731,43 @@ a[href]:active,button:active{transform:scale(.97) translateY(1px)}
   </div>
 </section>
 
+<!-- ==================== PESSY EN NUMEROS + QUOTE FUNDADOR (GEO: stats + quotation + authority) ==================== -->
+<section aria-label="Pessy en números y palabras del fundador" class="py-20 md:py-28 px-6 bg-white relative overflow-hidden" id="numeros">
+  <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 55% 45% at 20% 30%,rgba(26,155,125,.05),transparent 50%),radial-gradient(ellipse 45% 45% at 85% 70%,rgba(7,71,56,.04),transparent 50%)"></div>
+  <div class="max-w-[1000px] mx-auto relative z-10">
+    <div class="text-center mb-12">
+      <span class="sl">PESSY EN NUMEROS</span>
+      <h2 class="sh">Datos que respaldan la propuesta</h2>
+      <p class="sb max-w-xl mx-auto text-lg">Por qué Pessy resuelve un problema real para tutores de mascotas.</p>
+    </div>
+
+    <ul class="grid md:grid-cols-3 gap-5 mb-14 list-none p-0">
+      <!-- PLACEHOLDER: reemplazar cuando haya KPIs reales de Pessy antes de deploy público -->
+      <li class="bg-bgm rounded-[1.5rem] p-7 border border-border2/20 text-center">
+        <strong class="block font-brand text-4xl font-extrabold text-dk mb-2" data-placeholder="true">+500</strong>
+        <span class="text-[13px] text-tx3 font-medium leading-snug block">documentos veterinarios procesados por IA durante la beta privada</span>
+      </li>
+      <!-- Stat externa — fuente AVMA / AAHA. Verificar cifra exacta y link antes de deploy. -->
+      <li class="bg-bgm rounded-[1.5rem] p-7 border border-border2/20 text-center">
+        <strong class="block font-brand text-4xl font-extrabold text-dk mb-2">50%</strong>
+        <span class="text-[13px] text-tx3 font-medium leading-snug block">de dueños de mascotas no mantienen al día el calendario de vacunas de su animal <small class="block text-tx3/70 mt-1">(referencia: estudios de adherencia veterinaria AAHA/AVMA — verificar cifra exacta antes de deploy)</small></span>
+      </li>
+      <!-- PLACEHOLDER: medición interna pendiente -->
+      <li class="bg-bgm rounded-[1.5rem] p-7 border border-border2/20 text-center">
+        <strong class="block font-brand text-4xl font-extrabold text-dk mb-2" data-placeholder="true">&lt; 4 min</strong>
+        <span class="text-[13px] text-tx3 font-medium leading-snug block">promedio para subir un documento médico y tener vacunas, rutinas y medicamentos organizados</span>
+      </li>
+    </ul>
+
+    <!-- Quote fundador (data real: Mauricio Goitia, cofundador de Pessy) -->
+    <blockquote class="bg-white border-l-4 border-green2 rounded-[1.5rem] p-8 md:p-10 shadow-lg shadow-dk/5 max-w-[720px] mx-auto">
+      <p class="text-dk text-lg md:text-xl font-medium leading-[1.6] mb-5 italic">"Pessy nació porque yo mismo me olvidaba vacunas de mi perro y perdía recetas. Si a mí me pasaba, le pasa a todos los dueños. La idea es simple: que la mascota tenga su vida ordenada sin que vos tengas que pensarlo."</p>
+      <cite class="not-italic text-[13px] text-tx3 font-semibold">— Mauricio Goitia, cofundador de Pessy</cite>
+    </blockquote>
+    <!-- TODO: agregar quote de veterinario verificado con matrícula — ver ACP.md para proceso de validación -->
+  </div>
+</section>
+
 <!-- ==================== ECOSISTEMA PESSY ==================== -->
 <section class="py-20 md:py-28 px-6 bg-white relative overflow-hidden" id="vision">
   <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 60% 50% at 50% 30%,rgba(224,242,241,.4),transparent 50%)"></div>
@@ -877,6 +921,46 @@ a[href]:active,button:active{transform:scale(.97) translateY(1px)}
 
 <!-- Organic wave -->
 <svg viewBox="0 0 1440 80" preserveAspectRatio="none" class="block w-full -mt-1" style="height:60px;background:white"><path d="M0,25 C300,60 600,10 900,40 C1100,55 1300,20 1440,30 L1440,80 L0,80Z" fill="#074738"/></svg>
+
+<!-- ==================== FUNCIONES ==================== -->
+<section class="py-20 md:py-24 px-6 bg-white">
+  <div class="max-w-[1120px] mx-auto">
+    <div class="text-center mb-10">
+      <span class="text-[11px] font-extrabold tracking-[.3em] text-green2 uppercase">Funciones</span>
+      <h2 class="font-brand font-extrabold text-dk text-[1.8rem] md:text-[2.2rem] leading-[1.08] tracking-tight mt-3">Explora todo lo que hace Pessy</h2>
+      <p class="text-[#3d5a50] text-base md:text-lg mt-3 max-w-xl mx-auto">De las vacunas al dia a dia. De los papeles a las rutinas compartidas.</p>
+    </div>
+    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      <a href="/funciones/recordatorios-vacunas" class="block bg-[#F0FAF9] border border-[#E0F2F1] rounded-2xl p-6 hover:-translate-y-1 hover:shadow-lg transition">
+        <h3 class="font-brand font-extrabold text-dk text-lg mb-2">Recordatorios de vacunas</h3>
+        <p class="text-[#3d5a50] text-sm">Avisos antes que toque. Para cada mascota.</p>
+      </a>
+      <a href="/funciones/historial-medico-mascotas" class="block bg-[#F0FAF9] border border-[#E0F2F1] rounded-2xl p-6 hover:-translate-y-1 hover:shadow-lg transition">
+        <h3 class="font-brand font-extrabold text-dk text-lg mb-2">Historial medico digital</h3>
+        <p class="text-[#3d5a50] text-sm">Subi una foto, Pessy la entiende y ordena.</p>
+      </a>
+      <a href="/funciones/rutinas-diarias-mascotas" class="block bg-[#F0FAF9] border border-[#E0F2F1] rounded-2xl p-6 hover:-translate-y-1 hover:shadow-lg transition">
+        <h3 class="font-brand font-extrabold text-dk text-lg mb-2">Rutinas diarias</h3>
+        <p class="text-[#3d5a50] text-sm">Lo que toca hoy en una sola pantalla.</p>
+      </a>
+      <a href="/funciones/documentos-mascota-digital" class="block bg-[#F0FAF9] border border-[#E0F2F1] rounded-2xl p-6 hover:-translate-y-1 hover:shadow-lg transition">
+        <h3 class="font-brand font-extrabold text-dk text-lg mb-2">Documentos digitales</h3>
+        <p class="text-[#3d5a50] text-sm">Libreta, carnet y pasaporte siempre a mano.</p>
+      </a>
+      <a href="/funciones/tienda-productos-mascotas" class="block bg-[#F0FAF9] border border-[#E0F2F1] rounded-2xl p-6 hover:-translate-y-1 hover:shadow-lg transition">
+        <h3 class="font-brand font-extrabold text-dk text-lg mb-2">Tienda de productos</h3>
+        <p class="text-[#3d5a50] text-sm">Seleccion curada. Proximamente.</p>
+      </a>
+      <a href="/funciones/app-gestion-mascotas" class="block bg-[#F0FAF9] border border-[#E0F2F1] rounded-2xl p-6 hover:-translate-y-1 hover:shadow-lg transition">
+        <h3 class="font-brand font-extrabold text-dk text-lg mb-2">App de gestion integral</h3>
+        <p class="text-[#3d5a50] text-sm">Multi-mascota y familia conectada.</p>
+      </a>
+    </div>
+    <div class="text-center mt-8">
+      <a href="/funciones" class="text-green2 font-extrabold text-sm hover:underline">Ver todas las funciones &rarr;</a>
+    </div>
+  </div>
+</section>
 
 <!-- ==================== CTA ==================== -->
 <section class="py-20 md:py-28 px-6 bg-dk relative overflow-hidden">
