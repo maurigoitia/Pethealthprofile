@@ -12,14 +12,15 @@ interface Props {
 interface HealthDimension {
   icon: React.ReactNode;
   label: string;
-  status: "ok" | "warning" | "alert";
+  status: "ok" | "warning" | "alert" | "unknown";
   detail: string;
 }
 
 const STATUS_CONFIG = {
-  ok:      { bg: "#ECFDF5", text: "#065F46", dot: "#10B981", label: "Al día" },
+  ok:      { bg: "#ECFDF5", text: "#065F46", dot: "#10B981", label: "Programado" },
   warning: { bg: "#FFFBEB", text: "#92400E", dot: "#F59E0B", label: "Próximo" },
   alert:   { bg: "#FEF2F2", text: "#991B1B", dot: "#EF4444", label: "Atención" },
+  unknown: { bg: "#F1F5F9", text: "#475569", dot: "#94A3B8", label: "Sin datos" },
 };
 
 function daysUntil(dateStr: string | null | undefined): number | null {
@@ -42,11 +43,13 @@ export function CuidadosScreen({ onBack }: Props) {
   const petName = activePet?.name ?? "Tu mascota";
 
   // ── Vacunas: buscar próxima cita tipo vaccine ──
+  // No tenemos un registro real de vacunas aplicadas (solo appointments programados),
+  // así que NO podemos afirmar "al día". Mostramos estado real o "sin datos".
   const nextVaccineAppt = appointments
     .filter((a) => a.status === "upcoming" && a.type === "vaccine" && a.date)
     .sort((a, b) => (a.date! > b.date! ? 1 : -1))[0];
   const vaccineStatus: HealthDimension["status"] = !nextVaccineAppt
-    ? "ok"
+    ? "unknown"
     : daysUntil(nextVaccineAppt.date)! <= 7
     ? "alert"
     : daysUntil(nextVaccineAppt.date)! <= 30
@@ -54,7 +57,7 @@ export function CuidadosScreen({ onBack }: Props) {
     : "ok";
   const vaccineDetail = nextVaccineAppt
     ? `Próxima en ${daysUntil(nextVaccineAppt.date)} días`
-    : "Todas al día";
+    : "Sin información de vacunas registrada";
 
   // ── Control médico: próxima cita general ──
   const nextAppt = appointments
@@ -62,7 +65,7 @@ export function CuidadosScreen({ onBack }: Props) {
     .sort((a, b) => (a.date! > b.date! ? 1 : -1))[0];
   const apptDays = nextAppt ? daysUntil(nextAppt.date) : null;
   const apptStatus: HealthDimension["status"] = apptDays == null
-    ? "ok"
+    ? "unknown"
     : apptDays <= 3
     ? "alert"
     : apptDays <= 14
@@ -72,7 +75,7 @@ export function CuidadosScreen({ onBack }: Props) {
     ? apptDays === 0
       ? "¡Hoy!"
       : `En ${apptDays} días`
-    : "Sin turnos próximos";
+    : "Sin turnos programados";
 
   // ── Medicamentos activos ──
   const activeMeds = activeMedications.filter(
@@ -86,9 +89,9 @@ export function CuidadosScreen({ onBack }: Props) {
       ? activeMeds[0].name
       : `${activeMeds.length} medicamentos activos`;
 
-  // ── Grooming: heurística por raza (sin datos reales aún) ──
-  const groomingStatus: HealthDimension["status"] = "ok";
-  const groomingDetail = "Sin alerta";
+  // ── Grooming: aún no tenemos registro real, mostramos como sin datos ──
+  const groomingStatus: HealthDimension["status"] = "unknown";
+  const groomingDetail = "Sin registro de grooming";
 
   const dimensions: HealthDimension[] = [
     { icon: <Syringe size={18} strokeWidth={1.8} />,     label: "Vacunas",         status: vaccineStatus, detail: vaccineDetail },
@@ -97,14 +100,23 @@ export function CuidadosScreen({ onBack }: Props) {
     { icon: <Scissors size={18} strokeWidth={1.8} />,    label: "Grooming",        status: groomingStatus, detail: groomingDetail },
   ];
 
-  const hasAlert   = dimensions.some((d) => d.status === "alert");
-  const hasWarning = dimensions.some((d) => d.status === "warning");
-  const overall    = hasAlert ? "alert" : hasWarning ? "warning" : "ok";
+  const hasAlert    = dimensions.some((d) => d.status === "alert");
+  const hasWarning  = dimensions.some((d) => d.status === "warning");
+  const allUnknown  = dimensions.every((d) => d.status === "unknown");
+  const overall: "alert" | "warning" | "ok" | "unknown" = hasAlert
+    ? "alert"
+    : hasWarning
+    ? "warning"
+    : allUnknown
+    ? "unknown"
+    : "ok";
 
   const overallConfig = {
-    ok:      { emoji: "😊", headline: `${petName} está muy bien`,      sub: "Todo en orden. ¡Seguí así!",                  bg: "#ECFDF5" },
-    warning: { emoji: "🙂", headline: `${petName} está bien`,          sub: "Hay un par de cosas a tener en cuenta.",      bg: "#FFFBEB" },
-    alert:   { emoji: "😟", headline: `${petName} necesita atención`,  sub: "Hay items que requieren acción pronto.",       bg: "#FEF2F2" },
+    // "ok" solo cuando hay al menos un dato real y nada en alerta/warning.
+    ok:      { emoji: "🙂", headline: `Cuidados de ${petName}`,           sub: "No vemos pendientes próximos en lo que tenemos cargado.",        bg: "#ECFDF5" },
+    warning: { emoji: "🙂", headline: `Atendé estos puntos de ${petName}`, sub: "Hay un par de cosas a tener en cuenta.",                          bg: "#FFFBEB" },
+    alert:   { emoji: "😟", headline: `${petName} necesita atención`,    sub: "Hay items que requieren acción pronto.",                          bg: "#FEF2F2" },
+    unknown: { emoji: "📋", headline: `Empecemos con ${petName}`,         sub: "Sumá información para ver el estado real de sus cuidados.",       bg: "#F1F5F9" },
   }[overall];
 
   return (
