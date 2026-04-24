@@ -106,7 +106,26 @@ function getRecommendedTrainingCommand(input: PessyIntelligenceInput) {
   return TRAINING_MASTER_BOOK.command_library.find((command) => command.id === "wait_signal") ?? null;
 }
 
-export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntelligenceResult {
+/**
+ * Normaliza input: asegura que TODOS los campos que deberían ser array lo sean.
+ * Previene crashes con .some/.includes/.filter sobre datos legacy mal tipados.
+ */
+function normalizeInput(input: PessyIntelligenceInput): PessyIntelligenceInput {
+  return {
+    ...input,
+    groupIds: Array.isArray(input.groupIds) ? input.groupIds : [],
+    fears: Array.isArray(input.fears) ? input.fears : [],
+    personality: Array.isArray(input.personality) ? input.personality : [],
+    favoriteActivities: Array.isArray(input.favoriteActivities) ? input.favoriteActivities : [],
+    walkTimes: Array.isArray(input.walkTimes) ? input.walkTimes : [],
+    recurringConditions: Array.isArray(input.recurringConditions) ? input.recurringConditions : undefined,
+  };
+}
+
+export function runPessyIntelligence(rawInput: PessyIntelligenceInput): PessyIntelligenceResult {
+  // Defense in depth: aunque PetContext y PetHomeView ya normalizan, acá garantizamos
+  // que si un consumer externo pasa datos crudos de Firestore, no crasheamos.
+  const input = normalizeInput(rawInput);
   const recommendations: PessyIntelligenceRecommendation[] = [];
   const thermalProfile = findThermalProfile(input);
   const segmentId = inferTrainingSegmentId(input);
@@ -274,8 +293,9 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
 
   // ─── MODULE: Rain & Storm ─────────────────────────────────────────────────
   if (input.isRaining || input.isStormy) {
-    const hasThunderFear = (input.fears || []).some((f) =>
-      f.toLowerCase().includes("trueno") || f.toLowerCase().includes("tormenta") || f.toLowerCase().includes("thunder")
+    const fearsArr = Array.isArray(input.fears) ? input.fears : [];
+    const hasThunderFear = fearsArr.some((f) =>
+      typeof f === "string" && (f.toLowerCase().includes("trueno") || f.toLowerCase().includes("tormenta") || f.toLowerCase().includes("thunder"))
     );
 
     if (input.isStormy && hasThunderFear) {
@@ -349,7 +369,7 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
       }
     } else if (hour >= 12 && hour < 16) {
       // Midday — check if walk scheduled conflicts with heat
-      if (input.walkTimes?.includes("14:00") && input.temperatureC !== null && input.temperatureC > 28) {
+      if (Array.isArray(input.walkTimes) && input.walkTimes.includes("14:00") && input.temperatureC !== null && input.temperatureC > 28) {
         recommendations.push({
           id: `${input.petName}_walk_conflict`,
           code: "walk_time_conflict",
@@ -434,9 +454,9 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
     );
 
     // Prefer activities matching pet's favorites
-    const favorites = input.favoriteActivities || [];
+    const favorites = Array.isArray(input.favoriteActivities) ? input.favoriteActivities : [];
     const categoryMap: Record<string, string> = { walk: "outdoor", park: "outdoor", cafe: "social", training: "training", swim: "outdoor" };
-    const preferredCategories = favorites.map((f) => categoryMap[f]).filter(Boolean);
+    const preferredCategories = favorites.map((f) => categoryMap[f as string]).filter(Boolean);
 
     let bestSuggestion = eligible.find((s) => preferredCategories.includes(s.category));
     if (!bestSuggestion && eligible.length > 0) {
@@ -595,8 +615,9 @@ export function runPessyIntelligence(input: PessyIntelligenceInput): PessyIntell
     const today = new Date();
     const month = today.getMonth(); // 0-indexed
     const day = today.getDate();
-    const hasNoiseFear = (input.fears || []).some((f) =>
-      f.toLowerCase().includes("fuego") || f.toLowerCase().includes("pirotecnia") || f.toLowerCase().includes("artifici")
+    const fearsArr2 = Array.isArray(input.fears) ? input.fears : [];
+    const hasNoiseFear = fearsArr2.some((f) =>
+      typeof f === "string" && (f.toLowerCase().includes("fuego") || f.toLowerCase().includes("pirotecnia") || f.toLowerCase().includes("artifici"))
     );
 
     // Alertar cerca de fechas con pirotecnia:

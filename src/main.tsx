@@ -2,9 +2,6 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./app/App.tsx";
 import "./styles/index.css";
-// SCRUM-48: Error tracking
-import { initSentry } from "./app/config/sentryConfig";
-initSentry();
 // SCRUM-104: i18n — must import before App renders
 import "./i18n";
 
@@ -16,7 +13,7 @@ const shouldRecoverFromChunkError = (reason: unknown) => {
     typeof reason === "string"
       ? reason
       : (reason as any)?.message || (reason as any)?.reason?.message || "";
-  return /Loading chunk \d+ failed|Failed to fetch dynamically imported module|Importing a module script failed/i.test(message);
+  return /Loading chunk \d+ failed|Failed to fetch dynamically imported module|Importing a module script failed|is not a valid JavaScript MIME type|text\/html.+MIME|Failed to load module script|Strict MIME type/i.test(message);
 };
 
 const recoverOnceFromChunkError = () => {

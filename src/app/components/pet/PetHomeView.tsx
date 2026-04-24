@@ -12,6 +12,7 @@ import { PetPhoto } from "./PetPhoto";
 import { HomeHeaderV2 } from "./HomeHeaderV2";
 import { HomeGreetingV2 } from "./HomeGreetingV2";
 import { PendienteHoyCard } from "./PendienteHoyCard";
+import { SafeBoundary } from "../shared/SafeBoundary";
 
 
 const PetPreferencesEditor = lazy(() =>
@@ -27,12 +28,12 @@ import {
   type PessyIntelligenceRecommendation,
 } from "../../../domain/intelligence/pessyIntelligenceEngine";
 
-import DailyHookCard from "../home/DailyHookCard";
 import HealthPulse from "../home/HealthPulse";
 import RoutineChecklist from "../home/RoutineChecklist";
 import ProfileNudge from "../home/ProfileNudge";
 import { QuickActionsV2 } from "../home/QuickActionsV2";
 import PessyTip, { SectionTitle } from "../home/PessyTip";
+import LearningVideosSection from "../learning/LearningVideosSection";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -294,6 +295,7 @@ function mapRecToTipColor(rec: PessyIntelligenceRecommendation): "green" | "blue
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function PetHomeView({
+  userName,
   onViewHistory,
   onProfileClick,
   onPetClick,
@@ -412,10 +414,12 @@ export function PetHomeView({
       windSpeedKmh: weather.windSpeedKmh,
       uvIndex: weather.uvIndex,
       currentHour: new Date().getHours(),
-      fears: activePet.preferences?.fears,
-      personality: activePet.preferences?.personality,
-      favoriteActivities: activePet.preferences?.favoriteActivities,
-      walkTimes: activePet.preferences?.walkTimes,
+      // Normalizar arrays: datos legacy en Firestore pueden venir como string/null/objeto
+      // en lugar de array. '.some()' / '.includes()' en el engine crashean si no es array.
+      fears: Array.isArray(activePet.preferences?.fears) ? activePet.preferences!.fears! : [],
+      personality: Array.isArray(activePet.preferences?.personality) ? activePet.preferences!.personality! : [],
+      favoriteActivities: Array.isArray(activePet.preferences?.favoriteActivities) ? activePet.preferences!.favoriteActivities! : [],
+      walkTimes: Array.isArray(activePet.preferences?.walkTimes) ? activePet.preferences!.walkTimes! : [],
       foodDaysLeft,
       ...medicalHistoryInputs,
     });
@@ -714,15 +718,19 @@ export function PetHomeView({
 
         {/* 1. HEADER V2 + GREETING V2 — compact avatar + morning greeting */}
         <div className="pessy-fade-up pt-2">
-          <HomeHeaderV2
-            petName={activePet.name}
-            petBreed={activePet.breed}
-            petPhoto={activePet.photo}
-            notificationCount={pendingReviewCount}
-            pointsTotal={gamification.totalPoints}
-            onBellClick={onViewHistory}
-          />
-          <HomeGreetingV2 userName={userName} petName={activePet.name} />
+          <SafeBoundary name="HomeHeaderV2">
+            <HomeHeaderV2
+              petName={activePet.name}
+              petBreed={activePet.breed}
+              petPhoto={activePet.photo}
+              notificationCount={pendingReviewCount}
+              pointsTotal={gamification.totalPoints}
+              onBellClick={onViewHistory}
+            />
+          </SafeBoundary>
+          <SafeBoundary name="HomeGreetingV2">
+            <HomeGreetingV2 userName={userName} petName={activePet.name} />
+          </SafeBoundary>
         </div>
 
         {/* Pet selector for multiple pets */}
@@ -759,37 +767,19 @@ export function PetHomeView({
         )}
 
         {/* 2b. PENDIENTE HOY — card central v2 con meds + turnos del día */}
-        <PendienteHoyCard
-          medications={activeMedications.filter((m) => !activePet.id || m.petId === activePet.id)}
-          appointments={appointments.filter((a) => a.petId === activePet.id)}
-          petName={activePet.name}
-        />
+        <SafeBoundary name="PendienteHoyCard">
+          <PendienteHoyCard
+            medications={activeMedications.filter((m) => !activePet.id || m.petId === activePet.id)}
+            appointments={appointments.filter((a) => a.petId === activePet.id)}
+            petName={activePet.name}
+          />
+        </SafeBoundary>
 
-        {/* 3. DAILY TASKS — contexto del día, primero para dar orientación inmediata */}
-        <SectionTitle>Hoy con {activePet.name}</SectionTitle>
-        <div className="pessy-stagger mx-4 space-y-2">
-          {(showAllTasks ? dailySuggestions : dailySuggestions.slice(0, 2)).map((s, i) => (
-            <DailyHookCard
-              key={i}
-              category={CATEGORY_LABELS[s.category] || s.category}
-              categoryIcon={s.icon}
-              title={s.title}
-              description={s.detail}
-              duration={s.duration}
-              points={s.points}
-              steps={s.steps}
-              onStart={() => { void gamification.addPoints("daily_checkin"); }}
-            />
-          ))}
-          {dailySuggestions.length > 2 && !showAllTasks && (
-            <button
-              onClick={() => setShowAllTasks(true)}
-              className="w-full rounded-full border border-[#E5E7EB] bg-white py-2.5 text-xs font-bold text-[#074738] hover:bg-[#E0F2F1] transition-colors"
-            >
-              Ver más actividades
-            </button>
-          )}
-        </div>
+        {/* 3. LEARNING VIDEOS — reemplaza sugerencias estáticas sin IA.
+            Matchea videos curados por especie + condiciones activas + edad. Si 0 matches → oculto. */}
+        <SafeBoundary name="LearningVideosSection">
+          <LearningVideosSection pet={activePet} />
+        </SafeBoundary>
 
         {/* 4. ROUTINE CHECKLIST - morning, evening, or sleep based on time */}
         {currentRoutineItems && currentRoutineItems.length > 0 ? (
@@ -836,8 +826,10 @@ export function PetHomeView({
           />
         </div>
 
-        {/* 5b. PREFERENCES NUDGE — appears if pet has no preferences set */}
-        {activePet && !activePet.preferences?.personality?.length && !activePet.preferences?.fears?.length && !activePet.preferences?.favoriteActivities?.length && (
+        {/* 5b. PREFERENCES NUDGE — OCULTO (no estaba en UI kit v2)
+            User flag: estas cards amarillas/mint distorsionan el flow del kit.
+            Mover a un settings screen dedicado en el futuro. */}
+        {false && activePet && !(Array.isArray(activePet.preferences?.personality) ? activePet.preferences!.personality!.length : 0) && !(Array.isArray(activePet.preferences?.fears) ? activePet.preferences!.fears!.length : 0) && !(Array.isArray(activePet.preferences?.favoriteActivities) ? activePet.preferences!.favoriteActivities!.length : 0) && (
           <div className="mx-3 mt-2">
             <button
               type="button"
@@ -859,8 +851,8 @@ export function PetHomeView({
           </div>
         )}
 
-        {/* 6. PROFILE NUDGE - only if incomplete */}
-        {profileIncomplete && (
+        {/* 6. PROFILE NUDGE — OCULTO (no estaba en UI kit v2) */}
+        {false && profileIncomplete && (
           <div className="mx-3 mt-2">
             <ProfileNudge
               petName={activePet.name}
@@ -871,8 +863,8 @@ export function PetHomeView({
           </div>
         )}
 
-        {/* 7. PESSY TE DICE — single critical alert only */}
-        {criticalAlert && (
+        {/* 7. PESSY TE DICE — OCULTO (no estaba en UI kit v2) */}
+        {false && criticalAlert && (
           <>
             <SectionTitle>Pessy te dice</SectionTitle>
             <div className="mx-4">

@@ -32,7 +32,7 @@ type ClinicalRenderKind =
   | "clinical_report"
   | "other";
 
-type HistoricalPeriodType = "month" | "year";
+type HistoricalPeriodType = "month" | "trimester" | "year";
 
 type TimelineEntry =
   | { kind: "event"; id: string; yearKey: string; timestamp: number; event: MedicalEvent }
@@ -728,6 +728,24 @@ function buildHistoricalPeriodMeta(timestamp: number, nowTimestamp: number): {
     };
   }
 
+  // 3-18 months → trimester bucket (Q1-Q4)
+  if (monthsAgo>= 3) {
+    const quarter = Math.floor(parsed.getMonth() / 3) + 1;
+    const quarterMonths = [
+      ["enero", "febrero", "marzo"],
+      ["abril", "mayo", "junio"],
+      ["julio", "agosto", "septiembre"],
+      ["octubre", "noviembre", "diciembre"],
+    ][quarter - 1];
+    const trimesterKey = `${yearKey}-Q${quarter}`;
+    return {
+      periodType: "trimester",
+      periodKey: trimesterKey,
+      periodLabel: `${capitalizeSpanish(quarterMonths[0])}–${capitalizeSpanish(quarterMonths[2])} ${yearKey}`,
+      yearKey,
+    };
+  }
+
   const monthKey = `${yearKey}-${String(parsed.getMonth() + 1).padStart(2, "0")}`;
   return {
     periodType: "month",
@@ -1264,7 +1282,9 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                     const isExpanded = expandedEvent === entry.id;
                     const episodeTone = entry.periodType === "year"
                       ? "bg-[#1A9B7D]/5 border-[#074738]/15"
-                      : "bg-white/90 border-slate-200/70";
+                      : entry.periodType === "trimester"
+                        ? "bg-[#1A9B7D]/[0.03] border-[#074738]/10"
+                        : "bg-white/90 border-slate-200/70";
 
                     return (
                       <div
@@ -1334,7 +1354,11 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                 <div className="flex items-center justify-between mt-3">
                                   <div className="flex flex-wrap gap-1.5">
                                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#1A9B7D]/10 text-[#1A9B7D]">
-                                      {entry.periodType === "year" ? "Resumen anual" : "Resumen mensual"}
+                                      {entry.periodType === "year"
+                                        ? "Resumen anual"
+                                        : entry.periodType === "trimester"
+                                          ? "Resumen trimestral"
+                                          : "Resumen mensual"}
                                     </span>
                                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
                                       Historial confirmado

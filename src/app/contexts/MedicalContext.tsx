@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { db } from "../../lib/firebase";
-import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, getDocs } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, getDocs, serverTimestamp, arrayUnion, increment } from "firebase/firestore";
 import { usePet } from "./PetContext";
 import { useAuth } from "./AuthContext";
 import {
@@ -83,6 +83,91 @@ export interface ClinicalProfileSnapshot {
   recurrentPathologies: string[];
   narrative: string;
   sourceEpisodeIds: string[];
+}
+
+// ─── Upsert incremental de vet extraído (mirror ligero de la CF) ─────────────
+// Al agregar un evento con masterPayload.document_info.veterinarian_name
+// escribimos directo en pets/{petId}/extractedVets/{hash}. Hash derivado de
+// name+clinic, mismo algoritmo que la Cloud Function (sha1 → 24 hex chars).
+async function computeVetHash(name: string, clinic: string | null): Promise<string> {
+  const normalize = (raw: string | null) =>
+    (raw || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "")
+      .trim();
+  const input = `${normalize(name)}|${normalize(clinic)}`;
+  if (typeof crypto !== "undefined" && crypto.subtle) {
+    const buf = new TextEncoder().encode(input);
+    const digest = await crypto.subtle.digest("SHA-1", buf);
+    return Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+      .slice(0, 24);
+  }
+  // Fallback determinístico no-crypto (muy raro; tests/SSR)
+  let h = 0;
+  for (let i = 0; i < input.length; i++) {
+    h = (h * 31 + input.charCodeAt(i)) | 0;
+  }
+  return `fallback${Math.abs(h).toString(16)}`.slice(0, 24);
+}
+
+async function upsertExtractedVetFromEvent(event: MedicalEvent): Promise<void> {
+  const payload = event.extractedData?.masterPayload as Record<string, unknown> | undefined;
+  const docInfo = payload?.document_info as Record<string, unknown> | undefined;
+  if (!docInfo) return;
+
+  const asStr = (v: unknown): string | null => {
+    if (typeof v !== "string") return null;
+    const t = v.trim();
+    return t.length ? t : null;
+  };
+
+  const name = asStr(docInfo.veterinarian_name);
+  if (!name) return;
+
+  const clinic = asStr(docInfo.clinic_name);
+  const license = asStr(docInfo.veterinarian_license);
+  const phoneRaw = asStr(docInfo.phone);
+  const emailRaw = asStr(docInfo.email);
+
+  const phone = phoneRaw ? phoneRaw.replace(/\D/g, "") || null : null;
+  const email = emailRaw ? emailRaw.toLowerCase() : null;
+
+  const hash = await computeVetHash(name, clinic);
+  const ref = doc(db, "pets", event.petId, "extractedVets", hash);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists()) {
+    await setDoc(ref, {
+      id: hash,
+      name,
+      clinic,
+      license,
+      phone,
+      email,
+      firstSeenAt: serverTimestamp(),
+      lastSeenAt: serverTimestamp(),
+      eventCount: 1,
+      sourceEventIds: event.id ? [event.id] : [],
+      confidence: "high",
+    });
+    return;
+  }
+
+  const existing = snap.data() as { sourceEventIds?: string[] };
+  const alreadyTracked = event.id && (existing.sourceEventIds || []).includes(event.id);
+  if (alreadyTracked) return; // idempotencia
+
+  await updateDoc(ref, {
+    lastSeenAt: serverTimestamp(),
+    eventCount: increment(1),
+    ...(event.id ? { sourceEventIds: arrayUnion(event.id) } : {}),
+    // rellenar campos faltantes (no pisar existentes)
+    ...(clinic ? {} : {}),
+  });
 }
 
 const normalizeProactiveScope = (value: string): string =>
@@ -903,6 +988,14 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     };
     await setDoc(docRef, payload);
     const persistedEvent: MedicalEvent = { ...event, id: persistedEventId, userId: payload.userId };
+
+    // Incremental vet upsert: si el evento trae vet en masterPayload, escribir
+    // directo en pets/{petId}/extractedVets/{hash} sin llamar a la CF.
+    try {
+      await upsertExtractedVetFromEvent(persistedEvent);
+    } catch (err) {
+      console.warn("upsertExtractedVetFromEvent failed:", err);
+    }
 
     try {
       await syncAutoAppointmentFromEvent(persistedEvent);

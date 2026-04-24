@@ -11,7 +11,6 @@ import {
   FileUp,
   Stethoscope,
   MapPin,
-  AlertCircle,
   Pill,
 } from "lucide-react";
 import { useAppLayout } from "../layout/AppLayout";
@@ -35,30 +34,10 @@ export function QuickActionsV2({
 
   return (
     <div className="mx-4 space-y-3">
-      {/* ── Pending reviews banner ── */}
-      {pendingReviewCount > 0 && (
-        <button
-          onClick={() => navigate("/historial")}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#FEF3C7] border border-[#F59E0B]/30 text-left transition-all active:scale-[0.98]"
-        >
-          <div className="size-10 rounded-xl bg-[#F59E0B]/20 flex items-center justify-center shrink-0">
-            <AlertCircle size={20} className="text-[#D97706]" strokeWidth={2} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-[#92400E]">
-              {pendingReviewCount === 1
-                ? "1 registro necesita tu confirmacion"
-                : `${pendingReviewCount} registros necesitan tu confirmacion`}
-            </p>
-            <p className="text-xs text-[#B45309] mt-0.5">
-              De correos procesados por Pessy
-            </p>
-          </div>
-          <div className="size-6 rounded-full bg-[#F59E0B] text-white flex items-center justify-center text-xs font-black shrink-0">
-            {pendingReviewCount > 9 ? "9+" : pendingReviewCount}
-          </div>
-        </button>
-      )}
+      {/* Banner amarillo 'N registros necesitan confirmación' REMOVIDO:
+          - No estaba en UI kit v2 aprobado
+          - El count ya aparece en el Bell (9+) del HomeHeaderV2
+          - Al tocar el Bell se navega a /historial con los pending reviews */}
 
       {/* ── Action buttons grid ── */}
       <div className="pessy-stagger grid grid-cols-2 gap-3">

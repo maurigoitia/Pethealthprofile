@@ -1,8 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, Search, Star, MapPin, ShieldCheck, Stethoscope } from "lucide-react";
-import { db } from "../../../lib/firebase";
+import { ArrowLeft, Search, Star, MapPin, ShieldCheck, Stethoscope, RefreshCw, Phone, Mail, Hash } from "lucide-react";
+import { db, functions } from "../../../lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { useExtractedVets, ExtractedVet } from "../../hooks/useExtractedVets";
+import { usePet } from "../../contexts/PetContext";
 
 interface VetSearchScreenProps {
   onBack: () => void;
@@ -20,14 +23,9 @@ interface VetProfile {
   photoUrl?: string;
 }
 
-const MOCK_VETS: VetProfile[] = [
-  { id: "v1", fullName: "Dra. Laura Gómez", specialty: "Clínica general", matricula: "MV-4521", verified: true, rating: 4.9, distanceKm: 0.8, patientsCount: 48 },
-  { id: "v2", fullName: "Dr. Martín Sosa", specialty: "Cardiología", matricula: "MV-3312", verified: true, rating: 4.7, distanceKm: 1.4, patientsCount: 32 },
-  { id: "v3", fullName: "Dra. Ana Beltrán", specialty: "Dermatología", matricula: "MV-5891", verified: false, rating: 4.5, distanceKm: 2.1, patientsCount: 19 },
-  { id: "v4", fullName: "Dr. Carlos Ruiz", specialty: "Cirugía", matricula: "MV-2278", verified: true, rating: 4.8, distanceKm: 3.5, patientsCount: 67 },
-];
-
 const SPECIALTIES = ["Todos", "Clínica general", "Cardiología", "Dermatología", "Nutrición", "Cirugía"];
+
+const extractedFlagKey = (petId: string) => `pessy_vets_extracted_${petId}`;
 
 function getInitials(fullName: string): string {
   return fullName
@@ -84,8 +82,254 @@ function EmptyState({ query }: { query: string }) {
   );
 }
 
+// ─── Card para vets extraídos de archivos ────────────────────────────────────
+function ExtractedVetCard({ vet }: { vet: ExtractedVet }) {
+  const initial = vet.name.replace(/^(Dr\.?|Dra\.?)\s*/i, "").trim().charAt(0).toUpperCase() || "V";
+  return (
+    <div
+      style={{
+        backgroundColor: "#fff",
+        borderRadius: 16,
+        padding: "14px 16px",
+        boxShadow: "0 2px 8px rgba(0,0,0,.04)",
+        border: "1px solid rgba(7,71,56,.06)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            minWidth: 40,
+            borderRadius: "50%",
+            backgroundColor: "#E0F2F1",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#074738",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontWeight: 800,
+            fontSize: 14,
+          }}
+        >
+          {initial}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p
+            style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: 14,
+              fontWeight: 700,
+              color: "#0F172A",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {vet.name}
+          </p>
+          {vet.clinic && (
+            <p style={{ fontSize: 12, color: "#64748B", marginTop: 1 }}>{vet.clinic}</p>
+          )}
+        </div>
+        {vet.eventCount >= 2 && (
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 800,
+              color: "#1A9B7D",
+              backgroundColor: "#E0F2F1",
+              padding: "3px 8px",
+              borderRadius: 999,
+              whiteSpace: "nowrap",
+            }}
+          >
+            Te atendió {vet.eventCount} veces
+          </span>
+        )}
+      </div>
+      {(vet.license || vet.phone || vet.email) && (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 6,
+            paddingTop: 8,
+            borderTop: "1px solid rgba(7,71,56,.06)",
+          }}
+        >
+          {vet.license && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 11,
+                color: "#374151",
+                fontWeight: 600,
+                backgroundColor: "#F1F5F9",
+                padding: "4px 8px",
+                borderRadius: 8,
+              }}
+            >
+              <Hash size={11} strokeWidth={2} color="#1A9B7D" />
+              Mat. {vet.license}
+            </span>
+          )}
+          {vet.phone && (
+            <a
+              href={`tel:${vet.phone}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 11,
+                color: "#074738",
+                fontWeight: 600,
+                backgroundColor: "#E0F2F1",
+                padding: "4px 8px",
+                borderRadius: 8,
+                textDecoration: "none",
+              }}
+            >
+              <Phone size={11} strokeWidth={2} />
+              {vet.phone}
+            </a>
+          )}
+          {vet.email && (
+            <a
+              href={`mailto:${vet.email}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 11,
+                color: "#074738",
+                fontWeight: 600,
+                backgroundColor: "#E0F2F1",
+                padding: "4px 8px",
+                borderRadius: 8,
+                textDecoration: "none",
+              }}
+            >
+              <Mail size={11} strokeWidth={2} />
+              {vet.email}
+            </a>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Sección "Tus veterinarios" ──────────────────────────────────────────────
+function TreatingVetsSection({ petId, petName }: { petId: string | null; petName: string | null }) {
+  const { vets, loading: vetsLoading } = useExtractedVets(petId);
+  const [extracting, setExtracting] = useState(false);
+  const [extractionError, setExtractionError] = useState<string | null>(null);
+
+  const runExtraction = useCallback(async () => {
+    if (!petId) return;
+    setExtracting(true);
+    setExtractionError(null);
+    try {
+      const callable = httpsCallable<{ petId: string }, { processed: number; vetsFound: number; newlyAdded: number; alreadyExisting: number }>(
+        functions,
+        "extractVetsFromArchives",
+      );
+      await callable({ petId });
+      try {
+        localStorage.setItem(extractedFlagKey(petId), String(Date.now()));
+      } catch {
+        // localStorage no disponible (private mode) — no bloquea
+      }
+    } catch (err) {
+      console.error("[VetSearch] extractVetsFromArchives failed:", err);
+      setExtractionError("No pudimos actualizar la lista. Intentá de nuevo.");
+    } finally {
+      setExtracting(false);
+    }
+  }, [petId]);
+
+  // Auto-trigger one-shot: primera vez que el user entra, si no hay flag
+  useEffect(() => {
+    if (!petId) return;
+    let flag: string | null = null;
+    try {
+      flag = localStorage.getItem(extractedFlagKey(petId));
+    } catch {
+      flag = null;
+    }
+    if (!flag) {
+      runExtraction();
+    }
+  }, [petId, runExtraction]);
+
+  const handleManualRefresh = useCallback(() => {
+    if (!petId) return;
+    try {
+      localStorage.removeItem(extractedFlagKey(petId));
+    } catch {
+      // ignore
+    }
+    runExtraction();
+  }, [petId, runExtraction]);
+
+  if (!petId) return null;
+
+  const showSection = vets.length > 0 || extracting || vetsLoading;
+  if (!showSection && !extractionError) return null;
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <p
+          style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontSize: 10,
+            fontWeight: 800,
+            color: "#9CA3AF",
+            textTransform: "uppercase",
+            letterSpacing: ".1em",
+          }}
+        >
+          {petName ? `Vets que trataron a ${petName}` : "Tus veterinarios"}
+        </p>
+        <button
+          onClick={handleManualRefresh}
+          disabled={extracting}
+          className="flex items-center gap-1 text-[11px] font-bold text-[#1A9B7D] px-2 py-1 rounded-md active:scale-[0.97] transition-transform disabled:opacity-50"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          aria-label="Actualizar lista de veterinarios"
+        >
+          <RefreshCw size={12} strokeWidth={2.4} className={extracting ? "animate-spin" : ""} />
+          {extracting ? "Actualizando…" : "Actualizar lista"}
+        </button>
+      </div>
+
+      {extractionError && (
+        <p style={{ fontSize: 11, color: "#B91C1C", marginBottom: 8 }}>{extractionError}</p>
+      )}
+
+      {vets.length === 0 && (extracting || vetsLoading) ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {vets.map((v) => (
+            <ExtractedVetCard key={v.id} vet={v} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
   const navigate = useNavigate();
+  const { activePet } = usePet();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSpecialty, setActiveSpecialty] = useState("Todos");
   const [vets, setVets] = useState<VetProfile[]>([]);
@@ -96,17 +340,14 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
       try {
         const q = query(collection(db, "vetProfiles"), where("verified", "==", true));
         const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-          setVets(MOCK_VETS);
-        } else {
-          const data: VetProfile[] = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...(doc.data() as Omit<VetProfile, "id">),
-          }));
-          setVets(data);
-        }
-      } catch {
-        setVets(MOCK_VETS);
+        const data: VetProfile[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<VetProfile, "id">),
+        }));
+        setVets(data);
+      } catch (err) {
+        console.error("[VetSearch] fetch failed:", err);
+        setVets([]);
       } finally {
         setLoading(false);
       }
@@ -189,6 +430,15 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
 
       {/* VET LIST */}
       <div className="px-4 mt-4 pb-8 space-y-3">
+        {/* Tus veterinarios — extraídos de archivos procesados por IA.
+            Auto-dispara la CF la primera vez; botón Actualizar lista siempre visible. */}
+        <div className="max-w-md mx-auto">
+          <TreatingVetsSection
+            petId={activePet?.id || null}
+            petName={activePet?.name || null}
+          />
+        </div>
+
         {loading ? (
           <>
             <SkeletonCard />
@@ -198,7 +448,22 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
         ) : filteredVets.length === 0 ? (
           <EmptyState query={searchQuery} />
         ) : (
-          filteredVets.map((vet) => (
+          <>
+            <p
+              style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: 10,
+                fontWeight: 800,
+                color: "#9CA3AF",
+                textTransform: "uppercase",
+                letterSpacing: ".1em",
+                marginBottom: 4,
+                marginTop: 8,
+              }}
+            >
+              Verificados en Pessy
+            </p>
+            {filteredVets.map((vet) => (
             <div
               key={vet.id}
               className="bg-white rounded-[16px] p-4 border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
@@ -269,7 +534,8 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
                 </button>
               </div>
             </div>
-          ))
+            ))}
+          </>
         )}
       </div>
     </div>

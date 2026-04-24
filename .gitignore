@@ -129,3 +129,4 @@ public/blog.html
 public/index.html
 public/og-cover.png
 !apps/website/*.png
+.indexnow-key

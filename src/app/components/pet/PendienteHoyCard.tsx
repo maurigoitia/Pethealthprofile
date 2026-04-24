@@ -2,8 +2,8 @@ import { useState, useMemo } from "react";
 import type { ActiveMedication, Appointment } from "../../types/medical";
 
 interface Props {
-  medications: ActiveMedication[];
-  appointments: Appointment[];
+  medications: ActiveMedication[] | undefined | null;
+  appointments: Appointment[] | undefined | null;
   petName: string;
 }
 
@@ -28,35 +28,42 @@ interface PendingItem {
  */
 export function PendienteHoyCard({ medications, appointments, petName }: Props) {
   const items = useMemo<PendingItem[]>(() => {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    try {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const safeMeds = Array.isArray(medications) ? medications : [];
+      const safeAppts = Array.isArray(appointments) ? appointments : [];
 
-    const medItems: PendingItem[] = medications
-      .filter((m) => m.active !== false)
-      .map((m) => ({
-        id: `med-${m.id}`,
-        kind: "med" as const,
-        title: m.name,
-        subtitle: [m.dosage, m.frequency].filter(Boolean).join(" · ") || "Medicación activa",
-        time: null,
-        iconSrc: "/illustrations/oval_prescription_meds.svg",
-      }));
+      const medItems: PendingItem[] = safeMeds
+        .filter((m) => m && m.active !== false)
+        .map((m) => ({
+          id: `med-${m.id}`,
+          kind: "med" as const,
+          title: m.name || "Medicamento",
+          subtitle: [m.dosage, m.frequency].filter(Boolean).join(" · ") || "Medicación activa",
+          time: null,
+          iconSrc: "/illustrations/oval_prescription_meds.svg",
+        }));
 
-    const apptItems: PendingItem[] = appointments
-      .filter((a) => a.status === "upcoming" && a.date && a.date.slice(0, 10) === todayStr)
-      .sort((a, b) => (a.time || "").localeCompare(b.time || ""))
-      .map((a) => ({
-        id: `appt-${a.id}`,
-        kind: "appointment" as const,
-        title: a.title || "Turno",
-        subtitle: [a.veterinarian, a.clinic].filter(Boolean).join(" · ") || "Turno médico",
-        time: a.time || null,
-        iconSrc: a.type === "vaccine"
-          ? "/illustrations/oval_cork_vet_vaccinations.svg"
-          : "/illustrations/oval_vet_visit.svg",
-        tag: { label: "Turno", color: "purple" as const },
-      }));
+      const apptItems: PendingItem[] = safeAppts
+        .filter((a) => a && a.status === "upcoming" && a.date && a.date.slice(0, 10) === todayStr)
+        .sort((a, b) => (a.time || "").localeCompare(b.time || ""))
+        .map((a) => ({
+          id: `appt-${a.id}`,
+          kind: "appointment" as const,
+          title: a.title || "Turno",
+          subtitle: [a.veterinarian, a.clinic].filter(Boolean).join(" · ") || "Turno médico",
+          time: a.time || null,
+          iconSrc: a.type === "vaccine"
+            ? "/illustrations/oval_cork_vet_vaccinations.svg"
+            : "/illustrations/oval_vet_visit.svg",
+          tag: { label: "Turno", color: "purple" as const },
+        }));
 
-    return [...apptItems, ...medItems];
+      return [...apptItems, ...medItems];
+    } catch (err) {
+      console.error("[PendienteHoyCard] error building items:", err);
+      return [];
+    }
   }, [medications, appointments]);
 
   const [completed, setCompleted] = useState<Set<string>>(new Set());

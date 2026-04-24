@@ -112,8 +112,8 @@ const IdentidadScreen = lazy(() =>
 const VetSearchScreen = lazy(() =>
   import("../vet/VetSearchScreen").then((m) => ({ default: m.VetSearchScreen }))
 );
-const RutinasScreen = lazy(() =>
-  import("../rutinas/RutinasScreen").then((m) => ({ default: m.RutinasScreen }))
+const RoutinesScreen = lazy(() =>
+  import("../routines/RoutinesScreen").then((m) => ({ default: m.RoutinesScreen }))
 );
 const TiendaScreen = lazy(() =>
   import("../tienda/TiendaScreen").then((m) => ({ default: m.TiendaScreen }))
@@ -288,7 +288,7 @@ function RutinasEcoRoute() {
   const navigate = useNavigate();
   return (
     <Suspense fallback={<ScreenLoader label="Cargando rutinas..." />}>
-      <RutinasScreen onBack={() => navigate(-1)} />
+      <RoutinesScreen onBack={() => navigate(-1)} />
     </Suspense>
   );
 }

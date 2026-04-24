@@ -267,9 +267,9 @@ export function UserProfileScreen({ onBack }: UserProfileScreenProps) {
                     onClick={() => navigate("/historial")}
                     className={`w-full p-4 flex items-center gap-4 transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 active:bg-slate-100${index < pets.length - 1 ? " border-b border-slate-100 dark:border-slate-800" : ""}`}
                   >
-                    {pet.photoURL ? (
+                    {pet.photo ? (
                       <img
-                        src={pet.photoURL}
+                        src={pet.photo}
                         alt={pet.name}
                         className="size-10 rounded-full object-cover shrink-0"
                       />
