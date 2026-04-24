@@ -21,6 +21,8 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
   const [loadingEmailInvite, setLoadingEmailInvite] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [emailWarning, setEmailWarning] = useState("");
+  const [lastFailedEmail, setLastFailedEmail] = useState("");
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -77,17 +79,43 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
     setLoadingEmailInvite(true);
     setError("");
     setSuccess("");
+    setEmailWarning("");
+    const targetEmail = inviteEmail.trim().toLowerCase();
     try {
       const { code, emailSent } = await sendCoTutorInviteEmail(activePetId, inviteEmail);
       setGeneratedCode(code);
       if (emailSent === false) {
-        setSuccess(`Código generado pero no se pudo enviar el email. Compartí el código o link manualmente.`);
+        setEmailWarning(targetEmail);
+        setLastFailedEmail(targetEmail);
       } else {
-        setSuccess(`Invitación enviada a ${inviteEmail.trim().toLowerCase()}. Revisá el correo del co-tutor.`);
+        setSuccess(`Invitación enviada a ${targetEmail}. Revisá el correo del co-tutor.`);
+        setLastFailedEmail("");
       }
       setInviteEmail("");
     } catch (e: any) {
       setError(e.message || "No se pudo enviar la invitación por correo.");
+      setLastFailedEmail(targetEmail);
+    } finally {
+      setLoadingEmailInvite(false);
+    }
+  };
+
+  const handleRetryEmail = async () => {
+    if (!activePetId || !lastFailedEmail) return;
+    setLoadingEmailInvite(true);
+    setError("");
+    setEmailWarning("");
+    try {
+      const { code, emailSent } = await sendCoTutorInviteEmail(activePetId, lastFailedEmail);
+      setGeneratedCode(code);
+      if (emailSent === false) {
+        setEmailWarning(lastFailedEmail);
+      } else {
+        setSuccess(`Invitación enviada a ${lastFailedEmail}.`);
+        setLastFailedEmail("");
+      }
+    } catch (e: any) {
+      setError(e.message || "No se pudo reenviar la invitación.");
     } finally {
       setLoadingEmailInvite(false);
     }
@@ -144,13 +172,13 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
 
             <div className="flex gap-2 mx-5 mt-4 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
               <button
-                onClick={() => { setTab("manage"); setError(""); setSuccess(""); }}
+                onClick={() => { setTab("manage"); setError(""); setSuccess(""); setEmailWarning(""); }}
                 className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${tab === "manage" ? "bg-white dark:bg-slate-900 text-[#074738] shadow-sm" : "text-slate-500"}`}
               >
                 {owner ? "Gestionar" : "Mi acceso"}
               </button>
               <button
-                onClick={() => { setTab("join"); setError(""); setSuccess(""); }}
+                onClick={() => { setTab("join"); setError(""); setSuccess(""); setEmailWarning(""); }}
                 className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all ${tab === "join" ? "bg-white dark:bg-slate-900 text-[#074738] shadow-sm" : "text-slate-500"}`}
               >
                 Unirme con código
@@ -163,6 +191,28 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
               )}
               {success && (
                 <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 rounded-xl text-sm text-emerald-700 dark:text-emerald-300 font-medium">{success}</div>
+              )}
+              {emailWarning && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 font-medium space-y-2">
+                  <div className="flex items-start gap-2">
+                    <MaterialIcon name="warning" className="text-base shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="font-bold">No pudimos enviar el email a {emailWarning}</p>
+                      <p className="text-xs text-amber-700 mt-0.5 font-normal">El código se generó. Compartilo manualmente o reintentá el envío.</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleRetryEmail}
+                    disabled={loadingEmailInvite}
+                    className="w-full px-3 py-2 rounded-lg bg-amber-500 text-white text-xs font-bold disabled:opacity-60 flex items-center justify-center gap-2 active:scale-[0.97] transition-transform"
+                  >
+                    {loadingEmailInvite
+                      ? <div className="size-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      : <MaterialIcon name="refresh" className="text-sm" />}
+                    Reintentar envío
+                  </button>
+                </div>
               )}
 
               {tab === "manage" && (
