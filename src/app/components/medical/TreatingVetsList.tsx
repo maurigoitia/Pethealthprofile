@@ -1,86 +1,21 @@
-import React, { useMemo } from "react";
-import { Stethoscope, Phone, MapPin, Hash } from "lucide-react";
-import { useMedical } from "../../contexts/MedicalContext";
+import React from "react";
+import { Stethoscope, Phone, Mail, Hash } from "lucide-react";
 import { usePet } from "../../contexts/PetContext";
+import { useExtractedVets } from "../../hooks/useExtractedVets";
 
 /**
- * Extrae y deduplica los veterinarios que trataron a la mascota activa
- * a partir de los documentos médicos procesados por el motor de IA.
- * Muestra nombre, matrícula, clínica y dirección cuando están disponibles.
+ * TreatingVetsList — lista de vets que trataron a la mascota activa.
+ *
+ * Lee directo de `pets/{petId}/extractedVets` (populada por la Cloud
+ * Function `extractVetsFromArchives` + upserts incrementales desde
+ * MedicalContext). La UI principal de /buscar-vet ya no usa este
+ * componente — se mantiene para `/cuidados` (CuidadosScreen).
+ *
+ * Si no hay vets → no renderiza nada.
  */
-
-interface TreatingVet {
-  key: string;
-  name: string;
-  license: string | null;
-  clinicName: string | null;
-  clinicAddress: string | null;
-  lastSeen: string | null; // fecha del documento más reciente
-  docCount: number;
-}
-
 export function TreatingVetsList() {
-  const { events } = useMedical();
   const { activePet } = usePet();
-
-  const vets = useMemo<TreatingVet[]>(() => {
-    if (!activePet?.id) return [];
-
-    const map = new Map<string, TreatingVet>();
-
-    events
-      .filter((e) => e.petId === activePet.id)
-      .forEach((e) => {
-        const payload = e.extractedData?.masterPayload;
-        const name =
-          payload?.document_info?.veterinarian_name?.trim() ||
-          (e.extractedData as Record<string, unknown>)?.veterinarian_name as string | null ||
-          null;
-
-        if (!name) return;
-
-        const key = name.toLowerCase().replace(/\s+/g, "_");
-        const existing = map.get(key);
-
-        const license =
-          payload?.document_info?.veterinarian_license?.trim() || null;
-        const clinicName =
-          payload?.document_info?.clinic_name?.trim() || null;
-        const clinicAddress =
-          payload?.document_info?.clinic_address?.trim() || null;
-        const date =
-          (e.extractedData?.date as string | null) ||
-          (e.createdAt ? new Date(e.createdAt).toISOString().split("T")[0] : null);
-
-        if (!existing) {
-          map.set(key, {
-            key,
-            name,
-            license,
-            clinicName,
-            clinicAddress,
-            lastSeen: date,
-            docCount: 1,
-          });
-        } else {
-          map.set(key, {
-            ...existing,
-            license: existing.license || license,
-            clinicName: existing.clinicName || clinicName,
-            clinicAddress: existing.clinicAddress || clinicAddress,
-            lastSeen:
-              date && (!existing.lastSeen || date > existing.lastSeen)
-                ? date
-                : existing.lastSeen,
-            docCount: existing.docCount + 1,
-          });
-        }
-      });
-
-    return Array.from(map.values()).sort((a, b) =>
-      (b.lastSeen ?? "").localeCompare(a.lastSeen ?? "")
-    );
-  }, [events, activePet?.id]);
+  const { vets } = useExtractedVets(activePet?.id || null);
 
   if (!activePet) return null;
   if (vets.length === 0) return null;
@@ -104,7 +39,7 @@ export function TreatingVetsList() {
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {vets.map((vet) => (
           <div
-            key={vet.key}
+            key={vet.id}
             style={{
               backgroundColor: "#fff",
               borderRadius: 16,
@@ -113,8 +48,14 @@ export function TreatingVetsList() {
               border: "1px solid rgba(7,71,56,.06)",
             }}
           >
-            {/* Header row */}
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: vet.license || vet.clinicName ? 10 : 0 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                marginBottom: vet.license || vet.phone || vet.email ? 10 : 0,
+              }}
+            >
               <div
                 style={{
                   width: 40,
@@ -144,56 +85,82 @@ export function TreatingVetsList() {
                 >
                   {vet.name}
                 </p>
-                {vet.lastSeen && (
+                {vet.clinic && (
                   <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 1 }}>
-                    Último registro: {vet.lastSeen} · {vet.docCount} doc{vet.docCount > 1 ? "s" : ""}
+                    {vet.clinic}
+                    {vet.eventCount >= 2 ? ` · ${vet.eventCount} docs` : ""}
                   </p>
                 )}
               </div>
             </div>
 
-            {/* Detail rows */}
-            {(vet.license || vet.clinicName || vet.clinicAddress) && (
+            {(vet.license || vet.phone || vet.email) && (
               <div
                 style={{
                   display: "flex",
-                  flexDirection: "column",
+                  flexWrap: "wrap",
                   gap: 6,
                   paddingTop: 8,
                   borderTop: "1px solid rgba(7,71,56,.06)",
                 }}
               >
                 {vet.license && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <Hash size={13} strokeWidth={2} style={{ color: "#1A9B7D", flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, color: "#374151", fontWeight: 600 }}>
-                      Mat. {vet.license}
-                    </span>
-                  </div>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 11,
+                      color: "#374151",
+                      fontWeight: 600,
+                      backgroundColor: "#F1F5F9",
+                      padding: "4px 8px",
+                      borderRadius: 8,
+                    }}
+                  >
+                    <Hash size={11} strokeWidth={2} color="#1A9B7D" />
+                    Mat. {vet.license}
+                  </span>
                 )}
-                {vet.clinicName && (
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <Phone size={13} strokeWidth={2} style={{ color: "#1A9B7D", flexShrink: 0 }} />
-                    <span
-                      style={{
-                        fontSize: 12,
-                        color: "#374151",
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {vet.clinicName}
-                    </span>
-                  </div>
+                {vet.phone && (
+                  <a
+                    href={`tel:${vet.phone}`}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 11,
+                      color: "#074738",
+                      fontWeight: 600,
+                      backgroundColor: "#E0F2F1",
+                      padding: "4px 8px",
+                      borderRadius: 8,
+                      textDecoration: "none",
+                    }}
+                  >
+                    <Phone size={11} strokeWidth={2} />
+                    {vet.phone}
+                  </a>
                 )}
-                {vet.clinicAddress && (
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                    <MapPin size={13} strokeWidth={2} style={{ color: "#1A9B7D", flexShrink: 0, marginTop: 1 }} />
-                    <span style={{ fontSize: 12, color: "#64748B", lineHeight: 1.4 }}>
-                      {vet.clinicAddress}
-                    </span>
-                  </div>
+                {vet.email && (
+                  <a
+                    href={`mailto:${vet.email}`}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 4,
+                      fontSize: 11,
+                      color: "#074738",
+                      fontWeight: 600,
+                      backgroundColor: "#E0F2F1",
+                      padding: "4px 8px",
+                      borderRadius: 8,
+                      textDecoration: "none",
+                    }}
+                  >
+                    <Mail size={11} strokeWidth={2} />
+                    {vet.email}
+                  </a>
                 )}
               </div>
             )}
@@ -203,3 +170,5 @@ export function TreatingVetsList() {
     </div>
   );
 }
+
+export default TreatingVetsList;
