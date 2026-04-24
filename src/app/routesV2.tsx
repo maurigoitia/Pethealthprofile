@@ -120,11 +120,23 @@ const previewRoutes = previewRoutesEnabled
     ]
   : [];
 
+// Hostnames que sirven la app PWA (no la landing pública).
+// Incluye prod, staging Firebase, custom domain QA y dev local.
+const APP_HOSTS = new Set([
+  "app.pessy.app",
+  "pessy-qa-app.web.app",
+  "pessy-qa-app.firebaseapp.com",
+  "appqa.pessy.app",
+  "itpessy.web.app",
+  "pessy-focus-qa.web.app",
+  "localhost",
+  "127.0.0.1",
+]);
+
 function RootRoute() {
   const host = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
   if (isNativeAppContext()) return <Navigate to="/inicio" replace />;
-  if (host === "app.pessy.app") return <Navigate to="/inicio" replace />;
-  if (host === "localhost" || host === "127.0.0.1") return <Navigate to="/inicio" replace />;
+  if (APP_HOSTS.has(host)) return <Navigate to="/inicio" replace />;
   return <LandingEcosystemPreviewPage />;
 }
 
