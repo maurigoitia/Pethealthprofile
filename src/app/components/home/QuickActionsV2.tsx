@@ -8,12 +8,9 @@
 import { useNavigate } from "react-router";
 import {
   CalendarPlus,
-  FileUp,
   Stethoscope,
-  MapPin,
   Pill,
 } from "lucide-react";
-import { useAppLayout } from "../layout/AppLayout";
 
 interface QuickActionsV2Props {
   /** Number of pending review items from email ingestion */
@@ -30,7 +27,6 @@ export function QuickActionsV2({
   activeMedications = 0,
 }: QuickActionsV2Props) {
   const navigate = useNavigate();
-  const { openScanner } = useAppLayout();
 
   return (
     <div className="mx-4 space-y-3">
@@ -48,13 +44,6 @@ export function QuickActionsV2({
           onClick={() => navigate("/turnos")}
           iconBg="bg-[#E0F2F1]"
           iconColor="text-[#1A9B7D]"
-        />
-        <ActionButton
-          icon={<FileUp size={22} strokeWidth={1.8} />}
-          label="Subir documento"
-          onClick={openScanner}
-          iconBg="bg-[#EDE9FE]"
-          iconColor="text-[#5048CA]"
         />
         <ActionButton
           icon={<Pill size={22} strokeWidth={1.8} />}
