@@ -169,7 +169,7 @@
       };
       window.addEventListener('error', function(e){
         var msg = (e && (e.message || (e.error && e.error.message))) || '';
-        if (/Loading chunk|Failed to fetch dynamically imported module|Importing a module script failed|chunk.*failed/i.test(msg)) {
+        if (/Loading chunk|Failed to fetch dynamically imported module|Importing a module script failed|chunk.*failed|is not a valid JavaScript MIME type|text\/html.+MIME|Failed to load module script|Expected a JavaScript|Strict MIME type/i.test(msg)) {
           triggerReset(msg);
         }
       }, true);
