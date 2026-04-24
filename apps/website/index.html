@@ -263,14 +263,15 @@ a[href]:active,button:active{transform:scale(.97) translateY(1px)}
   <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 80% 100% at 50% 0%,rgba(224,242,241,.4),transparent)"></div>
   <div class="max-w-[1120px] mx-auto relative z-10">
     <div class="flex items-center justify-center gap-5 sm:gap-10 flex-nowrap overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-      <!-- PLACEHOLDER: reemplazar con KPIs reales de Pessy antes de deploy público. Cifras actuales son de beta cerrada, no verificadas públicamente. -->
-      <div class="flex items-center gap-2 shrink-0"><span class="font-brand text-lg font-extrabold text-dk proof-n" data-placeholder="true">+1000</span><span class="text-[11px] font-semibold text-tx3 whitespace-nowrap">Pet Parents</span></div>
+      <!-- Capabilities verificables, no KPIs fake. Cuando tengamos KPIs reales de
+           usuarios activos (post-launch público) reemplazar por números reales. -->
+      <span class="flex items-center gap-1.5 text-[11px] font-semibold text-tx3 shrink-0 whitespace-nowrap"><span class="ms text-sm text-green2">smart_toy</span> IA Gemini 2.5</span>
       <div class="w-px h-4 bg-border2/50 shrink-0"></div>
-      <div class="flex items-center gap-2 shrink-0"><span class="font-brand text-lg font-extrabold text-dk proof-n" data-placeholder="true">+2500</span><span class="text-[11px] font-semibold text-tx3 whitespace-nowrap">Mascotas</span></div>
+      <span class="flex items-center gap-1.5 text-[11px] font-semibold text-tx3 shrink-0 whitespace-nowrap"><span class="ms text-sm text-green2">groups</span> Co-tutores</span>
       <div class="w-px h-4 bg-border2/50 shrink-0"></div>
-      <span class="flex items-center gap-1.5 text-[11px] font-semibold text-tx3 shrink-0 whitespace-nowrap"><span class="ms text-sm text-green2">smart_toy</span> IA</span>
+      <span class="flex items-center gap-1.5 text-[11px] font-semibold text-tx3 shrink-0 whitespace-nowrap"><span class="ms text-sm text-green2">verified</span> Datos cifrados</span>
       <div class="w-px h-4 bg-border2/50 shrink-0"></div>
-      <span class="flex items-center gap-1.5 text-[11px] font-semibold text-tx3 shrink-0 whitespace-nowrap"><span class="ms text-sm text-green2">verified</span> Seguro</span>
+      <span class="flex items-center gap-1.5 text-[11px] font-semibold text-tx3 shrink-0 whitespace-nowrap"><span class="ms text-sm text-green2">install_mobile</span> PWA iOS &amp; Android</span>
     </div>
   </div>
 </div>
@@ -737,25 +738,27 @@ a[href]:active,button:active{transform:scale(.97) translateY(1px)}
   <div class="max-w-[1000px] mx-auto relative z-10">
     <div class="text-center mb-12">
       <span class="sl">PESSY EN NUMEROS</span>
-      <h2 class="sh">Datos que respaldan la propuesta</h2>
-      <p class="sb max-w-xl mx-auto text-lg">Por qué Pessy resuelve un problema real para tutores de mascotas.</p>
+      <h2 class="sh">Lo que hace Pessy hoy</h2>
+      <p class="sb max-w-xl mx-auto text-lg">Capacidades reales, sin marketing inflado. Lo que ves es lo que la app hace.</p>
     </div>
 
     <ul class="grid md:grid-cols-3 gap-5 mb-14 list-none p-0">
-      <!-- PLACEHOLDER: reemplazar cuando haya KPIs reales de Pessy antes de deploy público -->
+      <!-- Capabilities verificables, NO KPIs fake. Reemplazar por números reales
+           solo cuando haya métricas de uso público auditables. -->
       <li class="bg-bgm rounded-[1.5rem] p-7 border border-border2/20 text-center">
-        <strong class="block font-brand text-4xl font-extrabold text-dk mb-2" data-placeholder="true">+500</strong>
-        <span class="text-[13px] text-tx3 font-medium leading-snug block">documentos veterinarios procesados por IA durante la beta privada</span>
+        <span class="ms text-3xl text-green2 mb-2 block">document_scanner</span>
+        <strong class="block font-brand text-base font-extrabold text-dk mb-1.5">Sub\u00ed cualquier documento</strong>
+        <span class="text-[13px] text-tx3 font-medium leading-snug block">Foto del carnet, receta o estudio. Pessy lee y arma el historial autom\u00e1ticamente con Gemini 2.5.</span>
       </li>
-      <!-- Stat externa — fuente AVMA / AAHA. Verificar cifra exacta y link antes de deploy. -->
       <li class="bg-bgm rounded-[1.5rem] p-7 border border-border2/20 text-center">
-        <strong class="block font-brand text-4xl font-extrabold text-dk mb-2">50%</strong>
-        <span class="text-[13px] text-tx3 font-medium leading-snug block">de dueños de mascotas no mantienen al día el calendario de vacunas de su animal <small class="block text-tx3/70 mt-1">(referencia: estudios de adherencia veterinaria AAHA/AVMA — verificar cifra exacta antes de deploy)</small></span>
+        <span class="ms text-3xl text-green2 mb-2 block">notifications_active</span>
+        <strong class="block font-brand text-base font-extrabold text-dk mb-1.5">Recordatorios sin pensarlos</strong>
+        <span class="text-[13px] text-tx3 font-medium leading-snug block">Vacunas, antiparasitarios, medicaci\u00f3n y turnos: te avisa antes que se te pase, sin que cargues nada a mano.</span>
       </li>
-      <!-- PLACEHOLDER: medición interna pendiente -->
       <li class="bg-bgm rounded-[1.5rem] p-7 border border-border2/20 text-center">
-        <strong class="block font-brand text-4xl font-extrabold text-dk mb-2" data-placeholder="true">&lt; 4 min</strong>
-        <span class="text-[13px] text-tx3 font-medium leading-snug block">promedio para subir un documento médico y tener vacunas, rutinas y medicamentos organizados</span>
+        <span class="ms text-3xl text-green2 mb-2 block">family_restroom</span>
+        <strong class="block font-brand text-base font-extrabold text-dk mb-1.5">Compartido con la familia</strong>
+        <span class="text-[13px] text-tx3 font-medium leading-snug block">Sum\u00e1 co-tutores hasta 3 mascotas en el plan gratuito. Todos ven lo mismo, nadie arranca de cero.</span>
       </li>
     </ul>
 
