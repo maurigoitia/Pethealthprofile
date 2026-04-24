@@ -20,13 +20,6 @@ interface VetProfile {
   photoUrl?: string;
 }
 
-const MOCK_VETS: VetProfile[] = [
-  { id: "v1", fullName: "Dra. Laura Gómez", specialty: "Clínica general", matricula: "MV-4521", verified: true, rating: 4.9, distanceKm: 0.8, patientsCount: 48 },
-  { id: "v2", fullName: "Dr. Martín Sosa", specialty: "Cardiología", matricula: "MV-3312", verified: true, rating: 4.7, distanceKm: 1.4, patientsCount: 32 },
-  { id: "v3", fullName: "Dra. Ana Beltrán", specialty: "Dermatología", matricula: "MV-5891", verified: false, rating: 4.5, distanceKm: 2.1, patientsCount: 19 },
-  { id: "v4", fullName: "Dr. Carlos Ruiz", specialty: "Cirugía", matricula: "MV-2278", verified: true, rating: 4.8, distanceKm: 3.5, patientsCount: 67 },
-];
-
 const SPECIALTIES = ["Todos", "Clínica general", "Cardiología", "Dermatología", "Nutrición", "Cirugía"];
 
 function getInitials(fullName: string): string {
@@ -96,17 +89,14 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
       try {
         const q = query(collection(db, "vetProfiles"), where("verified", "==", true));
         const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-          setVets(MOCK_VETS);
-        } else {
-          const data: VetProfile[] = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...(doc.data() as Omit<VetProfile, "id">),
-          }));
-          setVets(data);
-        }
-      } catch {
-        setVets(MOCK_VETS);
+        const data: VetProfile[] = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<VetProfile, "id">),
+        }));
+        setVets(data);
+      } catch (err) {
+        console.error("[VetSearch] fetch failed:", err);
+        setVets([]);
       } finally {
         setLoading(false);
       }
