@@ -297,13 +297,26 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                                 {buildCoTutorReferralUrl(generatedCode)}
                               </p>
                             </div>
-                            <button
-                              onClick={handleCopyLink}
-                              className="w-full py-3 rounded-xl border border-[#074738]/20 text-[#074738] font-bold text-sm flex items-center justify-center gap-2"
-                            >
-                              <MaterialIcon name={copiedLink ? "check" : "link"} className="text-base" />
-                              {copiedLink ? "Link copiado" : "Copiar link de invitación"}
-                            </button>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                onClick={handleCopyLink}
+                                className="py-3 rounded-xl border border-[#074738]/20 text-[#074738] font-bold text-xs flex items-center justify-center gap-1.5 active:scale-[0.97] transition-transform"
+                              >
+                                <MaterialIcon name={copiedLink ? "check" : "link"} className="text-base" />
+                                {copiedLink ? "Copiado" : "Copiar link"}
+                              </button>
+                              <a
+                                href={`https://wa.me/?text=${encodeURIComponent(
+                                  `Te invito a ser co-tutor de ${activePet?.name || "mi mascota"} en Pessy 🐾\n\n${buildCoTutorReferralUrl(generatedCode)}`
+                                )}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="py-3 rounded-xl bg-[#25D366] text-white font-bold text-xs flex items-center justify-center gap-1.5 active:scale-[0.97] transition-transform"
+                              >
+                                <MaterialIcon name="chat" className="text-base" />
+                                WhatsApp
+                              </a>
+                            </div>
                             <p className="text-[11px] text-slate-500 leading-4">
                               Este link lleva al co-tutor a entrar o crear cuenta y completar el acceso a la mascota.
                             </p>
