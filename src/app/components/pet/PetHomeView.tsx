@@ -698,19 +698,9 @@ export function PetHomeView({
           </div>
         )}
 
-        {/* 2. WEATHER STRIP - 3 pills */}
-        {weather.status === "ready" && (
-          <div className="flex gap-1.5 mx-3 mt-2.5">
-            <WeatherPill emoji="🌡️" value={`${weather.temperatureC}°C`} label="Ahora" />
-            <WeatherPill emoji="💧" value={`${weather.humidityPct}%`} label="Humedad" />
-            <WeatherPill
-              emoji={walkSafety.status === "safe" ? "✅" : walkSafety.status === "caution" ? "⚠️" : "🚫"}
-              value={walkSafety.badge}
-              label="Paseo"
-              highlight={walkSafety.status === "safe"}
-            />
-          </div>
-        )}
+        {/* WeatherPills eliminado (Épica 6 audit): decorativo sin CTA. El clima
+            sigue alimentando walkSafety + intelligence engine en background.
+            TODO: revisar si vale recuperar como mini-badge dentro de HealthPulse. */}
 
         {/* 2b. PENDIENTE HOY — card central v2 con meds + turnos del día */}
         <SafeBoundary name="PendienteHoyCard">
