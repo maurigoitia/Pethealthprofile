@@ -226,6 +226,28 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                       <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-4">
                         <p className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Invitar co-tutor</p>
                         <p className="text-xs text-slate-500 mb-3">Enviá magic link por email o compartí código manual de 6 caracteres válido por 48 horas.</p>
+                        {/* Permisos explícitos — qué puede y qué no puede hacer un co-tutor */}
+                        <div className="mb-3 rounded-xl bg-[#E0F2F1]/60 border border-[#1A9B7D]/20 px-3 py-2.5">
+                          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#074738] mb-1.5">Qué puede hacer un co-tutor</p>
+                          <ul className="space-y-1 text-xs text-slate-600 dark:text-slate-300 leading-snug">
+                            <li className="flex items-start gap-1.5">
+                              <MaterialIcon name="check_circle" className="text-sm text-[#1A9B7D] shrink-0 mt-px" />
+                              <span>Ver historial, vacunas y rutinas</span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <MaterialIcon name="check_circle" className="text-sm text-[#1A9B7D] shrink-0 mt-px" />
+                              <span>Subir documentos y registrar eventos</span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <MaterialIcon name="check_circle" className="text-sm text-[#1A9B7D] shrink-0 mt-px" />
+                              <span>Recibir recordatorios de turnos y meds</span>
+                            </li>
+                            <li className="flex items-start gap-1.5">
+                              <MaterialIcon name="cancel" className="text-sm text-slate-400 shrink-0 mt-px" />
+                              <span className="text-slate-500">No puede eliminar la mascota ni sacar co-tutores</span>
+                            </li>
+                          </ul>
+                        </div>
                         <div className="flex gap-2 mb-3">
                           <input
                             type="email"
