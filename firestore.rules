@@ -141,6 +141,14 @@ service cloud.firestore {
         canJoinPetWithInvite(petId) ||
         canLeavePetAsCoTutor();
       allow delete: if isPetOwner(resource.data);
+
+      // ─── EXTRACTED VETS (populated by Cloud Function `extractVetsFromArchives`)
+      // Read: owner or co-tutor of the pet.
+      // Write: Cloud Function only (admin SDK bypasses rules). Client writes denied.
+      match /extractedVets/{vetId} {
+        allow read: if canAccessPetById(petId);
+        allow create, update, delete: if false;
+      }
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -513,6 +521,17 @@ service cloud.firestore {
     // ─────────────────────────────────────────────────────────────────
     // VERIFIED REPORTS (digital passport export)
     // ─────────────────────────────────────────────────────────────────
+
+    // ─────────────────────────────────────────────────────────────────
+    // LEARNING VIDEOS (curated educational content)
+    // Read: any authenticated user (shared content, no PII).
+    // Write: admin only — clients cannot mutate the curated catalog.
+    // ─────────────────────────────────────────────────────────────────
+
+    match /learningVideos/{videoId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
 
     match /verified_reports/{reportId} {
       allow read: if signedIn() && resource.data.ownerId == request.auth.uid;
