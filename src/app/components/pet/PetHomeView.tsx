@@ -775,7 +775,7 @@ export function PetHomeView({
           />
         </SafeBoundary>
 
-        {/* 3. LEARNING VIDEOS — reemplaza DailyHookCard (sugerencias estáticas sin IA).
+        {/* 3. LEARNING VIDEOS — reemplaza sugerencias estáticas sin IA.
             Matchea videos curados por especie + condiciones activas + edad. Si 0 matches → oculto. */}
         <SafeBoundary name="LearningVideosSection">
           <LearningVideosSection pet={activePet} />
