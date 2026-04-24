@@ -21,25 +21,16 @@ const PetPreferencesEditor = lazy(() =>
 );
 import {
   WELLBEING_MASTER_BOOK,
-  type ThermalSafetyProfile,
   type WellbeingSpeciesGroupId,
 } from "../../../domain/wellbeing/wellbeingMasterBook";
-import {
-  runPessyIntelligence,
-  type PessyIntelligenceRecommendation,
-} from "../../../domain/intelligence/pessyIntelligenceEngine";
-
 import HealthPulse from "../home/HealthPulse";
 import RoutineChecklist from "../home/RoutineChecklist";
-import ProfileNudge from "../home/ProfileNudge";
 import { QuickActionsV2 } from "../home/QuickActionsV2";
-import PessyTip, { SectionTitle } from "../home/PessyTip";
 import LearningVideosSection from "../learning/LearningVideosSection";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type PetSpecies = "dog" | "cat";
-type WalkSafetyStatus = "missing_data" | "unavailable" | "safe" | "caution" | "blocked";
 
 interface LiveWeatherSnapshot {
   status: "loading" | "ready" | "unavailable";
@@ -48,11 +39,6 @@ interface LiveWeatherSnapshot {
   weatherCode: number | null;
   windSpeedKmh: number | null;
   uvIndex: number | null;
-}
-
-interface WalkSafetyState {
-  status: WalkSafetyStatus;
-  badge: string;
 }
 
 const WEATHER_CACHE_KEY = "pessy_home_weather_v1";
@@ -143,27 +129,6 @@ function resolveGroupIds(species: PetSpecies, breed: string): WellbeingSpeciesGr
   return ids;
 }
 
-function resolveThermalProfile(species: PetSpecies, groupIds: WellbeingSpeciesGroupId[]): ThermalSafetyProfile | null {
-  const priority = groupIds.find((id) => id === "dog.brachycephalic" || id === "cat.brachycephalic");
-
-  if (priority) {
-    return WELLBEING_MASTER_BOOK.thermal_safety.groups.find((group) => group.id === priority) ?? null;
-  }
-
-  const fallbackId = species === "cat" ? "cat.general" : "dog.general";
-  return WELLBEING_MASTER_BOOK.thermal_safety.groups.find((group) => group.id === fallbackId) ?? null;
-}
-
-const WMO_RAIN_CODES = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82];
-
-function computeFoodDaysLeft(prefs: PetPreferences | undefined): number | null {
-  if (!prefs?.foodBagKg || !prefs?.foodDailyGrams || !prefs?.foodLastPurchase) return null;
-  const totalGrams = prefs.foodBagKg * 1000;
-  const daysSince = Math.max(0, Math.floor((Date.now() - new Date(prefs.foodLastPurchase).getTime()) / 86_400_000));
-  const gramsLeft = Math.max(0, totalGrams - daysSince * prefs.foodDailyGrams);
-  return Math.max(0, Math.floor(gramsLeft / prefs.foodDailyGrams));
-}
-
 /** Map generic groupIds to the closest match in daily_suggestions/routines */
 function resolveRoutineGroupId(groupIds: WellbeingSpeciesGroupId[], species: PetSpecies): WellbeingSpeciesGroupId {
   // If the groupId exists in routines, use it directly
@@ -174,52 +139,6 @@ function resolveRoutineGroupId(groupIds: WellbeingSpeciesGroupId[], species: Pet
   // Fallback mapping
   if (species === "cat") return "cat.general";
   return "dog.companion"; // dog.general -> dog.companion
-}
-
-const CATEGORY_ICONS: Record<string, string> = {
-  outdoor: "park",
-  indoor: "home",
-  grooming: "content_cut",
-  training: "school",
-  social: "groups",
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  outdoor: "Aire libre",
-  indoor: "En casa",
-  grooming: "Cuidado",
-  training: "Entrenamiento",
-  social: "Social",
-};
-
-// ─── Inline WeatherPill ───────────────────────────────────────────────────────
-
-function WeatherPill({
-  emoji,
-  value,
-  label,
-  highlight,
-}: {
-  emoji: string;
-  value: string;
-  label: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={`flex-1 flex items-center gap-1.5 rounded-[14px] px-2.5 py-2 border ${
-        highlight
-          ? "border-[#1A9B7D] bg-[#eef8f3]"
-          : "border-[#E5E7EB] bg-white"
-      }`}
-    >
-      <span className="text-[16px] leading-none" role="img">{emoji}</span>
-      <div className="min-w-0">
-        <p className="text-[12px] font-[800] text-[#074738] leading-none">{value}</p>
-        <p className="text-[10px] text-[#9CA3AF] leading-none mt-0.5">{label}</p>
-      </div>
-    </div>
-  );
 }
 
 // ─── ROUTINE STORAGE HELPERS ──────────────────────────────────────────────────
@@ -278,19 +197,6 @@ async function loadCheckedItemsFromFirestore(petId: string): Promise<string[] | 
   }
 }
 
-// ─── RECOMMENDATION COLOR MAPPING ────────────────────────────────────────────
-
-function mapRecToTipColor(rec: PessyIntelligenceRecommendation): "green" | "blue" | "orange" {
-  const segment = rec.slot?.toLowerCase() || "";
-  if (segment.includes("block") || segment.includes("alert") || rec.kind === "block" || rec.kind === "alert") {
-    return "orange";
-  }
-  if (segment.includes("training") || segment.includes("routine")) {
-    return "green";
-  }
-  return "blue";
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -310,7 +216,6 @@ export function PetHomeView({
   const { user } = useAuth();
   const { openSymptomLog } = useAppLayout();
   const [showPreferences, setShowPreferences] = useState(false);
-  const [showAllTasks, setShowAllTasks] = useState(false);
   const [weather, setWeather] = useState<LiveWeatherSnapshot>({
     status: "loading",
     temperatureC: null,
@@ -342,15 +247,6 @@ export function PetHomeView({
 
   const species = resolveSpecies(activePet?.species, activePet?.breed);
   const groupIds = resolveGroupIds(species, activePet?.breed || "");
-  const thermalProfile = resolveThermalProfile(species, groupIds);
-  const foodDaysLeft = computeFoodDaysLeft(activePet?.preferences);
-
-  // ─── Profile completeness ───────────────────────────────────────────────────
-  const missingItems: string[] = [];
-  if (!activePet?.photo) missingItems.push("foto");
-  if (!activePet?.weight) missingItems.push("peso");
-  if (!activePet?.breed) missingItems.push("raza");
-  const profileIncomplete = missingItems.length > 0;
 
   // ─── Medical history derivation for intelligence engine ─────────────────────
   const medicalHistoryInputs = useMemo(() => {
@@ -367,10 +263,13 @@ export function PetHomeView({
       ? Math.round((now - Math.max(...vetVisitDates)) / DAY_MS)
       : null;
 
-    // Overdue vaccines: vaccine events with revaccination_date in the past
+    // Overdue vaccines: vaccine events with revaccination_date in the past.
+    // Track total vaccine events so HealthPulse can distinguish "Al día" vs "Sin datos".
     let overdueVaccineCount = 0;
+    let vaccineEventCount = 0;
     for (const e of petEvents) {
       if (e.extractedData?.documentType !== "vaccine") continue;
+      vaccineEventCount++;
       const revacDate = e.extractedData?.vaccine_artifacts?.revaccination_date;
       if (revacDate) {
         const ts = toTimestampSafe(revacDate, 0);
@@ -393,124 +292,28 @@ export function PetHomeView({
     return {
       lastVetVisitDaysAgo,
       overdueVaccineCount,
+      vaccineEventCount,
       activeMedicationCount: activeMedications.length,
       upcomingAppointmentCount: upcomingAppointments.length,
       recurringConditions: recurringConditions.length > 0 ? recurringConditions : undefined,
     };
   }, [petEvents, activeMedications.length, upcomingAppointments.length]);
 
-  // ─── Intelligence engine ────────────────────────────────────────────────────
-  const intelligenceResult = useMemo(() => {
-    if (!activePet?.breed) return null;
-    const wc = weather.weatherCode;
-    return runPessyIntelligence({
-      petName: activePet.name,
-      species,
-      breed: activePet.breed,
-      ageLabel: activePet.age || "",
-      groupIds,
-      temperatureC: weather.temperatureC,
-      humidityPct: weather.humidityPct,
-      isRaining: wc !== null && WMO_RAIN_CODES.includes(wc),
-      isStormy: wc !== null && wc >= 95,
-      windSpeedKmh: weather.windSpeedKmh,
-      uvIndex: weather.uvIndex,
-      currentHour: new Date().getHours(),
-      // Normalizar arrays: datos legacy en Firestore pueden venir como string/null/objeto
-      // en lugar de array. '.some()' / '.includes()' en el engine crashean si no es array.
-      fears: Array.isArray(activePet.preferences?.fears) ? activePet.preferences!.fears! : [],
-      personality: Array.isArray(activePet.preferences?.personality) ? activePet.preferences!.personality! : [],
-      favoriteActivities: Array.isArray(activePet.preferences?.favoriteActivities) ? activePet.preferences!.favoriteActivities! : [],
-      walkTimes: Array.isArray(activePet.preferences?.walkTimes) ? activePet.preferences!.walkTimes! : [],
-      foodDaysLeft,
-      ...medicalHistoryInputs,
-    });
-  }, [activePet?.id, activePet?.breed, activePet?.name, activePet?.age, activePet?.preferences, species, groupIds, weather, foodDaysLeft, medicalHistoryInputs]);
+  // NOTA Épica 6: bloque intelligenceResult/sortedRecommendations/criticalAlert
+  // eliminado — solo alimentaba "Pessy te dice" que estaba oculto detrás de
+  // false &&. Si en el futuro vuelve a usarse, recuperar runPessyIntelligence
+  // desde domain/intelligence/pessyIntelligenceEngine.
 
-  const sortedRecommendations = useMemo(() => {
-    if (!intelligenceResult) return [];
-    const order: Record<string, number> = { block: 0, alert: 1, recommendation: 2 };
-    return [...intelligenceResult.recommendations].sort((a, b) => (order[a.kind] ?? 2) - (order[b.kind] ?? 2));
-  }, [intelligenceResult]);
+  // walkSafety eliminado (Épica 6): solo alimentaba WeatherPills (también
+  // removida). thermalProfile/groupIds quedan disponibles para futura mini-
+  // badge dentro de HealthPulse si se decide volver a mostrar paseo.
 
-  // ─── Critical alert for "Pessy te dice" (single most urgent) ───────────────
-  const criticalAlert = sortedRecommendations.find(
-    (rec) => rec.kind === "block" || rec.kind === "alert"
-  ) ?? null;
-
-  // ─── Walk safety (simplified for badge) ─────────────────────────────────────
-  const walkSafety: WalkSafetyState = useMemo(() => {
-    const breed = (activePet?.breed || "").trim();
-    if (!breed || !thermalProfile) return { status: "missing_data", badge: "Falta dato" };
-    if (weather.status !== "ready" || weather.temperatureC === null) return { status: "unavailable", badge: "Sin clima" };
-
-    const humidityPenalty = thermalProfile.humiditySensitive && (weather.humidityPct ?? 0) >= 70;
-    const severeRisk = thermalProfile.severeRiskAboveC ?? Number.POSITIVE_INFINITY;
-    const avoidExercise = thermalProfile.avoidExerciseAboveC ?? Number.POSITIVE_INFINITY;
-    const cautionThreshold =
-      typeof avoidExercise === "number" && Number.isFinite(avoidExercise)
-        ? Math.max((thermalProfile.comfortableMaxC ?? avoidExercise) + 1, avoidExercise - 3)
-        : thermalProfile.comfortableMaxC ?? 26;
-
-    if (weather.temperatureC >= severeRisk || weather.temperatureC > avoidExercise || humidityPenalty) {
-      return { status: "blocked", badge: "STOP" };
-    }
-    if (weather.temperatureC >= cautionThreshold) {
-      return { status: "caution", badge: "Precaución" };
-    }
-    return { status: "safe", badge: "OK" };
-  }, [activePet?.breed, thermalProfile, weather]);
-
-  // ─── Daily suggestions (deterministic by day-of-year, up to 3) ─────────────
-  const dailySuggestions = useMemo(() => {
-    const weatherCondition = walkSafety.status === "blocked" ? "blocked" : walkSafety.status === "safe" ? "safe" : "any";
-
-    // Collect candidates from ALL matching groupIds (breed-aware)
-    const candidates = WELLBEING_MASTER_BOOK.daily_suggestions.filter(
-      (s) => groupIds.includes(s.groupId) && (s.weatherCondition === weatherCondition || s.weatherCondition === "any")
-    );
-
-    // If no candidates for the matched groups, try all suggestions for weather condition
-    const pool = candidates.length > 0
-      ? candidates
-      : WELLBEING_MASTER_BOOK.daily_suggestions.filter(
-          (s) => s.weatherCondition === weatherCondition || s.weatherCondition === "any"
-        );
-
-    const fallback = {
-      category: "Actividad",
-      icon: "park",
-      title: `Tiempo de calidad con ${activePet?.name || "tu mascota"}`,
-      detail: "Un buen momento para compartir tiempo con tu mascota.",
-      duration: "15 min",
-      points: 10,
-    };
-
-    if (pool.length === 0) {
-      return [fallback];
-    }
-
-    const dayOfYear = Math.floor(
-      (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86_400_000
-    );
-
-    // Pick up to 3 unique suggestions, rotating deterministically by day-of-year
-    const count = Math.min(3, pool.length);
-    const results: Array<{ category: string; icon: string; title: string; detail: string; duration: string; points: number }> = [];
-    for (let i = 0; i < count; i++) {
-      const pick = pool[(dayOfYear + i) % pool.length];
-      results.push({
-        category: pick.category,
-        icon: CATEGORY_ICONS[pick.category] || "star",
-        title: pick.title,
-        detail: pick.detail,
-        duration: pick.duration,
-        points: pick.gamificationPoints,
-      });
-    }
-
-    return results;
-  }, [groupIds, species, walkSafety.status, activePet?.name]);
+  // NOTA: el bloque dailySuggestions (sugerencias rotativas tipo "Limpieza de
+  // pliegues", "Sesión de calma", etc.) fue eliminado en Épica 1 — se computaba
+  // pero nunca se renderizaba, y mostraba items que no tenían flow real de
+  // "empezar". Si en el futuro se vuelve a usar contenido de
+  // WELLBEING_MASTER_BOOK.daily_suggestions, hay que conectar un onClick que
+  // realmente abra los `steps` o se elimina el botón.
 
   // ─── Routine items ──────────────────────────────────────────────────────────
   const currentHour = new Date().getHours();
@@ -754,19 +557,9 @@ export function PetHomeView({
           </div>
         )}
 
-        {/* 2. WEATHER STRIP - 3 pills */}
-        {weather.status === "ready" && (
-          <div className="flex gap-1.5 mx-3 mt-2.5">
-            <WeatherPill emoji="🌡️" value={`${weather.temperatureC}°C`} label="Ahora" />
-            <WeatherPill emoji="💧" value={`${weather.humidityPct}%`} label="Humedad" />
-            <WeatherPill
-              emoji={walkSafety.status === "safe" ? "✅" : walkSafety.status === "caution" ? "⚠️" : "🚫"}
-              value={walkSafety.badge}
-              label="Paseo"
-              highlight={walkSafety.status === "safe"}
-            />
-          </div>
-        )}
+        {/* WeatherPills eliminado (Épica 6 audit): decorativo sin CTA. El clima
+            sigue alimentando walkSafety + intelligence engine en background.
+            TODO: revisar si vale recuperar como mini-badge dentro de HealthPulse. */}
 
         {/* 2b. PENDIENTE HOY — card central v2 con meds + turnos del día */}
         <SafeBoundary name="PendienteHoyCard">
@@ -806,14 +599,32 @@ export function PetHomeView({
           </button>
         </SafeBoundary>
 
-        {/* 3. LEARNING VIDEOS — reemplaza sugerencias estáticas sin IA.
-            Matchea videos curados por especie + condiciones activas + edad. Si 0 matches → oculto. */}
-        <SafeBoundary name="LearningVideosSection">
-          <LearningVideosSection pet={activePet} />
-        </SafeBoundary>
+        {/* 3. QUICK ACTIONS — navegación principal, alta prioridad de acción */}
+        <div className="mt-3">
+          <QuickActionsV2
+            pendingReviewCount={pendingReviewCount}
+            upcomingAppointments={appointmentCount}
+            activeMedications={medicationCount}
+          />
+        </div>
 
-        {/* 4. ROUTINE CHECKLIST - morning, evening, or sleep based on time */}
-        {currentRoutineItems && currentRoutineItems.length > 0 ? (
+        {/* 4. HEALTH PULSE — diagnóstico actual (vacunas, vet visits, condiciones) */}
+        <div className="mx-3 mt-2">
+          <HealthPulse
+            petName={activePet.name}
+            overdueVaccines={medicalHistoryInputs.overdueVaccineCount}
+            vaccineEventCount={medicalHistoryInputs.vaccineEventCount}
+            activeMedications={activeMedications.length}
+            lastVetVisitDaysAgo={medicalHistoryInputs.lastVetVisitDaysAgo}
+            recurringConditions={medicalHistoryInputs.recurringConditions || []}
+            upcomingAppointments={upcomingAppointments.length}
+          />
+        </div>
+
+        {/* 5. ROUTINE CHECKLIST — morning/evening/sleep según hora.
+            Si no hay rutina (sleep mode con 0 items), no rendereamos NADA
+            para evitar card decorativa "ya descansa". */}
+        {currentRoutineItems && currentRoutineItems.length > 0 && (
           <div className="mx-3 mt-2">
             <RoutineChecklist
               title={routineTitle}
@@ -823,107 +634,18 @@ export function PetHomeView({
               onToggle={handleRoutineToggle}
             />
           </div>
-        ) : currentRoutineItems === null ? (
-          <div className="mx-3 mt-2">
-            <div className="rounded-[16px] border border-[#E5E7EB] bg-white flex items-center gap-3" style={{ padding: "14px 16px" }}>
-              <span className="text-[#074738]">
-                <MaterialIcon name="bedtime" className="!text-[22px]" />
-              </span>
-              <span className="text-[13px] font-[800] text-[#074738]">
-                {activePet.name} ya descansa. Mañana seguimos.
-              </span>
-            </div>
-          </div>
-        ) : null}
-
-        {/* 5. HEALTH PULSE — alertas de salud, después del contexto */}
-        <div className="mx-3 mt-2">
-          <HealthPulse
-            petName={activePet.name}
-            overdueVaccines={medicalHistoryInputs.overdueVaccineCount}
-            activeMedications={activeMedications.length}
-            lastVetVisitDaysAgo={medicalHistoryInputs.lastVetVisitDaysAgo}
-            recurringConditions={medicalHistoryInputs.recurringConditions || []}
-            upcomingAppointments={upcomingAppointments.length}
-          />
-        </div>
-
-        {/* 5a. QUICK ACTIONS — always visible, action-oriented */}
-        <div className="mt-3">
-          <QuickActionsV2
-            pendingReviewCount={pendingReviewCount}
-            upcomingAppointments={appointmentCount}
-            activeMedications={medicationCount}
-          />
-        </div>
-
-        {/* 5b. PREFERENCES NUDGE — OCULTO (no estaba en UI kit v2)
-            User flag: estas cards amarillas/mint distorsionan el flow del kit.
-            Mover a un settings screen dedicado en el futuro. */}
-        {false && activePet && !(Array.isArray(activePet.preferences?.personality) ? activePet.preferences!.personality!.length : 0) && !(Array.isArray(activePet.preferences?.fears) ? activePet.preferences!.fears!.length : 0) && !(Array.isArray(activePet.preferences?.favoriteActivities) ? activePet.preferences!.favoriteActivities!.length : 0) && (
-          <div className="mx-3 mt-2">
-            <button
-              type="button"
-              onClick={() => setShowPreferences(true)}
-              className="w-full rounded-[16px] border border-[#1A9B7D]/20 bg-[#E0F2F1] flex items-center gap-3 text-left transition-colors hover:bg-[#C8E6E3]"
-              style={{ padding: "14px 16px" }}
-            >
-              <span className="text-[22px]">🎯</span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-[800] text-[#074738]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  Contanos sobre {activePet.name}
-                </p>
-                <p className="text-[11px] font-[500] text-[#6B7280] mt-0.5">
-                  Personalidad, actividades y miedos — para sugerencias más precisas
-                </p>
-              </div>
-              <span className="text-[#1A9B7D] text-lg shrink-0">→</span>
-            </button>
-          </div>
         )}
 
-        {/* 6. PROFILE NUDGE — OCULTO (no estaba en UI kit v2) */}
-        {false && profileIncomplete && (
-          <div className="mx-3 mt-2">
-            <ProfileNudge
-              petName={activePet.name}
-              species={species}
-              missingItems={missingItems}
-              onComplete={onProfileClick}
-            />
-          </div>
-        )}
+        {/* 6. LEARNING VIDEOS — al final: contenido educativo opcional.
+            Matchea videos curados por especie + condiciones + edad. 0 matches → oculto. */}
+        <SafeBoundary name="LearningVideosSection">
+          <LearningVideosSection pet={activePet} />
+        </SafeBoundary>
 
-        {/* 7. PESSY TE DICE — OCULTO (no estaba en UI kit v2) */}
-        {false && criticalAlert && (
-          <>
-            <SectionTitle>Pessy te dice</SectionTitle>
-            <div className="mx-4">
-              <PessyTip
-                icon={criticalAlert.icon}
-                color={mapRecToTipColor(criticalAlert)}
-                title={criticalAlert.title}
-                description={criticalAlert.detail}
-                actionLabel={
-                  criticalAlert.sourceModule === "medical_history" ? "Ver historial" :
-                  criticalAlert.sourceModule === "supply_tracker" ? "Ver recordatorios" :
-                  criticalAlert.sourceModule === "breed_profile" ? "Completar perfil" :
-                  criticalAlert.sourceModule === "weight_trend" ? "Ver historial" :
-                  criticalAlert.sourceModule === "recurring_conditions" ? "Ver historial" :
-                  undefined
-                }
-                onAction={
-                  criticalAlert.sourceModule === "medical_history" ? onViewHistory :
-                  criticalAlert.sourceModule === "supply_tracker" ? onMedicationsClick :
-                  criticalAlert.sourceModule === "breed_profile" ? onProfileClick :
-                  criticalAlert.sourceModule === "weight_trend" ? onViewHistory :
-                  criticalAlert.sourceModule === "recurring_conditions" ? onViewHistory :
-                  undefined
-                }
-              />
-            </div>
-          </>
-        )}
+        {/* PreferencesNudge / ProfileNudge / PessyTeDice eliminados (Épica 6):
+            estaban detrás de `false &&` desde el ajuste de UI kit v2. Si en el
+            futuro hace falta un nudge de perfil incompleto, agregarlo dentro
+            de HealthPulse o en un settings dedicado — no como card extra. */}
       </div>
 
       {/* ─── Preferences Editor Modal ─────────────────────────────────────── */}

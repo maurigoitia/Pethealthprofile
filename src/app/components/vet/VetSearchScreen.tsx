@@ -6,6 +6,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { useExtractedVets, ExtractedVet } from "../../hooks/useExtractedVets";
 import { usePet } from "../../contexts/PetContext";
+import { NearbyVetsFromMaps } from "./NearbyVetsFromMaps";
 
 interface VetSearchScreenProps {
   onBack: () => void;
@@ -438,6 +439,10 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
             petName={activePet?.name || null}
           />
         </div>
+
+        {/* Cerca tuyo — Fuente B: Google Places API (datos reales por geolocalización).
+            Si no hay API key o se rechaza permiso, cae a link externo a Maps. */}
+        <NearbyVetsFromMaps />
 
         {loading ? (
           <>

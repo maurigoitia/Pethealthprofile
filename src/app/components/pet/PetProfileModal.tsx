@@ -10,6 +10,7 @@ import { searchBreeds } from "../../utils/breedSearch";
 import { formatDateSafe, parseDateSafe, toDateInputValueSafe, toDateKeySafe } from "../../utils/dateUtils";
 import { DEFAULT_PET_PHOTO } from "../../constants/petDefaults";
 import { PetPhoto } from "./PetPhoto";
+import { MedicalSummaryCard } from "./MedicalSummaryCard";
 import { getPetPhotoAcceptValue, preparePetPhotoForUpload } from "../../utils/petPhotoUpload";
 import { uploadPetPhotoWithFallback } from "../../services/petPhotoService";
 
@@ -199,7 +200,53 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
     photoCameraInputRef.current?.click();
   };
 
-  const { getEventsByPetId } = useMedical();
+  const {
+    getEventsByPetId,
+    getClinicalConditionsByPetId,
+    getActiveMedicationsByPetId,
+  } = useMedical();
+
+  // Datos para el resumen médico
+  const medicalSummary = useMemo(() => {
+    if (!activePet?.id) {
+      return {
+        conditions: [],
+        activeMedications: [],
+        hasVaccinationCard: false,
+        lastVetVisit: null as { date: string; clinic?: string | null } | null,
+      };
+    }
+    const petEvents = getEventsByPetId(activePet.id);
+    const hasVaccinationCard = petEvents.some(
+      (e) => e.extractedData.documentType === "vaccine"
+    );
+    // última consulta/checkup pasada
+    const visits = petEvents
+      .filter((e) => {
+        const t = e.extractedData.documentType;
+        return t === "consultation" || t === "checkup" || t === "appointment";
+      })
+      .map((e) => ({
+        date: e.extractedData.eventDate || e.createdAt,
+        clinic: (e.extractedData.provider as string | null) || null,
+      }))
+      .filter((v) => {
+        const t = Date.parse(v.date);
+        return !Number.isNaN(t) && t <= Date.now();
+      })
+      .sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+    return {
+      conditions: getClinicalConditionsByPetId(activePet.id),
+      activeMedications: getActiveMedicationsByPetId(activePet.id),
+      hasVaccinationCard,
+      lastVetVisit: visits[0] || null,
+    };
+  }, [
+    activePet?.id,
+    getEventsByPetId,
+    getClinicalConditionsByPetId,
+    getActiveMedicationsByPetId,
+  ]);
 
   // Vacunas reales desde medical_events procesados
   const vaccines = useMemo(() => {
@@ -418,6 +465,15 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                       </div>
                     ))}
                   </div>
+
+                  {/* Resumen médico — lectura ≤30s */}
+                  <MedicalSummaryCard
+                    petName={activePet?.name || "tu mascota"}
+                    conditions={medicalSummary.conditions}
+                    activeMedications={medicalSummary.activeMedications}
+                    hasVaccinationCard={medicalSummary.hasVaccinationCard}
+                    lastVetVisit={medicalSummary.lastVetVisit}
+                  />
 
                   {/* Peso histórico */}
                   {weightHistory.length > 1 && (

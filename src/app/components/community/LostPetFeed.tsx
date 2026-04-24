@@ -82,8 +82,8 @@ export function LostPetFeed({ onReport, onBack }: Props) {
         ) : sorted.length === 0 ? (
           <div className="text-center py-12">
             <MaterialIcon name="pets" className="text-5xl text-[#1A9B7D]/30 mb-3" />
-            <p className="text-base font-semibold text-slate-700 dark:text-slate-300">No hay reportes en tu zona</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">¡Buena noticia! Todas las mascotas están a salvo.</p>
+            <p className="text-base font-semibold text-slate-700 dark:text-slate-300">No hay reportes activos en tu zona</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Si encontrás o perdés una mascota, podés reportarlo desde acá.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
