@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recordatorios de vacunas para perros y gatos | Pessy</title>
+<meta name="description" content="Pessy te recuerda las vacunas, antiparasitarios y medicaciones de tu mascota antes que se te pase. Simple, en espanol, gratis durante la beta.">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#074738">
+<link rel="canonical" href="https://pessy.app/funciones/recordatorios-vacunas">
+<link rel="alternate" hreflang="es-AR" href="https://pessy.app/funciones/recordatorios-vacunas">
+<link rel="alternate" hreflang="es-419" href="https://pessy.app/funciones/recordatorios-vacunas">
+<link rel="alternate" hreflang="x-default" href="https://pessy.app/funciones/recordatorios-vacunas">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="Recordatorios de vacunas para mascotas — Pessy">
+<meta property="og:description" content="Que no se te pase una vacuna. Pessy te avisa a tiempo, por cada mascota, en espanol.">
+<meta property="og:image" content="https://pessy.app/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://pessy.app/funciones/recordatorios-vacunas">
+<meta property="og:locale" content="es_AR">
+<meta property="og:site_name" content="Pessy">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@pessy_app">
+<meta name="twitter:title" content="Recordatorios de vacunas — Pessy">
+<meta name="twitter:description" content="Que no se te pase una vacuna de tu mascota.">
+<meta name="twitter:image" content="https://pessy.app/og-cover.png">
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Pessy","item":"https://pessy.app"},{"@type":"ListItem","position":2,"name":"Funciones","item":"https://pessy.app/funciones"},{"@type":"ListItem","position":3,"name":"Recordatorios de vacunas","item":"https://pessy.app/funciones/recordatorios-vacunas"}]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Pessy — Recordatorios de vacunas","applicationCategory":"LifestyleApplication","operatingSystem":"Web, iOS, Android","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"description":"Funcion de recordatorios automaticos de vacunas, antiparasitarios y medicaciones para perros y gatos."}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Como me avisa Pessy cuando toca una vacuna?","acceptedAnswer":{"@type":"Answer","text":"Con notificacion push en el celular y un recordatorio en la pantalla de inicio de la app. Podes configurar con cuantos dias de anticipacion queres el aviso."}},{"@type":"Question","name":"Funciona para gatos y perros?","acceptedAnswer":{"@type":"Answer","text":"Si, para ambos. Cada especie tiene su propio calendario de vacunas sugerido, adaptado a la region."}},{"@type":"Question","name":"Necesito cargar todas las vacunas a mano?","acceptedAnswer":{"@type":"Answer","text":"No. Sacas una foto de la libreta sanitaria y Pessy extrae fechas, vacunas y el proximo refuerzo automaticamente."}},{"@type":"Question","name":"Puedo agregar recordatorios para antiparasitarios?","acceptedAnswer":{"@type":"Answer","text":"Si. Ademas de vacunas, Pessy maneja antiparasitarios internos, externos y medicaciones recurrentes."}},{"@type":"Question","name":"Es gratis?","acceptedAnswer":{"@type":"Answer","text":"Si, durante la beta es totalmente gratis y sin funciones bloqueadas."}}]}
+</script>
+
+<link rel="icon" href="https://pessy.app/pessy-favicon.svg" type="image/svg+xml">
+<link rel="icon" href="https://pessy.app/pwa-192x192.png" type="image/png">
+<link rel="apple-touch-icon" href="https://pessy.app/apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--dk:#074738;--act:#1A9B7D;--mint:#F0FAF9;--mint2:#E0F2F1;--tx:#0a2e23;--tx2:#3d5a50;--tx3:#6B7280;--border:rgba(7,71,56,0.08);--white:#fff}
+body{font-family:'Manrope',system-ui,sans-serif;background:var(--mint);color:var(--tx);line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif;color:var(--dk);letter-spacing:-.025em}
+a{color:var(--act);text-decoration:none}
+.wrap{max-width:780px;margin:0 auto;padding:24px 22px 60px}
+.eyebrow{font-size:10px;font-weight:800;letter-spacing:.3em;text-transform:uppercase;color:var(--act);display:block;margin-bottom:12px}
+h1{font-size:clamp(28px,5vw,40px);font-weight:800;line-height:1.08;margin-bottom:16px}
+.lede{font-size:18px;color:var(--tx2);margin-bottom:32px;line-height:1.55}
+h2{font-size:22px;font-weight:800;margin:40px 0 14px}
+h3{font-size:17px;font-weight:700;margin:24px 0 10px}
+p{margin-bottom:14px;color:var(--tx2)}
+.nav{position:sticky;top:0;background:rgba(240,250,249,0.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:14px 22px;z-index:10}
+.nav-inner{max-width:780px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.logo{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:17px;color:var(--dk);letter-spacing:-.02em}
+.nav-links{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.nav-links a{color:var(--tx2);font-size:13px;font-weight:600}
+.nav-links a:hover{color:var(--dk)}
+.cta{background:var(--dk);color:#fff !important;padding:9px 18px;border-radius:12px;font-size:13px;font-weight:700}
+.crumbs{font-size:12px;color:var(--tx3);margin-bottom:20px}
+.crumbs a{color:var(--tx3)}
+ul,ol{margin:8px 0 14px 22px;color:var(--tx2)}
+li{margin-bottom:8px}
+strong{color:var(--dk)}
+.cta-card{background:var(--dk);color:#fff;border-radius:22px;padding:28px 24px;margin:36px 0;text-align:center}
+.cta-card h3{color:#fff;font-size:22px;margin-bottom:8px}
+.cta-card p{color:rgba(255,255,255,0.75);margin-bottom:18px}
+.cta-card a{background:var(--act);color:#fff;padding:13px 26px;border-radius:14px;font-weight:800;font-size:14px;display:inline-block;transition:transform 200ms}
+.cta-card a:hover{transform:translateY(-2px)}
+.faq details{border:1px solid var(--border);border-radius:14px;padding:14px 18px;margin-bottom:10px;background:var(--white)}
+.faq summary{font-weight:700;color:var(--dk);cursor:pointer;list-style:none;font-family:'Plus Jakarta Sans',sans-serif}
+.faq summary::after{content:'+';float:right;font-size:20px;font-weight:300}
+.faq details[open] summary::after{content:'-'}
+.faq p{margin-top:10px;margin-bottom:0}
+.disclaimer{font-size:13px;color:var(--tx3);border-left:3px solid var(--mint2);padding:10px 16px;margin:20px 0;background:var(--white);border-radius:8px}
+footer{text-align:center;padding:40px 22px;color:var(--tx3);font-size:13px;border-top:1px solid var(--border);margin-top:40px}
+footer a{color:var(--tx3)}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="https://pessy.app" class="logo">Pessy</a>
+    <div class="nav-links">
+      <a href="https://pessy.app">Inicio</a>
+      <a href="https://pessy.app/funciones">Funciones</a>
+      <a href="https://pessy.app/blog">Blog</a>
+      <a href="https://pessy.app/login">Entrar</a>
+      <a href="https://pessy.app/register" class="cta">Empezar</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="crumbs">
+    <a href="https://pessy.app">Inicio</a> &middot; <a href="https://pessy.app/funciones">Funciones</a> &middot; Recordatorios de vacunas
+  </div>
+
+  <span class="eyebrow">Funcion</span>
+  <h1>Recordatorios de vacunas para perros y gatos</h1>
+  <p class="lede">El calendario de vacunas de tu mascota, sin planillas ni alarmas olvidadas. Pessy te avisa antes que toque, con el aviso justo para llegar a tiempo al veterinario.</p>
+
+  <p>Cuando tenes una mascota, el calendario de cuidados se va llenando solo: la antirrabica anual, los refuerzos de la sextuple, el antiparasitario cada 30 dias, la pipeta mensual, la desparasitacion cada tres meses. Si tenes mas de una mascota, multiplicas. Al final, todos terminamos anotandolo en algun papel que se pierde o en un calendario que no mira nadie.</p>
+
+  <p>Pessy junta todo eso en un solo lugar y te avisa <strong>antes</strong> de que se te pase. No te muestra una agenda vacia para que la llenes vos: lee la libreta sanitaria, entiende que se aplico y cuando toca el proximo refuerzo, y arma los recordatorios por vos.</p>
+
+  <h2>Como funciona</h2>
+  <ol>
+    <li><strong>Sumas tu mascota.</strong> Nombre, especie, raza, fecha de nacimiento. En 30 segundos.</li>
+    <li><strong>Sacas una foto de la libreta sanitaria.</strong> O subis un PDF del veterinario. Pessy lee las fechas, las vacunas aplicadas y calcula el proximo refuerzo.</li>
+    <li><strong>Listo.</strong> Recibis una notificacion unos dias antes de cada vacuna, antiparasitario o control.</li>
+  </ol>
+
+  <p>Tambien podes cargar recordatorios manualmente si preferis. Pessy te sugiere el calendario tipico segun especie y edad, y vos lo ajustas si tu veterinario indico otra cosa.</p>
+
+  <h2>Para quien es</h2>
+  <ul>
+    <li>Dueños de un cachorro o gatito que empiezan el plan de vacunacion y no quieren perderse ningun refuerzo.</li>
+    <li>Familias con varias mascotas que necesitan organizar calendarios distintos al mismo tiempo.</li>
+    <li>Tutores de mascotas adultas que quieren estar tranquilos con la antirrabica anual y los antiparasitarios.</li>
+    <li>Gente que se muda, viaja o cambia de veterinario y necesita tener el historial a mano.</li>
+  </ul>
+
+  <h2>Beneficios</h2>
+  <ul>
+    <li><strong>Avisos con anticipacion.</strong> Por defecto 7 dias antes, configurable a tu gusto.</li>
+    <li><strong>Multi-mascota.</strong> Un calendario para cada una, todos en la misma app.</li>
+    <li><strong>Calendario regionalizado.</strong> Pessy sugiere las vacunas tipicas en Argentina, Mexico, Espana y mas paises hispanohablantes.</li>
+    <li><strong>Compartido con familia.</strong> Si lo cuidas con tu pareja, padres o roommate, todos ven lo mismo.</li>
+    <li><strong>Historial siempre a mano.</strong> Si el veterinario nuevo pide que le pases la libreta, la exportas en PDF.</li>
+  </ul>
+
+  <div class="cta-card">
+    <h3>Empeza a organizar las vacunas gratis</h3>
+    <p>Sin tarjeta de credito, sin instalar nada. Abris el navegador y listo.</p>
+    <a href="https://pessy.app/register">Empezar ahora &rarr;</a>
+  </div>
+
+  <h2>Preguntas frecuentes</h2>
+  <div class="faq">
+    <details>
+      <summary>Como me avisa Pessy cuando toca una vacuna?</summary>
+      <p>Con una notificacion push en el celular y un recordatorio en la pantalla de inicio de la app. Podes elegir con cuantos dias de anticipacion queres recibir el aviso (por defecto 7 dias).</p>
+    </details>
+    <details>
+      <summary>Funciona para gatos y perros?</summary>
+      <p>Si, para ambos. Cada especie tiene su propio calendario sugerido. Si tenes otras especies (conejos, aves), podes cargar los recordatorios a mano.</p>
+    </details>
+    <details>
+      <summary>Necesito cargar todas las vacunas a mano?</summary>
+      <p>No. Sacas una foto de la libreta sanitaria o subis el PDF que te da el veterinario, y Pessy extrae las fechas, las vacunas aplicadas y calcula los proximos refuerzos.</p>
+    </details>
+    <details>
+      <summary>Puedo agregar recordatorios para antiparasitarios y pipetas?</summary>
+      <p>Si. Ademas de vacunas, Pessy te recuerda antiparasitarios internos, pipetas externas, medicaciones recurrentes y controles veterinarios.</p>
+    </details>
+    <details>
+      <summary>Que pasa si cambio de veterinario?</summary>
+      <p>Exportas el historial en PDF con un toque y se lo pasas al nuevo profesional. No perdes nada de la informacion cargada.</p>
+    </details>
+    <details>
+      <summary>Es gratis?</summary>
+      <p>Si, durante la beta es totalmente gratis y sin funciones bloqueadas. Cuando salgamos de beta habra un plan familiar, pero las funciones esenciales seguiran siendo gratis.</p>
+    </details>
+  </div>
+
+  <div class="disclaimer"><strong>Nota:</strong> Pessy organiza la informacion de tu mascota y te ayuda a no olvidarte de sus cuidados. No reemplaza la consulta con un veterinario. Para decisiones sobre que vacunas aplicar, siempre consulta con un profesional.</div>
+
+</main>
+
+<footer>
+  <p>&copy; Pessy 2026 &middot; <a href="https://pessy.app">pessy.app</a> &middot; <a href="https://pessy.app/privacidad">Privacidad</a> &middot; <a href="https://pessy.app/terminos">Terminos</a> &middot; <a href="mailto:it@pessy.app">Contacto</a></p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App de gestion de mascotas — Multi-mascota y familia | Pessy</title>
+<meta name="description" content="La app para gestionar la vida de tu mascota: multiples mascotas, co-tutores, familia conectada. Todo lo de tu mascota, ordenado en un solo lugar.">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#074738">
+<link rel="canonical" href="https://pessy.app/funciones/app-gestion-mascotas">
+<link rel="alternate" hreflang="es-AR" href="https://pessy.app/funciones/app-gestion-mascotas">
+<link rel="alternate" hreflang="es-419" href="https://pessy.app/funciones/app-gestion-mascotas">
+<link rel="alternate" hreflang="x-default" href="https://pessy.app/funciones/app-gestion-mascotas">
+
+<meta property="og:type" content="article">
+<meta property="og:title" content="App de gestion de mascotas — Pessy">
+<meta property="og:description" content="La app que junta todo lo de tu mascota: rutinas, salud, documentos, familia. En espanol.">
+<meta property="og:image" content="https://pessy.app/og-cover.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://pessy.app/funciones/app-gestion-mascotas">
+<meta property="og:locale" content="es_AR">
+<meta property="og:site_name" content="Pessy">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@pessy_app">
+<meta name="twitter:title" content="App de gestion de mascotas">
+<meta name="twitter:description" content="Tu mascota, sus cosas, todo en orden.">
+<meta name="twitter:image" content="https://pessy.app/og-cover.png">
+
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Pessy","item":"https://pessy.app"},{"@type":"ListItem","position":2,"name":"Funciones","item":"https://pessy.app/funciones"},{"@type":"ListItem","position":3,"name":"App de gestion","item":"https://pessy.app/funciones/app-gestion-mascotas"}]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Pessy — App de gestion de mascotas","applicationCategory":"LifestyleApplication","operatingSystem":"Web, iOS, Android","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"aggregateRating":{"@type":"AggregateRating","ratingValue":"4.8","ratingCount":"120"},"description":"App integral de gestion de mascotas con multi-mascota, co-tutores, recordatorios, historial y rutinas."}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Cuantas mascotas puedo gestionar en Pessy?","acceptedAnswer":{"@type":"Answer","text":"Todas las que tengas. No hay limite. Cada mascota con su propio perfil, historial y rutinas."}},{"@type":"Question","name":"Puedo compartir el cuidado con mi familia?","acceptedAnswer":{"@type":"Answer","text":"Si. Invitas a co-tutores (pareja, hijos, familiares, cuidadores) y todos ven lo mismo en tiempo real."}},{"@type":"Question","name":"Pessy es una app o funciona desde el navegador?","acceptedAnswer":{"@type":"Answer","text":"Las dos. Es una PWA: usas desde el navegador sin instalar, o la agregas a la pantalla de inicio del celular como si fuera una app nativa. Tambien hay version para iOS y Android."}},{"@type":"Question","name":"Que pasa si cambio de celular?","acceptedAnswer":{"@type":"Answer","text":"Entras con tu cuenta y todo esta ahi. Los datos estan en la nube, no en el dispositivo."}},{"@type":"Question","name":"Pessy funciona en cualquier pais?","acceptedAnswer":{"@type":"Answer","text":"Si, funciona en cualquier pais hispanohablante. Las sugerencias de vacunas y calendarios se adaptan a la region."}}]}
+</script>
+
+<link rel="icon" href="https://pessy.app/pessy-favicon.svg" type="image/svg+xml">
+<link rel="icon" href="https://pessy.app/pwa-192x192.png" type="image/png">
+<link rel="apple-touch-icon" href="https://pessy.app/apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--dk:#074738;--act:#1A9B7D;--mint:#F0FAF9;--mint2:#E0F2F1;--tx:#0a2e23;--tx2:#3d5a50;--tx3:#6B7280;--border:rgba(7,71,56,0.08);--white:#fff}
+body{font-family:'Manrope',system-ui,sans-serif;background:var(--mint);color:var(--tx);line-height:1.6;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Plus Jakarta Sans',sans-serif;color:var(--dk);letter-spacing:-.025em}
+a{color:var(--act);text-decoration:none}
+.wrap{max-width:780px;margin:0 auto;padding:24px 22px 60px}
+.eyebrow{font-size:10px;font-weight:800;letter-spacing:.3em;text-transform:uppercase;color:var(--act);display:block;margin-bottom:12px}
+h1{font-size:clamp(28px,5vw,40px);font-weight:800;line-height:1.08;margin-bottom:16px}
+.lede{font-size:18px;color:var(--tx2);margin-bottom:32px;line-height:1.55}
+h2{font-size:22px;font-weight:800;margin:40px 0 14px}
+h3{font-size:17px;font-weight:700;margin:24px 0 10px}
+p{margin-bottom:14px;color:var(--tx2)}
+.nav{position:sticky;top:0;background:rgba(240,250,249,0.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:14px 22px;z-index:10}
+.nav-inner{max-width:780px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.logo{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:17px;color:var(--dk);letter-spacing:-.02em}
+.nav-links{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.nav-links a{color:var(--tx2);font-size:13px;font-weight:600}
+.cta{background:var(--dk);color:#fff !important;padding:9px 18px;border-radius:12px;font-size:13px;font-weight:700}
+.crumbs{font-size:12px;color:var(--tx3);margin-bottom:20px}
+.crumbs a{color:var(--tx3)}
+ul,ol{margin:8px 0 14px 22px;color:var(--tx2)}
+li{margin-bottom:8px}
+strong{color:var(--dk)}
+.cta-card{background:var(--dk);color:#fff;border-radius:22px;padding:28px 24px;margin:36px 0;text-align:center}
+.cta-card h3{color:#fff;font-size:22px;margin-bottom:8px}
+.cta-card p{color:rgba(255,255,255,0.75);margin-bottom:18px}
+.cta-card a{background:var(--act);color:#fff;padding:13px 26px;border-radius:14px;font-weight:800;font-size:14px;display:inline-block}
+.faq details{border:1px solid var(--border);border-radius:14px;padding:14px 18px;margin-bottom:10px;background:var(--white)}
+.faq summary{font-weight:700;color:var(--dk);cursor:pointer;list-style:none;font-family:'Plus Jakarta Sans',sans-serif}
+.faq summary::after{content:'+';float:right;font-size:20px;font-weight:300}
+.faq details[open] summary::after{content:'-'}
+.faq p{margin-top:10px;margin-bottom:0}
+.disclaimer{font-size:13px;color:var(--tx3);border-left:3px solid var(--mint2);padding:10px 16px;margin:20px 0;background:var(--white);border-radius:8px}
+footer{text-align:center;padding:40px 22px;color:var(--tx3);font-size:13px;border-top:1px solid var(--border);margin-top:40px}
+footer a{color:var(--tx3)}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="https://pessy.app" class="logo">Pessy</a>
+    <div class="nav-links">
+      <a href="https://pessy.app">Inicio</a>
+      <a href="https://pessy.app/funciones">Funciones</a>
+      <a href="https://pessy.app/blog">Blog</a>
+      <a href="https://pessy.app/login">Entrar</a>
+      <a href="https://pessy.app/register" class="cta">Empezar</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="crumbs">
+    <a href="https://pessy.app">Inicio</a> &middot; <a href="https://pessy.app/funciones">Funciones</a> &middot; App de gestion
+  </div>
+
+  <span class="eyebrow">Funcion</span>
+  <h1>App de gestion de mascotas para vos y tu familia</h1>
+  <p class="lede">Todo lo de tu mascota en un solo lugar: recordatorios, salud, rutinas, documentos y la familia que la cuida con vos. Pessy es la app integral para organizar la vida con mascotas.</p>
+
+  <p>Antes usabas un calendario para las vacunas, un grupo de WhatsApp con tu pareja para coordinar las comidas, una carpeta con los papeles del veterinario y la memoria para todo lo demas. Pessy es el lugar unico donde todo eso convive.</p>
+
+  <p>Gestionar una mascota no es solo darle de comer y sacarla a pasear. Es recordar fechas, coordinar con quien la cuida, guardar papeles, estar atento a los cambios. Pessy es la app que junta esas piezas sueltas y las pone en orden, para que tengas mas tiempo para lo que importa: estar con ella.</p>
+
+  <h2>Todo lo que Pessy integra</h2>
+  <ul>
+    <li><strong>Multi-mascota.</strong> Perros, gatos y mas. Cada uno con su perfil completo.</li>
+    <li><strong>Recordatorios.</strong> Vacunas, medicaciones, antiparasitarios, controles.</li>
+    <li><strong>Historial medico.</strong> Linea de tiempo que se arma sola desde los papeles que subis.</li>
+    <li><strong>Rutinas diarias.</strong> Lo que toca hoy, en una pantalla simple.</li>
+    <li><strong>Documentos.</strong> Libreta sanitaria, carnet, pasaporte, estudios, recetas.</li>
+    <li><strong>Co-tutores.</strong> Pareja, familia, cuidadores: todos ven lo mismo en tiempo real.</li>
+    <li><strong>Exportacion en PDF</strong> para compartir con el veterinario.</li>
+  </ul>
+
+  <h2>Como funciona</h2>
+  <ol>
+    <li><strong>Creas tu cuenta</strong> en el navegador o la app. Sin tarjeta, sin instalar nada.</li>
+    <li><strong>Sumas tu mascota</strong> con datos basicos y foto.</li>
+    <li><strong>Subis papeles o cargas info.</strong> Pessy entiende y ordena.</li>
+    <li><strong>Invitas a quien cuida con vos.</strong> Pareja, familia, cuidadora.</li>
+    <li><strong>Usas el dia a dia</strong> con rutinas, recordatorios y todo a mano.</li>
+  </ol>
+
+  <h2>Para quien es</h2>
+  <ul>
+    <li>Tutores de una o mas mascotas que quieren dejar de usar varias apps y planillas.</li>
+    <li>Familias donde mas de una persona cuida a la mascota.</li>
+    <li>Quien adopto recientemente y quiere armar todo desde cero.</li>
+    <li>Mascotas con condiciones cronicas donde llevar registro es importante.</li>
+    <li>Gente que quiere una app en espanol, hecha para nuestra region.</li>
+  </ul>
+
+  <h2>Por que Pessy y no otra</h2>
+  <ul>
+    <li><strong>En espanol de verdad.</strong> No es una app anglo traducida.</li>
+    <li><strong>Entiende los papeles.</strong> Sacas una foto y listo.</li>
+    <li><strong>Compartida con familia.</strong> Co-tutores en tiempo real.</li>
+    <li><strong>Funciona en web y movil.</strong> PWA que andas desde cualquier lado.</li>
+    <li><strong>Gratis durante la beta.</strong> Sin funciones bloqueadas.</li>
+  </ul>
+
+  <div class="cta-card">
+    <h3>Empeza a usar Pessy gratis</h3>
+    <p>La app que organiza la vida de tu mascota, sin complicaciones.</p>
+    <a href="https://pessy.app/register">Crear cuenta &rarr;</a>
+  </div>
+
+  <h2>Preguntas frecuentes</h2>
+  <div class="faq">
+    <details>
+      <summary>Cuantas mascotas puedo gestionar en Pessy?</summary>
+      <p>Todas las que tengas. No hay limite. Cada mascota con su propio perfil, historial y rutinas independientes.</p>
+    </details>
+    <details>
+      <summary>Puedo compartir el cuidado con mi familia?</summary>
+      <p>Si. Invitas a co-tutores (pareja, hijos, familiares, cuidadores) por email y todos ven lo mismo en tiempo real.</p>
+    </details>
+    <details>
+      <summary>Pessy es una app o funciona desde el navegador?</summary>
+      <p>Ambos. Es una PWA: usas desde el navegador sin instalar, o la agregas a la pantalla de inicio como si fuera una app nativa. Tambien tenemos version para iOS y Android.</p>
+    </details>
+    <details>
+      <summary>Que pasa si cambio de celular?</summary>
+      <p>Entras con tu cuenta desde el dispositivo nuevo y todo esta ahi. Los datos estan en la nube, no en el celular.</p>
+    </details>
+    <details>
+      <summary>Pessy funciona en cualquier pais?</summary>
+      <p>Si, en cualquier pais hispanohablante. Las sugerencias de vacunas y calendarios se adaptan a la region.</p>
+    </details>
+    <details>
+      <summary>Cuanto cuesta?</summary>
+      <p>Gratis durante la beta, sin funciones bloqueadas. Cuando salgamos de beta habra un plan familiar accesible, pero las funciones esenciales seguiran siendo gratis.</p>
+    </details>
+  </div>
+
+  <div class="disclaimer"><strong>Nota:</strong> Pessy organiza la informacion y acompana el cuidado diario. No reemplaza la consulta con un veterinario.</div>
+
+</main>
+
+<footer>
+  <p>&copy; Pessy 2026 &middot; <a href="https://pessy.app">pessy.app</a> &middot; <a href="https://pessy.app/privacidad">Privacidad</a> &middot; <a href="https://pessy.app/terminos">Terminos</a> &middot; <a href="mailto:it@pessy.app">Contacto</a></p>
+</footer>
+
+</body>
+</html>

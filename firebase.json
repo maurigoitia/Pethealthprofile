@@ -496,6 +496,38 @@
           "destination": "/blog/como-saber-si-tu-perro-esta-enfermo.html"
         },
         {
+          "source": "/funciones",
+          "destination": "/funciones/index.html"
+        },
+        {
+          "source": "/funciones/",
+          "destination": "/funciones/index.html"
+        },
+        {
+          "source": "/funciones/recordatorios-vacunas",
+          "destination": "/funciones/recordatorios-vacunas.html"
+        },
+        {
+          "source": "/funciones/historial-medico-mascotas",
+          "destination": "/funciones/historial-medico-mascotas.html"
+        },
+        {
+          "source": "/funciones/rutinas-diarias-mascotas",
+          "destination": "/funciones/rutinas-diarias-mascotas.html"
+        },
+        {
+          "source": "/funciones/documentos-mascota-digital",
+          "destination": "/funciones/documentos-mascota-digital.html"
+        },
+        {
+          "source": "/funciones/tienda-productos-mascotas",
+          "destination": "/funciones/tienda-productos-mascotas.html"
+        },
+        {
+          "source": "/funciones/app-gestion-mascotas",
+          "destination": "/funciones/app-gestion-mascotas.html"
+        },
+        {
           "source": "/vs",
           "destination": "/vs/index.html"
         },
