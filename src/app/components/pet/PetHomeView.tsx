@@ -367,10 +367,13 @@ export function PetHomeView({
       ? Math.round((now - Math.max(...vetVisitDates)) / DAY_MS)
       : null;
 
-    // Overdue vaccines: vaccine events with revaccination_date in the past
+    // Overdue vaccines: vaccine events with revaccination_date in the past.
+    // Track total vaccine events so HealthPulse can distinguish "Al día" vs "Sin datos".
     let overdueVaccineCount = 0;
+    let vaccineEventCount = 0;
     for (const e of petEvents) {
       if (e.extractedData?.documentType !== "vaccine") continue;
+      vaccineEventCount++;
       const revacDate = e.extractedData?.vaccine_artifacts?.revaccination_date;
       if (revacDate) {
         const ts = toTimestampSafe(revacDate, 0);
@@ -393,6 +396,7 @@ export function PetHomeView({
     return {
       lastVetVisitDaysAgo,
       overdueVaccineCount,
+      vaccineEventCount,
       activeMedicationCount: activeMedications.length,
       upcomingAppointmentCount: upcomingAppointments.length,
       recurringConditions: recurringConditions.length > 0 ? recurringConditions : undefined,
@@ -841,6 +845,7 @@ export function PetHomeView({
           <HealthPulse
             petName={activePet.name}
             overdueVaccines={medicalHistoryInputs.overdueVaccineCount}
+            vaccineEventCount={medicalHistoryInputs.vaccineEventCount}
             activeMedications={activeMedications.length}
             lastVetVisitDaysAgo={medicalHistoryInputs.lastVetVisitDaysAgo}
             recurringConditions={medicalHistoryInputs.recurringConditions || []}
