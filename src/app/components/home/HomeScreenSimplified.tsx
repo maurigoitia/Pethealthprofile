@@ -52,8 +52,45 @@ export default function HomeScreenSimplified() {
   const safeUserName = ctxName || displayName || emailName || "Tutor";
   const user = auth?.user;
 
-  // Guard: if no activePet, this shouldn't render (AppLayout handles it)
-  if (!activePet) return null;
+  // Guard: sin mascota activa, mostrar onboarding en vez de pantalla blanca
+  if (!activePet) {
+    return (
+      <div className="max-w-md mx-auto min-h-screen flex flex-col items-center justify-center px-6 bg-[#F0FAF9]">
+        <div className="w-20 h-20 rounded-[20px] bg-[#E0F2F1] flex items-center justify-center mb-6">
+          <MaterialIcon name="pets" className="text-5xl text-[#074738]" />
+        </div>
+        <h1
+          className="text-2xl font-extrabold text-[#074738] mb-2 text-center"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        >
+          Hola {safeUserName}
+        </h1>
+        <p
+          className="text-sm text-slate-500 text-center mb-8 max-w-xs"
+          style={{ fontFamily: "Manrope, sans-serif" }}
+        >
+          Todavía no agregaste una mascota. Empecemos por ahí.
+        </p>
+        <button
+          type="button"
+          onClick={() => navigate("/register-pet")}
+          className="w-full max-w-xs px-6 py-4 rounded-[14px] bg-[#074738] text-white text-sm font-bold active:scale-[0.97] transition-transform shadow-[0_2px_8px_rgba(7,71,56,0.2)]"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        >
+          Agregar mascota
+        </button>
+        {pets.length === 0 && user?.email && (
+          <button
+            type="button"
+            onClick={() => auth?.logout?.()}
+            className="mt-4 text-xs text-slate-400 font-medium hover:text-slate-600 transition-colors"
+          >
+            Cerrar sesión
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24">
