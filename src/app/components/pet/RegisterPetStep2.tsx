@@ -89,12 +89,14 @@ export function RegisterPetStep2() {
           if (uploaded?.ok && uploaded.url) {
             await updatePet(petId, { photo: uploaded.url });
           } else {
-            await updatePet(petId, { photo: "" });
+            // NO pisar photo con "" — si ya había una URL (re-registro improbable pero posible),
+            // se preserva. Solo marcamos el flag para avisar al user.
             photoUploadFailed = true;
           }
         } catch (uploadError: any) {
           console.error("Upload de foto en alta de mascota falló:", uploadError);
-          await updatePet(petId, { photo: "" });
+          // NO pisar photo con "" — el bug 8a33c6d hizo perder URLs reales cuando CSP blob:
+          // bloqueaba uploads. Preservar valor previo.
           photoUploadFailed = true;
         }
       }
