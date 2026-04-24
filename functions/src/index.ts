@@ -472,6 +472,7 @@ import {
   triggerEmailClinicalIngestion,
 } from "./gmail/clinicalIngestion";
 import { uploadPetPhoto } from "./media/petPhotos";
+import { extractVetsFromArchives } from "./media/extractVets";
 import { resolveClinicalKnowledgeContext } from "./clinical/knowledgeBase";
 import { resolveBrainOutput } from "./clinical/brainResolver";
 import { pessyClinicalBrainGrounding } from "./clinical/groundedBrain";
@@ -2556,6 +2557,7 @@ export {
   pessyClinicalBrainGrounding,
   provisionPessyVertexDatastore,
   uploadPetPhoto,
+  extractVetsFromArchives,
   onMedicationWriteScheduleV3,
   onTreatmentWriteScheduleV3,
   dispatchTreatmentRemindersV3,
