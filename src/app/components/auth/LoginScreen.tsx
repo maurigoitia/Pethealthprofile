@@ -193,7 +193,8 @@ export function LoginScreen() {
         description="Porque quererlo ya es suficiente trabajo."
         highlights={["Identidad digital", "Recordatorios", "Co-tutores"]}
       >
-        <div className="mb-8">
+        {/* Desktop-only: "Bienvenido de nuevo" heading (mobile lo muestra el shell dark) */}
+        <div className="mb-8 hidden lg:block">
           <h2
             className="text-3xl font-extrabold tracking-tight text-[#074738]"
             style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
@@ -203,15 +204,6 @@ export function LoginScreen() {
           <p className="mt-2 text-sm font-medium leading-6 text-[#9CA3AF]">
             Entrá para seguir desde donde quedaste.
           </p>
-        </div>
-
-        <div className="mb-8 w-full">
-          <div className="w-full rounded-[16px] border border-[#E5E7EB] bg-[#F0FAF9] p-5">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]" style={{ fontFamily: "'Manrope', sans-serif" }}>Tu mascota, sus cosas</p>
-            <p className="mt-2 text-sm font-medium leading-6 text-[#6B7280]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-              Porque quererlo ya es suficiente trabajo.
-            </p>
-          </div>
         </div>
 
         <form onSubmit={handleLogin} className="w-full space-y-4">
@@ -230,7 +222,7 @@ export function LoginScreen() {
             aria-label="Correo electrónico"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-[12px] border border-[#E5E7EB] bg-white px-5 py-4 text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D]"
+            className="w-full rounded-[12px] border border-white/15 bg-white/10 px-5 py-4 text-white placeholder:text-white/50 outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 lg:border-[#E5E7EB] lg:bg-white lg:text-[#1A1A1A] lg:placeholder:text-[#9CA3AF] lg:focus:ring-[#1A9B7D]/30 lg:focus:border-[#1A9B7D]"
             style={{ fontFamily: "'Manrope', sans-serif" }}
             required
           />
@@ -250,7 +242,7 @@ export function LoginScreen() {
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-[14px] border border-[#E5E7EB] bg-[#F0FAF9] px-3 py-1 text-xs font-bold text-[#074738] hover:bg-[#E0F2F1] transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-[14px] border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold text-white hover:bg-white/20 transition-colors lg:border-[#E5E7EB] lg:bg-[#F0FAF9] lg:text-[#074738] lg:hover:bg-[#E0F2F1]"
               style={{ fontFamily: "'Manrope', sans-serif" }}
             >
               {showPassword ? "Ocultar" : "Mostrar"}
@@ -261,7 +253,7 @@ export function LoginScreen() {
             <button
               type="button"
               onClick={() => navigate("/forgot-password")}
-              className="text-sm font-semibold text-[#6B7280] transition-colors hover:text-[#074738]"
+              className="text-sm font-semibold text-white/60 hover:text-white transition-colors lg:text-[#6B7280] lg:hover:text-[#074738]"
               style={{ fontFamily: "'Manrope', sans-serif" }}
             >
               ¿Olvidaste tu contraseña?
@@ -280,7 +272,7 @@ export function LoginScreen() {
           <button
             type="submit"
             disabled={loading || authLoading}
-            className="pessy-cta-glow w-full rounded-[14px] bg-[#074738] py-4 font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60 hover:bg-[#1A9B7D] transition-colors active:scale-[0.97]"
+            className="pessy-cta-glow w-full rounded-[14px] bg-white py-4 font-bold uppercase tracking-[0.16em] text-[#074738] disabled:opacity-60 hover:bg-[#E0F2F1] transition-colors active:scale-[0.97] lg:bg-[#074738] lg:text-white lg:hover:bg-[#1A9B7D]"
             style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             {authLoading ? "Validando sesión..." : loading ? "Ingresando..." : "Ingresar"}
@@ -290,15 +282,15 @@ export function LoginScreen() {
           {!isNativeAppContext() && (
             <>
               <div className="flex items-center gap-3 pt-1">
-                <div className="h-px flex-1 bg-[#E5E7EB]" />
-                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9CA3AF]" style={{ fontFamily: "'Manrope', sans-serif" }}>o continuar con</span>
-                <div className="h-px flex-1 bg-[#E5E7EB]" />
+                <div className="h-px flex-1 bg-white/15 lg:bg-[#E5E7EB]" />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/50 lg:text-[#9CA3AF]" style={{ fontFamily: "'Manrope', sans-serif" }}>o continuar con</span>
+                <div className="h-px flex-1 bg-white/15 lg:bg-[#E5E7EB]" />
               </div>
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={loadingGoogle}
-                className="flex w-full items-center justify-center gap-3 rounded-[14px] border border-[#E5E7EB] bg-[#F0FAF9] py-4 text-[15px] font-bold text-[#1A1A1A] transition-all active:scale-[0.99] disabled:opacity-60 hover:bg-[#E0F2F1]"
+                className="flex w-full items-center justify-center gap-3 rounded-[14px] border border-white/15 bg-white/10 py-4 text-[15px] font-bold text-white transition-all active:scale-[0.99] disabled:opacity-60 hover:bg-white/20 lg:border-[#E5E7EB] lg:bg-[#F0FAF9] lg:text-[#1A1A1A] lg:hover:bg-[#E0F2F1]"
                 style={{ fontFamily: "'Manrope', sans-serif" }}
               >
                 <span className="size-7 rounded-full bg-white flex items-center justify-center shadow-sm">
@@ -323,7 +315,7 @@ export function LoginScreen() {
               const qs = params.toString();
               navigate(`/register-user${qs ? `?${qs}` : ""}`);
             }}
-            className="w-full rounded-[14px] border border-[#dfe6e2] bg-white py-4 font-bold uppercase tracking-[0.16em] text-[#074738] transition-all hover:bg-[#f4f3f9]"
+            className="w-full rounded-[14px] border border-white/15 bg-transparent py-4 font-bold uppercase tracking-[0.16em] text-white transition-all hover:bg-white/10 lg:border-[#dfe6e2] lg:bg-white lg:text-[#074738] lg:hover:bg-[#f4f3f9]"
             style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
           >
             Crear cuenta
