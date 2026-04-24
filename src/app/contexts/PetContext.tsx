@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
 import { auth, db } from "../../lib/firebase";
 import {
-  collection, query, where, onSnapshot, doc, updateDoc, addDoc, arrayUnion, setDoc, getDoc,
+  collection, query, where, onSnapshot, doc, updateDoc, addDoc, arrayUnion, setDoc, getDoc, getDocs,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { functions as firebaseFunctions } from "../../lib/firebase";
@@ -385,6 +385,22 @@ export function PetProvider({ children }: { children: ReactNode }) {
 
     const petName = inv.petName || petData.name || "la mascota";
     const alreadyJoined = currentCoTutorUids.includes(currentUser.uid);
+
+    // FREE TIER LIMIT: máximo 3 mascotas como co-tutor en plan gratuito.
+    // Se cuentan solo mascotas donde el user es co-tutor (no incluye las propias).
+    if (!alreadyJoined) {
+      const CO_TUTOR_FREE_LIMIT = 3;
+      const existingCoTutorQuery = query(
+        collection(db, "pets"),
+        where("coTutorUids", "array-contains", currentUser.uid)
+      );
+      const existingSnap = await getDocs(existingCoTutorQuery);
+      if (existingSnap.size >= CO_TUTOR_FREE_LIMIT) {
+        throw new Error(
+          `Llegaste al límite de ${CO_TUTOR_FREE_LIMIT} mascotas como co-tutor en el plan gratuito. Pronto vas a poder subir a Pessy Premium para cuidar más.`
+        );
+      }
+    }
 
     if (!alreadyJoined) {
       const newCoTutor: CoTutor = {
