@@ -520,6 +520,10 @@
           "destination": "/reset.html"
         },
         {
+          "source": "/assets/**",
+          "destination": "/404.html"
+        },
+        {
           "source": "**",
           "destination": "/app.html"
         }

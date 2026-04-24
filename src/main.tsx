@@ -16,7 +16,7 @@ const shouldRecoverFromChunkError = (reason: unknown) => {
     typeof reason === "string"
       ? reason
       : (reason as any)?.message || (reason as any)?.reason?.message || "";
-  return /Loading chunk \d+ failed|Failed to fetch dynamically imported module|Importing a module script failed/i.test(message);
+  return /Loading chunk \d+ failed|Failed to fetch dynamically imported module|Importing a module script failed|is not a valid JavaScript MIME type|text\/html.+MIME|Failed to load module script|Strict MIME type/i.test(message);
 };
 
 const recoverOnceFromChunkError = () => {
