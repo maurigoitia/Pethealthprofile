@@ -142,12 +142,12 @@ service cloud.firestore {
         canLeavePetAsCoTutor();
       allow delete: if isPetOwner(resource.data);
 
-      // ─── EXTRACTED VETS (populated by Cloud Function `extractVetsFromArchives`)
-      // Read: owner or co-tutor of the pet.
-      // Write: Cloud Function only (admin SDK bypasses rules). Client writes denied.
+      // ─── EXTRACTED VETS (populated by Cloud Function `extractVetsFromArchives`
+      //     + incremental client upserts desde MedicalContext tras addEvent).
+      // Read/write: owner o co-tutor del pet. La CF usa admin SDK y bypasea rules.
       match /extractedVets/{vetId} {
-        allow read: if canAccessPetById(petId);
-        allow create, update, delete: if false;
+        allow read, create, update: if canAccessPetById(petId);
+        allow delete: if isPetOwnerById(petId);
       }
     }
 
