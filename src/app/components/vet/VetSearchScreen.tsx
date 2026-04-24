@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { ArrowLeft, Search, Star, MapPin, ShieldCheck, Stethoscope } from "lucide-react";
 import { db } from "../../../lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
+import { TreatingVetsList } from "../medical/TreatingVetsList";
 
 interface VetSearchScreenProps {
   onBack: () => void;
@@ -179,6 +180,12 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
 
       {/* VET LIST */}
       <div className="px-4 mt-4 pb-8 space-y-3">
+        {/* Tus veterinarios — extraídos de eventos médicos reales del pet.
+            TreatingVetsList retorna null si no hay vets tratantes. */}
+        <div className="max-w-md mx-auto">
+          <TreatingVetsList />
+        </div>
+
         {loading ? (
           <>
             <SkeletonCard />
@@ -188,7 +195,22 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
         ) : filteredVets.length === 0 ? (
           <EmptyState query={searchQuery} />
         ) : (
-          filteredVets.map((vet) => (
+          <>
+            <p
+              style={{
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontSize: 10,
+                fontWeight: 800,
+                color: "#9CA3AF",
+                textTransform: "uppercase",
+                letterSpacing: ".1em",
+                marginBottom: 4,
+                marginTop: 8,
+              }}
+            >
+              Verificados en Pessy
+            </p>
+            {filteredVets.map((vet) => (
             <div
               key={vet.id}
               className="bg-white rounded-[16px] p-4 border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
@@ -259,7 +281,8 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
                 </button>
               </div>
             </div>
-          ))
+            ))}
+          </>
         )}
       </div>
     </div>

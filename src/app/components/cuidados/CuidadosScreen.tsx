@@ -31,7 +31,13 @@ function daysUntil(dateStr: string | null | undefined): number | null {
 export function CuidadosScreen({ onBack }: Props) {
   const navigate = useNavigate();
   const { activePet } = usePet();
-  const { activeMedications, appointments } = useMedical();
+  const { activeMedications, appointments, getClinicalConditionsByPetId } = useMedical();
+
+  // ── Condiciones clínicas reales del pet (del pipeline de diagnósticos) ──
+  const petConditions = activePet?.id ? getClinicalConditionsByPetId(activePet.id) : [];
+  const activeConditions = petConditions.filter(
+    (c) => c.status === "active" || c.status === "monitoring"
+  );
 
   const petName = activePet?.name ?? "Tu mascota";
 
@@ -200,6 +206,41 @@ export function CuidadosScreen({ onBack }: Props) {
                   </div>
                 );
               })}
+          </div>
+        )}
+
+        {/* ── Basado en la historia de {pet} — condiciones reales del pipeline ── */}
+        {activeConditions.length > 0 && (
+          <div>
+            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 10, fontWeight: 800, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 10 }}>
+              Basado en la historia de {petName}
+            </p>
+            <div style={{ backgroundColor: "#fff", borderRadius: 16, padding: "14px 16px", boxShadow: "0 2px 8px rgba(0,0,0,.04)", border: "1px solid rgba(7,71,56,.06)" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
+                {activeConditions.map((c) => (
+                  <span
+                    key={c.id}
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: "#074738",
+                      backgroundColor: "#E0F2F1",
+                      padding: "5px 10px",
+                      borderRadius: 99,
+                      textTransform: "capitalize",
+                    }}
+                  >
+                    {c.normalizedName}
+                    {c.pattern === "recurrent" || c.pattern === "chronic"
+                      ? ` · ${c.pattern === "recurrent" ? "recurrente" : "crónica"}`
+                      : ""}
+                  </span>
+                ))}
+              </div>
+              <p style={{ fontSize: 12, color: "#64748B", lineHeight: 1.4 }}>
+                Seguimiento recomendado: {activeConditions.map((c) => c.normalizedName).join(", ")}.
+              </p>
+            </div>
           </div>
         )}
 

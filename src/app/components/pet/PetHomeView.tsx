@@ -775,31 +775,37 @@ export function PetHomeView({
           />
         </SafeBoundary>
 
-        {/* 3. DAILY TASKS — contexto del día, primero para dar orientación inmediata */}
-        <SectionTitle>Hoy con {activePet.name}</SectionTitle>
-        <div className="pessy-stagger mx-4 space-y-2">
-          {(showAllTasks ? dailySuggestions : dailySuggestions.slice(0, 2)).map((s, i) => (
-            <DailyHookCard
-              key={i}
-              category={CATEGORY_LABELS[s.category] || s.category}
-              categoryIcon={s.icon}
-              title={s.title}
-              description={s.detail}
-              duration={s.duration}
-              points={s.points}
-              steps={s.steps}
-              onStart={() => { void gamification.addPoints("daily_checkin"); }}
-            />
-          ))}
-          {dailySuggestions.length > 2 && !showAllTasks && (
-            <button
-              onClick={() => setShowAllTasks(true)}
-              className="w-full rounded-full border border-[#E5E7EB] bg-white py-2.5 text-xs font-bold text-[#074738] hover:bg-[#E0F2F1] transition-colors"
-            >
-              Ver más actividades
-            </button>
-          )}
-        </div>
+        {/* 3. DAILY TASKS — DEPRECATED: duplica contenido de /rutinas-eco.
+            PendienteHoyCard arriba ya cubre meds + turnos de HOY con data real.
+            Feedback del dueño: "Rutinas y Hoy con Thor duplican contenido". */}
+        {false && (
+          <>
+            <SectionTitle>Hoy con {activePet.name}</SectionTitle>
+            <div className="pessy-stagger mx-4 space-y-2">
+              {(showAllTasks ? dailySuggestions : dailySuggestions.slice(0, 2)).map((s, i) => (
+                <DailyHookCard
+                  key={i}
+                  category={CATEGORY_LABELS[s.category] || s.category}
+                  categoryIcon={s.icon}
+                  title={s.title}
+                  description={s.detail}
+                  duration={s.duration}
+                  points={s.points}
+                  steps={s.steps}
+                  onStart={() => { void gamification.addPoints("daily_checkin"); }}
+                />
+              ))}
+              {dailySuggestions.length > 2 && !showAllTasks && (
+                <button
+                  onClick={() => setShowAllTasks(true)}
+                  className="w-full rounded-full border border-[#E5E7EB] bg-white py-2.5 text-xs font-bold text-[#074738] hover:bg-[#E0F2F1] transition-colors"
+                >
+                  Ver más actividades
+                </button>
+              )}
+            </div>
+          </>
+        )}
 
         {/* 4. ROUTINE CHECKLIST - morning, evening, or sleep based on time */}
         {currentRoutineItems && currentRoutineItems.length > 0 ? (
