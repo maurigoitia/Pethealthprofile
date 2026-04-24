@@ -12,6 +12,7 @@ import { PetPhoto } from "./PetPhoto";
 import { HomeHeaderV2 } from "./HomeHeaderV2";
 import { HomeGreetingV2 } from "./HomeGreetingV2";
 import { PendienteHoyCard } from "./PendienteHoyCard";
+import { useAppLayout } from "../layout/AppLayout";
 import { SafeBoundary } from "../shared/SafeBoundary";
 
 
@@ -307,6 +308,7 @@ export function PetHomeView({
 }: PetHomeViewProps) {
   const { updatePet } = usePet();
   const { user } = useAuth();
+  const { openSymptomLog } = useAppLayout();
   const [showPreferences, setShowPreferences] = useState(false);
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [weather, setWeather] = useState<LiveWeatherSnapshot>({
@@ -773,6 +775,35 @@ export function PetHomeView({
             appointments={appointments.filter((a) => a.petId === activePet.id)}
             petName={activePet.name}
           />
+        </SafeBoundary>
+
+        {/* 2c. ALGO RARO HOY — quick symptom log (foto + nota corta).
+            Resuelve el pain del Reddit thread: "scrolling forever through camera roll". */}
+        <SafeBoundary name="QuickLogButton">
+          <button
+            type="button"
+            onClick={openSymptomLog}
+            className="mx-3 mt-3 mb-1 flex w-[calc(100%-1.5rem)] items-center gap-3 rounded-[16px] border border-[#1A9B7D]/20 bg-gradient-to-br from-[#E0F2F1] to-white px-4 py-3.5 active:scale-[0.98] transition-transform shadow-[0_2px_8px_rgba(7,71,56,0.06)]"
+          >
+            <div className="size-11 rounded-[12px] bg-[#1A9B7D] flex items-center justify-center shrink-0">
+              <MaterialIcon name="photo_camera" className="text-xl text-white" />
+            </div>
+            <div className="flex-1 text-left">
+              <p
+                className="text-sm font-extrabold text-[#074738] leading-tight"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                ¿Algo raro hoy?
+              </p>
+              <p
+                className="text-[11px] text-slate-500 mt-0.5"
+                style={{ fontFamily: "Manrope, sans-serif" }}
+              >
+                Sacá foto y nota — al historial en 10 segundos
+              </p>
+            </div>
+            <MaterialIcon name="chevron_right" className="text-lg text-slate-400 shrink-0" />
+          </button>
         </SafeBoundary>
 
         {/* 3. LEARNING VIDEOS — reemplaza sugerencias estáticas sin IA.
