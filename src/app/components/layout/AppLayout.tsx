@@ -401,6 +401,16 @@ export default function AppLayout() {
   // -----------------------------------------------------------------------
 
   if (!user) {
+    // Preservar ?invite=CODE si vino por link de co-tutor — si no lo guardamos
+    // antes del redirect el parametro se pierde y el usuario nuevo no sabe
+    // qué pasó.
+    const urlInvite = normalizeCoTutorInviteCode(
+      new URLSearchParams(location.search).get("invite")
+    );
+    if (urlInvite) {
+      rememberPendingCoTutorInvite(urlInvite);
+      return <Navigate to={`/login?invite=${urlInvite}`} replace />;
+    }
     return <Navigate to="/login" replace />;
   }
 
