@@ -599,37 +599,16 @@ export function PetHomeView({
           </button>
         </SafeBoundary>
 
-        {/* 3. LEARNING VIDEOS — reemplaza sugerencias estáticas sin IA.
-            Matchea videos curados por especie + condiciones activas + edad. Si 0 matches → oculto. */}
-        <SafeBoundary name="LearningVideosSection">
-          <LearningVideosSection pet={activePet} />
-        </SafeBoundary>
+        {/* 3. QUICK ACTIONS — navegación principal, alta prioridad de acción */}
+        <div className="mt-3">
+          <QuickActionsV2
+            pendingReviewCount={pendingReviewCount}
+            upcomingAppointments={appointmentCount}
+            activeMedications={medicationCount}
+          />
+        </div>
 
-        {/* 4. ROUTINE CHECKLIST - morning, evening, or sleep based on time */}
-        {currentRoutineItems && currentRoutineItems.length > 0 ? (
-          <div className="mx-3 mt-2">
-            <RoutineChecklist
-              title={routineTitle}
-              icon={routineIcon}
-              items={currentRoutineItems}
-              checkedItems={checkedRoutineItems}
-              onToggle={handleRoutineToggle}
-            />
-          </div>
-        ) : currentRoutineItems === null ? (
-          <div className="mx-3 mt-2">
-            <div className="rounded-[16px] border border-[#E5E7EB] bg-white flex items-center gap-3" style={{ padding: "14px 16px" }}>
-              <span className="text-[#074738]">
-                <MaterialIcon name="bedtime" className="!text-[22px]" />
-              </span>
-              <span className="text-[13px] font-[800] text-[#074738]">
-                {activePet.name} ya descansa. Mañana seguimos.
-              </span>
-            </div>
-          </div>
-        ) : null}
-
-        {/* 5. HEALTH PULSE — alertas de salud, después del contexto */}
+        {/* 4. HEALTH PULSE — diagnóstico actual (vacunas, vet visits, condiciones) */}
         <div className="mx-3 mt-2">
           <HealthPulse
             petName={activePet.name}
@@ -642,14 +621,26 @@ export function PetHomeView({
           />
         </div>
 
-        {/* 5a. QUICK ACTIONS — always visible, action-oriented */}
-        <div className="mt-3">
-          <QuickActionsV2
-            pendingReviewCount={pendingReviewCount}
-            upcomingAppointments={appointmentCount}
-            activeMedications={medicationCount}
-          />
-        </div>
+        {/* 5. ROUTINE CHECKLIST — morning/evening/sleep según hora.
+            Si no hay rutina (sleep mode con 0 items), no rendereamos NADA
+            para evitar card decorativa "ya descansa". */}
+        {currentRoutineItems && currentRoutineItems.length > 0 && (
+          <div className="mx-3 mt-2">
+            <RoutineChecklist
+              title={routineTitle}
+              icon={routineIcon}
+              items={currentRoutineItems}
+              checkedItems={checkedRoutineItems}
+              onToggle={handleRoutineToggle}
+            />
+          </div>
+        )}
+
+        {/* 6. LEARNING VIDEOS — al final: contenido educativo opcional.
+            Matchea videos curados por especie + condiciones + edad. 0 matches → oculto. */}
+        <SafeBoundary name="LearningVideosSection">
+          <LearningVideosSection pet={activePet} />
+        </SafeBoundary>
 
         {/* PreferencesNudge / ProfileNudge / PessyTeDice eliminados (Épica 6):
             estaban detrás de `false &&` desde el ajuste de UI kit v2. Si en el
