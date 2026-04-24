@@ -14,6 +14,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
 
   const [tab, setTab] = useState<"manage" | "join">("manage");
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
+  const [generatedExpiresAt, setGeneratedExpiresAt] = useState<number | null>(null);
   const [joinCode, setJoinCode] = useState("");
   const [loadingCode, setLoadingCode] = useState(false);
   const [loadingJoin, setLoadingJoin] = useState(false);
@@ -36,6 +37,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
     try {
       const code = await generateInviteCode(activePetId);
       setGeneratedCode(code);
+      setGeneratedExpiresAt(Date.now() + 48 * 60 * 60 * 1000);
     } catch (e: any) {
       setError(e.message || "Error generando código");
     } finally {
@@ -84,6 +86,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
     try {
       const { code, emailSent } = await sendCoTutorInviteEmail(activePetId, inviteEmail);
       setGeneratedCode(code);
+      setGeneratedExpiresAt(Date.now() + 48 * 60 * 60 * 1000);
       if (emailSent === false) {
         setEmailWarning(targetEmail);
         setLastFailedEmail(targetEmail);
@@ -108,6 +111,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
     try {
       const { code, emailSent } = await sendCoTutorInviteEmail(activePetId, lastFailedEmail);
       setGeneratedCode(code);
+      setGeneratedExpiresAt(Date.now() + 48 * 60 * 60 * 1000);
       if (emailSent === false) {
         setEmailWarning(lastFailedEmail);
       } else {
@@ -251,6 +255,20 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                                 <MaterialIcon name={copied ? "check" : "content_copy"} className="text-xl" />
                               </button>
                             </div>
+                            {generatedExpiresAt && (
+                              <p className="text-[11px] text-slate-500 flex items-center gap-1.5 px-1">
+                                <MaterialIcon name="schedule" className="text-sm" />
+                                Válido hasta{" "}
+                                <span className="font-semibold text-slate-700">
+                                  {new Date(generatedExpiresAt).toLocaleString("es-AR", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })}
+                                </span>
+                              </p>
+                            )}
                             <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-3">
                               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500 mb-1">Link de invitación</p>
                               <p className="text-xs text-slate-600 dark:text-slate-300 break-all leading-5">
@@ -278,7 +296,7 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
                           </button>
                         )}
                         {generatedCode && (
-                          <button onClick={() => setGeneratedCode(null)} className="w-full mt-2 py-2 text-xs text-slate-500 font-semibold">
+                          <button onClick={() => { setGeneratedCode(null); setGeneratedExpiresAt(null); }} className="w-full mt-2 py-2 text-xs text-slate-500 font-semibold">
                             Generar otro código
                           </button>
                         )}
