@@ -21,25 +21,16 @@ const PetPreferencesEditor = lazy(() =>
 );
 import {
   WELLBEING_MASTER_BOOK,
-  type ThermalSafetyProfile,
   type WellbeingSpeciesGroupId,
 } from "../../../domain/wellbeing/wellbeingMasterBook";
-import {
-  runPessyIntelligence,
-  type PessyIntelligenceRecommendation,
-} from "../../../domain/intelligence/pessyIntelligenceEngine";
-
 import HealthPulse from "../home/HealthPulse";
 import RoutineChecklist from "../home/RoutineChecklist";
-import ProfileNudge from "../home/ProfileNudge";
 import { QuickActionsV2 } from "../home/QuickActionsV2";
-import PessyTip, { SectionTitle } from "../home/PessyTip";
 import LearningVideosSection from "../learning/LearningVideosSection";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type PetSpecies = "dog" | "cat";
-type WalkSafetyStatus = "missing_data" | "unavailable" | "safe" | "caution" | "blocked";
 
 interface LiveWeatherSnapshot {
   status: "loading" | "ready" | "unavailable";
@@ -48,11 +39,6 @@ interface LiveWeatherSnapshot {
   weatherCode: number | null;
   windSpeedKmh: number | null;
   uvIndex: number | null;
-}
-
-interface WalkSafetyState {
-  status: WalkSafetyStatus;
-  badge: string;
 }
 
 const WEATHER_CACHE_KEY = "pessy_home_weather_v1";
@@ -143,27 +129,6 @@ function resolveGroupIds(species: PetSpecies, breed: string): WellbeingSpeciesGr
   return ids;
 }
 
-function resolveThermalProfile(species: PetSpecies, groupIds: WellbeingSpeciesGroupId[]): ThermalSafetyProfile | null {
-  const priority = groupIds.find((id) => id === "dog.brachycephalic" || id === "cat.brachycephalic");
-
-  if (priority) {
-    return WELLBEING_MASTER_BOOK.thermal_safety.groups.find((group) => group.id === priority) ?? null;
-  }
-
-  const fallbackId = species === "cat" ? "cat.general" : "dog.general";
-  return WELLBEING_MASTER_BOOK.thermal_safety.groups.find((group) => group.id === fallbackId) ?? null;
-}
-
-const WMO_RAIN_CODES = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82];
-
-function computeFoodDaysLeft(prefs: PetPreferences | undefined): number | null {
-  if (!prefs?.foodBagKg || !prefs?.foodDailyGrams || !prefs?.foodLastPurchase) return null;
-  const totalGrams = prefs.foodBagKg * 1000;
-  const daysSince = Math.max(0, Math.floor((Date.now() - new Date(prefs.foodLastPurchase).getTime()) / 86_400_000));
-  const gramsLeft = Math.max(0, totalGrams - daysSince * prefs.foodDailyGrams);
-  return Math.max(0, Math.floor(gramsLeft / prefs.foodDailyGrams));
-}
-
 /** Map generic groupIds to the closest match in daily_suggestions/routines */
 function resolveRoutineGroupId(groupIds: WellbeingSpeciesGroupId[], species: PetSpecies): WellbeingSpeciesGroupId {
   // If the groupId exists in routines, use it directly
@@ -174,36 +139,6 @@ function resolveRoutineGroupId(groupIds: WellbeingSpeciesGroupId[], species: Pet
   // Fallback mapping
   if (species === "cat") return "cat.general";
   return "dog.companion"; // dog.general -> dog.companion
-}
-
-// ─── Inline WeatherPill ───────────────────────────────────────────────────────
-
-function WeatherPill({
-  emoji,
-  value,
-  label,
-  highlight,
-}: {
-  emoji: string;
-  value: string;
-  label: string;
-  highlight?: boolean;
-}) {
-  return (
-    <div
-      className={`flex-1 flex items-center gap-1.5 rounded-[14px] px-2.5 py-2 border ${
-        highlight
-          ? "border-[#1A9B7D] bg-[#eef8f3]"
-          : "border-[#E5E7EB] bg-white"
-      }`}
-    >
-      <span className="text-[16px] leading-none" role="img">{emoji}</span>
-      <div className="min-w-0">
-        <p className="text-[12px] font-[800] text-[#074738] leading-none">{value}</p>
-        <p className="text-[10px] text-[#9CA3AF] leading-none mt-0.5">{label}</p>
-      </div>
-    </div>
-  );
 }
 
 // ─── ROUTINE STORAGE HELPERS ──────────────────────────────────────────────────
@@ -262,19 +197,6 @@ async function loadCheckedItemsFromFirestore(petId: string): Promise<string[] | 
   }
 }
 
-// ─── RECOMMENDATION COLOR MAPPING ────────────────────────────────────────────
-
-function mapRecToTipColor(rec: PessyIntelligenceRecommendation): "green" | "blue" | "orange" {
-  const segment = rec.slot?.toLowerCase() || "";
-  if (segment.includes("block") || segment.includes("alert") || rec.kind === "block" || rec.kind === "alert") {
-    return "orange";
-  }
-  if (segment.includes("training") || segment.includes("routine")) {
-    return "green";
-  }
-  return "blue";
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -294,7 +216,6 @@ export function PetHomeView({
   const { user } = useAuth();
   const { openSymptomLog } = useAppLayout();
   const [showPreferences, setShowPreferences] = useState(false);
-  const [showAllTasks, setShowAllTasks] = useState(false);
   const [weather, setWeather] = useState<LiveWeatherSnapshot>({
     status: "loading",
     temperatureC: null,
@@ -326,15 +247,6 @@ export function PetHomeView({
 
   const species = resolveSpecies(activePet?.species, activePet?.breed);
   const groupIds = resolveGroupIds(species, activePet?.breed || "");
-  const thermalProfile = resolveThermalProfile(species, groupIds);
-  const foodDaysLeft = computeFoodDaysLeft(activePet?.preferences);
-
-  // ─── Profile completeness ───────────────────────────────────────────────────
-  const missingItems: string[] = [];
-  if (!activePet?.photo) missingItems.push("foto");
-  if (!activePet?.weight) missingItems.push("peso");
-  if (!activePet?.breed) missingItems.push("raza");
-  const profileIncomplete = missingItems.length > 0;
 
   // ─── Medical history derivation for intelligence engine ─────────────────────
   const medicalHistoryInputs = useMemo(() => {
@@ -387,67 +299,14 @@ export function PetHomeView({
     };
   }, [petEvents, activeMedications.length, upcomingAppointments.length]);
 
-  // ─── Intelligence engine ────────────────────────────────────────────────────
-  const intelligenceResult = useMemo(() => {
-    if (!activePet?.breed) return null;
-    const wc = weather.weatherCode;
-    return runPessyIntelligence({
-      petName: activePet.name,
-      species,
-      breed: activePet.breed,
-      ageLabel: activePet.age || "",
-      groupIds,
-      temperatureC: weather.temperatureC,
-      humidityPct: weather.humidityPct,
-      isRaining: wc !== null && WMO_RAIN_CODES.includes(wc),
-      isStormy: wc !== null && wc >= 95,
-      windSpeedKmh: weather.windSpeedKmh,
-      uvIndex: weather.uvIndex,
-      currentHour: new Date().getHours(),
-      // Normalizar arrays: datos legacy en Firestore pueden venir como string/null/objeto
-      // en lugar de array. '.some()' / '.includes()' en el engine crashean si no es array.
-      fears: Array.isArray(activePet.preferences?.fears) ? activePet.preferences!.fears! : [],
-      personality: Array.isArray(activePet.preferences?.personality) ? activePet.preferences!.personality! : [],
-      favoriteActivities: Array.isArray(activePet.preferences?.favoriteActivities) ? activePet.preferences!.favoriteActivities! : [],
-      walkTimes: Array.isArray(activePet.preferences?.walkTimes) ? activePet.preferences!.walkTimes! : [],
-      foodDaysLeft,
-      ...medicalHistoryInputs,
-    });
-  }, [activePet?.id, activePet?.breed, activePet?.name, activePet?.age, activePet?.preferences, species, groupIds, weather, foodDaysLeft, medicalHistoryInputs]);
+  // NOTA Épica 6: bloque intelligenceResult/sortedRecommendations/criticalAlert
+  // eliminado — solo alimentaba "Pessy te dice" que estaba oculto detrás de
+  // false &&. Si en el futuro vuelve a usarse, recuperar runPessyIntelligence
+  // desde domain/intelligence/pessyIntelligenceEngine.
 
-  const sortedRecommendations = useMemo(() => {
-    if (!intelligenceResult) return [];
-    const order: Record<string, number> = { block: 0, alert: 1, recommendation: 2 };
-    return [...intelligenceResult.recommendations].sort((a, b) => (order[a.kind] ?? 2) - (order[b.kind] ?? 2));
-  }, [intelligenceResult]);
-
-  // ─── Critical alert for "Pessy te dice" (single most urgent) ───────────────
-  const criticalAlert = sortedRecommendations.find(
-    (rec) => rec.kind === "block" || rec.kind === "alert"
-  ) ?? null;
-
-  // ─── Walk safety (simplified for badge) ─────────────────────────────────────
-  const walkSafety: WalkSafetyState = useMemo(() => {
-    const breed = (activePet?.breed || "").trim();
-    if (!breed || !thermalProfile) return { status: "missing_data", badge: "Falta dato" };
-    if (weather.status !== "ready" || weather.temperatureC === null) return { status: "unavailable", badge: "Sin clima" };
-
-    const humidityPenalty = thermalProfile.humiditySensitive && (weather.humidityPct ?? 0) >= 70;
-    const severeRisk = thermalProfile.severeRiskAboveC ?? Number.POSITIVE_INFINITY;
-    const avoidExercise = thermalProfile.avoidExerciseAboveC ?? Number.POSITIVE_INFINITY;
-    const cautionThreshold =
-      typeof avoidExercise === "number" && Number.isFinite(avoidExercise)
-        ? Math.max((thermalProfile.comfortableMaxC ?? avoidExercise) + 1, avoidExercise - 3)
-        : thermalProfile.comfortableMaxC ?? 26;
-
-    if (weather.temperatureC >= severeRisk || weather.temperatureC > avoidExercise || humidityPenalty) {
-      return { status: "blocked", badge: "STOP" };
-    }
-    if (weather.temperatureC >= cautionThreshold) {
-      return { status: "caution", badge: "Precaución" };
-    }
-    return { status: "safe", badge: "OK" };
-  }, [activePet?.breed, thermalProfile, weather]);
+  // walkSafety eliminado (Épica 6): solo alimentaba WeatherPills (también
+  // removida). thermalProfile/groupIds quedan disponibles para futura mini-
+  // badge dentro de HealthPulse si se decide volver a mostrar paseo.
 
   // NOTA: el bloque dailySuggestions (sugerencias rotativas tipo "Limpieza de
   // pliegues", "Sesión de calma", etc.) fue eliminado en Épica 1 — se computaba
@@ -792,73 +651,10 @@ export function PetHomeView({
           />
         </div>
 
-        {/* 5b. PREFERENCES NUDGE — OCULTO (no estaba en UI kit v2)
-            User flag: estas cards amarillas/mint distorsionan el flow del kit.
-            Mover a un settings screen dedicado en el futuro. */}
-        {false && activePet && !(Array.isArray(activePet.preferences?.personality) ? activePet.preferences!.personality!.length : 0) && !(Array.isArray(activePet.preferences?.fears) ? activePet.preferences!.fears!.length : 0) && !(Array.isArray(activePet.preferences?.favoriteActivities) ? activePet.preferences!.favoriteActivities!.length : 0) && (
-          <div className="mx-3 mt-2">
-            <button
-              type="button"
-              onClick={() => setShowPreferences(true)}
-              className="w-full rounded-[16px] border border-[#1A9B7D]/20 bg-[#E0F2F1] flex items-center gap-3 text-left transition-colors hover:bg-[#C8E6E3]"
-              style={{ padding: "14px 16px" }}
-            >
-              <span className="text-[22px]">🎯</span>
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-[800] text-[#074738]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  Contanos sobre {activePet.name}
-                </p>
-                <p className="text-[11px] font-[500] text-[#6B7280] mt-0.5">
-                  Personalidad, actividades y miedos — para sugerencias más precisas
-                </p>
-              </div>
-              <span className="text-[#1A9B7D] text-lg shrink-0">→</span>
-            </button>
-          </div>
-        )}
-
-        {/* 6. PROFILE NUDGE — OCULTO (no estaba en UI kit v2) */}
-        {false && profileIncomplete && (
-          <div className="mx-3 mt-2">
-            <ProfileNudge
-              petName={activePet.name}
-              species={species}
-              missingItems={missingItems}
-              onComplete={onProfileClick}
-            />
-          </div>
-        )}
-
-        {/* 7. PESSY TE DICE — OCULTO (no estaba en UI kit v2) */}
-        {false && criticalAlert && (
-          <>
-            <SectionTitle>Pessy te dice</SectionTitle>
-            <div className="mx-4">
-              <PessyTip
-                icon={criticalAlert.icon}
-                color={mapRecToTipColor(criticalAlert)}
-                title={criticalAlert.title}
-                description={criticalAlert.detail}
-                actionLabel={
-                  criticalAlert.sourceModule === "medical_history" ? "Ver historial" :
-                  criticalAlert.sourceModule === "supply_tracker" ? "Ver recordatorios" :
-                  criticalAlert.sourceModule === "breed_profile" ? "Completar perfil" :
-                  criticalAlert.sourceModule === "weight_trend" ? "Ver historial" :
-                  criticalAlert.sourceModule === "recurring_conditions" ? "Ver historial" :
-                  undefined
-                }
-                onAction={
-                  criticalAlert.sourceModule === "medical_history" ? onViewHistory :
-                  criticalAlert.sourceModule === "supply_tracker" ? onMedicationsClick :
-                  criticalAlert.sourceModule === "breed_profile" ? onProfileClick :
-                  criticalAlert.sourceModule === "weight_trend" ? onViewHistory :
-                  criticalAlert.sourceModule === "recurring_conditions" ? onViewHistory :
-                  undefined
-                }
-              />
-            </div>
-          </>
-        )}
+        {/* PreferencesNudge / ProfileNudge / PessyTeDice eliminados (Épica 6):
+            estaban detrás de `false &&` desde el ajuste de UI kit v2. Si en el
+            futuro hace falta un nudge de perfil incompleto, agregarlo dentro
+            de HealthPulse o en un settings dedicado — no como card extra. */}
       </div>
 
       {/* ─── Preferences Editor Modal ─────────────────────────────────────── */}
