@@ -12,6 +12,7 @@
 | 4 | cuánto duerme un gato adulto | cuanto-duerme-un-gato-adulto | published | /blog/cuanto-duerme-un-gato-adulto/ |
 | 5 | síntomas de moquillo en perros | moquillo-en-perros-sintomas | published | /blog/moquillo-en-perros-sintomas/ |
 | 6 | calendario de vacunas para cachorros en Argentina | vacunas-cachorros-calendario | published | /blog/vacunas-cachorros-calendario/ |
+| 7 | calendario de vacunas para perros en 2026 | calendario-vacunas-perros-2026 | committed — deploy pendiente (firebase login --reauth) | /blog/calendario-vacunas-perros-2026/ |
 
 ## Próximos keywords (por generar)
 
@@ -20,7 +21,7 @@
 
 | Semana | Slug propuesto | Keyword / Título en español |
 |--------|---------------|------------------------------|
-| 7 | `calendario-vacunas-perros-2026` | Calendario de vacunas para perros en 2026: todo lo que necesitás saber |
+| 7 | `organizar-documentos-mascota-veterinario` | Cómo organizar los documentos de tu mascota antes de ir al veterinario |
 | 7 | `organizar-documentos-mascota-veterinario` | Cómo organizar los documentos de tu mascota antes de ir al veterinario |
 | 8 | `que-decirle-a-quien-cuida-tu-mascota` | Qué decirle a quien cuida tu mascota (y la forma más fácil de compartirlo) |
 | 8 | `checklist-cachorro-nuevo-2026` | Checklist completo para tu cachorro nuevo en 2026: todo lo que necesitás en los primeros 30 días |
