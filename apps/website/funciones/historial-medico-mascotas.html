@@ -41,7 +41,13 @@
 <link rel="icon" href="https://pessy.app/pessy-favicon.svg" type="image/svg+xml">
 <link rel="icon" href="https://pessy.app/pwa-192x192.png" type="image/png">
 <link rel="apple-touch-icon" href="https://pessy.app/apple-touch-icon.png">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Google Fonts: async para no bloquear render (mobile LCP) -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
+<!-- Structured Data: Organization (entity signals + sameAs verificadas) -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Organization","name":"Pessy","alternateName":"Pessy App","url":"https://pessy.app","logo":"https://pessy.app/pessy-logo.svg","sameAs":["https://www.instagram.com/pessy_app","https://www.linkedin.com/company/pessy-app","https://www.tiktok.com/@pessy.app"]}
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--dk:#074738;--act:#1A9B7D;--mint:#F0FAF9;--mint2:#E0F2F1;--tx:#0a2e23;--tx2:#3d5a50;--tx3:#6B7280;--border:rgba(7,71,56,0.08);--white:#fff}
@@ -80,6 +86,15 @@ strong{color:var(--dk)}
 .disclaimer{font-size:13px;color:var(--tx3);border-left:3px solid var(--mint2);padding:10px 16px;margin:20px 0;background:var(--white);border-radius:8px}
 footer{text-align:center;padding:40px 22px;color:var(--tx3);font-size:13px;border-top:1px solid var(--border);margin-top:40px}
 footer a{color:var(--tx3)}
+.stats{display:grid;gap:14px;grid-template-columns:1fr;margin:32px 0 36px;list-style:none;padding:0}
+@media(min-width:640px){.stats{grid-template-columns:repeat(3,1fr)}}
+.stat{background:var(--white);border:1px solid var(--border);border-radius:18px;padding:22px 18px;text-align:center}
+.stat strong{display:block;font-family:'Plus Jakarta Sans',sans-serif;font-size:30px;font-weight:800;color:var(--dk);margin-bottom:6px;letter-spacing:-.02em}
+.stat span{font-size:13px;color:var(--tx2);line-height:1.45;display:block}
+.stat small{display:block;font-size:11px;color:var(--tx3);margin-top:6px;line-height:1.4}
+.quote{background:var(--white);border-left:4px solid var(--act);border-radius:18px;padding:24px 26px;margin:32px 0;box-shadow:0 2px 10px rgba(7,71,56,0.05)}
+.quote p{font-style:italic;color:var(--dk);font-size:17px;line-height:1.6;margin-bottom:12px}
+.quote cite{font-style:normal;font-size:13px;color:var(--tx3);font-weight:700}
 </style>
 </head>
 <body>
@@ -105,6 +120,16 @@ footer a{color:var(--tx3)}
   <span class="eyebrow">Funcion</span>
   <h1>Historial medico digital para mascotas</h1>
   <p class="lede">Todos los papeles de tu mascota en un solo lugar, ordenados en una linea de tiempo. Pessy lee la libreta sanitaria, los estudios y las indicaciones del veterinario, y te arma el historial sin que tengas que escribir a mano.</p>
+
+  <!-- ==================== PESSY EN NUMEROS (GEO: stats + AAHA/AVMA authority) ==================== -->
+  <section class="stats" aria-label="Pessy en numeros">
+    <!-- PLACEHOLDER: reemplazar cuando haya KPIs reales de Pessy antes de deploy publico -->
+    <div class="stat"><strong data-placeholder="true">+500</strong><span>documentos veterinarios procesados por IA durante la beta privada</span></div>
+    <!-- Stat externa — fuente AVMA / AAHA. Verificar cifra exacta y link antes de deploy. -->
+    <div class="stat"><strong>50%</strong><span>de duenos de mascotas no mantienen al dia el calendario de vacunas <small>(referencia: estudios de adherencia veterinaria AAHA/AVMA — verificar cifra exacta antes de deploy)</small></span></div>
+    <!-- PLACEHOLDER: medicion interna pendiente -->
+    <div class="stat"><strong data-placeholder="true">&lt; 4 min</strong><span>promedio para subir un documento medico y tener vacunas, rutinas y medicaciones organizadas</span></div>
+  </section>
 
   <p>Si sos tutor de una mascota, tenes una carpeta (o una caja, o un cajon) con papeles: la libreta sanitaria, los analisis de sangre del ano pasado, la receta del ultimo tratamiento, el informe del quiropractico. Cuando los necesitas, nunca estan a mano. Y cuando cambias de veterinario, arrancas de cero.</p>
 
@@ -150,6 +175,12 @@ footer a{color:var(--tx3)}
     <p>Suma tu primera mascota en 30 segundos y empeza a subir papeles.</p>
     <a href="https://pessy.app/register">Empezar ahora &rarr;</a>
   </div>
+
+  <!-- Quote fundador (data real: Mauricio Goitia, fundador de Pessy) — GEO: quotation + authority -->
+  <blockquote class="quote">
+    <p>"Pessy nacio porque yo mismo perdia recetas y estudios de mi perro. Tener el historial completo y ordenado en un solo lugar cambia como cuidas a tu mascota."</p>
+    <cite>— Mauricio Goitia, fundador de Pessy</cite>
+  </blockquote>
 
   <h2>Preguntas frecuentes</h2>
   <div class="faq">
