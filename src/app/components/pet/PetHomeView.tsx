@@ -176,22 +176,6 @@ function resolveRoutineGroupId(groupIds: WellbeingSpeciesGroupId[], species: Pet
   return "dog.companion"; // dog.general -> dog.companion
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  outdoor: "park",
-  indoor: "home",
-  grooming: "content_cut",
-  training: "school",
-  social: "groups",
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-  outdoor: "Aire libre",
-  indoor: "En casa",
-  grooming: "Cuidado",
-  training: "Entrenamiento",
-  social: "Social",
-};
-
 // ─── Inline WeatherPill ───────────────────────────────────────────────────────
 
 function WeatherPill({
@@ -465,56 +449,12 @@ export function PetHomeView({
     return { status: "safe", badge: "OK" };
   }, [activePet?.breed, thermalProfile, weather]);
 
-  // ─── Daily suggestions (deterministic by day-of-year, up to 3) ─────────────
-  const dailySuggestions = useMemo(() => {
-    const weatherCondition = walkSafety.status === "blocked" ? "blocked" : walkSafety.status === "safe" ? "safe" : "any";
-
-    // Collect candidates from ALL matching groupIds (breed-aware)
-    const candidates = WELLBEING_MASTER_BOOK.daily_suggestions.filter(
-      (s) => groupIds.includes(s.groupId) && (s.weatherCondition === weatherCondition || s.weatherCondition === "any")
-    );
-
-    // If no candidates for the matched groups, try all suggestions for weather condition
-    const pool = candidates.length > 0
-      ? candidates
-      : WELLBEING_MASTER_BOOK.daily_suggestions.filter(
-          (s) => s.weatherCondition === weatherCondition || s.weatherCondition === "any"
-        );
-
-    const fallback = {
-      category: "Actividad",
-      icon: "park",
-      title: `Tiempo de calidad con ${activePet?.name || "tu mascota"}`,
-      detail: "Un buen momento para compartir tiempo con tu mascota.",
-      duration: "15 min",
-      points: 10,
-    };
-
-    if (pool.length === 0) {
-      return [fallback];
-    }
-
-    const dayOfYear = Math.floor(
-      (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86_400_000
-    );
-
-    // Pick up to 3 unique suggestions, rotating deterministically by day-of-year
-    const count = Math.min(3, pool.length);
-    const results: Array<{ category: string; icon: string; title: string; detail: string; duration: string; points: number }> = [];
-    for (let i = 0; i < count; i++) {
-      const pick = pool[(dayOfYear + i) % pool.length];
-      results.push({
-        category: pick.category,
-        icon: CATEGORY_ICONS[pick.category] || "star",
-        title: pick.title,
-        detail: pick.detail,
-        duration: pick.duration,
-        points: pick.gamificationPoints,
-      });
-    }
-
-    return results;
-  }, [groupIds, species, walkSafety.status, activePet?.name]);
+  // NOTA: el bloque dailySuggestions (sugerencias rotativas tipo "Limpieza de
+  // pliegues", "Sesión de calma", etc.) fue eliminado en Épica 1 — se computaba
+  // pero nunca se renderizaba, y mostraba items que no tenían flow real de
+  // "empezar". Si en el futuro se vuelve a usar contenido de
+  // WELLBEING_MASTER_BOOK.daily_suggestions, hay que conectar un onClick que
+  // realmente abra los `steps` o se elimina el botón.
 
   // ─── Routine items ──────────────────────────────────────────────────────────
   const currentHour = new Date().getHours();
