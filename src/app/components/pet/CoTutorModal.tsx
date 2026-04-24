@@ -24,6 +24,12 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
   const [success, setSuccess] = useState("");
   const [emailWarning, setEmailWarning] = useState("");
   const [lastFailedEmail, setLastFailedEmail] = useState("");
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    onConfirm: () => void | Promise<void>;
+  } | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
@@ -125,25 +131,37 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
     }
   };
 
-  const handleRemove = async (uid: string, name: string) => {
+  const handleRemove = (uid: string, name: string) => {
     if (!activePetId) return;
-    if (!confirm(`¿Eliminar a ${name} como co-tutor?`)) return;
-    try {
-      await removeCoTutor(activePetId, uid);
-    } catch (e: any) {
-      setError(e.message || "Error al eliminar co-tutor");
-    }
+    setConfirmAction({
+      title: "Eliminar co-tutor",
+      message: `¿Eliminar a ${name} como co-tutor? Perderá acceso a la mascota.`,
+      confirmLabel: "Eliminar",
+      onConfirm: async () => {
+        try {
+          await removeCoTutor(activePetId, uid);
+        } catch (e: any) {
+          setError(e.message || "Error al eliminar co-tutor");
+        }
+      },
+    });
   };
 
-  const handleLeave = async () => {
+  const handleLeave = () => {
     if (!activePetId) return;
-    if (!confirm("¿Querés dejar de ser co-tutor de esta mascota?")) return;
-    try {
-      await leaveAsTutor(activePetId);
-      onClose();
-    } catch (e: any) {
-      setError(e.message || "Error al salir");
-    }
+    setConfirmAction({
+      title: "Dejar de ser co-tutor",
+      message: "¿Querés dejar de ser co-tutor de esta mascota? Vas a perder el acceso.",
+      confirmLabel: "Salir",
+      onConfirm: async () => {
+        try {
+          await leaveAsTutor(activePetId);
+          onClose();
+        } catch (e: any) {
+          setError(e.message || "Error al salir");
+        }
+      },
+    });
   };
 
   if (!isOpen) return null;
@@ -404,6 +422,44 @@ export function CoTutorModal({ isOpen, onClose }: CoTutorModalProps) {
               )}
             </div>
           </div>
+
+          {/* Confirm dialog custom — reemplaza confirm() nativo */}
+          {confirmAction && (
+            <>
+              <div
+                onClick={() => setConfirmAction(null)}
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60]"
+              />
+              <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[70] w-[92%] max-w-sm rounded-[20px] bg-white dark:bg-slate-900 shadow-xl p-6">
+                <h3 className="text-lg font-extrabold text-[#074738] dark:text-white mb-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  {confirmAction.title}
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mb-5" style={{ fontFamily: "Manrope, sans-serif" }}>
+                  {confirmAction.message}
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmAction(null)}
+                    className="min-h-[44px] rounded-[12px] border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold text-sm active:scale-[0.97] transition-transform"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const action = confirmAction;
+                      setConfirmAction(null);
+                      await action.onConfirm();
+                    }}
+                    className="min-h-[44px] rounded-[12px] bg-red-500 text-white font-bold text-sm active:scale-[0.97] transition-transform"
+                  >
+                    {confirmAction.confirmLabel}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </>
   );
 }
