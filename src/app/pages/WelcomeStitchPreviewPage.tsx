@@ -152,7 +152,7 @@ export default function WelcomeStitchPreviewPage() {
 
         {/* Footer compliance */}
         <p className="mt-8 text-center text-[11px] text-[#9CA3AF] px-6 leading-relaxed">
-          Al continuar aceptás los{" "}
+          Al continuar aceptas los{" "}
           <a
             href="/terminos"
             className="text-[#1A9B7D] font-semibold underline decoration-[#1A9B7D]/30"
