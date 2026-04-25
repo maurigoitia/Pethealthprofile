@@ -181,7 +181,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       const checkY = (need = 14) => { if (y + need> 278) newPage(); };
 
       // ── HEADER ────────────────────────────────────────────────────────────
-      pdf.setFillColor(13, 148, 136);
+      pdf.setFillColor(7, 71, 56); // #074738 Plano primary
       pdf.rect(0, 0, PW, 28, "F");
       pdf.setTextColor(255, 255, 255);
       pdf.setFontSize(18);
@@ -189,7 +189,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       pdf.text("PESSY", M, 17);
       pdf.setFontSize(8);
       pdf.setFont("helvetica", "normal");
-      pdf.text("Resumen certificado de tu mascota", M, 23);
+      pdf.text("Resumen informativo de tu mascota", M, 23);
       pdf.setFontSize(9);
       pdf.setFont("helvetica", "bold");
       pdf.text(TITLE_MAP[selectedReport], PW - M, 15, { align: "right" });
@@ -297,10 +297,10 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           checkY(16);
           pdf.setFontSize(11);
           pdf.setFont("helvetica", "bold");
-          pdf.setTextColor(13, 148, 136);
+          pdf.setTextColor(26, 155, 125);
           pdf.text(title, M, y);
           y += 5;
-          pdf.setDrawColor(13, 148, 136);
+          pdf.setDrawColor(26, 155, 125);
           pdf.setLineWidth(0.4);
           pdf.line(M, y, M + CW, y);
           y += 5;
@@ -419,35 +419,35 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         if (overview) {
           checkY(22);
           // Card verde claro destacado
-          pdf.setFillColor(236, 253, 245);
+          pdf.setFillColor(224, 242, 241);
           pdf.roundedRect(M, y, CW, 20, 3, 3, "F");
           pdf.setDrawColor(26, 155, 125);
           pdf.setLineWidth(0.6);
           pdf.line(M, y, M, y + 20); // borde izquierdo accent
           pdf.setFontSize(8.5);
           pdf.setFont("helvetica", "bold");
-          pdf.setTextColor(13, 148, 136);
+          pdf.setTextColor(26, 155, 125);
           pdf.text("RESUMEN", M + 4, y + 5.5);
           pdf.setFontSize(9.5);
           pdf.setFont("helvetica", "normal");
-          pdf.setTextColor(15, 76, 52);
+          pdf.setTextColor(7, 71, 56);
           const overviewLines = pdf.splitTextToSize(overview, CW - 8);
           pdf.text(overviewLines, M + 4, y + 11);
           // Altura dinámica si el texto ocupa más
           const cardH = Math.max(20, 11 + overviewLines.length * 4.2 + 2);
           if (cardH > 20) {
             // redibujar con altura correcta
-            pdf.setFillColor(236, 253, 245);
+            pdf.setFillColor(224, 242, 241);
             pdf.roundedRect(M, y, CW, cardH, 3, 3, "F");
             pdf.setDrawColor(26, 155, 125);
             pdf.line(M, y, M, y + cardH);
             pdf.setFontSize(8.5);
             pdf.setFont("helvetica", "bold");
-            pdf.setTextColor(13, 148, 136);
+            pdf.setTextColor(26, 155, 125);
             pdf.text("RESUMEN", M + 4, y + 5.5);
             pdf.setFontSize(9.5);
             pdf.setFont("helvetica", "normal");
-            pdf.setTextColor(15, 76, 52);
+            pdf.setTextColor(7, 71, 56);
             pdf.text(overviewLines, M + 4, y + 11);
           }
           y += cardH + 4;
@@ -590,7 +590,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           sectionTitle("Alertas");
           pdf.setFontSize(9);
           pdf.setFont("helvetica", "normal");
-          pdf.setTextColor(180, 83, 9);
+          pdf.setTextColor(245, 158, 11);
           if (pendingManualReviewCount > 0) {
             bullet(`Hay ${pendingManualReviewCount} documento${pendingManualReviewCount > 1 ? "s" : ""} pendiente${pendingManualReviewCount > 1 ? "s" : ""} de revisión`);
           }
@@ -947,10 +947,10 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         checkY(16);
         pdf.setFontSize(10.5);
         pdf.setFont("helvetica", "bold");
-        pdf.setTextColor(13, 148, 136);
+        pdf.setTextColor(26, 155, 125);
         pdf.text("Vacunas registradas", M, y);
         y += 5;
-        pdf.setDrawColor(13, 148, 136);
+        pdf.setDrawColor(26, 155, 125);
         pdf.line(M, y, M + CW, y);
         y += 4;
 
@@ -995,10 +995,10 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         checkY(16);
         pdf.setFontSize(10.5);
         pdf.setFont("helvetica", "bold");
-        pdf.setTextColor(13, 148, 136);
+        pdf.setTextColor(26, 155, 125);
         pdf.text("Medicaciones activas", M, y);
         y += 5;
-        pdf.setDrawColor(13, 148, 136);
+        pdf.setDrawColor(26, 155, 125);
         pdf.line(M, y, M + CW, y);
         y += 4;
 
@@ -1049,10 +1049,10 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           checkY(16);
           pdf.setFontSize(10.5);
           pdf.setFont("helvetica", "bold");
-          pdf.setTextColor(13, 148, 136);
+          pdf.setTextColor(26, 155, 125);
           pdf.text("Próximas citas", M, y);
           y += 5;
-          pdf.setDrawColor(13, 148, 136);
+          pdf.setDrawColor(26, 155, 125);
           pdf.line(M, y, M + CW, y);
           y += 4;
 
@@ -1091,11 +1091,11 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       if (reportId) {
         checkY(20);
         y += 2;
-        pdf.setFillColor(236, 253, 245);
+        pdf.setFillColor(224, 242, 241);
         pdf.roundedRect(M, y, CW, 16, 2, 2, "F");
         pdf.setFontSize(7.5);
         pdf.setFont("helvetica", "bold");
-        pdf.setTextColor(5, 150, 105);
+        pdf.setTextColor(26, 155, 125);
         pdf.text("Verificación del reporte", M + 3, y + 6);
         pdf.setFont("helvetica", "normal");
         pdf.setTextColor(55, 65, 81);

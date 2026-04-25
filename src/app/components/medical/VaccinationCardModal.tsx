@@ -27,7 +27,7 @@ interface VaccinationCardModalProps {
 }
 
 const STATUS_CONFIG = {
-  current:  { label: "Al día",   bg: "bg-emerald-500",  text: "text-emerald-700", dot: "#10b981" },
+  current:  { label: "Al día",   bg: "bg-[#10B981]",  text: "text-emerald-700", dot: "#10b981" },
   "due-soon": { label: "Próxima", bg: "bg-amber-500",    text: "text-amber-700",   dot: "#d97706" },
   overdue:  { label: "Vencida",  bg: "bg-red-500",      text: "text-red-700",     dot: "#dc2626" },
 };
@@ -43,7 +43,7 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
     let y = 0;
 
     // Header verde
-    pdf.setFillColor(27, 94, 79);
+    pdf.setFillColor(7, 71, 56);
     pdf.rect(0, 0, pageW, 36, "F");
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(22);
@@ -51,7 +51,7 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
     pdf.text("PESSY", margin, 16);
     pdf.setFontSize(9);
     pdf.setFont("helvetica", "normal");
-    pdf.text("Carnet Oficial de Vacunación", margin, 23);
+    pdf.text("Carnet de Vacunación", margin, 23);
     pdf.setFontSize(8);
     pdf.text(`Generado: ${new Date().toLocaleDateString("es-AR")}`, pageW - margin, 23, { align: "right" });
 
@@ -59,11 +59,11 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
     pdf.setTextColor(30, 30, 30);
 
     // Pet info block
-    pdf.setFillColor(240, 253, 248);
+    pdf.setFillColor(240, 250, 249);
     pdf.roundedRect(margin, y, contentW, 26, 3, 3, "F");
     pdf.setFontSize(14);
     pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(27, 94, 79);
+    pdf.setTextColor(7, 71, 56);
     pdf.text(petData.name, margin + 4, y + 9);
     pdf.setFontSize(9);
     pdf.setFont("helvetica", "normal");
@@ -77,10 +77,10 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
     // Vaccines
     pdf.setFontSize(11);
     pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(27, 94, 79);
+    pdf.setTextColor(7, 71, 56);
     pdf.text("Registro de Vacunas", margin, y);
     y += 5;
-    pdf.setDrawColor(27, 94, 79);
+    pdf.setDrawColor(7, 71, 56);
     pdf.line(margin, y, margin + contentW, y);
     y += 6;
 
@@ -129,11 +129,11 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
     const totalPages = (pdf as any).internal.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       pdf.setPage(i);
-      pdf.setFillColor(240, 253, 248);
+      pdf.setFillColor(240, 250, 249);
       pdf.rect(0, 282, pageW, 15, "F");
       pdf.setFontSize(6.5);
       pdf.setFont("helvetica", "italic");
-      pdf.setTextColor(120, 140, 130);
+      pdf.setTextColor(107, 114, 128);
       pdf.text(
         "Documento informativo generado a partir de información cargada por el tutor. No constituye certificado oficial ni reemplaza la consulta veterinaria.",
         pageW / 2,
@@ -142,7 +142,7 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
       );
       pdf.setFontSize(7);
       pdf.setFont("helvetica", "normal");
-      pdf.setTextColor(100, 150, 130);
+      pdf.setTextColor(107, 114, 128);
       pdf.text("Generado por PESSY — pessy.app", margin, 293);
       pdf.text(`Página ${i} de ${totalPages}`, pageW - margin, 293, { align: "right" });
     }
@@ -175,7 +175,7 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
                 <p className="text-xs text-slate-500 mt-0.5">{petData.name} · {vaccines.length} vacuna{vaccines.length !== 1 ? "s" : ""}</p>
               </div>
               <button onClick={onClose}
-                className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                className="size-11 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                 <MaterialIcon name="close" className="text-xl" />
               </button>
             </div>
@@ -302,7 +302,7 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
             {/* Footer actions */}
             <div className="p-4 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-3">
               <button onClick={handleDownloadPDF}
-                className="py-3 rounded-xl bg-[#1B5E4F] text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-[#1B5E4F]/30 text-sm">
+                className="py-3 rounded-xl bg-[#074738] text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-[#1B5E4F]/30 text-sm">
                 <MaterialIcon name="download" className="text-lg" />
                 Descargar PDF
               </button>
@@ -310,7 +310,7 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
                 const text = `Carnet de vacunación de ${petData.name} (PESSY)`;
                 window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
               }}
-                className="py-3 rounded-xl bg-emerald-500 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30 text-sm">
+                className="py-3 rounded-xl bg-[#10B981] text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30 text-sm">
                 <MaterialIcon name="share" className="text-lg" />
                 WhatsApp
               </button>
