@@ -234,7 +234,6 @@ export function PetHomeView({
   const currentIndex = pets.findIndex((pet) => pet.id === activePetId);
   const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
   const activePet = pets[safeCurrentIndex];
-  const hasMultiplePets = pets.length > 1;
 
   const petEvents = activePetId ? getEventsByPetId(activePetId) : [];
   const appointments = activePetId ? getAppointmentsByPetId(activePetId) : [];
@@ -531,6 +530,9 @@ export function PetHomeView({
               notificationCount={pendingReviewCount}
               pointsTotal={gamification.totalPoints}
               onBellClick={onViewHistory}
+              pets={pets}
+              activePetId={activePetId}
+              onPetChange={onPetChange}
             />
           </SafeBoundary>
           <SafeBoundary name="HomeGreetingV2">
@@ -538,24 +540,8 @@ export function PetHomeView({
           </SafeBoundary>
         </div>
 
-        {/* Pet selector for multiple pets */}
-        {hasMultiplePets && (
-          <div className="mx-3 mt-2 flex items-center gap-2 overflow-x-auto pb-1">
-            {pets.map((pet) => (
-              <button
-                key={pet.id}
-                onClick={() => onPetChange(pet.id)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
-                  pet.id === activePetId
-                    ? "bg-[#074738] text-white"
-                    : "bg-white text-[#9CA3AF] border border-[#E5E7EB]"
-                }`}
-              >
-                {pet.name}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Pet selector eliminado (Épica 2A): el cambio de mascota ahora se
+            hace por swipe horizontal en el HomeHeaderV2 + dots indicator. */}
 
         {/* WeatherPills eliminado (Épica 6 audit): decorativo sin CTA. El clima
             sigue alimentando walkSafety + intelligence engine en background.
