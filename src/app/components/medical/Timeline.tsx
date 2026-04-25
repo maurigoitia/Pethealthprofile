@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { clsx } from "clsx";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { EmptyState } from "../shared/EmptyState";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
 import type { ClinicalEpisode } from "../../contexts/MedicalContext";
@@ -1138,8 +1137,13 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-          <MaterialIcon name="timeline" className="text-[#1A9B7D] text-xl" />
+        <h2
+          className="text-[22px] font-extrabold text-[#074738] dark:text-white flex items-center gap-2 leading-tight"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.02em" }}
+        >
+          <span className="size-9 rounded-full bg-[#E0F2F1] flex items-center justify-center">
+            <MaterialIcon name="timeline" className="text-[#1A9B7D] text-lg" />
+          </span>
           Historial
         </h2>
         <div className="flex items-center gap-2">
@@ -1210,17 +1214,32 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
       )}
 
       {filteredSortedEvents.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800">
-          <EmptyState
-            icon="inbox"
-            title={allEvents.length === 0 ? "Sin registros" : "Sin resultados para este filtro"}
-            description={
-              allEvents.length === 0
-                ? "Los documentos que subas aparecerán aquí automáticamente"
-                : "Probá con otro filtro para ver más eventos"
-            }
-            illustration="medical"
-          />
+        <div className="bg-white dark:bg-slate-900 rounded-[16px] border border-[rgba(7,71,56,0.08)] dark:border-slate-800 shadow-[0_2px_8px_rgba(0,0,0,0.04)] py-10 px-6 text-center">
+          <div className="w-24 h-24 rounded-full bg-[#E0F2F1] flex items-center justify-center mx-auto mb-5">
+            <MaterialIcon name="auto_stories" className="text-[#1A9B7D] text-5xl" />
+          </div>
+          <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#1A9B7D]/10 border border-[#1A9B7D]/20 mb-4">
+            <span
+              className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#1A9B7D]"
+              style={{ fontFamily: "Manrope, sans-serif" }}
+            >
+              Historial
+            </span>
+          </div>
+          <h3
+            className="text-2xl font-extrabold text-[#074738] dark:text-white mb-2 leading-tight"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          >
+            {allEvents.length === 0 ? "Sin registros todavía" : "Sin resultados"}
+          </h3>
+          <p
+            className="text-sm text-[#6B7280] max-w-[280px] mx-auto leading-relaxed"
+            style={{ fontFamily: "Manrope, sans-serif" }}
+          >
+            {allEvents.length === 0
+              ? "Los documentos que subas aparecerán acá automáticamente, ordenados por fecha."
+              : "Probá con otro filtro para ver más eventos."}
+          </p>
         </div>
       ) : (
         <div className="space-y-8">
@@ -1315,7 +1334,10 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                   </span>
                                 </div>
 
-                                <h3 className="text-[15px] font-black text-slate-900 dark:text-white leading-tight mb-1">
+                                <h3
+                                  className="text-[15px] font-extrabold text-[#074738] dark:text-white leading-tight mb-1"
+                                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.01em" }}
+                                >
                                   {entry.headline}
                                 </h3>
 
@@ -1502,7 +1524,10 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                 </span>
                               </div>
 
-                              <h3 className="text-[15px] font-black text-slate-900 dark:text-white leading-tight mb-1.5">
+                              <h3
+                                className="text-[15px] font-extrabold text-[#074738] dark:text-white leading-tight mb-1.5"
+                                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.01em" }}
+                              >
                                 {buildEventTitle(event, petName)}
                               </h3>
 
