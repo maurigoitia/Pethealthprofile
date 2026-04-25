@@ -14,7 +14,6 @@ import { normalizeCoTutorInviteCode, rememberPendingCoTutorInvite } from "../../
 import { persistAcquisitionSource, resolveAcquisitionSource, trackAcquisitionEvent } from "../../utils/acquisitionTracking";
 import { toast } from "sonner";
 import { SEO } from "../shared/SEO";
-import { AuthPageShell } from "./AuthPageShell";
 import { isNativeAppContext } from "../../utils/runtimeFlags";
 
 export function LoginScreen() {
@@ -187,141 +186,185 @@ export function LoginScreen() {
         robots="noindex,nofollow"
       />
 
-      <AuthPageShell
-        eyebrow="Acceso"
-        title="Pessy — Porque quererlo ya es suficiente trabajo"
-        description="Porque quererlo ya es suficiente trabajo."
-        highlights={["Identidad digital", "Recordatorios", "Co-tutores"]}
+      {/* Stitch-style layout: hero con illustration + form below.
+          Single light bg, no dark gradient. Más limpio y consistente con el resto de Pessy. */}
+      <div
+        className="min-h-screen bg-[#F0FAF9] flex flex-col"
+        style={{ fontFamily: "'Manrope', sans-serif" }}
       >
-        {/* Desktop-only: "Bienvenido de nuevo" heading (mobile lo muestra el shell dark) */}
-        <div className="mb-8 hidden lg:block">
-          <h2
-            className="text-3xl font-extrabold tracking-tight text-[#074738]"
-            style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-          >
-            Bienvenido de nuevo
-          </h2>
-          <p className="mt-2 text-sm font-medium leading-6 text-[#9CA3AF]">
-            Entrá para seguir desde donde quedaste.
-          </p>
-        </div>
-
-        <form onSubmit={handleLogin} className="w-full space-y-4">
-          {inviteCode && (
-            <div className="rounded-[16px] border border-[#1A9B7D]/30 bg-[#E0F2F1] px-5 py-4">
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#074738]" style={{ fontFamily: "'Manrope', sans-serif" }}>Invitación de co-tutor</p>
-              <p className="text-sm font-medium leading-5 mt-1 text-[#6B7280]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                Al completar el acceso, vamos a vincular esta cuenta con la mascota compartida.
+        <div className="min-h-screen flex flex-col max-w-md mx-auto bg-[#F0FAF9] overflow-hidden relative w-full">
+          {/* Hero — illustration con gradiente fade al fondo */}
+          <div className="h-64 relative overflow-hidden flex items-end px-5 pb-6">
+            <div className="absolute inset-0 z-0">
+              <img
+                src="/illustrations/dark_top_surprised_cork_head.svg"
+                alt=""
+                className="w-full h-full object-cover opacity-90"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#F0FAF9] via-[#F0FAF9]/40 to-transparent" />
+            </div>
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <img src="/pessy-logo.svg" alt="" className="w-9 h-9" />
+                <h1
+                  className="text-[32px] font-extrabold text-[#074738] tracking-tight leading-none"
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                >
+                  Pessy
+                </h1>
+              </div>
+              <p className="text-[15px] text-[#6B7280] max-w-[260px] leading-relaxed">
+                Tu mascota, sus cosas, todo en orden.
               </p>
             </div>
-          )}
-
-          <input
-            type="email"
-            placeholder="Correo electrónico"
-            aria-label="Correo electrónico"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-[12px] border border-white/15 bg-white/10 px-5 py-4 text-white placeholder:text-white/50 outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 lg:border-[#E5E7EB] lg:bg-white lg:text-[#1A1A1A] lg:placeholder:text-[#9CA3AF] lg:focus:ring-[#1A9B7D]/30 lg:focus:border-[#1A9B7D]"
-            style={{ fontFamily: "'Manrope', sans-serif" }}
-            required
-          />
-
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Contraseña"
-              aria-label="Contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-[12px] border border-[#E5E7EB] bg-white px-5 py-4 pr-28 text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D]"
-              style={{ fontFamily: "'Manrope', sans-serif" }}
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-              className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] rounded-[14px] border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20 transition-colors lg:border-[#E5E7EB] lg:bg-[#F0FAF9] lg:text-[#074738] lg:hover:bg-[#E0F2F1]"
-              style={{ fontFamily: "'Manrope', sans-serif" }}
-            >
-              {showPassword ? "Ocultar" : "Mostrar"}
-            </button>
           </div>
 
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => navigate("/forgot-password")}
-              className="text-sm font-semibold text-white/60 hover:text-white transition-colors lg:text-[#6B7280] lg:hover:text-[#074738]"
-              style={{ fontFamily: "'Manrope', sans-serif" }}
-            >
-              ¿Olvidaste tu contraseña?
-            </button>
-          </div>
+          {/* Form */}
+          <main className="flex-1 px-5 pt-2 pb-8" style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}>
+            <form onSubmit={handleLogin} className="space-y-4">
+              {inviteCode && (
+                <div className="rounded-[14px] border border-[#1A9B7D]/30 bg-[#E0F2F1] px-4 py-3">
+                  <p
+                    className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#074738]"
+                    style={{ fontFamily: "'Manrope', sans-serif" }}
+                  >
+                    Invitación de co-tutor
+                  </p>
+                  <p className="text-sm font-medium leading-5 mt-1 text-[#6B7280]">
+                    Al completar el acceso, vamos a vincular esta cuenta con la mascota compartida.
+                  </p>
+                </div>
+              )}
 
-          {error && (
-            <p
-              className="rounded-2xl border border-[#EF4444]/30 bg-[#EF4444]/10 px-4 py-2 text-center text-sm font-semibold text-[#EF4444]"
-              style={{ fontFamily: "'Manrope', sans-serif" }}
-            >
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || authLoading}
-            className="pessy-cta-glow w-full rounded-[14px] bg-white py-4 font-bold uppercase tracking-[0.16em] text-[#074738] disabled:opacity-60 hover:bg-[#E0F2F1] transition-colors active:scale-[0.97] lg:bg-[#074738] lg:text-white lg:hover:bg-[#1A9B7D]"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-          >
-            {authLoading ? "Validando sesión..." : loading ? "Ingresando..." : "Ingresar"}
-          </button>
-
-          {/* Google OAuth: hidden in native WebView (403 disallowed_useragent) */}
-          {!isNativeAppContext() && (
-            <>
-              <div className="flex items-center gap-3 pt-1">
-                <div className="h-px flex-1 bg-white/15 lg:bg-[#E5E7EB]" />
-                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/50 lg:text-[#9CA3AF]" style={{ fontFamily: "'Manrope', sans-serif" }}>o continuar con</span>
-                <div className="h-px flex-1 bg-white/15 lg:bg-[#E5E7EB]" />
+              <div className="space-y-1.5">
+                <label
+                  className="text-[12px] font-semibold text-[#6B7280] block ml-1 uppercase tracking-wide"
+                  htmlFor="login-email"
+                >
+                  Email
+                </label>
+                <input
+                  id="login-email"
+                  type="email"
+                  aria-label="Correo electrónico"
+                  placeholder="hola@pessy.app"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full h-14 px-4 bg-white border border-[#E5E7EB] rounded-[14px] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none text-[15px] text-[#1A1A1A] placeholder:text-[#9CA3AF] transition-all"
+                  required
+                />
               </div>
-              <button
-                type="button"
-                onClick={handleGoogleSignIn}
-                disabled={loadingGoogle}
-                className="flex w-full items-center justify-center gap-3 rounded-[14px] border border-white/15 bg-white/10 py-4 text-[15px] font-bold text-white transition-all active:scale-[0.99] disabled:opacity-60 hover:bg-white/20 lg:border-[#E5E7EB] lg:bg-[#F0FAF9] lg:text-[#1A1A1A] lg:hover:bg-[#E0F2F1]"
-                style={{ fontFamily: "'Manrope', sans-serif" }}
-              >
-                <span className="size-7 rounded-full bg-white flex items-center justify-center shadow-sm">
-                  <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
-                    <path fill="#FFC107" d="M43.6,20.5H42V20H24v8h11.3C33.6,32.7,29.2,36,24,36c-6.6,0-12-5.4-12-12s5.4-12,12-12 c3,0,5.7,1.1,7.8,3l5.7-5.7C34,6.1,29.3,4,24,4C12.9,4,4,12.9,4,24s8.9,20,20,20s20-8.9,20-20C44,22.8,43.9,21.6,43.6,20.5z"/>
-                    <path fill="#FF3D00" d="M6.3,14.7l6.6,4.8C14.7,15.3,19,12,24,12c3,0,5.7,1.1,7.8,3l5.7-5.7C34,6.1,29.3,4,24,4 C16.3,4,9.7,8.3,6.3,14.7z"/>
-                    <path fill="#4CAF50" d="M24,44c5.2,0,9.9-2,13.4-5.2l-6.2-5.2C29.2,35.1,26.7,36,24,36c-5.2,0-9.6-3.3-11.3-8l-6.5,5 C9.5,39.5,16.2,44,24,44z"/>
-                    <path fill="#1976D2" d="M43.6,20.5H42V20H24v8h11.3c-0.8,2.3-2.2,4.2-4.1,5.6l0,0l6.2,5.2C37,38.5,44,33,44,24 C44,22.8,43.9,21.6,43.6,20.5z"/>
-                  </svg>
-                </span>
-                {loadingGoogle ? "Conectando con Google..." : "Google"}
-              </button>
-            </>
-          )}
 
-          <button
-            type="button"
-            onClick={() => {
-              const params = new URLSearchParams();
-              if (inviteCode) params.set("invite", inviteCode);
-              if (refCode) params.set("ref", refCode);
-              const qs = params.toString();
-              navigate(`/register-user${qs ? `?${qs}` : ""}`);
-            }}
-            className="w-full rounded-[14px] border border-white/15 bg-transparent py-4 font-bold uppercase tracking-[0.16em] text-white transition-all hover:bg-white/10 lg:border-[#dfe6e2] lg:bg-white lg:text-[#074738] lg:hover:bg-[#f4f3f9]"
-            style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-          >
-            Crear cuenta
-          </button>
-        </form>
-      </AuthPageShell>
+              <div className="space-y-1.5">
+                <label
+                  className="text-[12px] font-semibold text-[#6B7280] block ml-1 uppercase tracking-wide"
+                  htmlFor="login-password"
+                >
+                  Contraseña
+                </label>
+                <div className="relative">
+                  <input
+                    id="login-password"
+                    type={showPassword ? "text" : "password"}
+                    aria-label="Contraseña"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full h-14 px-4 pr-14 bg-white border border-[#E5E7EB] rounded-[14px] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none text-[15px] text-[#1A1A1A] placeholder:text-[#9CA3AF] transition-all"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] rounded-full text-[#6B7280] hover:text-[#074738] flex items-center justify-center transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">
+                      {showPassword ? "visibility_off" : "visibility"}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => navigate("/forgot-password")}
+                  className="text-[13px] font-semibold text-[#1A9B7D] hover:underline transition-all"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
+
+              {error && (
+                <p
+                  className="rounded-[12px] border border-[#EF4444]/30 bg-[#EF4444]/10 px-4 py-3 text-center text-sm font-semibold text-[#EF4444]"
+                >
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading || authLoading}
+                className="w-full h-14 bg-[#074738] hover:bg-[#0e5c49] text-white text-[15px] font-bold rounded-[16px] flex items-center justify-center disabled:opacity-50 active:scale-[0.97] transition-transform shadow-[0_4px_14px_rgba(7,71,56,0.18)]"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                {authLoading ? "Validando sesión..." : loading ? "Ingresando..." : "Ingresar"}
+              </button>
+
+              {/* Google SSO: oculto en WebView nativo */}
+              {!isNativeAppContext() && (
+                <>
+                  <div className="flex items-center gap-3 py-1">
+                    <div className="h-px flex-1 bg-[#E5E7EB]" />
+                    <span className="text-[11px] uppercase tracking-[0.18em] text-[#9CA3AF] font-semibold">o</span>
+                    <div className="h-px flex-1 bg-[#E5E7EB]" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={loadingGoogle}
+                    className="w-full h-14 bg-white border border-[#E5E7EB] rounded-[14px] flex items-center justify-center gap-2 text-[14px] font-semibold text-[#1A1A1A] active:scale-[0.97] transition-transform disabled:opacity-60"
+                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/>
+                      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 16.2 19 13 24 13c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.4 6.3 14.7z"/>
+                      <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.5-4.5 2.4-7.2 2.4-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.5 16.2 44 24 44z"/>
+                      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.2 5.2c-.4.4 6.6-4.8 6.6-14.8 0-1.3-.1-2.7-.4-3.5z"/>
+                    </svg>
+                    {loadingGoogle ? "Conectando..." : "Continuar con Google"}
+                  </button>
+                </>
+              )}
+            </form>
+          </main>
+
+          {/* Footer — link a registro */}
+          <footer className="p-6 flex flex-col items-center gap-2">
+            <p className="text-[14px] text-[#6B7280]">¿Todavía no tenés cuenta?</p>
+            <button
+              type="button"
+              onClick={() => {
+                const params = new URLSearchParams();
+                if (inviteCode) params.set("invite", inviteCode);
+                if (refCode) params.set("ref", refCode);
+                const qs = params.toString();
+                navigate(`/register-user${qs ? `?${qs}` : ""}`);
+              }}
+              className="px-6 py-2.5 rounded-full bg-[#1A9B7D]/10 text-[#1A9B7D] text-[14px] font-bold active:scale-[0.97] transition-transform"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              Crear cuenta
+            </button>
+          </footer>
+
+          {/* Decorative blurs sutiles */}
+          <div className="absolute bottom-10 -right-10 w-40 h-40 bg-[#1A9B7D]/8 rounded-full blur-3xl -z-10" />
+          <div className="absolute top-20 -left-10 w-40 h-40 bg-[#074738]/8 rounded-full blur-3xl -z-10" />
+        </div>
+      </div>
     </>
   );
 }
