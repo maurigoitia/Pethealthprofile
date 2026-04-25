@@ -20,6 +20,10 @@ export async function checkRateLimitByTier(
     "document-scan": { free: 5, premium: 50, windowMs: 24 * 60 * 60 * 1000 },
     "gmail-sync": { free: 3, premium: 20, windowMs: 60 * 60 * 1000 },
     "brain-query": { free: 10, premium: 100, windowMs: 60 * 60 * 1000 },
+    // Email throttling (anti-phishing — SEC audit 2026-04-25)
+    "send-invitation": { free: 5, premium: 20, windowMs: 24 * 60 * 60 * 1000 },
+    "send-welcome": { free: 3, premium: 3, windowMs: 24 * 60 * 60 * 1000 },
+    "send-cotutor": { free: 10, premium: 30, windowMs: 24 * 60 * 60 * 1000 },
     default: { free: 10, premium: 50, windowMs: 60 * 60 * 1000 },
   };
 
