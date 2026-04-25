@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import type { ActiveMedication, Appointment } from "../../types/medical";
 import { useMedical } from "../../contexts/MedicalContext";
+import { usePet } from "../../contexts/PetContext";
+import { useMedicationStreak } from "../../hooks/useMedicationStreak";
 
 interface Props {
   medications: ActiveMedication[] | undefined | null;
@@ -68,6 +70,8 @@ export function PendienteHoyCard({ medications, appointments, petName }: Props) 
   }, [medications, appointments]);
 
   const { markMedicationAsTaken, isMedicationTakenToday, markAppointmentAsCompleted } = useMedical();
+  const { activePet } = usePet();
+  const streak = useMedicationStreak(activePet?.id);
   const [fadingOut, setFadingOut] = useState<Set<string>>(new Set());
 
   // "Tomado HOY" viene de Firestore (cross-device). Cada item resuelve su estado:
@@ -161,6 +165,20 @@ export function PendienteHoyCard({ medications, appointments, petName }: Props) 
           {doneCount === total ? "Completo" : `${total - doneCount} pendiente${total - doneCount > 1 ? "s" : ""}`}
         </span>
       </div>
+
+      {/* Streak chip — solo si hay racha real (>=3 días) — gamification honesta */}
+      {streak.currentStreakDays >= 3 && (
+        <div className="px-4 pb-1">
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-[700] bg-[#FFF7ED] text-[#9A3412] border border-[#FED7AA]"
+            style={{ fontFamily: "'Manrope', sans-serif" }}
+            aria-label={`Racha: ${streak.currentStreakDays} días seguidos al día con sus medicamentos`}
+          >
+            <span aria-hidden="true">🔥</span>
+            {streak.currentStreakDays} días al día con sus meds
+          </span>
+        </div>
+      )}
 
       {/* Items — solo los que NO están marcados tomados hoy (con fade-out animation) */}
       <div className="px-4 pb-3.5">
