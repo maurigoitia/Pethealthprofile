@@ -7,9 +7,63 @@ import { COUNTRIES } from "../../data/countries";
 import { normalizeCoTutorInviteCode, rememberPendingCoTutorInvite } from "../../utils/coTutorInvite";
 import { persistAcquisitionSource, resolveAcquisitionSource, trackAcquisitionEvent } from "../../utils/acquisitionTracking";
 import { validatePlatformInviteCode, validateAccessToken, markPlatformInviteUsed, markAccessTokenUsed } from "../../utils/platformInvite";
-import { AuthPageShell } from "./AuthPageShell";
 import { ConsentManager, ConsentState, saveConsent } from "../ConsentManager";
 import { isNativeAppContext } from "../../utils/runtimeFlags";
+
+// Stitch-style shell — hero illustration + light form. Reemplaza AuthPageShell.
+function StitchShell({
+  children,
+  tagline = "Tu mascota, sus cosas, todo en orden.",
+  heroHeight = "h-64",
+}: {
+  children: React.ReactNode;
+  tagline?: string;
+  heroHeight?: string;
+}) {
+  return (
+    <div
+      className="min-h-screen bg-[#F0FAF9] flex flex-col"
+      style={{ fontFamily: "'Manrope', sans-serif" }}
+    >
+      <div className="min-h-screen flex flex-col max-w-md mx-auto bg-[#F0FAF9] overflow-hidden relative w-full">
+        <div className={`${heroHeight} relative overflow-hidden flex items-end px-5 pb-6`}>
+          <div className="absolute inset-0 z-0">
+            <img
+              src="/illustrations/dark_top_surprised_cork_head.svg"
+              alt=""
+              className="w-full h-full object-cover opacity-90"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#F0FAF9] via-[#F0FAF9]/40 to-transparent" />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <img src="/pessy-logo.svg" alt="" className="w-9 h-9" />
+              <h1
+                className="text-[32px] font-extrabold text-[#074738] tracking-tight leading-none"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                Pessy
+              </h1>
+            </div>
+            <p className="text-[15px] text-[#6B7280] max-w-[260px] leading-relaxed">
+              {tagline}
+            </p>
+          </div>
+        </div>
+
+        <main
+          className="flex-1 px-5 pt-2 pb-8"
+          style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
+        >
+          {children}
+        </main>
+
+        <div className="absolute bottom-10 -right-10 w-40 h-40 bg-[#1A9B7D]/8 rounded-full blur-3xl -z-10" />
+        <div className="absolute top-20 -left-10 w-40 h-40 bg-[#074738]/8 rounded-full blur-3xl -z-10" />
+      </div>
+    </div>
+  );
+}
 
 export function RegisterUserScreen() {
   const navigate = useNavigate();
@@ -262,17 +316,12 @@ export function RegisterUserScreen() {
 
   if (gateStatus === "loading") {
     return (
-      <AuthPageShell
-        eyebrow="Tu cuenta"
-        title="Su historia comienza aquí."
-        description="Pessy lo maneja. Vos lo disfrutás. Empezá gratis."
-        highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
-      >
+      <StitchShell>
         <div className="flex flex-col items-center justify-center py-16 gap-4">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#1A9B7D] border-t-transparent" />
-          <p className="text-sm text-[#9CA3AF]">Verificando acceso...</p>
+          <p className="text-sm text-[#6B7280]">Verificando acceso...</p>
         </div>
-      </AuthPageShell>
+      </StitchShell>
     );
   }
 
@@ -280,12 +329,7 @@ export function RegisterUserScreen() {
   // ── Step 1: Consent (GDPR) ──
   if (gateStatus === "allowed" && consentStep === "consent") {
     return (
-      <AuthPageShell
-        eyebrow="Tu cuenta"
-        title="Su historia comienza aquí."
-        description="Pessy lo maneja. Vos lo disfrutás. Empezá gratis."
-        highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
-      >
+      <StitchShell>
         <ConsentManager
           onConsent={(consent) => {
             setConsentData(consent);
@@ -293,129 +337,138 @@ export function RegisterUserScreen() {
           }}
           onBack={() => navigate(inviteCode ? `/login?invite=${inviteCode}` : "/login")}
         />
-      </AuthPageShell>
+      </StitchShell>
     );
   }
 
   if (gateStatus === "blocked") {
     return (
-      <AuthPageShell
-        eyebrow="Tu cuenta"
-        title="Su historia comienza aquí."
-        description="Pessy lo maneja. Vos lo disfrutás. Empezá gratis."
-        highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
-      >
-        <div className="space-y-6">
-          <div className="rounded-[16px] border border-[#E5E7EB] bg-[#F0FAF9] px-6 py-6 text-center">
-            <p className="text-base font-bold text-[#1A9B7D]">Pessy es solo por invitación</p>
-            <p className="mt-2 text-sm leading-5 text-[#9CA3AF]">
+      <StitchShell>
+        <div className="space-y-5">
+          <div className="rounded-[16px] border border-[#E5E7EB] bg-white px-6 py-6 text-center">
+            <p className="text-base font-bold text-[#074738]">Pessy es solo por invitación</p>
+            <p className="mt-2 text-sm leading-5 text-[#6B7280]">
               Por ahora el acceso es limitado. Podés solicitar tu lugar en la lista de espera.
             </p>
           </div>
           <a
             href="/solicitar-acceso"
-            className="block w-full rounded-[14px] bg-[#074738] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-white pessy-cta-glow active:scale-[0.97]"
+            className="block w-full h-14 leading-[3.5rem] bg-[#074738] hover:bg-[#0e5c49] text-white text-[15px] font-bold rounded-[16px] text-center shadow-[0_4px_14px_rgba(7,71,56,0.18)] active:scale-[0.97] transition-transform"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             Solicitar acceso
           </a>
           <a
             href="/login"
-            className="block w-full rounded-[14px] border border-[#E5E7EB] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-[#1A9B7D]"
+            className="block w-full h-14 leading-[3.5rem] bg-white border border-[#E5E7EB] rounded-[14px] text-center text-[14px] font-semibold text-[#1A1A1A]"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             Ya tengo cuenta
           </a>
         </div>
-      </AuthPageShell>
+      </StitchShell>
     );
   }
 
   if (gateStatus === "invalid") {
     return (
-      <AuthPageShell
-        eyebrow="Tu cuenta"
-        title="Su historia comienza aquí."
-        description="Pessy lo maneja. Vos lo disfrutás. Empezá gratis."
-        highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
-      >
-        <div className="space-y-6">
-          <div className="rounded-[16px] border border-[#E5E7EB] bg-[#F0FAF9] px-6 py-6 text-center">
-            <p className="text-base font-bold text-[#1A9B7D]">Link inválido</p>
-            <p className="mt-2 text-sm leading-5 text-[#9CA3AF]">{gateMessage}</p>
+      <StitchShell>
+        <div className="space-y-5">
+          <div className="rounded-[16px] border border-[#E5E7EB] bg-white px-6 py-6 text-center">
+            <p className="text-base font-bold text-[#074738]">Link inválido</p>
+            <p className="mt-2 text-sm leading-5 text-[#6B7280]">{gateMessage}</p>
           </div>
           <a
             href="/solicitar-acceso"
-            className="block w-full rounded-[14px] bg-[#074738] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-white pessy-cta-glow active:scale-[0.97]"
+            className="block w-full h-14 leading-[3.5rem] bg-[#074738] hover:bg-[#0e5c49] text-white text-[15px] font-bold rounded-[16px] text-center shadow-[0_4px_14px_rgba(7,71,56,0.18)] active:scale-[0.97] transition-transform"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             Solicitar acceso
           </a>
           <a
             href="/login"
-            className="block w-full rounded-[14px] border border-[#E5E7EB] py-4 text-center text-sm font-bold uppercase tracking-[0.16em] text-[#1A9B7D]"
+            className="block w-full h-14 leading-[3.5rem] bg-white border border-[#E5E7EB] rounded-[14px] text-center text-[14px] font-semibold text-[#1A1A1A]"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             Ya tengo cuenta
           </a>
         </div>
-      </AuthPageShell>
+      </StitchShell>
     );
   }
 
   return (
-    <AuthPageShell
-      eyebrow="Tu cuenta"
-      title="Su historia comienza aquí."
-      description="Pessy lo maneja. Vos lo disfrutás. Empezá gratis."
-      highlights={["Identidad digital", "Rutinas", "Co-tutores"]}
-    >
-      <div className="mb-8">
-        <h2
-          className="text-3xl font-extrabold tracking-tight text-[#1A9B7D]"
-          style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-        >
-          Crear cuenta
-        </h2>
-        <p className="mt-2 text-sm font-medium leading-6 text-[#9CA3AF]">
-          Empezá con tus datos. Pessy hace el resto — en serio.
-        </p>
-      </div>
-
+    <StitchShell>
       <form onSubmit={handleCreateAccount} className="space-y-4">
-          {inviteCode && (
-            <div className="rounded-[16px] border border-[#b5efd9] bg-[#F0FAF9] px-4 py-4 text-left">
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#1A9B7D]">Invitación de co-tutor</p>
-              <p className="mt-1 text-sm leading-5 text-[#1A9B7D]">
-                Esta cuenta se va a vincular con una mascota compartida apenas termines el registro.
-              </p>
-            </div>
-          )}
+        {inviteCode && (
+          <div className="rounded-[14px] border border-[#1A9B7D]/30 bg-[#E0F2F1] px-4 py-3">
+            <p
+              className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#074738]"
+              style={{ fontFamily: "'Manrope', sans-serif" }}
+            >
+              Invitación de co-tutor
+            </p>
+            <p className="text-sm font-medium leading-5 mt-1 text-[#6B7280]">
+              Esta cuenta se va a vincular con una mascota compartida apenas termines el registro.
+            </p>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <label
+            className="text-[12px] font-semibold text-[#6B7280] block ml-1 uppercase tracking-wide"
+            htmlFor="register-name"
+          >
+            Nombre
+          </label>
           <input
+            id="register-name"
             type="text"
             aria-label="Nombre completo"
-            placeholder="Nombre completo"
+            placeholder="Tu nombre"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-4 rounded-[12px] border border-[#E5E7EB] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none"
+            className="w-full h-14 px-4 bg-white border border-[#E5E7EB] rounded-[14px] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none text-[15px] text-[#1A1A1A] placeholder:text-[#9CA3AF] transition-all"
             required
           />
+        </div>
 
+        <div className="space-y-1.5">
+          <label
+            className="text-[12px] font-semibold text-[#6B7280] block ml-1 uppercase tracking-wide"
+            htmlFor="register-email"
+          >
+            Email
+          </label>
           <input
+            id="register-email"
             type="email"
             aria-label="Correo electrónico"
-            placeholder="Correo electrónico"
+            placeholder="hola@pessy.app"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-4 rounded-[12px] border border-[#E5E7EB] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none"
+            className="w-full h-14 px-4 bg-white border border-[#E5E7EB] rounded-[14px] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none text-[15px] text-[#1A1A1A] placeholder:text-[#9CA3AF] transition-all"
             required
           />
+        </div>
 
+        <div className="space-y-1.5">
+          <label
+            className="text-[12px] font-semibold text-[#6B7280] block ml-1 uppercase tracking-wide"
+            htmlFor="register-password"
+          >
+            Contraseña
+          </label>
           <div className="relative">
             <input
+              id="register-password"
               type={showPassword ? "text" : "password"}
               aria-label="Contraseña"
-              autocomplete="new-password"
-              placeholder="Contraseña"
+              autoComplete="new-password"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-4 pr-28 rounded-[12px] border border-[#E5E7EB] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none"
+              className="w-full h-14 px-4 pr-14 bg-white border border-[#E5E7EB] rounded-[14px] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none text-[15px] text-[#1A1A1A] placeholder:text-[#9CA3AF] transition-all"
               required
             />
             <button
@@ -423,65 +476,83 @@ export function RegisterUserScreen() {
               onClick={() => setShowPassword((prev) => !prev)}
               aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
               aria-pressed={showPassword}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-[14px] border border-[#E5E7EB] bg-[#F0FAF9] px-3 py-1 text-xs font-bold text-[#1A9B7D]"
+              className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] rounded-full text-[#6B7280] hover:text-[#074738] flex items-center justify-center transition-colors"
             >
-              {showPassword ? "Ocultar" : "Mostrar"}
+              <span className="material-symbols-outlined text-[20px]">
+                {showPassword ? "visibility_off" : "visibility"}
+              </span>
             </button>
           </div>
+        </div>
 
-          {/* País */}
+        <div className="space-y-1.5">
+          <label
+            className="text-[12px] font-semibold text-[#6B7280] block ml-1 uppercase tracking-wide"
+            htmlFor="register-country"
+          >
+            País
+          </label>
           <div className="relative">
             <select
+              id="register-country"
               value={country}
               onChange={(e) => setCountry(e.target.value)}
               aria-label="País de residencia"
-              className="w-full px-4 py-4 rounded-[12px] border border-[#E5E7EB] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none appearance-none bg-white text-slate-700 cursor-pointer"
+              className="w-full h-14 px-4 bg-white border border-[#E5E7EB] rounded-[14px] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none appearance-none text-[15px] text-[#1A1A1A] cursor-pointer transition-all"
             >
-              <option value="">🌍 ¿De dónde sos?</option>
+              <option value="">¿De dónde sos?</option>
               {COUNTRIES.map((c) => (
                 <option key={c.code} value={c.code}>
                   {c.flag} {c.name}
                 </option>
               ))}
             </select>
-            <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+            <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#9CA3AF]">
               ▾
             </div>
           </div>
+        </div>
 
-          {error && (
-            <div className="text-center">
-              <p className="text-red-500 text-sm font-semibold">{error}</p>
-              {emailAlreadyInUse && (
-                <button
-                  type="button"
-                  onClick={() => navigate(inviteCode ? `/login?invite=${inviteCode}` : "/login")}
-                  className="mt-2 text-sm font-bold text-[#1A9B7D] underline underline-offset-2"
-                >
-                  Ir al login
-                </button>
-              )}
-            </div>
-          )}
+        {error && (
+          <div className="text-center">
+            <p className="rounded-[12px] border border-[#EF4444]/30 bg-[#EF4444]/10 px-4 py-3 text-sm font-semibold text-[#EF4444]">
+              {error}
+            </p>
+            {emailAlreadyInUse && (
+              <button
+                type="button"
+                onClick={() => navigate(inviteCode ? `/login?invite=${inviteCode}` : "/login")}
+                className="mt-2 text-sm font-bold text-[#1A9B7D] underline underline-offset-2"
+              >
+                Ir al login
+              </button>
+            )}
+          </div>
+        )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-[14px] bg-[#074738] py-4 text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[0_4px_12px_rgba(26,155,125,0.3)] disabled:opacity-60"
-          >
-            {loading ? "Creando..." : "Crear cuenta"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate(inviteCode ? `/login?invite=${inviteCode}` : "/login")}
-            className="w-full rounded-[14px] border border-[#E5E7EB] py-4 text-sm font-bold uppercase tracking-[0.16em] text-[#1A9B7D] transition-all hover:bg-[#f4f3f9]"
-          >
-            Ya tengo cuenta
-          </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full h-14 bg-[#074738] hover:bg-[#0e5c49] text-white text-[15px] font-bold rounded-[16px] flex items-center justify-center disabled:opacity-50 active:scale-[0.97] transition-transform shadow-[0_4px_14px_rgba(7,71,56,0.18)]"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        >
+          {loading ? "Creando cuenta..." : "Crear cuenta"}
+        </button>
       </form>
 
+      <footer className="pt-8 flex flex-col items-center gap-2">
+        <p className="text-[14px] text-[#6B7280]">¿Ya tenés cuenta?</p>
+        <button
+          type="button"
+          onClick={() => navigate(inviteCode ? `/login?invite=${inviteCode}` : "/login")}
+          className="px-6 py-2.5 rounded-full bg-[#1A9B7D]/10 text-[#1A9B7D] text-[14px] font-bold active:scale-[0.97] transition-transform"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        >
+          Ingresar
+        </button>
+      </footer>
+
       {/* Consent modal removed — consent now collected BEFORE registration via ConsentManager (GDPR Art.7) */}
-    </AuthPageShell>
+    </StitchShell>
   );
 }

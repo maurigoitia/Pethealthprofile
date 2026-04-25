@@ -5,7 +5,6 @@ import { useAuth } from "../../contexts/AuthContext";
 import { DEFAULT_PET_PHOTO } from "../../constants/petDefaults";
 import { getPetPhotoAcceptValue, preparePetPhotoForUpload } from "../../utils/petPhotoUpload";
 import { uploadPetPhotoWithFallback } from "../../services/petPhotoService";
-import { AuthPageShell } from "../auth/AuthPageShell";
 
 export function RegisterPetStep2() {
   const navigate = useNavigate();
@@ -119,167 +118,228 @@ export function RegisterPetStep2() {
   };
 
   return (
-    <AuthPageShell
-      eyebrow="Registro"
-      title="Ya casi. Pessy empieza a conocerlo."
-      description="Con esto, Pessy organiza sus documentos, recordatorios y cuidados solo. Vos solo disfrutás."
-      highlights={["Foto", "Datos base", "Primer perfil"]}
+    <div
+      className="min-h-screen bg-[#F0FAF9] flex flex-col"
+      style={{ fontFamily: "'Manrope', sans-serif" }}
     >
-      <div className="mb-6">
-        <h2
-          className="text-3xl font-extrabold tracking-tight text-[#074738]"
-          style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}
-        >
-          Registrar mascota
-        </h2>
-        <div className="mt-3 flex items-center gap-2">
-          <span className="h-2 w-6 rounded-full bg-[#1A9B7D] opacity-50 transition-all" aria-label="Paso 1 completo" />
-          <span className="h-2 w-8 rounded-full bg-[#1A9B7D] transition-all" aria-label="Paso 2 activo" />
-          <span className="ml-1 text-xs font-semibold text-[#9CA3AF]">Paso 2 de 2</span>
+      <div className="min-h-screen flex flex-col max-w-md mx-auto bg-[#F0FAF9] overflow-hidden relative w-full">
+        {/* Hero compacto */}
+        <div className="h-48 relative overflow-hidden flex items-end px-5 pb-5">
+          <div className="absolute inset-0 z-0">
+            <img
+              src="/illustrations/dark_top_surprised_cork_head.svg"
+              alt=""
+              className="w-full h-full object-cover opacity-90"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#F0FAF9] via-[#F0FAF9]/40 to-transparent" />
+          </div>
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-1">
+              <img src="/pessy-logo.svg" alt="" className="w-8 h-8" />
+              <h1
+                className="text-[26px] font-extrabold text-[#074738] tracking-tight leading-none"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                Ya casi
+              </h1>
+            </div>
+            <p className="text-[14px] text-[#6B7280] max-w-[260px] leading-relaxed">
+              Foto y datos base. Pessy organiza el resto.
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="space-y-5">
-          <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={handlePhotoClick}
-              className="relative h-28 w-28 rounded-full border-2 border-dashed border-[#1A9B7D]/40 bg-[#E0F2F1] overflow-hidden"
-            >
-              <img src={photoPreview} alt="Foto mascota" className="h-full w-full object-cover" />
-            </button>
-            <input
-              ref={galleryInputRef}
-              type="file"
-              accept={getPetPhotoAcceptValue()}
-              className="hidden"
-              onChange={handlePhotoChange}
-            />
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept={getPetPhotoAcceptValue()}
-              capture="environment"
-              className="hidden"
-              onChange={handlePhotoChange}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => cameraInputRef.current?.click()}
-              className="rounded-[14px] border border-[#1A9B7D] py-3 text-sm font-bold uppercase tracking-[0.16em] text-[#1A9B7D] transition-all hover:bg-[#E0F2F1]"
-            >
-              Tomar foto
-            </button>
-            <button
-              type="button"
-              onClick={() => galleryInputRef.current?.click()}
-              className="rounded-[14px] border border-[#E0F2F1] py-3 text-sm font-bold uppercase tracking-[0.16em] text-[#9CA3AF] transition-all hover:bg-[#F0FAF9]"
-            >
-              Elegir foto
-            </button>
+        <main
+          className="flex-1 px-5 pt-2 pb-8"
+          style={{ paddingBottom: "max(2rem, env(safe-area-inset-bottom))" }}
+        >
+          {/* Step indicator */}
+          <div className="mb-6 flex items-center gap-2">
+            <span className="h-2 w-6 rounded-full bg-[#1A9B7D]/50 transition-all" aria-label="Paso 1 completo" />
+            <span className="h-2 w-8 rounded-full bg-[#1A9B7D] transition-all" aria-label="Paso 2 activo" />
+            <span className="ml-1 text-[12px] font-semibold uppercase tracking-wide text-[#6B7280]">
+              Paso 2 de 2
+            </span>
           </div>
 
-          <input
-            type="number"
-            step="0.1"
-            min="0.1"
-            max="200"
-            placeholder="Peso aproximado (kg)"
-            value={formData.weight}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === "" || (Number(val) >= 0 && Number(val) <= 200)) {
-                setFormData({ ...formData, weight: val });
-              }
-            }}
-            className="w-full px-4 py-4 rounded-[12px] border border-slate-200 focus:ring-2 focus:ring-[#1A9B7D] outline-none"
-          />
+          <div className="space-y-5">
+            {/* Foto */}
+            <div className="flex flex-col items-center gap-3">
+              <button
+                type="button"
+                onClick={handlePhotoClick}
+                className="relative h-28 w-28 rounded-full border-2 border-dashed border-[#1A9B7D]/40 bg-[#E0F2F1] overflow-hidden active:scale-[0.97] transition-transform"
+                aria-label="Subir foto de la mascota"
+              >
+                <img src={photoPreview} alt="Foto mascota" className="h-full w-full object-cover" />
+              </button>
+              <input
+                ref={galleryInputRef}
+                type="file"
+                accept={getPetPhotoAcceptValue()}
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept={getPetPhotoAcceptValue()}
+                capture="environment"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="h-12 bg-white border border-[#E5E7EB] rounded-[14px] text-[13px] font-semibold text-[#1A1A1A] active:scale-[0.97] transition-transform"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                Tomar foto
+              </button>
+              <button
+                type="button"
+                onClick={() => galleryInputRef.current?.click()}
+                className="h-12 bg-white border border-[#E5E7EB] rounded-[14px] text-[13px] font-semibold text-[#1A1A1A] active:scale-[0.97] transition-transform"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                Elegir foto
+              </button>
+            </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setFormData({ ...formData, sex: "male" })}
-              className={`py-3 rounded-[12px] border-2 font-bold transition-colors ${
-                formData.sex === "male"
-                  ? "border-[#1A9B7D] bg-[#E0F2F1] text-[#1A9B7D]"
-                  : "border-slate-200 text-slate-600"
-              }`}
-            >
-              Macho
-            </button>
-            <button
-              type="button"
-              onClick={() => setFormData({ ...formData, sex: "female" })}
-              className={`py-3 rounded-[12px] border-2 font-bold transition-colors ${
-                formData.sex === "female"
-                  ? "border-[#1A9B7D] bg-[#E0F2F1] text-[#1A9B7D]"
-                  : "border-slate-200 text-slate-600"
-              }`}
-            >
-              Hembra
-            </button>
-          </div>
+            {/* Peso */}
+            <div className="space-y-1.5">
+              <label
+                className="text-[12px] font-semibold text-[#6B7280] block ml-1 uppercase tracking-wide"
+                htmlFor="pet-weight"
+              >
+                Peso aproximado (kg)
+              </label>
+              <input
+                id="pet-weight"
+                type="number"
+                step="0.1"
+                min="0.1"
+                max="200"
+                placeholder="Ej. 8.5"
+                value={formData.weight}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "" || (Number(val) >= 0 && Number(val) <= 200)) {
+                    setFormData({ ...formData, weight: val });
+                  }
+                }}
+                className="w-full h-14 px-4 bg-white border border-[#E5E7EB] rounded-[14px] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none text-[15px] text-[#1A1A1A] placeholder:text-[#9CA3AF] transition-all"
+              />
+            </div>
 
-          <label className="flex items-center justify-between rounded-[12px] border border-slate-200 px-4 py-3">
-            <span className="text-slate-700 font-medium">¿Está esterilizado/a?</span>
-            <input
-              type="checkbox"
-              checked={formData.isNeutered}
-              onChange={(e) => setFormData({ ...formData, isNeutered: e.target.checked })}
-              className="h-4 w-4 accent-[#1A9B7D]"
-            />
-          </label>
-
-          {photoNotice && (
-            <div className="rounded-[12px] bg-amber-50 border border-amber-200 px-4 py-3 space-y-2">
-              <p className="text-amber-800 text-sm font-semibold text-center">
-                {photoNotice}
+            {/* Sexo */}
+            <div className="space-y-1.5">
+              <p className="text-[12px] font-semibold text-[#6B7280] ml-1 uppercase tracking-wide">
+                Sexo
               </p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => { setPhotoNotice(""); handleFinish(); }}
-                  className="min-h-[44px] rounded-[10px] bg-amber-500 text-white text-xs font-bold active:scale-[0.97] transition-transform"
+                  onClick={() => setFormData({ ...formData, sex: "male" })}
+                  className={`h-14 rounded-[14px] border-2 text-[14px] font-bold transition-colors ${
+                    formData.sex === "male"
+                      ? "border-[#1A9B7D] bg-[#E0F2F1] text-[#074738]"
+                      : "border-[#E5E7EB] bg-white text-[#6B7280]"
+                  }`}
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                 >
-                  Reintentar
+                  Macho
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate("/home")}
-                  className="min-h-[44px] rounded-[10px] border border-amber-300 text-amber-800 text-xs font-bold active:scale-[0.97] transition-transform"
+                  onClick={() => setFormData({ ...formData, sex: "female" })}
+                  className={`h-14 rounded-[14px] border-2 text-[14px] font-bold transition-colors ${
+                    formData.sex === "female"
+                      ? "border-[#1A9B7D] bg-[#E0F2F1] text-[#074738]"
+                      : "border-[#E5E7EB] bg-white text-[#6B7280]"
+                  }`}
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                 >
-                  Seguir sin foto
+                  Hembra
                 </button>
               </div>
             </div>
-          )}
-          {error && <p className="text-red-500 text-sm font-semibold text-center">{error}</p>}
 
-          <button
-            type="button"
-            onClick={handleFinish}
-            disabled={isSubmitting || isPreparingPhoto || authLoading || !user}
-            className="w-full rounded-[14px] bg-[#1A9B7D] py-4 text-sm font-bold uppercase tracking-[0.16em] text-white disabled:opacity-60"
-          >
-            {authLoading
-              ? "Verificando sesión..."
-              : isPreparingPhoto
-                ? "Procesando foto..."
-                : isSubmitting
-                  ? "Guardando..."
-                  : "Finalizar registro"}
-          </button>
+            {/* Esterilizado */}
+            <label className="flex items-center justify-between rounded-[14px] bg-white border border-[#E5E7EB] px-4 py-4 cursor-pointer">
+              <span className="text-[14px] font-medium text-[#1A1A1A]">¿Está esterilizado/a?</span>
+              <input
+                type="checkbox"
+                checked={formData.isNeutered}
+                onChange={(e) => setFormData({ ...formData, isNeutered: e.target.checked })}
+                className="h-5 w-5 accent-[#1A9B7D]"
+              />
+            </label>
 
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="w-full rounded-[14px] border border-[#E0F2F1] py-4 text-sm font-bold uppercase tracking-[0.16em] text-[#074738] transition-all hover:bg-[#F0FAF9]"
-          >
-            Volver
-          </button>
+            {/* Photo retry/skip notice — preservado intacto del commit 558c685 */}
+            {photoNotice && (
+              <div className="rounded-[14px] bg-amber-50 border border-amber-200 px-4 py-3 space-y-2">
+                <p className="text-amber-800 text-sm font-semibold text-center">
+                  {photoNotice}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setPhotoNotice(""); handleFinish(); }}
+                    className="min-h-[44px] rounded-[10px] bg-amber-500 text-white text-xs font-bold active:scale-[0.97] transition-transform"
+                  >
+                    Reintentar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/home")}
+                    className="min-h-[44px] rounded-[10px] border border-amber-300 text-amber-800 text-xs font-bold active:scale-[0.97] transition-transform"
+                  >
+                    Seguir sin foto
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <p className="rounded-[12px] border border-[#EF4444]/30 bg-[#EF4444]/10 px-4 py-3 text-center text-sm font-semibold text-[#EF4444]">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={handleFinish}
+              disabled={isSubmitting || isPreparingPhoto || authLoading || !user}
+              className="w-full h-14 bg-[#074738] hover:bg-[#0e5c49] text-white text-[15px] font-bold rounded-[16px] flex items-center justify-center disabled:opacity-50 active:scale-[0.97] transition-transform shadow-[0_4px_14px_rgba(7,71,56,0.18)]"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              {authLoading
+                ? "Verificando sesión..."
+                : isPreparingPhoto
+                  ? "Procesando foto..."
+                  : isSubmitting
+                    ? "Guardando..."
+                    : "Finalizar"}
+            </button>
+          </div>
+
+          <footer className="pt-6 flex justify-center">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="text-[13px] font-semibold text-[#6B7280] hover:text-[#074738] transition-colors"
+            >
+              ← Volver
+            </button>
+          </footer>
+        </main>
+
+        <div className="absolute bottom-10 -right-10 w-40 h-40 bg-[#1A9B7D]/8 rounded-full blur-3xl -z-10" />
+        <div className="absolute top-20 -left-10 w-40 h-40 bg-[#074738]/8 rounded-full blur-3xl -z-10" />
       </div>
-    </AuthPageShell>
+    </div>
   );
 }
