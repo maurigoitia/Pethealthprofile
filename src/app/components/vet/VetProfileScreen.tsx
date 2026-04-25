@@ -8,7 +8,7 @@ interface Props { onBack: () => void; }
 export function VetProfileScreen({ onBack }: Props) {
   const navigate = useNavigate(); const { user, logout, userPhoto } = useAuth();
   const [profile, setProfile] = useState<VP|null>(null);
-  useEffect(() => { if(!user) return; getDoc(doc(db,"vetProfiles",user.uid)).then(s => { if(s.exists()) setProfile(s.data() as VP); }).catch(()=>{}); }, [user]);
+  useEffect(() => { if(!user?.uid) return; getDoc(doc(db,"vetProfiles",user.uid)).then(s => { if(s.exists()) setProfile(s.data() as VP); }).catch(()=>{}); }, [user?.uid]);
   const handleLogout = async () => { await logout(); navigate("/vet/login"); };
   const Row = ({l,v}:{l:string;v?:string}) => v ? <div className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0"><span className="text-sm text-slate-500">{l}</span><span className="text-sm font-bold text-slate-900 text-right max-w-[60%] truncate">{v}</span></div> : null;
   return (
