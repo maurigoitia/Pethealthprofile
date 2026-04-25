@@ -1,10 +1,35 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { ActiveMedication, Appointment } from "../../types/medical";
 
 interface Props {
   medications: ActiveMedication[] | undefined | null;
   appointments: Appointment[] | undefined | null;
   petName: string;
+}
+
+// Storage key per-day per-pet — para que "marcado como tomado" persista
+// entre refreshes y desaparezca de la lista. Cross-device sync queda para
+// próximo sprint (Firestore medication_intakes — ver gamification spec).
+const todayKey = () => new Date().toISOString().slice(0, 10);
+const storageKey = (petName: string) => `pessy_taken_${todayKey()}_${petName}`;
+
+function loadTakenToday(petName: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(storageKey(petName));
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveTakenToday(petName: string, taken: Set<string>) {
+  try {
+    localStorage.setItem(storageKey(petName), JSON.stringify([...taken]));
+  } catch {
+    /* quota exceeded or disabled — fail silent */
+  }
 }
 
 interface PendingItem {
@@ -66,22 +91,45 @@ export function PendienteHoyCard({ medications, appointments, petName }: Props) 
     }
   }, [medications, appointments]);
 
-  const [completed, setCompleted] = useState<Set<string>>(new Set());
+  const [completed, setCompleted] = useState<Set<string>>(() => loadTakenToday(petName));
+  const [fadingOut, setFadingOut] = useState<Set<string>>(new Set());
+
+  // Reload from storage si cambia la mascota activa o el día
+  useEffect(() => {
+    setCompleted(loadTakenToday(petName));
+  }, [petName]);
 
   const toggle = (id: string) => {
-    setCompleted((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    // Animación fade-out 200ms antes de filtrar visualmente
+    setFadingOut((prev) => new Set(prev).add(id));
+    setTimeout(() => {
+      setCompleted((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        saveTakenToday(petName, next);
+        return next;
+      });
+      setFadingOut((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 200);
   };
+
+  // Filtrar items: los marcados como tomados HOY no se muestran (excepto durante el fade-out)
+  const visibleItems = useMemo(
+    () => items.filter((it) => !completed.has(it.id) || fadingOut.has(it.id)),
+    [items, completed, fadingOut],
+  );
 
   const total = items.length;
   const doneCount = items.filter((i) => completed.has(i.id)).length;
   const pct = total === 0 ? 0 : Math.round((doneCount / total) * 100);
 
-  if (total === 0) {
+  // Si todos los items fueron tomados HOY, comportarse como empty state
+  if (total === 0 || visibleItems.length === 0) {
     return (
       <div
         className="mx-4 mb-3.5 rounded-[16px] bg-white border border-[rgba(7,71,56,0.08)] px-4 py-4 flex items-center gap-3"
@@ -128,18 +176,19 @@ export function PendienteHoyCard({ medications, appointments, petName }: Props) 
         </span>
       </div>
 
-      {/* Items */}
+      {/* Items — solo los que NO están marcados tomados hoy (con fade-out animation) */}
       <div className="px-4 pb-3.5">
-        {items.map((it, idx) => {
+        {visibleItems.map((it, idx) => {
           const done = completed.has(it.id);
+          const isFading = fadingOut.has(it.id);
           return (
             <button
               key={it.id}
               type="button"
               onClick={() => toggle(it.id)}
-              className={`w-full flex items-center gap-3 py-3 text-left ${
-                idx < items.length - 1 ? "border-b border-[rgba(7,71,56,0.05)]" : ""
-              }`}
+              className={`w-full flex items-center gap-3 py-3 text-left transition-opacity duration-200 ${
+                isFading ? "opacity-0" : "opacity-100"
+              } ${idx < visibleItems.length - 1 ? "border-b border-[rgba(7,71,56,0.05)]" : ""}`}
               style={{ fontFamily: "'Manrope', sans-serif", WebkitTapHighlightColor: "transparent" }}
             >
               <div className="w-9 h-9 rounded-[10px] bg-[#E0F2F1] flex items-center justify-center shrink-0">
