@@ -114,6 +114,12 @@ service cloud.firestore {
       match /pets/{petId} {
         allow read, write: if signedIn() && request.auth.uid == userId;
       }
+
+      // adopter_profile — perfil del user para matching de adopción
+      // Solo el user puede leer/escribir su propio perfil
+      match /adopter_profile/{docId} {
+        allow read, write: if signedIn() && request.auth.uid == userId;
+      }
     }
 
     // ─────────────────────────────────────────────────────────────────

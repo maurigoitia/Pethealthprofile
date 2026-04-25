@@ -91,6 +91,12 @@ const LostPetFeed = lazy(() =>
     default: m.LostPetFeed,
   }))
 );
+const AdoptionContainer = lazy(() =>
+  import("../community/AdoptionContainer").then((m) => ({
+    default: m.AdoptionContainer,
+  }))
+);
+
 const ReportLostPet = lazy(() =>
   import("../community/ReportLostPet.tsx").then((m) => ({
     default: m.ReportLostPet,
@@ -214,6 +220,20 @@ function ReportarPerdidoRoute() {
         onBack={() => navigate("/comunidad")}
         onSuccess={() => navigate("/comunidad")}
       />
+    </Suspense>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 5b. AdoptarRoute — AdoptionContainer (perfil setup + feed con matching)
+// ---------------------------------------------------------------------------
+
+function AdoptarRoute() {
+  const navigate = useNavigate();
+
+  return (
+    <Suspense fallback={<ScreenLoader label="Cargando adopciones..." />}>
+      <AdoptionContainer onBack={() => navigate("/comunidad")} />
     </Suspense>
   );
 }
@@ -367,6 +387,7 @@ export {
   TratamientosRoute,
   ComunidadRoute,
   ReportarPerdidoRoute,
+  AdoptarRoute,
   ExplorarRoute,
   PerfilRoute,
   IdentidadRoute,

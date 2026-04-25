@@ -229,6 +229,7 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/comunidad", lazy: AppLayout, children: [
     { index: true, lazy: lazyRouteWrapper("ComunidadRoute") },
     { path: "reportar", lazy: lazyRouteWrapper("ReportarPerdidoRoute") },
+    { path: "adoptar", lazy: lazyRouteWrapper("AdoptarRoute") },
   ]}),
   withErrorBoundary({ path: "/explorar", lazy: AppLayout, children: [{ index: true, lazy: lazyRouteWrapper("ExplorarRoute") }] }),
   withErrorBoundary({ path: "/perfil", lazy: AppLayout, children: [{ index: true, lazy: lazyRouteWrapper("PerfilRoute") }] }),
