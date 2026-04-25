@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router";
-import { ChevronLeft, Stethoscope, Syringe, Pill, Scissors } from "lucide-react";
+import { ArrowLeft, Stethoscope, Syringe, Pill, Scissors, HeartPulse } from "lucide-react";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
 import { TreatingVetsList } from "../medical/TreatingVetsList";
@@ -124,25 +124,28 @@ export function CuidadosScreen({ onBack }: Props) {
       className="min-h-screen pb-24"
       style={{ backgroundColor: "#F0FAF9", fontFamily: "'Manrope', sans-serif" }}
     >
-      {/* Header */}
-      <header
-        className="sticky top-0 z-10 flex items-center gap-3 px-4 border-b border-slate-100"
-        style={{ backgroundColor: "#ffffff", height: 56 }}
-      >
-        <button
-          type="button"
-          onClick={onBack}
-          aria-label="Volver"
-          style={{ width: 44, height: 44, minWidth: 44, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", background: "none", border: "none", cursor: "pointer", color: "#074738" }}
-        >
-          <ChevronLeft size={22} />
-        </button>
-        <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 18, fontWeight: 700, color: "#074738" }}>
-          Bienestar
-        </h1>
-      </header>
+      {/* Header — Stitch sticky con título grande */}
+      <div className="sticky top-0 z-40 bg-[#F0FAF9]/85 backdrop-blur-md px-4 pt-4 pb-3">
+        <div className="max-w-md mx-auto flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="Volver"
+            className="size-11 rounded-full bg-white flex items-center justify-center border border-[#E5E7EB] transition-all active:scale-[0.96] shrink-0"
+            style={{ boxShadow: "0 1px 3px rgba(7,71,56,0.04)" }}
+          >
+            <ArrowLeft size={18} color="#074738" />
+          </button>
+          <h1
+            className="flex-1 text-[22px] font-extrabold text-[#074738] leading-tight"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.02em" }}
+          >
+            Bienestar
+          </h1>
+        </div>
+      </div>
 
-      <div className="px-4" style={{ display: "flex", flexDirection: "column", gap: 20, paddingTop: 16 }}>
+      <div className="px-4 max-w-md mx-auto" style={{ display: "flex", flexDirection: "column", gap: 20, paddingTop: 8 }}>
 
         {/* ── Estado general ── */}
         <div style={{ borderRadius: 20, padding: "24px 20px", backgroundColor: overallConfig.bg, display: "flex", alignItems: "center", gap: 16 }}>
@@ -154,6 +157,35 @@ export function CuidadosScreen({ onBack }: Props) {
             <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>{overallConfig.sub}</p>
           </div>
         </div>
+
+        {/* ── Empty state Stitch cuando no hay datos reales ── */}
+        {allUnknown && activeConditions.length === 0 && appointments.filter((a) => a.status === "upcoming" && a.date).length === 0 && (
+          <div className="bg-white rounded-[16px] border border-[rgba(7,71,56,0.08)] shadow-[0_2px_8px_rgba(0,0,0,0.04)] py-10 px-6 text-center">
+            <div className="w-24 h-24 rounded-full bg-[#E0F2F1] flex items-center justify-center mx-auto mb-5">
+              <HeartPulse size={40} color="#1A9B7D" strokeWidth={1.8} />
+            </div>
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#1A9B7D]/10 border border-[#1A9B7D]/20 mb-4">
+              <span
+                className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#1A9B7D]"
+                style={{ fontFamily: "Manrope, sans-serif" }}
+              >
+                Cuidados
+              </span>
+            </div>
+            <h2
+              className="text-2xl font-extrabold text-[#074738] mb-2 leading-tight"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              Empecemos a cargar info
+            </h2>
+            <p
+              className="text-sm text-[#6B7280] max-w-[280px] mx-auto leading-relaxed"
+              style={{ fontFamily: "Manrope, sans-serif" }}
+            >
+              Sumá vacunas, turnos o medicación para ver el estado real de los cuidados de {petName}.
+            </p>
+          </div>
+        )}
 
         {/* ── Dimensiones de salud ── */}
         <div>
@@ -196,7 +228,7 @@ export function CuidadosScreen({ onBack }: Props) {
               .map((appt) => {
                 const days = daysUntil(appt.date);
                 return (
-                  <div key={appt.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, marginBottom: 10, boxShadow: "0 2px 8px rgba(0,0,0,.04)" }}>
+                  <div key={appt.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, marginBottom: 10, boxShadow: "0 2px 8px rgba(0,0,0,.04)", border: "1px solid rgba(7,71,56,0.08)" }}>
                     <div style={{ width: 40, height: 40, minWidth: 40, borderRadius: "50%", backgroundColor: "#E0F2F1", display: "flex", alignItems: "center", justifyContent: "center", color: "#1A9B7D" }}>
                       <Stethoscope size={18} strokeWidth={1.8} />
                     </div>
@@ -259,11 +291,12 @@ export function CuidadosScreen({ onBack }: Props) {
         {/* ── Vets que trataron a esta mascota ── */}
         <TreatingVetsList />
 
-        {/* ── Buscar vet ── */}
+        {/* ── Buscar vet — pill Stitch ── */}
         <button
           type="button"
           onClick={() => navigate("/buscar-vet")}
-          style={{ width: "100%", border: "2px solid #074738", background: "none", color: "#074738", borderRadius: 12, padding: "12px", fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer", minHeight: 44 }}
+          className="w-full rounded-full bg-[#074738] hover:bg-[#0e5c49] text-white text-sm font-bold shadow-[0_4px_14px_rgba(7,71,56,0.18)] active:scale-[0.97] transition-transform"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", padding: "14px 24px", minHeight: 48 }}
         >
           Buscar veterinario
         </button>
