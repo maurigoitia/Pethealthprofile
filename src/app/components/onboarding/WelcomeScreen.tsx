@@ -1,6 +1,6 @@
 /**
- * WelcomeScreen — onboarding inicial. Stitch-style port + tokens Plano + logo Pessy.
- * Hero de 530px con illustration + chip flotante de marca + content card abajo.
+ * WelcomeScreen — Premium style: full-bleed dark photo + gradient overlay + glass cards.
+ * Tokens Plano puros (no Material 3 aliases). Logo Pessy + illustration interna.
  */
 import { useNavigate } from "react-router";
 
@@ -11,109 +11,146 @@ export function WelcomeScreen() {
 
   return (
     <main
-      className="min-h-screen flex flex-col max-w-md mx-auto relative overflow-hidden bg-white"
+      className="relative min-h-screen w-full overflow-hidden bg-[#074738]"
       style={{ fontFamily: "'Manrope', sans-serif" }}
     >
-      {/* Hero — illustration sobre gradient verde */}
-      <div className="relative h-[480px] sm:h-[530px] w-full overflow-hidden bg-gradient-to-b from-[#074738] to-[#0e5c49]">
-        <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent z-10" />
+      {/* Hero full-bleed background */}
+      <img
+        src={HERO_IMG}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover opacity-80"
+        aria-hidden="true"
+      />
+
+      {/* Gradient overlay */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(to bottom, rgba(7,71,56,0.4) 0%, rgba(7,71,56,0.75) 55%, rgba(7,71,56,0.95) 100%)",
+        }}
+        aria-hidden="true"
+      />
+
+      {/* Content */}
+      <div
+        className="relative z-10 flex flex-col items-center min-h-screen max-w-md mx-auto px-6 pt-16 pb-10"
+        style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}
+      >
+        {/* Logo */}
         <img
-          src={HERO_IMG}
-          alt=""
-          className="absolute inset-0 w-full h-full object-contain object-bottom opacity-90 scale-110"
+          src="/pessy-logo.svg"
+          alt="Pessy"
+          className="w-20 h-20 drop-shadow-lg"
+          style={{ filter: "brightness(0) invert(1)" }}
         />
 
-        {/* Chip de marca flotante */}
-        <div className="absolute top-12 left-0 right-0 flex justify-center z-20">
-          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-xl border border-white/30">
-            <img src="/pessy-logo.svg" alt="" className="w-6 h-6" />
-            <span
-              className="text-[18px] font-extrabold text-white tracking-tight"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            >
-              Pessy
-            </span>
-          </div>
+        {/* Headline */}
+        <div className="mt-8 text-center">
+          <h1
+            className="text-[32px] font-extrabold text-white tracking-tight leading-[1.15]"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          >
+            Tu mascota, sus cosas, todo en orden.
+          </h1>
+          <p className="mt-4 text-[18px] leading-relaxed text-[#F0FAF9]/90">
+            La forma más simple de gestionar la vida de tus compañeros.
+          </p>
         </div>
-      </div>
 
-      {/* Content section con overlap del hero */}
-      <div
-        className="flex-1 flex flex-col justify-end px-5 pb-12 relative z-20 -mt-24 bg-white rounded-t-[32px] pt-8"
-        style={{ paddingBottom: "max(3rem, env(safe-area-inset-bottom))" }}
-      >
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#1A9B7D]/10 border border-[#1A9B7D]/20">
-              <span
-                className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#1A9B7D]"
-                style={{ fontFamily: "'Manrope', sans-serif" }}
-              >
-                Tu mascota, todo en orden
-              </span>
-            </div>
-            <h1
-              className="text-[32px] font-extrabold text-[#074738] leading-[1.1] tracking-tight"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            >
-              Bienvenido a <span className="text-[#1A9B7D]">Pessy</span>
-            </h1>
-            <p className="text-[16px] text-[#6B7280] max-w-[320px] leading-relaxed">
-              La forma más simple de organizar la salud, las rutinas y los
-              papeles de tu mascota.
-            </p>
-          </div>
+        {/* Glass cards */}
+        <div className="w-full max-w-sm mt-10 space-y-3">
+          <GlassCard
+            icon="pets"
+            title="Perfiles únicos"
+            desc="Toda la info médica centralizada"
+          />
+          <GlassCard
+            icon="notifications_active"
+            title="Recordatorios"
+            desc="Nunca olvides una vacuna o medicación"
+          />
+          <GlassCard
+            icon="groups"
+            title="Comunidad"
+            desc="Conectá con otros tutores"
+          />
+        </div>
 
-          {/* Acciones */}
-          <div className="space-y-3 pt-2">
-            <button
-              type="button"
-              onClick={() => navigate("/register-user")}
-              className="group w-full h-14 bg-[#074738] hover:bg-[#0e5c49] active:scale-[0.98] transition-all duration-200 rounded-full flex items-center justify-center gap-3 shadow-[0_8px_30px_rgba(7,71,56,0.25)]"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            >
-              <span className="text-[15px] text-white font-bold">Empezar</span>
-              <span className="material-symbols-outlined text-white text-[20px]">
-                arrow_forward
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate("/login")}
-              className="w-full h-14 bg-[#F0FAF9] hover:bg-[#E0F2F1] active:scale-[0.98] transition-all duration-200 rounded-full flex items-center justify-center"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            >
-              <span className="text-[14px] text-[#6B7280] font-semibold">
-                Ya tengo cuenta
-              </span>
-            </button>
-          </div>
+        {/* Buttons */}
+        <div className="w-full max-w-sm mt-10 space-y-3">
+          <button
+            type="button"
+            onClick={() => navigate("/register-user")}
+            className="w-full py-4 bg-[#1A9B7D] text-white rounded-full shadow-lg active:scale-95 transition-transform text-[15px] font-bold"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          >
+            Empezar
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className="w-full py-4 bg-white/10 hover:bg-white/20 text-white border border-white/30 rounded-full backdrop-blur-sm active:scale-95 transition-all text-[15px] font-semibold"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          >
+            Iniciar Sesión
+          </button>
         </div>
 
         {/* Footer compliance */}
-        <p className="mt-8 text-center text-[11px] text-[#9CA3AF] px-6 leading-relaxed">
-          Al continuar aceptás los{" "}
-          <a
-            href="/terminos"
-            className="text-[#1A9B7D] font-semibold underline decoration-[#1A9B7D]/30"
-          >
+        <p className="mt-8 text-center text-[11px] text-white/60 px-4 leading-relaxed">
+          Al continuar aceptás{" "}
+          <a href="/terminos" className="underline decoration-white/40">
             Términos
           </a>{" "}
-          y la{" "}
-          <a
-            href="/privacidad"
-            className="text-[#1A9B7D] font-semibold underline decoration-[#1A9B7D]/30"
-          >
-            Política de Privacidad
+          y{" "}
+          <a href="/privacidad" className="underline decoration-white/40">
+            Privacidad
           </a>
-          .
         </p>
       </div>
 
-      {/* Decorative blurs sutiles */}
-      <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-[#1A9B7D]/8 rounded-full blur-3xl -z-10" />
-      <div className="absolute top-1/2 -right-32 w-80 h-80 bg-[#074738]/6 rounded-full blur-3xl -z-10" />
+      {/* Decorative bottom gradient bar */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-1 z-20"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent 0%, #1A9B7D 50%, transparent 100%)",
+        }}
+        aria-hidden="true"
+      />
     </main>
+  );
+}
+
+function GlassCard({
+  icon,
+  title,
+  desc,
+}: {
+  icon: string;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className="bg-white/95 backdrop-blur-md p-6 rounded-xl border border-white/20 shadow-xl flex items-center gap-4">
+      <div className="w-12 h-12 rounded-full bg-[#F0FAF9] flex items-center justify-center shrink-0">
+        <span
+          className="material-symbols-outlined"
+          style={{ color: "#1A9B7D", fontSize: 24 }}
+        >
+          {icon}
+        </span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p
+          className="text-[15px] font-bold text-[#1A1A1A] leading-tight"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        >
+          {title}
+        </p>
+        <p className="text-[13px] text-[#6B7280] mt-0.5 leading-snug">{desc}</p>
+      </div>
+    </div>
   );
 }
