@@ -17,6 +17,14 @@
       ]
     },
     {
+      "collectionGroup": "adoption_listings",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "publishedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "scheduled_notifications",
       "queryScope": "COLLECTION",
       "fields": [
