@@ -1,35 +1,11 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import type { ActiveMedication, Appointment } from "../../types/medical";
+import { useMedical } from "../../contexts/MedicalContext";
 
 interface Props {
   medications: ActiveMedication[] | undefined | null;
   appointments: Appointment[] | undefined | null;
   petName: string;
-}
-
-// Storage key per-day per-pet — para que "marcado como tomado" persista
-// entre refreshes y desaparezca de la lista. Cross-device sync queda para
-// próximo sprint (Firestore medication_intakes — ver gamification spec).
-const todayKey = () => new Date().toISOString().slice(0, 10);
-const storageKey = (petName: string) => `pessy_taken_${todayKey()}_${petName}`;
-
-function loadTakenToday(petName: string): Set<string> {
-  try {
-    const raw = localStorage.getItem(storageKey(petName));
-    if (!raw) return new Set();
-    const arr = JSON.parse(raw);
-    return new Set(Array.isArray(arr) ? arr : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function saveTakenToday(petName: string, taken: Set<string>) {
-  try {
-    localStorage.setItem(storageKey(petName), JSON.stringify([...taken]));
-  } catch {
-    /* quota exceeded or disabled — fail silent */
-  }
 }
 
 interface PendingItem {
@@ -91,41 +67,51 @@ export function PendienteHoyCard({ medications, appointments, petName }: Props) 
     }
   }, [medications, appointments]);
 
-  const [completed, setCompleted] = useState<Set<string>>(() => loadTakenToday(petName));
+  const { markMedicationAsTaken, isMedicationTakenToday, markAppointmentAsCompleted } = useMedical();
   const [fadingOut, setFadingOut] = useState<Set<string>>(new Set());
 
-  // Reload from storage si cambia la mascota activa o el día
-  useEffect(() => {
-    setCompleted(loadTakenToday(petName));
-  }, [petName]);
-
-  const toggle = (id: string) => {
-    // Animación fade-out 200ms antes de filtrar visualmente
-    setFadingOut((prev) => new Set(prev).add(id));
-    setTimeout(() => {
-      setCompleted((prev) => {
-        const next = new Set(prev);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        saveTakenToday(petName, next);
-        return next;
-      });
-      setFadingOut((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-    }, 200);
+  // "Tomado HOY" viene de Firestore (cross-device). Cada item resuelve su estado:
+  const isItemDone = (it: PendingItem): boolean => {
+    if (it.kind === "med") {
+      const medId = it.id.replace(/^med-/, "");
+      return isMedicationTakenToday(medId);
+    }
+    // Para appointments el filtro `status === "upcoming"` ya excluye los completed.
+    // Si llega acá es porque sigue upcoming.
+    return false;
   };
 
-  // Filtrar items: los marcados como tomados HOY no se muestran (excepto durante el fade-out)
-  const visibleItems = useMemo(
-    () => items.filter((it) => !completed.has(it.id) || fadingOut.has(it.id)),
-    [items, completed, fadingOut],
-  );
+  const toggle = async (it: PendingItem) => {
+    // Fade-out CSS antes del write (UX smooth)
+    setFadingOut((prev) => new Set(prev).add(it.id));
+    try {
+      if (it.kind === "med") {
+        const medId = it.id.replace(/^med-/, "");
+        await markMedicationAsTaken(medId);
+      } else if (it.kind === "appointment") {
+        const apptId = it.id.replace(/^appt-/, "");
+        await markAppointmentAsCompleted(apptId);
+      }
+      // Snapshot del context elimina el item de la lista al refrescar todayIntakes/appointments
+    } catch (err) {
+      console.error("[PendienteHoyCard] toggle failed:", err);
+      // Si falla, quitar del fadingOut para que vuelva a verse
+    } finally {
+      setTimeout(() => {
+        setFadingOut((prev) => {
+          const next = new Set(prev);
+          next.delete(it.id);
+          return next;
+        });
+      }, 200);
+    }
+  };
 
+  // Filtrar items: los ya tomados HOY (Firestore via context) no se muestran salvo durante fade-out.
+  // No memoizamos porque isItemDone depende del context (re-render cuando cambia intakes).
+  const visibleItems = items.filter((it) => !isItemDone(it) || fadingOut.has(it.id));
   const total = items.length;
-  const doneCount = items.filter((i) => completed.has(i.id)).length;
+  const doneCount = items.filter(isItemDone).length;
   const pct = total === 0 ? 0 : Math.round((doneCount / total) * 100);
 
   // Si todos los items fueron tomados HOY, comportarse como empty state
@@ -179,13 +165,13 @@ export function PendienteHoyCard({ medications, appointments, petName }: Props) 
       {/* Items — solo los que NO están marcados tomados hoy (con fade-out animation) */}
       <div className="px-4 pb-3.5">
         {visibleItems.map((it, idx) => {
-          const done = completed.has(it.id);
+          const done = isItemDone(it);
           const isFading = fadingOut.has(it.id);
           return (
             <button
               key={it.id}
               type="button"
-              onClick={() => toggle(it.id)}
+              onClick={() => toggle(it)}
               className={`w-full flex items-center gap-3 py-3 text-left transition-opacity duration-200 ${
                 isFading ? "opacity-0" : "opacity-100"
               } ${idx < visibleItems.length - 1 ? "border-b border-[rgba(7,71,56,0.05)]" : ""}`}
