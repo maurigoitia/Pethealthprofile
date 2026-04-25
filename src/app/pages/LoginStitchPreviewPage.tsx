@@ -181,7 +181,7 @@ export default function LoginStitchPreviewPage() {
 
         {/* Footer */}
         <footer className="p-6 flex flex-col items-center gap-2">
-          <p className="text-[14px] text-[#6B7280]">¿Aún no tienes cuenta?</p>
+          <p className="text-[14px] text-[#6B7280]">¿Todavía no tenés cuenta?</p>
           <button
             type="button"
             onClick={() => alert("[Preview] Sign up no conectado")}
