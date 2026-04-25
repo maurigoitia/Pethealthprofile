@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, Search, Star, MapPin, ShieldCheck, Stethoscope, RefreshCw, Phone, Mail, Hash } from "lucide-react";
+import { Search, Star, MapPin, Stethoscope, RefreshCw, Phone, Mail, Hash } from "lucide-react";
 import { db, functions } from "../../../lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
@@ -367,48 +367,91 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
     return matchesSearch && matchesSpecialty;
   });
 
+  const petName = activePet?.name || "tu mascota";
+  const petPhoto = activePet?.photo || "/illustrations/dark_top_surprised_cork_head.svg";
+
   return (
     <div
       className="min-h-screen bg-[#F0FAF9]"
       style={{ fontFamily: "Manrope, sans-serif" }}
     >
-      {/* HEADER */}
-      <div className="sticky top-0 z-40 bg-[#F0FAF9]/85 backdrop-blur-md px-4 pt-4 pb-3">
-        {/* Title row — Stitch style, título grande Plus Jakarta */}
-        <div className="flex items-center gap-3 mb-4">
-          <button
-            onClick={onBack}
-            className="size-11 rounded-full bg-white flex items-center justify-center border border-[#E5E7EB] transition-all active:scale-[0.96] shrink-0"
-            style={{ boxShadow: "0 1px 3px rgba(7,71,56,0.04)" }}
-            aria-label="Volver"
-          >
-            <ArrowLeft size={18} color="#074738" />
-          </button>
-          <h1
-            className="flex-1 text-[22px] font-extrabold text-[#074738] leading-tight"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.02em" }}
-          >
-            Veterinarios
-          </h1>
-        </div>
-
-        {/* Search input — h-14 + tokens Plano + focus ring accent */}
-        <div className="relative mb-3">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-            <Search size={18} className="text-[#9CA3AF]" />
-          </span>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por nombre o especialidad…"
-            className="w-full h-14 rounded-[14px] border border-[#E5E7EB] bg-white pl-11 pr-4 text-[15px] text-[#1A1A1A] placeholder:text-[#9CA3AF] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none transition-all"
-            style={{ fontFamily: "Manrope, sans-serif" }}
+      {/* TopAppBar dark */}
+      <div className="sticky top-0 z-40 bg-[#074738] px-6 py-4 h-20 flex items-center gap-3">
+        <button
+          onClick={onBack}
+          className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#1A9B7D] shrink-0 active:scale-95 transition-transform"
+          aria-label="Volver"
+        >
+          <img
+            src={petPhoto}
+            alt={petName}
+            className="w-full h-full object-cover"
           />
+        </button>
+        <h1
+          className="flex-1 text-lg font-semibold text-[#E0F2F1] truncate"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        >
+          ¡Hola, {petName}!
+        </h1>
+        <button
+          type="button"
+          aria-label="Notificaciones"
+          className="w-10 h-10 flex items-center justify-center rounded-full active:scale-95 transition-transform"
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ color: "rgba(224,242,241,0.7)", fontSize: 24 }}
+          >
+            notifications
+          </span>
+        </button>
+      </div>
+
+      {/* Main */}
+      <div className="max-w-md mx-auto px-4 pt-6">
+        {/* Title block */}
+        <h2
+          className="text-[32px] font-bold text-[#074738] leading-tight"
+          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.02em" }}
+        >
+          Explorar
+        </h2>
+        <p className="mt-1 text-[15px] text-[#6B7280] leading-relaxed">
+          Veterinarios Pessy — Conocen el historial de {petName}
+        </p>
+
+        {/* Search + filter */}
+        <div className="mt-5 flex items-center gap-2">
+          <div className="relative flex-1">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+              <Search size={18} className="text-[#9CA3AF]" />
+            </span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar veterinarios…"
+              className="w-full h-[52px] rounded-xl border border-[#E5E7EB] bg-white pl-12 pr-4 text-[15px] text-[#1A1A1A] placeholder:text-[#9CA3AF] focus:ring-2 focus:ring-[#1A9B7D] focus:border-[#1A9B7D] outline-none transition-all"
+              style={{ fontFamily: "Manrope, sans-serif" }}
+            />
+          </div>
+          <button
+            type="button"
+            aria-label="Filtros"
+            className="w-[52px] h-[52px] rounded-xl bg-[#E0F2F1] flex items-center justify-center active:scale-95 transition-transform shrink-0"
+          >
+            <span
+              className="material-symbols-outlined"
+              style={{ color: "#074738", fontSize: 24 }}
+            >
+              tune
+            </span>
+          </button>
         </div>
 
-        {/* Filter chips */}
-        <div className="flex gap-2 mt-3 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {/* Specialty chips */}
+        <div className="flex gap-2 mt-4 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {SPECIALTIES.map((specialty) => {
             const isActive = activeSpecialty === specialty;
             return (
@@ -418,7 +461,7 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
                 className={`shrink-0 px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-wide transition-all active:scale-[0.97] ${
                   isActive
                     ? "bg-[#074738] text-white"
-                    : "bg-white text-slate-500 border border-slate-200"
+                    : "bg-white text-[#6B7280] border border-[#E5E7EB]"
                 }`}
               >
                 {specialty}
@@ -429,15 +472,13 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
       </div>
 
       {/* VET LIST */}
-      <div className="px-4 mt-4 pb-8 space-y-3">
+      <div className="max-w-md mx-auto px-4 mt-5 pb-10 space-y-3">
         {/* Tus veterinarios — extraídos de archivos procesados por IA.
             Auto-dispara la CF la primera vez; botón Actualizar lista siempre visible. */}
-        <div className="max-w-md mx-auto">
-          <TreatingVetsSection
-            petId={activePet?.id || null}
-            petName={activePet?.name || null}
-          />
-        </div>
+        <TreatingVetsSection
+          petId={activePet?.id || null}
+          petName={activePet?.name || null}
+        />
 
         {/* Cerca tuyo — Fuente B: Google Places API (datos reales por geolocalización).
             Si no hay API key o se rechaza permiso, cae a link externo a Maps. */}
@@ -468,76 +509,100 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
               Verificados en Pessy
             </p>
             {filteredVets.map((vet) => (
-            <div
-              key={vet.id}
-              className="bg-white rounded-[16px] p-4 border border-slate-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
-            >
-              {/* Main row */}
-              <div className="flex items-start">
-                {/* Photo / initials */}
-                {vet.photoUrl ? (
-                  <img
-                    src={vet.photoUrl}
-                    alt={vet.fullName}
-                    className="w-14 h-14 rounded-full object-cover shrink-0"
-                  />
-                ) : (
-                  <div className="w-14 h-14 rounded-full bg-[#E0F2F1] flex items-center justify-center shrink-0">
-                    <span
-                      className="text-[#074738] font-black text-sm"
-                      style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
-                    >
-                      {getInitials(vet.fullName)}
-                    </span>
-                  </div>
-                )}
+              <div
+                key={vet.id}
+                className="bg-white p-4 rounded-xl border border-[#E5E7EB]"
+                style={{ boxShadow: "0px 4px 20px rgba(7,71,56,0.05)" }}
+              >
+                <div className="flex gap-4">
+                  {/* Photo */}
+                  {vet.photoUrl ? (
+                    <img
+                      src={vet.photoUrl}
+                      alt={vet.fullName}
+                      className="w-20 h-20 rounded-xl object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-xl bg-[#E0F2F1] flex items-center justify-center shrink-0">
+                      <span
+                        className="text-[#074738] font-black text-xl"
+                        style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
+                      >
+                        {getInitials(vet.fullName)}
+                      </span>
+                    </div>
+                  )}
 
-                {/* Center info */}
-                <div className="flex-1 ml-3 min-w-0">
-                  <p
-                    className="font-bold text-slate-900 text-sm leading-tight"
-                    style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
-                  >
-                    {vet.fullName}
-                  </p>
-                  <span className="inline-block mt-1 text-[12px] font-bold text-[#1A9B7D] bg-[#E0F2F1] px-2.5 py-1 rounded-full">
-                    {vet.specialty}
-                  </span>
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <span className="flex items-center gap-1 text-[12px] font-bold text-slate-600">
-                      <Star size={12} fill="#F59E0B" color="#F59E0B" />
-                      {vet.rating.toFixed(1)}
-                    </span>
-                    <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                      <MapPin size={11} />
-                      {vet.distanceKm < 1
-                        ? `${Math.round(vet.distanceKm * 1000)} m`
-                        : `${vet.distanceKm.toFixed(1)} km`}
-                    </span>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h3
+                          className="text-xl font-bold text-[#074738] leading-tight truncate"
+                          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                        >
+                          {vet.fullName}
+                        </h3>
+                        <p className="text-sm text-[#6B7280] mt-0.5 truncate">
+                          {vet.specialty}
+                        </p>
+                      </div>
+                      <div className="bg-[#F0FAF9] rounded-lg px-2 py-1 flex items-center gap-1 shrink-0">
+                        <Star size={12} fill="#FFB800" color="#FFB800" />
+                        <span
+                          className="text-[12px] font-bold text-[#074738]"
+                          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                        >
+                          {vet.rating.toFixed(1)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {vet.verified && (
+                        <span
+                          className="bg-[#1A9B7D]/10 text-[#1A9B7D] uppercase rounded-full px-2 py-0.5 font-bold tracking-wide"
+                          style={{ fontSize: 10, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                        >
+                          Pessy Verified
+                        </span>
+                      )}
+                      <span
+                        className="bg-emerald-50 text-emerald-700 uppercase rounded-full px-2 py-0.5 font-bold tracking-wide"
+                        style={{ fontSize: 10, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                      >
+                        Hoy disponible
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Verified badge */}
-                {vet.verified && (
-                  <div className="shrink-0 ml-2 mt-0.5">
-                    <ShieldCheck size={16} color="#1A9B7D" />
+                {/* Footer: distance + agendar */}
+                <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-[#E5E7EB]">
+                  <span className="flex items-center gap-1 text-[12px] text-[#6B7280]">
+                    <MapPin size={12} className="text-[#9CA3AF]" />
+                    {vet.distanceKm < 1
+                      ? `${Math.round(vet.distanceKm * 1000)} m`
+                      : `${vet.distanceKm.toFixed(1)} km`}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => navigate(`/vet/${vet.id}`)}
+                      className="h-[44px] px-4 border border-[#074738] text-[#074738] rounded-xl text-[13px] font-bold active:scale-[0.97] transition-transform"
+                      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                    >
+                      Ver perfil
+                    </button>
+                    <button
+                      className="h-[44px] px-5 bg-[#074738] text-white rounded-xl text-[13px] font-bold active:scale-[0.97] transition-transform"
+                      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                    >
+                      Agendar
+                    </button>
                   </div>
-                )}
+                </div>
               </div>
-
-              {/* Action buttons */}
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={() => navigate(`/vet/${vet.id}`)}
-                  className="flex-1 border border-[#074738] text-[#074738] rounded-[10px] py-2 text-[11px] font-bold transition-all active:scale-[0.97]"
-                >
-                  Ver perfil
-                </button>
-                <button className="flex-1 bg-[#074738] text-white rounded-[10px] py-2 text-[11px] font-bold shadow-[0_2px_8px_rgba(7,71,56,0.2)] transition-all active:scale-[0.97]">
-                  Agendar
-                </button>
-              </div>
-            </div>
             ))}
           </>
         )}
