@@ -373,37 +373,36 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
       style={{ fontFamily: "Manrope, sans-serif" }}
     >
       {/* HEADER */}
-      <div className="sticky top-0 z-40 bg-[#F0FAF9]/80 backdrop-blur-md px-4 pt-4 pb-3">
-        {/* Title row */}
-        <div className="flex items-center mb-3">
+      <div className="sticky top-0 z-40 bg-[#F0FAF9]/85 backdrop-blur-md px-4 pt-4 pb-3">
+        {/* Title row — Stitch style, título grande Plus Jakarta */}
+        <div className="flex items-center gap-3 mb-4">
           <button
             onClick={onBack}
-            className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-slate-100 transition-all active:scale-[0.97] shrink-0"
+            className="size-11 rounded-full bg-white flex items-center justify-center border border-[#E5E7EB] transition-all active:scale-[0.96] shrink-0"
+            style={{ boxShadow: "0 1px 3px rgba(7,71,56,0.04)" }}
             aria-label="Volver"
           >
             <ArrowLeft size={18} color="#074738" />
           </button>
           <h1
-            className="flex-1 text-center text-[18px] font-bold text-[#074738]"
-            style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
+            className="flex-1 text-[22px] font-extrabold text-[#074738] leading-tight"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.02em" }}
           >
             Veterinarios
           </h1>
-          {/* Spacer to balance title */}
-          <div className="w-10" />
         </div>
 
-        {/* Search input */}
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-            <Search size={16} className="text-slate-400" />
+        {/* Search input — h-14 + tokens Plano + focus ring accent */}
+        <div className="relative mb-3">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
+            <Search size={18} className="text-[#9CA3AF]" />
           </span>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar por nombre o especialidad…"
-            className="w-full rounded-[12px] border-[1.5px] border-[#E5E7EB] bg-white pl-9 pr-4 py-3 text-sm placeholder:text-slate-400 focus:border-[#1A9B7D] focus:outline-none transition-colors"
+            className="w-full h-14 rounded-[14px] border border-[#E5E7EB] bg-white pl-11 pr-4 text-[15px] text-[#1A1A1A] placeholder:text-[#9CA3AF] focus:ring-2 focus:ring-[#1A9B7D]/30 focus:border-[#1A9B7D] outline-none transition-all"
             style={{ fontFamily: "Manrope, sans-serif" }}
           />
         </div>
