@@ -1100,19 +1100,18 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       } catch { /* silencioso */ }
 
       if (reportId) {
-        checkY(20);
+        checkY(16);
         y += 2;
         pdf.setFillColor(224, 242, 241);
-        pdf.roundedRect(M, y, CW, 16, 2, 2, "F");
+        pdf.roundedRect(M, y, CW, 12, 2, 2, "F");
         pdf.setFontSize(7.5);
         pdf.setFont("helvetica", "bold");
-        pdf.setTextColor(26, 155, 125);
-        pdf.text("Verificación del reporte", M + 3, y + 6);
+        pdf.setTextColor(7, 71, 56);
+        pdf.text("Identificador del reporte", M + 3, y + 5);
         pdf.setFont("helvetica", "normal");
         pdf.setTextColor(55, 65, 81);
-        pdf.text(`ID: ${reportId}`, M + 3, y + 11);
-        pdf.text(`pessy.app/verify/${reportId}`, M + 3, y + 15);
-        y += 18;
+        pdf.text(`ID: ${reportId}`, M + 3, y + 9.5);
+        y += 14;
       }
 
       // ── FOOTER EN TODAS LAS PÁGINAS ────────────────────────────────────────

@@ -32,7 +32,7 @@ export function HelpSupportScreen({ onBack }: HelpSupportScreenProps) {
     {
       question: "¿Los documentos están seguros?",
       answer:
-        "Sí. Todos los documentos se almacenan de forma segura y solo tú tienes acceso a ellos. Puedes verificar la integridad de los reportes exportados mediante códigos QR y hash de verificación.",
+        "Sí. Todos los documentos se almacenan de forma segura y solo tú tienes acceso a ellos. Cada reporte exportado lleva un identificador único y la fecha en que fue generado.",
     },
     {
       question: "¿Cómo exporto un reporte?",

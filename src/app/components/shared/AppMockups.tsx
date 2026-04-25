@@ -138,7 +138,7 @@ export const VaccinesMockup = () => (
         <div className="size-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300">
           <Smartphone size={20} />
         </div>
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">Toca para generar<br/>codigo QR del carnet</p>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">Exportá tu<br/>carnet en PDF</p>
       </div>
     </div>
   </div>
