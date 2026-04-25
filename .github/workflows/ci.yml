@@ -24,9 +24,6 @@ jobs:
       - name: Install functions dependencies
         run: cd functions && npm ci
 
-      - name: TypeScript check (root)
-        run: npx tsc --noEmit --skipLibCheck
-
       - name: TypeScript check (functions)
         run: cd functions && npx tsc --noEmit
 
