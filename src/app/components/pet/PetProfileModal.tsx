@@ -369,21 +369,30 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
             {/* Header */}
             <div className="px-6 pb-4 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-black text-slate-900 dark:text-white">Perfil de Mascota</h2>
+                <h2
+                  className="text-[22px] font-extrabold text-[#074738] dark:text-white leading-tight"
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.02em" }}
+                >
+                  Perfil de mascota
+                </h2>
                 <button onClick={onClose}
-                  className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                  <MaterialIcon name="close" className="text-xl" />
+                  aria-label="Cerrar"
+                  className="size-11 rounded-full bg-white dark:bg-slate-800 border border-[#E5E7EB] dark:border-slate-700 flex items-center justify-center transition-all active:scale-[0.96]"
+                  style={{ boxShadow: "0 1px 3px rgba(7,71,56,0.04)" }}>
+                  <MaterialIcon name="close" className="text-xl text-[#074738]" />
                 </button>
               </div>
               <div className="flex gap-2">
                 {(["profile", "vaccination"] as ViewMode[]).map((mode) => (
                   <button key={mode} onClick={() => setViewMode(mode)}
-                    className={`flex-1 py-2.5 px-4 rounded-lg font-bold text-sm transition-all ${
+                    className={`flex-1 py-2.5 px-4 rounded-full text-[11px] font-black uppercase tracking-wide transition-all active:scale-[0.97] ${
                       viewMode === mode
-                        ? "bg-[#074738] text-white shadow-lg shadow-[#074738]/30"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                    }`}>
-                    <MaterialIcon name={mode === "profile" ? "info" : "vaccines"} className="inline text-lg mr-1 align-text-bottom" />
+                        ? "bg-[#074738] text-white shadow-[0_4px_14px_rgba(7,71,56,0.18)]"
+                        : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-[#E5E7EB] dark:border-slate-700"
+                    }`}
+                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                  >
+                    <MaterialIcon name={mode === "profile" ? "info" : "vaccines"} className="inline text-base mr-1 align-text-bottom" />
                     {mode === "profile" ? "Datos" : "Vacunas"}
                   </button>
                 ))}
@@ -449,7 +458,10 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                         </div>
                       )}
                     </div>
-                    <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-1 capitalize">{activePet?.name}</h3>
+                    <h3
+                      className="text-2xl font-extrabold text-[#074738] dark:text-white mb-1 capitalize leading-tight"
+                      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.02em" }}
+                    >{activePet?.name}</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400">{displayBreed}</p>
                   </div>
 
@@ -460,10 +472,13 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                       { icon: "monitor_weight", label: "Peso", value: displayWeight },
                       { icon: activePet?.sex === "female" ? "female" : "male", label: "Sexo", value: displayGender },
                     ].map((s) => (
-                      <div key={s.label} className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 text-center">
-                        <MaterialIcon name={s.icon} className="text-[#074738] text-2xl mb-1" />
-                        <p className="text-xs text-slate-500 mb-0.5">{s.label}</p>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white">{s.value}</p>
+                      <div key={s.label} className="bg-white dark:bg-slate-800 rounded-[16px] border border-[rgba(7,71,56,0.08)] dark:border-slate-700 shadow-[0_2px_8px_rgba(0,0,0,0.04)] p-3 text-center">
+                        <MaterialIcon name={s.icon} className="text-[#1A9B7D] text-2xl mb-1" />
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[#9CA3AF] mb-0.5">{s.label}</p>
+                        <p
+                          className="text-sm font-extrabold text-[#074738] dark:text-white"
+                          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                        >{s.value}</p>
                       </div>
                     ))}
                   </div>
@@ -521,7 +536,10 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
 
                   {/* Info detallada */}
                   <div className="space-y-3">
-                    <h4 className="font-black text-sm text-slate-900 dark:text-white">Información Detallada</h4>
+                    <h4
+                      className="text-[10px] font-black uppercase tracking-[0.18em] text-[#9CA3AF]"
+                      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                    >Información detallada</h4>
                     {[
                       { label: "Especie", value: speciesLabel(), icon: "id_card" },
                       { label: "Raza", value: displayBreed, icon: "biotech" },
@@ -538,13 +556,16 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                   </div>
 
                   <button onClick={handleOpenEdit}
-                    className="w-full py-3 rounded-xl bg-[#074738] text-white font-bold shadow-lg shadow-[#074738]/30 flex items-center justify-center gap-2">
-                    <MaterialIcon name="edit" className="text-xl" />
-                    Editar Perfil
+                    className="w-full rounded-full bg-[#074738] hover:bg-[#0e5c49] text-white text-sm font-bold shadow-[0_4px_14px_rgba(7,71,56,0.18)] active:scale-[0.97] transition-transform flex items-center justify-center gap-2"
+                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", padding: "14px 24px", minHeight: 48 }}
+                  >
+                    <MaterialIcon name="edit" className="text-lg" />
+                    Editar perfil
                   </button>
                   <button
                     onClick={handleAddPet}
-                    className="w-full py-3 rounded-xl bg-white dark:bg-slate-900 border-2 border-[#074738] text-[#074738] font-bold flex items-center justify-center gap-2 hover:bg-[#074738]/5 transition-colors"
+                    className="w-full rounded-full bg-white dark:bg-slate-900 border border-[#074738] text-[#074738] text-sm font-bold flex items-center justify-center gap-2 hover:bg-[#074738]/5 active:scale-[0.97] transition-all"
+                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", padding: "14px 24px", minHeight: 48 }}
                   >
                     <MaterialIcon name="add" className="text-xl" />
                     Agregar Mascota
@@ -634,7 +655,10 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                   <div                     className="absolute inset-0 bg-white dark:bg-slate-900 z-10 overflow-y-auto">
                     <div className="p-6 space-y-5">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-black text-slate-900 dark:text-white">Editar Información</h3>
+                        <h3
+                          className="text-[22px] font-extrabold text-[#074738] dark:text-white leading-tight"
+                          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.02em" }}
+                        >Editar información</h3>
                         <button onClick={() => setIsEditing(false)}
                           className="size-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                           <MaterialIcon name="close" className="text-lg" />
