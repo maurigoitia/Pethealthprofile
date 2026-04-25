@@ -2321,6 +2321,22 @@ export const analyzeDocument = functions
     throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión para analizar documentos.");
   }
 
+  // Rate limit anti wallet-drain (SEC audit 2026-04-25)
+  const { checkRateLimitByTier } = await import("./utils/rateLimiter");
+  const userDoc = await admin.firestore().doc(`users/${context.auth.uid}`).get();
+  const isPremium = userDoc.exists && (
+    userDoc.data()?.plan === "premium" ||
+    userDoc.data()?.planType === "premium" ||
+    userDoc.data()?.subscriptionPlan === "premium"
+  );
+  const rl = await checkRateLimitByTier(context.auth.uid, "document-scan", isPremium);
+  if (!rl.allowed) {
+    throw new functions.https.HttpsError(
+      "resource-exhausted",
+      `Llegaste al límite de análisis del día. Volvé en ${Math.ceil(rl.resetInSeconds / 3600)} hs.`
+    );
+  }
+
   const requestedMimeType = typeof data?.mimeType === "string" ? data.mimeType.trim() : "";
   const fileName = typeof data?.fileName === "string" ? data.fileName.trim().slice(0, 260) : "";
   const base64 = typeof data?.base64 === "string" ? data.base64.trim() : "";

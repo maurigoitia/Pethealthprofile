@@ -439,24 +439,33 @@ service cloud.firestore {
     // Mitigation: location precision is limited at write time by the app layer.
     // ─────────────────────────────────────────────────────────────────
 
+    // Size guard: docs comunidad ≤ 50KB. Anti-payload-bloat (SEC audit).
+    function commCommonValid() {
+      return request.resource.data.keys().size() <= 40
+        && request.resource.size < 50000;
+    }
+
     match /lost_pets/{reportId} {
       allow create: if signedIn()
-        && request.resource.data.reportedBy == request.auth.uid;
+        && request.resource.data.reportedBy == request.auth.uid
+        && commCommonValid();
       allow read: if signedIn();
-      allow update: if signedIn() && resource.data.reportedBy == request.auth.uid;
+      allow update: if signedIn() && resource.data.reportedBy == request.auth.uid && commCommonValid();
       allow delete: if signedIn() && resource.data.reportedBy == request.auth.uid;
     }
 
     match /lost_pet_sightings/{sightingId} {
-      allow create: if signedIn() && request.resource.data.reportedBy == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.reportedBy == request.auth.uid && commCommonValid();
       allow read: if signedIn();
-      allow update, delete: if signedIn() && resource.data.reportedBy == request.auth.uid;
+      allow update: if signedIn() && resource.data.reportedBy == request.auth.uid && commCommonValid();
+      allow delete: if signedIn() && resource.data.reportedBy == request.auth.uid;
     }
 
     match /adoption_listings/{listingId} {
-      allow create: if signedIn() && request.resource.data.listedBy == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.listedBy == request.auth.uid && commCommonValid();
       allow read: if signedIn();
-      allow update, delete: if signedIn() && resource.data.listedBy == request.auth.uid;
+      allow update: if signedIn() && resource.data.listedBy == request.auth.uid && commCommonValid();
+      allow delete: if signedIn() && resource.data.listedBy == request.auth.uid;
     }
 
     // ─── COMMUNITY: Búsqueda Activa (persistent search alerts) ───
