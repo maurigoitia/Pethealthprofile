@@ -125,14 +125,27 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
       y += 22;
     }
 
-    // Footer
-    pdf.setFillColor(240, 253, 248);
-    pdf.rect(0, 285, pageW, 12, "F");
-    pdf.setFontSize(7);
-    pdf.setFont("helvetica", "normal");
-    pdf.setTextColor(100, 150, 130);
-    pdf.text("Generado por PESSY — pessy.app", margin, 291);
-    pdf.text("Documento de uso informativo.", pageW - margin, 291, { align: "right" });
+    // Footer con disclaimer legal en cada página
+    const totalPages = (pdf as any).internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      pdf.setFillColor(240, 253, 248);
+      pdf.rect(0, 282, pageW, 15, "F");
+      pdf.setFontSize(6.5);
+      pdf.setFont("helvetica", "italic");
+      pdf.setTextColor(120, 140, 130);
+      pdf.text(
+        "Documento informativo generado a partir de información cargada por el tutor. No constituye certificado oficial ni reemplaza la consulta veterinaria.",
+        pageW / 2,
+        287,
+        { align: "center", maxWidth: pageW - 2 * margin }
+      );
+      pdf.setFontSize(7);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(100, 150, 130);
+      pdf.text("Generado por PESSY — pessy.app", margin, 293);
+      pdf.text(`Página ${i} de ${totalPages}`, pageW - margin, 293, { align: "right" });
+    }
 
     await savePdfWithFallback(
       pdf,

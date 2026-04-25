@@ -434,7 +434,7 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                       <button
                         onClick={() => setShowPhotoPicker((prev) => !prev)}
                         disabled={uploadingPhoto}
-                        className="absolute bottom-0 right-0 size-10 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform">
+                        className="absolute bottom-0 right-0 size-11 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform">
                         {uploadingPhoto
                           ? <span className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                           : <MaterialIcon name="photo_camera" className="text-xl" />}
@@ -660,7 +660,7 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                           style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.02em" }}
                         >Editar información</h3>
                         <button onClick={() => setIsEditing(false)}
-                          className="size-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                          className="size-11 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                           <MaterialIcon name="close" className="text-lg" />
                         </button>
                       </div>

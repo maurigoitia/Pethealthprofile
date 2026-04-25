@@ -1109,12 +1109,21 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i);
         pdf.setFillColor(248, 249, 252);
-        pdf.rect(0, 285, PW, 12, "F");
+        pdf.rect(0, 282, PW, 15, "F");
+        pdf.setFontSize(6.5);
+        pdf.setFont("helvetica", "italic");
+        pdf.setTextColor(120, 120, 120);
+        pdf.text(
+          "Documento informativo generado a partir de información cargada por el tutor. No constituye diagnóstico ni reemplaza la consulta veterinaria.",
+          PW / 2,
+          287,
+          { align: "center", maxWidth: PW - 2 * M }
+        );
         pdf.setFontSize(7);
         pdf.setFont("helvetica", "normal");
         pdf.setTextColor(150, 150, 150);
-        pdf.text("Generado por PESSY — pessy.app", M, 291);
-        pdf.text(`Página ${i} de ${totalPages}`, PW - M, 291, { align: "right" });
+        pdf.text("Generado por PESSY — pessy.app", M, 293);
+        pdf.text(`Página ${i} de ${totalPages}`, PW - M, 293, { align: "right" });
       }
 
       const fileName = `PESSY_${TITLE_MAP[selectedReport].replace(/ /g, "_")}_${activePet.name}_${new Date().toISOString().slice(0, 10)}.pdf`;
