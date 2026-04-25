@@ -117,6 +117,38 @@ const previewRoutes = previewRoutesEnabled
           };
         },
       }),
+      withErrorBoundary({
+        path: "/preview/login-stitch",
+        lazy: async () => {
+          const module = await import("./pages/LoginStitchPreviewPage");
+          const Page = module.default;
+          return {
+            Component: function PreviewLoginStitchRoute() {
+              return (
+                <PreviewOnlyRoute>
+                  <Page />
+                </PreviewOnlyRoute>
+              );
+            },
+          };
+        },
+      }),
+      withErrorBoundary({
+        path: "/preview/welcome-stitch",
+        lazy: async () => {
+          const module = await import("./pages/WelcomeStitchPreviewPage");
+          const Page = module.default;
+          return {
+            Component: function PreviewWelcomeStitchRoute() {
+              return (
+                <PreviewOnlyRoute>
+                  <Page />
+                </PreviewOnlyRoute>
+              );
+            },
+          };
+        },
+      }),
     ]
   : [];
 

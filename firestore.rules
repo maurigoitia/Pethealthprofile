@@ -332,6 +332,17 @@ service cloud.firestore {
       allow read, update, delete: if canAccessPetById(resource.data.petId);
     }
 
+    // medication_intakes — registro append-only de "tomado HOY"
+    // Cross-device sync para PendienteHoyCard. No se actualizan, solo se crean
+    // (audit trail). Owner puede borrar para corregir errores; co-tutor no.
+    match /medication_intakes/{intakeId} {
+      allow create: if canAccessPetById(request.resource.data.petId)
+        && request.resource.data.takenBy == request.auth.uid;
+      allow read: if canAccessPetById(resource.data.petId);
+      allow update: if false; // append-only
+      allow delete: if isPetOwnerById(resource.data.petId);
+    }
+
     match /diagnoses/{diagnosisId} {
       allow create: if canAccessPetById(request.resource.data.petId);
       allow read, update, delete: if canAccessPetById(resource.data.petId);
