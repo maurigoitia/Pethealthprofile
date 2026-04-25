@@ -37,7 +37,7 @@ interface LearningVideo {
 }
 ```
 
-**Seed inicial**: 20-30 videos curados manualmente (vos + yo te armo template CSV).
+**Seed inicial**: 20-30 videos curados manualmente (tú + yo te armo template CSV).
 
 ### Algoritmo de recomendación (client-side, sin AI)
 
@@ -89,7 +89,7 @@ Sección: "Aprendé sobre {pet.name}" con 1-3 videos. Si 0 matches → sección 
 |---|---|---|
 | **A** | Schema Firestore + security rules (read all authed, write solo admin) | 20min |
 | **B** | Seed CSV template + script upload a Firestore | 45min |
-| **C** | Curar 20 videos reales (yo te doy template, vos los buscás en YouTube) | 1-2h USER |
+| **C** | Curar 20 videos reales (yo te doy template, tú los buscas en YouTube) | 1-2h USER |
 | **D** | Hook `useLearningVideos(pet)` + componente `LearningVideoCard` | 1h |
 | **E** | Integrar en PetHomeView, reemplazando bloque de DailyHookCard | 30min |
 | **F** | Remover / deprecate `DailyHookCard` del bundle | 15min |
