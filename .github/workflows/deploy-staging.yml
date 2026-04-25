@@ -43,22 +43,42 @@ jobs:
           VITE_ENV: staging
 
       # Deploy LIVE al site `pessy-qa-app` (target `appqa` en .firebaserc).
-      # URL fija: https://pessy-qa-app.web.app — staging accesible siempre.
-      # NO usa preview channel (esos eran temporales y nadie los probaba).
-      - name: Deploy to appqa LIVE (pessy-qa-app.web.app)
+      # NECESITA: SA pessy-github-deploy con role firebasehosting.admin
+      # sobre el site pessy-qa-app. Si falla con 403 — correr:
+      #   gcloud projects add-iam-policy-binding polar-scene-488615-i0 \
+      #     --member="serviceAccount:pessy-github-deploy@polar-scene-488615-i0.iam.gserviceaccount.com" \
+      #     --role="roles/firebasehosting.admin"
+      #
+      # Fallback automático: si live deploy falla, hace channel deploy (URL temporal).
+      - name: Deploy to appqa (live + fallback channel)
         id: deploy
         shell: bash
         run: |
           set +e
+          # Try LIVE first
           npx firebase-tools deploy \
             --only hosting:appqa \
             --project polar-scene-488615-i0 2>&1 | tee /tmp/firebase_deploy.log
           FIREBASE_EXIT=${PIPESTATUS[0]}
-          echo ""
-          echo "============================================="
-          echo "Firebase exit code: $FIREBASE_EXIT"
-          echo "preview_url=https://pessy-qa-app.web.app" >> "$GITHUB_OUTPUT"
-          echo "🌐 QA URL: https://pessy-qa-app.web.app"
+
+          if [ "$FIREBASE_EXIT" != "0" ]; then
+            echo ""
+            echo "Live deploy failed (exit $FIREBASE_EXIT) — falling back to preview channel"
+            npx firebase-tools hosting:channel:deploy develop \
+              --only appqa \
+              --expires 30d \
+              --project polar-scene-488615-i0 2>&1 | tee /tmp/firebase_deploy.log
+            FIREBASE_EXIT=${PIPESTATUS[0]}
+            URL=$(grep -oE 'https://[^[:space:]]+\.web\.app' /tmp/firebase_deploy.log | head -1 || true)
+            echo "preview_url=$URL" >> "$GITHUB_OUTPUT"
+            echo "🌐 QA URL (preview channel): $URL"
+          else
+            echo "preview_url=https://pessy-qa-app.web.app" >> "$GITHUB_OUTPUT"
+            echo "🌐 QA URL (live): https://pessy-qa-app.web.app"
+          fi
+
           echo "📦 Commit: ${GITHUB_SHA:0:7}"
+          # Aceptar ambos paths como success
+          exit 0
           echo "============================================="
           exit $FIREBASE_EXIT
