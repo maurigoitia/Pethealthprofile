@@ -1,6 +1,7 @@
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { PetPhoto } from "../pet/PetPhoto";
 import { loadJsPdf, savePdfWithFallback } from "../../utils/pdfExport";
+import { loadPessyLogo } from "../../../lib/pdf/loadLogo";
 
 interface Vaccine {
   id: number;
@@ -42,16 +43,29 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
     const contentW = pageW - margin * 2;
     let y = 0;
 
-    // Header verde
+    let logoDataUrl: string | null = null;
+    try { logoDataUrl = await loadPessyLogo(); } catch { /* fallback to text-only header */ }
+
+    // Header verde Plano primary
     pdf.setFillColor(7, 71, 56);
     pdf.rect(0, 0, pageW, 36, "F");
     pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(22);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("PESSY", margin, 16);
-    pdf.setFontSize(9);
-    pdf.setFont("helvetica", "normal");
-    pdf.text("Carnet de Vacunación", margin, 23);
+    if (logoDataUrl) {
+      pdf.addImage(logoDataUrl, "PNG", margin, 8, 20, 20);
+      pdf.setFontSize(20);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("PESSY", margin + 24, 18);
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("Carnet de Vacunación", margin + 24, 25);
+    } else {
+      pdf.setFontSize(22);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("PESSY", margin, 16);
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("Carnet de Vacunación", margin, 23);
+    }
     pdf.setFontSize(8);
     pdf.text(`Generado: ${new Date().toLocaleDateString("es-AR")}`, pageW - margin, 23, { align: "right" });
 

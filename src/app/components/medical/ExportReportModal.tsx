@@ -6,6 +6,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { formatDateSafe } from "../../utils/dateUtils";
 import { loadJsPdf, savePdfWithFallback } from "../../utils/pdfExport";
 import { generateClinicalOverview } from "../../utils/clinicalOverview";
+import { loadPessyLogo } from "../../../lib/pdf/loadLogo";
 
 interface ExportReportModalProps {
   isOpen: boolean;
@@ -180,16 +181,26 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       const newPage = () => { pdf.addPage(); y = 20; };
       const checkY = (need = 14) => { if (y + need> 278) newPage(); };
 
+      let logoDataUrl: string | null = null;
+      try { logoDataUrl = await loadPessyLogo(); } catch { /* fallback to text-only header */ }
+
       // ── HEADER ────────────────────────────────────────────────────────────
       pdf.setFillColor(7, 71, 56); // #074738 Plano primary
       pdf.rect(0, 0, PW, 28, "F");
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(18);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("PESSY", M, 17);
+      if (logoDataUrl) {
+        pdf.addImage(logoDataUrl, "PNG", M, 6, 16, 16);
+        pdf.setFontSize(16);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("PESSY", M + 20, 17);
+      } else {
+        pdf.setFontSize(18);
+        pdf.setFont("helvetica", "bold");
+        pdf.text("PESSY", M, 17);
+      }
       pdf.setFontSize(8);
       pdf.setFont("helvetica", "normal");
-      pdf.text("Resumen informativo de tu mascota", M, 23);
+      pdf.text("Resumen informativo de tu mascota", logoDataUrl ? M + 20 : M, 23);
       pdf.setFontSize(9);
       pdf.setFont("helvetica", "bold");
       pdf.text(TITLE_MAP[selectedReport], PW - M, 15, { align: "right" });
