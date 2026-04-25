@@ -46,11 +46,19 @@ export function LostPetFeed({ onReport, onBack }: Props) {
       orderBy("reportedAt", "desc"),
       limit(20),
     );
-    getDocs(q).then((snap) => {
-      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as LostPetReport);
-      setReports(data);
-      setLoading(false);
-    });
+    getDocs(q)
+      .then((snap) => {
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as LostPetReport);
+        setReports(data);
+      })
+      .catch((err) => {
+        // Si falta index, permission, etc. → empty state honesto en vez de pantalla blanca
+        console.warn("[LostPetFeed] no se pudo cargar reportes:", err?.message || err);
+        setReports([]);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, []);
 
   const sorted = userLocation
