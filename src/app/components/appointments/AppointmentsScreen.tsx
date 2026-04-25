@@ -690,39 +690,46 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
   return (
     <div className="min-h-screen bg-[#F0FAF9] dark:bg-[#101622] flex flex-col">
       <div className="max-w-md mx-auto w-full flex flex-col min-h-screen">
-        <div className="bg-white border-b border-slate-100 sticky top-0 z-10 px-4 pt-6 pb-4">
+        <div className="bg-[#F0FAF9]/85 backdrop-blur-md sticky top-0 z-10 px-4 pt-4 pb-3">
           <div className="flex items-center gap-3 mb-4">
             <button
               onClick={onBack}
-              className="size-10 rounded-full bg-[#E0F2F1] flex items-center justify-center"
+              aria-label="Volver"
+              className="size-11 rounded-full bg-white border border-[#E5E7EB] shadow-sm flex items-center justify-center active:scale-[0.97] transition-all"
             >
               <MaterialIcon name="arrow_back" className="text-xl text-[#074738]" />
             </button>
-            <div className="flex-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Agenda</p>
-              <h1 className="text-2xl font-black text-[#074738]">Citas</h1>
-              <p className="text-sm text-slate-500">{upcoming.length} próximas · {past.length} pasadas</p>
-            </div>
+            <h1
+              className="flex-1 text-[22px] font-extrabold text-[#074738] leading-tight"
+              style={{ fontFamily: "Plus Jakarta Sans, sans-serif", letterSpacing: "-0.02em" }}
+            >
+              Próximos turnos
+            </h1>
             <button
               onClick={() => openCreateAppointmentModal()}
-              className="size-10 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-lg shadow-[#074738]/30"
+              aria-label="Agendar turno"
+              className="size-11 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-[0_4px_14px_rgba(7,71,56,0.18)] active:scale-[0.97] transition-all"
             >
               <MaterialIcon name="add" className="text-2xl" />
             </button>
           </div>
+          <p className="text-sm text-[#6B7280] mb-3" style={{ fontFamily: "Manrope, sans-serif" }}>
+            {upcoming.length} próximos · {past.length} pasados
+          </p>
 
-          <div className="flex gap-2 bg-[#E0F2F1] p-1 rounded-[14px]">
+          <div className="flex gap-2 bg-white border border-[rgba(7,71,56,0.08)] p-1 rounded-full">
             {(["upcoming", "past"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-2.5 rounded-[10px] font-semibold text-sm transition-all ${
+                className={`flex-1 py-2.5 rounded-full font-bold text-sm transition-all ${
                   activeTab === tab
-                    ? "bg-white text-[#074738] shadow-sm"
-                    : "text-[#1A9B7D]"
+                    ? "bg-[#074738] text-white shadow-[0_2px_8px_rgba(7,71,56,0.18)]"
+                    : "text-[#6B7280]"
                 }`}
+                style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
               >
-                {tab === "upcoming" ? `Próximas (${upcoming.length})` : `Pasadas (${past.length})`}
+                {tab === "upcoming" ? `Próximos (${upcoming.length})` : `Pasados (${past.length})`}
               </button>
             ))}
           </div>
@@ -730,24 +737,34 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {renderedAppointments.length === 0 ? (
-            <div className="text-center py-16">
-              <div className="size-20 bg-[#E0F2F1] rounded-full flex items-center justify-center mx-auto mb-4">
-                <MaterialIcon name="event" className="text-4xl text-[#1A9B7D]" />
+            <div className="text-center py-16 px-4">
+              <div className="w-24 h-24 rounded-full bg-[#E0F2F1] flex items-center justify-center mx-auto mb-5">
+                <MaterialIcon name="event" className="text-5xl text-[#1A9B7D]" />
               </div>
-              <h3 className="font-semibold text-slate-800 mb-2">
-                {activeTab === "upcoming" ? "No hay citas próximas" : "Sin citas pasadas"}
-              </h3>
-              {activeTab === "upcoming" && (
-                <p className="text-sm text-slate-500 mb-6">
-                  Agendá la primera cita para {activePet?.name || "tu mascota"}
-                </p>
-              )}
+              <span className="inline-block text-[11px] font-black uppercase tracking-[0.18em] bg-[#1A9B7D]/10 text-[#1A9B7D] px-3 py-1 rounded-full mb-3">
+                Agenda
+              </span>
+              <h2
+                className="text-2xl font-extrabold text-[#074738] mb-2"
+                style={{ fontFamily: "Plus Jakarta Sans, sans-serif", letterSpacing: "-0.02em" }}
+              >
+                {activeTab === "upcoming" ? "Sin turnos próximos" : "Sin turnos pasados"}
+              </h2>
+              <p
+                className="text-sm text-[#6B7280] max-w-[280px] mx-auto mb-6"
+                style={{ fontFamily: "Manrope, sans-serif" }}
+              >
+                {activeTab === "upcoming"
+                  ? `Agendá el primer turno para ${activePet?.name || "tu mascota"} y recibí recordatorios.`
+                  : "Cuando completes o canceles turnos, los vas a ver acá."}
+              </p>
               {activeTab === "upcoming" && (
                 <button
                   onClick={() => openCreateAppointmentModal()}
-                  className="px-6 py-3 rounded-[14px] bg-[#074738] text-white font-semibold shadow-lg shadow-[#074738]/30 active:scale-[0.97] transition-all"
+                  className="px-6 h-12 rounded-full bg-[#074738] text-white font-bold shadow-[0_4px_14px_rgba(7,71,56,0.18)] active:scale-[0.97] transition-all"
+                  style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
                 >
-                  Agendar cita
+                  Agendar turno
                 </button>
               )}
             </div>
@@ -764,7 +781,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
               return (
                 <div
                   key={appointment.id}
-                  className={`bg-white rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden ${
+                  className={`bg-white rounded-[16px] border border-[rgba(7,71,56,0.08)] shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden ${
                     pastAppointment ? "opacity-70" : ""
                   }`}
                 >
@@ -784,18 +801,18 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                             {cleanText(appointment.title)}
                           </h3>
                           {pastAppointment ? (
-                            <span className={`text-[10px] font-semibold px-3 py-1 rounded-full shrink-0 ${
-                              appointment.status === "completed" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"
+                            <span className={`text-[10px] font-bold px-3 py-1 rounded-full shrink-0 ${
+                              appointment.status === "completed" ? "bg-[#1A9B7D]/10 text-[#1A9B7D]" : "bg-slate-100 text-slate-500"
                             }`}>
                               {appointment.status === "completed" ? "Completada" : "Cancelada"}
                             </span>
                           ) : (
-                            <span className={`text-[10px] font-semibold px-3 py-1 rounded-full shrink-0 ${
+                            <span className={`text-[10px] font-bold px-3 py-1 rounded-full shrink-0 ${
                               isToday
-                                ? "bg-red-50 text-red-600"
+                                ? "bg-[#FEF3C7] text-[#92400E]"
                                 : isSoon
-                                  ? "bg-amber-50 text-amber-600"
-                                  : "bg-[#E0F2F1] text-[#074738]"
+                                  ? "bg-[#FEF3C7] text-[#92400E]"
+                                  : "bg-[#1A9B7D]/10 text-[#1A9B7D]"
                             }`}>
                               {isToday ? "Hoy" : isTomorrow ? "Mañana" : `${daysFromNow}d`}
                             </span>
@@ -903,13 +920,14 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
           )}
         </div>
 
-        <div className="p-4 border-t border-slate-100 bg-white">
+        <div className="p-4 border-t border-[rgba(7,71,56,0.08)] bg-white/85 backdrop-blur-md">
           <button
             onClick={() => openCreateAppointmentModal()}
-            className="w-full py-4 rounded-[14px] bg-[#074738] text-white font-semibold shadow-lg shadow-[#074738]/30 flex items-center justify-center gap-2 active:scale-[0.97] transition-all"
+            className="w-full h-12 rounded-[14px] bg-[#074738] text-white font-bold shadow-[0_4px_14px_rgba(7,71,56,0.18)] flex items-center justify-center gap-2 active:scale-[0.97] transition-all"
+            style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
           >
             <MaterialIcon name="add_circle" className="text-xl" />
-            Agendar nueva cita
+            Agendar turno
           </button>
         </div>
       </div>
