@@ -238,6 +238,11 @@ interface MedicalContextType {
   deactivateMedication: (id: string) => Promise<void>;
   getActiveMedicationsByPetId: (petId: string) => ActiveMedication[];
 
+  // Medication intakes — persistencia cross-device de "tomado HOY"
+  markMedicationAsTaken: (medicationId: string, expectedTime?: string) => Promise<void>;
+  isMedicationTakenToday: (medicationId: string, expectedTime?: string) => boolean;
+  markAppointmentAsCompleted: (appointmentId: string) => Promise<void>;
+
   getMonthSummary: (petId: string, month: Date) => MonthSummary;
   saveVerifiedReport: (report: Record<string, unknown>) => Promise<string>;
 
@@ -264,6 +269,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   const [pendingActions, setPendingActions] = useState<PendingAction[]>([]);
   const [activeMedications, setActiveMedications] = useState<ActiveMedication[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [todayIntakes, setTodayIntakes] = useState<Array<{ id: string; medicationId: string; expectedTime?: string; takenAt: string }>>([]);
   const [clinicalConditions, setClinicalConditions] = useState<ClinicalCondition[]>([]);
   const [clinicalAlerts, setClinicalAlerts] = useState<ClinicalAlert[]>([]);
   const [consolidatedTreatments, setConsolidatedTreatments] = useState<TreatmentEntity[]>([]);
@@ -894,6 +900,29 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   // 4. Sync Appointments
   useEffect(() => syncPetCollection<Appointment>("appointments", setAppointments), [activePet]);
 
+  // 4b. Sync medication_intakes — solo del día actual, para "Pendiente hoy"
+  useEffect(() => {
+    if (!activePet) {
+      setTodayIntakes([]);
+      return;
+    }
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const q = query(
+      collection(db, "medication_intakes"),
+      where("petId", "==", activePet.id),
+      where("takenAt", ">=", startOfDay.toISOString()),
+    );
+    return onSnapshot(q, (snap) => {
+      setTodayIntakes(
+        snap.docs.map((d) => {
+          const data = d.data() as { medicationId: string; expectedTime?: string; takenAt: string };
+          return { id: d.id, medicationId: data.medicationId, expectedTime: data.expectedTime, takenAt: data.takenAt };
+        }),
+      );
+    });
+  }, [activePet?.id]);
+
   // 5. Sync Clinical Conditions
   useEffect(() => syncPetCollection<ClinicalCondition>("clinical_conditions", setClinicalConditions), [activePet]);
 
@@ -1465,6 +1494,35 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  // ─── Medication intakes (cross-device "tomado HOY") ──────────────────────
+  const markMedicationAsTaken = async (medicationId: string, expectedTime?: string) => {
+    if (!user || !activePet) throw new Error("No user/pet activo");
+    await addDoc(collection(db, "medication_intakes"), {
+      petId: activePet.id,
+      medicationId,
+      expectedTime: expectedTime || null,
+      takenAt: new Date().toISOString(),
+      takenBy: user.uid,
+    });
+  };
+
+  const isMedicationTakenToday = (medicationId: string, expectedTime?: string): boolean => {
+    return todayIntakes.some((i) => {
+      if (i.medicationId !== medicationId) return false;
+      // Si se especifica expectedTime, matchear exacto. Si no, cualquier intake de hoy cuenta.
+      if (expectedTime && i.expectedTime) return i.expectedTime === expectedTime;
+      return true;
+    });
+  };
+
+  const markAppointmentAsCompleted = async (appointmentId: string) => {
+    const ref = doc(db, "appointments", appointmentId);
+    await updateDoc(ref, {
+      status: "completed",
+      completedAt: new Date().toISOString(),
+    });
+  };
+
   const getMonthSummary = (petId: string, month: Date): MonthSummary => {
     const startOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
     const endOfMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0);
@@ -1699,6 +1757,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
         getClinicalReviewDraftById,
         submitClinicalReviewDraft,
         activeMedications, addMedication, updateMedication, deactivateMedication, getActiveMedicationsByPetId,
+        markMedicationAsTaken, isMedicationTakenToday, markAppointmentAsCompleted,
         getMonthSummary, saveVerifiedReport,
         addAppointment, updateAppointment, deleteAppointment, getAppointmentsByPetId,
         getClinicalConditionsByPetId,
