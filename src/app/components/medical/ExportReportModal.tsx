@@ -489,6 +489,8 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         renderSection(10, "Nota final", () => para(aiSections!.finalNote));
 
       } else if (selectedReport === "health") {
+        // FALLBACK LOCAL — solo se ejecuta si el cerebro AI falla.
+        // No es código muerto: garantiza PDF funcional aunque Gemini esté caído.
         const sectionTitle = (title: string) => {
           checkY(16);
           pdf.setFontSize(11);

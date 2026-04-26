@@ -2636,7 +2636,7 @@ export const pessyClinicalSummaryStructured = functions
     const userPrompt = `Generá el resumen clínico estructurado del siguiente paciente.
 
 DATOS DEL PACIENTE Y DOCUMENTOS:
-${JSON.stringify(patientCtx, null, 2)}
+${JSON.stringify(patientCtx)}
 
 Recordá: NO inventar, NO diagnosticar, "No informado" para campos faltantes, JSON estricto según schema.`;
 
@@ -2853,7 +2853,18 @@ export const pessyCompileRecentEpisodes = functions
 MASCOTA: ${pet.name || "—"} (${pet.species || "—"}${pet.breed ? `, ${pet.breed}` : ""})
 
 EVENTOS (cronológico descendente, máx 150):
-${JSON.stringify(recent, null, 2)}
+${recent.map((e, i) => {
+  const parts: string[] = [];
+  if (e.date) parts.push(String(e.date).slice(0, 10));
+  if (e.type) parts.push(String(e.type));
+  if (e.title) parts.push(`"${String(e.title).slice(0, 80)}"`);
+  if (e.diagnoses) parts.push(`dx: ${String(e.diagnoses).slice(0, 100)}`);
+  if (e.findings) parts.push(`hallazgos: ${String(e.findings).slice(0, 100)}`);
+  if (e.veterinarian) parts.push(`vet: ${String(e.veterinarian).slice(0, 60)}`);
+  if (e.clinic) parts.push(`clínica: ${String(e.clinic).slice(0, 60)}`);
+  if (e.medications) parts.push(`med: ${String(e.medications).slice(0, 80)}`);
+  return `[${i + 1}] ${parts.join(" | ")}`;
+}).join("\n")}
 
 Recordá: agrupar por contexto clínico + período cercano, tono Pessy humano, no inventar.`;
 
@@ -3053,7 +3064,7 @@ export const pessyHomeIntelligence = functions
     const userPrompt = `Generá el mensaje contextual del Home para esta mascota.
 
 CONTEXTO:
-${JSON.stringify(ctx, null, 2)}
+${JSON.stringify(ctx)}
 
 Recordá: si no hay nada relevante → message vacío + state="stable". Tono Pessy humano, no clínico, no genérico.`;
 
