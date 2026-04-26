@@ -105,7 +105,17 @@ service cloud.firestore {
     // ─────────────────────────────────────────────────────────────────
 
     match /users/{userId} {
-      allow read, write: if signedIn() && request.auth.uid == userId;
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create: if signedIn() && request.auth.uid == userId;
+      // Block self-promotion: plan/role/admin fields require Cloud Function (custom claim).
+      // User puede tocar su doc pero no modificar campos sensibles.
+      allow update: if signedIn() && request.auth.uid == userId
+        && (!('plan' in request.resource.data) || request.resource.data.plan == resource.data.get('plan', null))
+        && (!('planType' in request.resource.data) || request.resource.data.planType == resource.data.get('planType', null))
+        && (!('subscriptionPlan' in request.resource.data) || request.resource.data.subscriptionPlan == resource.data.get('subscriptionPlan', null))
+        && (!('role' in request.resource.data) || request.resource.data.role == resource.data.get('role', null))
+        && (!('isAdmin' in request.resource.data) || request.resource.data.isAdmin == resource.data.get('isAdmin', false));
+      allow delete: if signedIn() && request.auth.uid == userId;
 
       match /fcm_tokens/{tokenId} {
         allow read, write: if signedIn() && request.auth.uid == userId;
@@ -128,14 +138,10 @@ service cloud.firestore {
 
     match /pets/{petId} {
       allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
-      // Read: owner, co-tutor, O cualquiera si publicProfile.enabled === true
-      // (caso "modo perdido" — el rescatista escanea QR sin tener Pessy).
-      // Los datos sensibles los filtra la UI (PublicPetProfilePage solo
-      // muestra los campos de publicProfile, NO el resto del documento).
+      // Read: solo owner o co-tutor. Feature QR/perfil público removida 2026-04-25.
       allow read: if
         isPetOwner(resource.data) ||
-        isPetCoTutor(resource.data) ||
-        (resource.data.publicProfile is map && resource.data.publicProfile.enabled == true);
+        isPetCoTutor(resource.data);
       // SCRUM-16: co-tutors solo pueden modificar campos whitelisted
       allow update: if
         isPetOwner(resource.data) ||
@@ -433,24 +439,33 @@ service cloud.firestore {
     // Mitigation: location precision is limited at write time by the app layer.
     // ─────────────────────────────────────────────────────────────────
 
+    // Size guard: docs comunidad ≤ 50KB. Anti-payload-bloat (SEC audit).
+    function commCommonValid() {
+      return request.resource.data.keys().size() <= 40
+        && request.resource.size < 50000;
+    }
+
     match /lost_pets/{reportId} {
       allow create: if signedIn()
-        && request.resource.data.reportedBy == request.auth.uid;
+        && request.resource.data.reportedBy == request.auth.uid
+        && commCommonValid();
       allow read: if signedIn();
-      allow update: if signedIn() && resource.data.reportedBy == request.auth.uid;
+      allow update: if signedIn() && resource.data.reportedBy == request.auth.uid && commCommonValid();
       allow delete: if signedIn() && resource.data.reportedBy == request.auth.uid;
     }
 
     match /lost_pet_sightings/{sightingId} {
-      allow create: if signedIn() && request.resource.data.reportedBy == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.reportedBy == request.auth.uid && commCommonValid();
       allow read: if signedIn();
-      allow update, delete: if signedIn() && resource.data.reportedBy == request.auth.uid;
+      allow update: if signedIn() && resource.data.reportedBy == request.auth.uid && commCommonValid();
+      allow delete: if signedIn() && resource.data.reportedBy == request.auth.uid;
     }
 
     match /adoption_listings/{listingId} {
-      allow create: if signedIn() && request.resource.data.listedBy == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.listedBy == request.auth.uid && commCommonValid();
       allow read: if signedIn();
-      allow update, delete: if signedIn() && resource.data.listedBy == request.auth.uid;
+      allow update: if signedIn() && resource.data.listedBy == request.auth.uid && commCommonValid();
+      allow delete: if signedIn() && resource.data.listedBy == request.auth.uid;
     }
 
     // ─── COMMUNITY: Búsqueda Activa (persistent search alerts) ───

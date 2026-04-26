@@ -280,22 +280,22 @@ export function RegisterPetStep2() {
 
             {/* Photo retry/skip notice — preservado intacto del commit 558c685 */}
             {photoNotice && (
-              <div className="rounded-[14px] bg-amber-50 border border-amber-200 px-4 py-3 space-y-2">
-                <p className="text-amber-800 text-sm font-semibold text-center">
+              <div className="rounded-[14px] bg-[#E0F2F1] border border-[#074738]/15 px-4 py-3 space-y-2">
+                <p className="text-[#074738] text-sm font-semibold text-center">
                   {photoNotice}
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => { setPhotoNotice(""); handleFinish(); }}
-                    className="min-h-[44px] rounded-[10px] bg-amber-500 text-white text-xs font-bold active:scale-[0.97] transition-transform"
+                    className="min-h-[44px] rounded-[10px] bg-[#1A9B7D] text-white text-xs font-bold active:scale-[0.97] transition-transform"
                   >
                     Reintentar
                   </button>
                   <button
                     type="button"
                     onClick={() => navigate("/home")}
-                    className="min-h-[44px] rounded-[10px] border border-amber-300 text-amber-800 text-xs font-bold active:scale-[0.97] transition-transform"
+                    className="min-h-[44px] rounded-[10px] border border-[#074738]/20 text-[#074738] text-xs font-bold active:scale-[0.97] transition-transform"
                   >
                     Seguir sin foto
                   </button>

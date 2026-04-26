@@ -182,14 +182,6 @@ function CatchAllRedirect() {
 export const router = createBrowserRouter([
   // ── Public routes ──
   withErrorBoundary({ path: "/", Component: RootRoute }),
-  // Perfil público de mascota perdida — sin auth requerida (rescatista no tiene Pessy)
-  withErrorBoundary({
-    path: "/p/:petId",
-    lazy: async () => {
-      const module = await import("./pages/PublicPetProfilePage");
-      return { Component: module.default };
-    },
-  }),
   withErrorBoundary({ path: "/welcome", element: <Navigate to="/login" replace /> }),
   withErrorBoundary({ path: "/onboarding", element: <Navigate to="/login" replace /> }),
   withErrorBoundary({ path: "/register", element: <Navigate to="/register-user" replace /> }),

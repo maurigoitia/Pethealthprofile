@@ -61,16 +61,21 @@ export function PreferenceProvider({ children }: { children: ReactNode }) {
       return;
     }
     const ref = doc(db, "user_preferences", user.uid);
-    getDoc(ref).then((snap) => {
-      if (snap.exists()) {
-        setProfile(snap.data() as UserPreferenceProfile);
-      } else {
-        const empty = createEmptyPreferenceProfile(user.uid);
-        setDoc(ref, empty);
-        setProfile(empty);
-      }
-      setLoading(false);
-    });
+    getDoc(ref)
+      .then((snap) => {
+        if (snap.exists()) {
+          setProfile(snap.data() as UserPreferenceProfile);
+        } else {
+          const empty = createEmptyPreferenceProfile(user.uid);
+          setDoc(ref, empty);
+          setProfile(empty);
+        }
+      })
+      .catch((err) => {
+        console.warn("[PreferenceContext] load failed:", err);
+        setProfile(null);
+      })
+      .finally(() => setLoading(false));
   }, [user?.uid]);
 
   // ── Select next question ─────────────────────────────────────

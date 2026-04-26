@@ -418,28 +418,85 @@ ${petDetail ? `<div style="font-size:13px;color:#666;margin-top:2px;">${petDetai
 
 // ═══════════════════════════════════════════════════════════════
 // CLOUD FUNCTIONS — exponer los emails como callable
+// Rate-limited y con validación anti-phishing (SEC audit 2026-04-25)
 // ═══════════════════════════════════════════════════════════════
+
+// RFC-5322 simplificado, suficiente para validar input
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const stripHtml = (s: unknown, max = 80): string => {
+  if (typeof s !== "string") return "";
+  return s.replace(/<[^>]*>/g, "").replace(/[\r\n\t]+/g, " ").trim().slice(0, max);
+};
+const validRecipient = (email: unknown): email is string =>
+  typeof email === "string" && email.length <= 254 && EMAIL_RE.test(email);
+
+async function ensureEmailRateLimit(uid: string, action: string) {
+  const { checkRateLimitByTier } = await import("./utils/rateLimiter");
+  const r = await checkRateLimitByTier(uid, action, false); // todos free tier para email
+  if (!r.allowed) {
+    throw new functions.https.HttpsError(
+      "resource-exhausted",
+      `Demasiados emails recientes. Intentá de nuevo en ${Math.ceil(r.resetInSeconds / 60)} min.`
+    );
+  }
+}
+
 export const pessySendInvitationEmail = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
-  await sendInvitationEmail({ toEmail: data.toEmail, userName: data.userName });
+  if (!validRecipient(data?.toEmail)) {
+    throw new functions.https.HttpsError("invalid-argument", "Email inválido");
+  }
+  await ensureEmailRateLimit(context.auth.uid, "send-invitation");
+  await sendInvitationEmail({
+    toEmail: data.toEmail,
+    userName: stripHtml(data.userName),
+  });
   return { success: true };
 });
 
 export const pessySendWelcomeEmail = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
-  await sendWelcomeEmail({ toEmail: data.toEmail, userName: data.userName });
+  if (!validRecipient(data?.toEmail)) {
+    throw new functions.https.HttpsError("invalid-argument", "Email inválido");
+  }
+  // Solo permitido enviar bienvenida a la propia cuenta (anti-spam)
+  if (context.auth.token?.email && data.toEmail.toLowerCase() !== String(context.auth.token.email).toLowerCase()) {
+    throw new functions.https.HttpsError("permission-denied", "Solo se permite enviar bienvenida al email propio");
+  }
+  await ensureEmailRateLimit(context.auth.uid, "send-welcome");
+  await sendWelcomeEmail({
+    toEmail: data.toEmail,
+    userName: stripHtml(data.userName),
+  });
   return { success: true };
 });
 
 export const pessySendCoTutorInvitation = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
+  if (!validRecipient(data?.toEmail)) {
+    throw new functions.https.HttpsError("invalid-argument", "Email inválido");
+  }
+  // Verificar ownership de la mascota antes de invitar co-tutor
+  const petId = typeof data?.petId === "string" ? data.petId : null;
+  if (!petId) throw new functions.https.HttpsError("invalid-argument", "petId requerido");
+  const petDoc = await admin.firestore().doc(`pets/${petId}`).get();
+  if (!petDoc.exists || petDoc.data()?.ownerId !== context.auth.uid) {
+    throw new functions.https.HttpsError("permission-denied", "Solo el dueño puede invitar co-tutores");
+  }
+  // Validar acceptUrl: solo dominios Pessy permitidos
+  const rawUrl = typeof data?.acceptUrl === "string" ? data.acceptUrl : "";
+  const safeUrl = /^https:\/\/(pessy\.app|pessy-qa-app\.web\.app)\//.test(rawUrl)
+    ? rawUrl
+    : "https://pessy.app/login";
+
+  await ensureEmailRateLimit(context.auth.uid, "send-cotutor");
   await sendCoTutorInvitationEmail({
     toEmail: data.toEmail,
-    inviterName: data.inviterName,
-    petName: data.petName,
-    petBreed: data.petBreed,
-    petAge: data.petAge,
-    acceptUrl: data.acceptUrl || "https://pessy.app/login",
+    inviterName: stripHtml(data.inviterName),
+    petName: stripHtml(data.petName, 40),
+    petBreed: stripHtml(data.petBreed, 40),
+    petAge: stripHtml(data.petAge, 20),
+    acceptUrl: safeUrl,
   });
   return { success: true };
 });
@@ -2264,6 +2321,22 @@ export const analyzeDocument = functions
     throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión para analizar documentos.");
   }
 
+  // Rate limit anti wallet-drain (SEC audit 2026-04-25)
+  const { checkRateLimitByTier } = await import("./utils/rateLimiter");
+  const userDoc = await admin.firestore().doc(`users/${context.auth.uid}`).get();
+  const isPremium = userDoc.exists && (
+    userDoc.data()?.plan === "premium" ||
+    userDoc.data()?.planType === "premium" ||
+    userDoc.data()?.subscriptionPlan === "premium"
+  );
+  const rl = await checkRateLimitByTier(context.auth.uid, "document-scan", isPremium);
+  if (!rl.allowed) {
+    throw new functions.https.HttpsError(
+      "resource-exhausted",
+      `Llegaste al límite de análisis del día. Volvé en ${Math.ceil(rl.resetInSeconds / 3600)} hs.`
+    );
+  }
+
   const requestedMimeType = typeof data?.mimeType === "string" ? data.mimeType.trim() : "";
   const fileName = typeof data?.fileName === "string" ? data.fileName.trim().slice(0, 260) : "";
   const base64 = typeof data?.base64 === "string" ? data.base64.trim() : "";
@@ -2382,6 +2455,701 @@ export const generateClinicalSummary = functions
     knowledgeSectionIds: knowledgeContext.sectionIds,
     knowledgeSource: knowledgeContext.source,
   };
+  });
+
+// ═══════════════════════════════════════════════════════════════════════
+// pessyClinicalSummaryStructured — resumen clínico veterinario en 10
+// secciones, generado por el cerebro AI de Pessy (Gemini). Hardcodea el
+// prompt + schema en el backend para garantizar formato consistente.
+// Regla 2026-04-26: TODO export PDF de resumen médico DEBE usar esto.
+// ═══════════════════════════════════════════════════════════════════════
+const CLINICAL_SUMMARY_SYSTEM_PROMPT = `Sos un asistente clínico veterinario que genera RESÚMENES estructurados a partir de los documentos cargados de un paciente.
+
+Audiencia: principalmente veterinarios, pero el lenguaje debe ser claro para que también lo entienda el tutor.
+
+REGLAS ESTRICTAS — no negociables:
+- NO crear diagnósticos nuevos. Solo resumir lo que aparece en los documentos.
+- NO exponer información interna del sistema (documentos pendientes, alertas internas, validaciones técnicas, flags, IDs).
+- Si un dato no aparece en los documentos, escribir literalmente "No informado".
+- NO inventar dosis, fechas, profesionales ni instituciones.
+- Estilo: claro, profesional, humano, fácil de leer. Evitar jerga sin explicación.
+- Preferir narrativa sobre listas sueltas cuando se pueda.
+
+LENGUAJE — NO afirmar como hechos clínicos lo que es solo extracción:
+- Decir "el documento indica..." / "según el archivo..." / "el tutor cargó..." en vez de "el paciente tiene..."
+- Decir "documentado en archivos" en vez de "confirmado".
+- Decir "extraído de estudios" en vez de "diagnosticado".
+- En el campo finalNote: aclarar siempre que el resumen fue generado a partir de documentos del tutor y debe ser revisado por un veterinario.
+
+DEVOLVÉ UN JSON con la estructura definida en el schema. NO incluyas markdown ni texto fuera del JSON.`;
+
+const CLINICAL_SUMMARY_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    patient: {
+      type: "OBJECT",
+      properties: {
+        name: { type: "STRING" },
+        species: { type: "STRING" },
+        breed: { type: "STRING" },
+        sex: { type: "STRING" },
+        age: { type: "STRING" },
+        weight: { type: "STRING" },
+        tutor: { type: "STRING" },
+      },
+      required: ["name", "species", "breed", "sex", "age", "weight", "tutor"],
+    },
+    purpose: { type: "STRING" },
+    clinicalHistory: { type: "STRING" },
+    diagnoses: {
+      type: "OBJECT",
+      properties: {
+        confirmed: { type: "ARRAY", items: { type: "STRING" } },
+        findings: { type: "ARRAY", items: { type: "STRING" } },
+        suspected: { type: "ARRAY", items: { type: "STRING" } },
+      },
+      required: ["confirmed", "findings", "suspected"],
+    },
+    studies: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          date: { type: "STRING" },
+          type: { type: "STRING" },
+          mainFinding: { type: "STRING" },
+          professional: { type: "STRING" },
+        },
+        required: ["date", "type", "mainFinding", "professional"],
+      },
+    },
+    treatment: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          name: { type: "STRING" },
+          dose: { type: "STRING" },
+          frequency: { type: "STRING" },
+          route: { type: "STRING" },
+          indication: { type: "STRING" },
+          startDate: { type: "STRING" },
+          notes: { type: "STRING" },
+        },
+        required: ["name", "dose", "frequency", "route", "indication", "startDate", "notes"],
+      },
+    },
+    professionals: {
+      type: "OBJECT",
+      properties: {
+        persons: { type: "ARRAY", items: { type: "STRING" } },
+        institutions: { type: "ARRAY", items: { type: "STRING" } },
+      },
+      required: ["persons", "institutions"],
+    },
+    currentStatus: { type: "STRING" },
+    followUp: { type: "STRING" },
+    finalNote: { type: "STRING" },
+  },
+  required: [
+    "patient", "purpose", "clinicalHistory", "diagnoses",
+    "studies", "treatment", "professionals",
+    "currentStatus", "followUp", "finalNote",
+  ],
+};
+
+export const pessyClinicalSummaryStructured = functions
+  .runWith({ secrets: ["GEMINI_API_KEY"], timeoutSeconds: 90, memory: "512MB" })
+  .region("us-central1")
+  .https.onCall(async (data, context) => {
+    if (!context.auth?.uid) {
+      throw new functions.https.HttpsError("unauthenticated", "Iniciá sesión para generar el resumen.");
+    }
+    const petId = typeof data?.petId === "string" ? data.petId.trim() : "";
+    if (!petId) {
+      throw new functions.https.HttpsError("invalid-argument", "Falta petId.");
+    }
+
+    // Rate limit (anti wallet-drain Gemini)
+    const { checkRateLimitByTier } = await import("./utils/rateLimiter");
+    const userDoc = await admin.firestore().doc(`users/${context.auth.uid}`).get();
+    const isPremium = userDoc.exists && (
+      userDoc.data()?.plan === "premium" ||
+      userDoc.data()?.planType === "premium" ||
+      userDoc.data()?.subscriptionPlan === "premium"
+    );
+    const rl = await checkRateLimitByTier(context.auth.uid, "brain-query", isPremium);
+    if (!rl.allowed) {
+      throw new functions.https.HttpsError(
+        "resource-exhausted",
+        `Llegaste al límite de resúmenes. Volvé en ${Math.ceil(rl.resetInSeconds / 60)} min.`
+      );
+    }
+
+    // Verificación de ownership
+    const petSnap = await admin.firestore().doc(`pets/${petId}`).get();
+    if (!petSnap.exists) {
+      throw new functions.https.HttpsError("not-found", "Mascota no encontrada.");
+    }
+    const pet = petSnap.data() || {};
+    const isOwner = pet.ownerId === context.auth.uid;
+    const isCoTutor = Array.isArray(pet.coTutorUids) && pet.coTutorUids.includes(context.auth.uid);
+    if (!isOwner && !isCoTutor) {
+      throw new functions.https.HttpsError("permission-denied", "No tenés acceso a esta mascota.");
+    }
+
+    // Cargar eventos médicos (máx 200, ordenados por fecha)
+    const eventsSnap = await admin.firestore()
+      .collection("medical_events")
+      .where("petId", "==", petId)
+      .orderBy("createdAt", "desc")
+      .limit(200)
+      .get();
+    // Provenance Fase 1: derivar source + confidence por event
+    const events = eventsSnap.docs.map((d) => {
+      const e = d.data() || {};
+      const ed = e.extractedData || {};
+      const mp = ed.masterPayload || {};
+      const di = mp.document_info || ed.document_info || {};
+
+      // source label:
+      //   "vet_input"          → evento creado en Vet Mode (futuro)
+      //   "tutor_confirmed"    → tutor revisó y confirmó la extracción
+      //   "ai_pending_review"  → AI extrajo, falta revisión humana (low trust)
+      //   "ai_extraction"      → AI extrajo, no hubo review explícita
+      //   "tutor_input"        → tutor lo cargó manualmente sin OCR
+      let source = "ai_extraction";
+      let confidence = 0.6; // default AI extraction
+      if (e.createdBy === "vet" || e.source === "vet_input") {
+        source = "vet_input"; confidence = 1.0;
+      } else if (e.tutorConfirmed === true || e.userConfirmed === true) {
+        source = "tutor_confirmed"; confidence = 0.85;
+      } else if (e.requiresManualConfirmation === true || e.workflowStatus === "review_required") {
+        source = "ai_pending_review"; confidence = 0.4;
+      } else if (e.source === "manual" || !ed.masterPayload) {
+        source = "tutor_input"; confidence = 0.7;
+      }
+
+      return {
+        id: d.id,
+        date: ed.eventDate || e.createdAt || null,
+        type: ed.eventType || e.type || di.document_type || "evento",
+        title: ed.title || e.title || di.title || null,
+        diagnoses: di.diagnoses || ed.diagnoses || null,
+        findings: di.findings || ed.findings || null,
+        treatment: di.treatment || ed.treatment || null,
+        medications: di.medications || ed.medications || null,
+        veterinarian: di.veterinarian_name || ed.veterinarian_name || null,
+        license: di.veterinarian_license || ed.veterinarian_license || null,
+        clinic: di.clinic_name || ed.clinic_name || null,
+        notes: di.notes || ed.notes || null,
+        provenance: { source, confidence },
+      };
+    });
+
+    // Provenance summary (para header pill dinámico + footer)
+    const provenanceMix = {
+      total: events.length,
+      vet_input: events.filter((e) => e.provenance.source === "vet_input").length,
+      tutor_confirmed: events.filter((e) => e.provenance.source === "tutor_confirmed").length,
+      ai_extraction: events.filter((e) => e.provenance.source === "ai_extraction").length,
+      ai_pending_review: events.filter((e) => e.provenance.source === "ai_pending_review").length,
+      tutor_input: events.filter((e) => e.provenance.source === "tutor_input").length,
+    };
+    const validatedRatio = events.length === 0
+      ? 0
+      : (provenanceMix.vet_input + provenanceMix.tutor_confirmed) / events.length;
+
+    // Patient context (sin datos sensibles ni internos)
+    const patientCtx = {
+      patient: {
+        name: pet.name || null,
+        species: pet.species || null,
+        breed: pet.breed || null,
+        sex: pet.sex || null,
+        age: pet.age || pet.birthDate || null,
+        weight: pet.weight || null,
+        tutor: pet.ownerName || null,
+      },
+      events,
+    };
+
+    const userPrompt = `Generá el resumen clínico estructurado del siguiente paciente.
+
+DATOS DEL PACIENTE Y DOCUMENTOS:
+${JSON.stringify(patientCtx)}
+
+Recordá: NO inventar, NO diagnosticar, "No informado" para campos faltantes, JSON estricto según schema.`;
+
+    const startedAt = Date.now();
+    const { rawText, totalTokenCount } = await callGeminiBackend({
+      contents: [
+        { parts: [{ text: CLINICAL_SUMMARY_SYSTEM_PROMPT }] },
+        { parts: [{ text: userPrompt }] },
+      ],
+      generationConfig: {
+        temperature: 0.2,
+        topK: 1,
+        topP: 1,
+        maxOutputTokens: 4000,
+        responseMimeType: "application/json",
+        responseSchema: CLINICAL_SUMMARY_SCHEMA,
+      },
+    });
+
+    let sections;
+    try {
+      sections = JSON.parse(rawText);
+    } catch (e) {
+      throw new functions.https.HttpsError(
+        "internal",
+        "El cerebro AI devolvió formato inválido. Probá de nuevo."
+      );
+    }
+
+    return {
+      sections,
+      provenanceMix,
+      validatedRatio,
+      generatedAt: new Date().toISOString(),
+      eventCount: events.length,
+      tokensUsed: totalTokenCount,
+      processingTimeMs: Date.now() - startedAt,
+    };
+  });
+
+// ═══════════════════════════════════════════════════════════════════════
+// pessyCompileRecentEpisodes — Episodio Engine v1
+// Toma los medical_events recientes (3 meses por default) de una mascota,
+// los pasa por Gemini para que LOS AGRUPE en episodios narrativos con
+// título/summary/tags en tono Pessy (humano, no clínico).
+// Output usado por TimelineV2 + ExportReportModal.
+// ═══════════════════════════════════════════════════════════════════════
+const EPISODE_SYSTEM_PROMPT = `Sos el cerebro de Pessy. Recibís eventos cronológicos de una mascota y los AGRUPÁS en EPISODIOS.
+
+Un EPISODIO es un conjunto de eventos relacionados (mismo período + mismo contexto clínico). Ejemplo: "10 ene visita vet → 11 ene inicio tratamiento → 15 ene mejora" = 1 episodio "Control por alergia".
+
+REGLAS ESTRICTAS:
+- NO inventar diagnósticos, dosis, fechas, profesionales ni clínicas.
+- NO mostrar info interna (flags, IDs, validations, "review_required").
+- Si un dato no aparece → omitirlo del campo (no escribir "No informado" salvo en summary cuando sea natural).
+- Tono Pessy: humano, simple, claro. Evitar jerga técnica sin explicar.
+  ✅ "Luna fue atendida por una alergia y respondió bien al tratamiento."
+  ❌ "Paciente presentó cuadro de dermatitis alérgica con respuesta favorable."
+- Title corto (<60 chars).
+- Summary 2-3 frases máx.
+- Tags en minúscula, sin acentos: ["alergia","control","vacuna","urgencia","cirugia","chequeo","sintoma"].
+
+DEVOLVÉ UN JSON con array "episodes". Cronológico DESCENDENTE (más reciente primero).`;
+
+const EPISODE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    episodes: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          title: { type: "STRING" },
+          summary: { type: "STRING" },
+          period: {
+            type: "OBJECT",
+            properties: {
+              start: { type: "STRING" },
+              end: { type: "STRING" },
+            },
+            required: ["start", "end"],
+          },
+          tags: { type: "ARRAY", items: { type: "STRING" } },
+          events: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                date: { type: "STRING" },
+                description: { type: "STRING" },
+              },
+              required: ["date", "description"],
+            },
+          },
+          diagnosis: {
+            type: "OBJECT",
+            properties: {
+              label: { type: "STRING" },
+              doctor: { type: "STRING" },
+              clinic: { type: "STRING" },
+            },
+            required: ["label"],
+          },
+          treatments: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                name: { type: "STRING" },
+                dose: { type: "STRING" },
+                frequency: { type: "STRING" },
+                startDate: { type: "STRING" },
+              },
+              required: ["name"],
+            },
+          },
+          professionals: { type: "ARRAY", items: { type: "STRING" } },
+          clinic: { type: "STRING" },
+          sourceEventIds: { type: "ARRAY", items: { type: "STRING" } },
+        },
+        required: ["title", "summary", "period", "tags", "events", "treatments", "professionals", "sourceEventIds"],
+      },
+    },
+  },
+  required: ["episodes"],
+};
+
+export const pessyCompileRecentEpisodes = functions
+  .runWith({ secrets: ["GEMINI_API_KEY"], timeoutSeconds: 120, memory: "512MB" })
+  .region("us-central1")
+  .https.onCall(async (data, context) => {
+    if (!context.auth?.uid) {
+      throw new functions.https.HttpsError("unauthenticated", "Iniciá sesión.");
+    }
+    const petId = typeof data?.petId === "string" ? data.petId.trim() : "";
+    if (!petId) {
+      throw new functions.https.HttpsError("invalid-argument", "Falta petId.");
+    }
+    const monthsBack = Math.min(Math.max(Number(data?.monthsBack) || 3, 1), 24);
+
+    // Rate limit (Gemini wallet-drain)
+    const { checkRateLimitByTier } = await import("./utils/rateLimiter");
+    const userDoc = await admin.firestore().doc(`users/${context.auth.uid}`).get();
+    const isPremium = userDoc.exists && (
+      userDoc.data()?.plan === "premium" ||
+      userDoc.data()?.planType === "premium" ||
+      userDoc.data()?.subscriptionPlan === "premium"
+    );
+    const rl = await checkRateLimitByTier(context.auth.uid, "brain-query", isPremium);
+    if (!rl.allowed) {
+      throw new functions.https.HttpsError(
+        "resource-exhausted",
+        `Llegaste al límite de compilaciones. Volvé en ${Math.ceil(rl.resetInSeconds / 60)} min.`
+      );
+    }
+
+    // Verify ownership
+    const petSnap = await admin.firestore().doc(`pets/${petId}`).get();
+    if (!petSnap.exists) {
+      throw new functions.https.HttpsError("not-found", "Mascota no encontrada.");
+    }
+    const pet = petSnap.data() || {};
+    const isOwner = pet.ownerId === context.auth.uid;
+    const isCoTutor = Array.isArray(pet.coTutorUids) && pet.coTutorUids.includes(context.auth.uid);
+    if (!isOwner && !isCoTutor) {
+      throw new functions.https.HttpsError("permission-denied", "Sin acceso a esta mascota.");
+    }
+
+    // Cargar eventos recientes (últimos N meses)
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - monthsBack);
+    const cutoffIso = cutoff.toISOString();
+
+    const eventsSnap = await admin.firestore()
+      .collection("medical_events")
+      .where("petId", "==", petId)
+      .orderBy("createdAt", "desc")
+      .limit(150)
+      .get();
+
+    const allEvents = eventsSnap.docs.map((d) => {
+      const e = d.data() || {};
+      const ed = e.extractedData || {};
+      const mp = ed.masterPayload || {};
+      const di = mp.document_info || ed.document_info || {};
+      const dateRaw = ed.eventDate || e.createdAt || null;
+      let dateIso: string | null = null;
+      try {
+        if (typeof dateRaw === "string") dateIso = new Date(dateRaw).toISOString();
+        else if (dateRaw && typeof (dateRaw as { toDate?: () => Date }).toDate === "function") {
+          dateIso = (dateRaw as { toDate: () => Date }).toDate().toISOString();
+        }
+      } catch { /* skip invalid dates */ }
+      return {
+        id: d.id,
+        date: dateIso,
+        type: ed.eventType || e.type || di.document_type || "evento",
+        title: ed.title || e.title || di.title || null,
+        diagnoses: di.diagnoses || ed.diagnoses || null,
+        findings: di.findings || ed.findings || null,
+        treatment: di.treatment || ed.treatment || null,
+        medications: di.medications || ed.medications || null,
+        veterinarian: di.veterinarian_name || ed.veterinarian_name || null,
+        clinic: di.clinic_name || ed.clinic_name || null,
+        notes: di.notes || ed.notes || null,
+      };
+    });
+    const recent = allEvents.filter((e) => !e.date || e.date >= cutoffIso);
+
+    if (recent.length === 0) {
+      return { episodes: [], eventCount: 0, generatedAt: new Date().toISOString() };
+    }
+
+    const userPrompt = `Generá los episodios recientes (últimos ${monthsBack} meses) de esta mascota.
+
+MASCOTA: ${pet.name || "—"} (${pet.species || "—"}${pet.breed ? `, ${pet.breed}` : ""})
+
+EVENTOS (cronológico descendente, máx 150):
+${recent.map((e, i) => {
+  const parts: string[] = [];
+  if (e.date) parts.push(String(e.date).slice(0, 10));
+  if (e.type) parts.push(String(e.type));
+  if (e.title) parts.push(`"${String(e.title).slice(0, 80)}"`);
+  if (e.diagnoses) parts.push(`dx: ${String(e.diagnoses).slice(0, 100)}`);
+  if (e.findings) parts.push(`hallazgos: ${String(e.findings).slice(0, 100)}`);
+  if (e.veterinarian) parts.push(`vet: ${String(e.veterinarian).slice(0, 60)}`);
+  if (e.clinic) parts.push(`clínica: ${String(e.clinic).slice(0, 60)}`);
+  if (e.medications) parts.push(`med: ${String(e.medications).slice(0, 80)}`);
+  return `[${i + 1}] ${parts.join(" | ")}`;
+}).join("\n")}
+
+Recordá: agrupar por contexto clínico + período cercano, tono Pessy humano, no inventar.`;
+
+    const { rawText, totalTokenCount } = await callGeminiBackend({
+      contents: [
+        { parts: [{ text: EPISODE_SYSTEM_PROMPT }] },
+        { parts: [{ text: userPrompt }] },
+      ],
+      generationConfig: {
+        temperature: 0.3,
+        topK: 1,
+        topP: 1,
+        maxOutputTokens: 6000,
+        responseMimeType: "application/json",
+        responseSchema: EPISODE_SCHEMA,
+      },
+    });
+
+    let parsed: { episodes: Array<Record<string, unknown>> };
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      throw new functions.https.HttpsError("internal", "Cerebro AI devolvió formato inválido.");
+    }
+
+    return {
+      episodes: parsed.episodes || [],
+      eventCount: recent.length,
+      monthsBack,
+      tokensUsed: totalTokenCount,
+      generatedAt: new Date().toISOString(),
+    };
+  });
+
+// ═══════════════════════════════════════════════════════════════════════
+// pessyHomeIntelligence — Dynamic Message Engine para el Home
+// Devuelve { state, message, alerts, recommendation, actions, tone }
+// Reemplaza saludos estáticos por contexto AI basado en data real.
+// Reglas: NO frases genéricas, NO clinical, mensaje vacío permitido.
+// ═══════════════════════════════════════════════════════════════════════
+const HOME_INTELLIGENCE_SYSTEM = `Sos el cerebro de Pessy. Generás UN mensaje contextual para el Home del tutor.
+
+REGLAS ESTRICTAS:
+- NO frases genéricas: prohibido "todo en orden", "salud al día", "buenos días", "buen día", "todo bien".
+- NO inventar tareas, alertas, fechas, profesionales.
+- Mensaje corto: máx 1-2 líneas (≤120 chars).
+- Si no hay nada relevante que decir → message = "" (vacío). El UI maneja silencio con animación.
+- Tono humano, calmo, directo. NO clínico.
+- 1 sola recomendación máx (opcional). Vacía si no aplica.
+
+CLASIFICACIÓN DE state (uno solo):
+- "needs_action": hay tareas/recordatorios pendientes hoy o atrasados
+- "upcoming": hay turnos/eventos en próximos días, nada hoy
+- "recent_change": episodio reciente o cambio importante (últimos 7 días)
+- "stable": sin nada relevante → message vacío
+
+tone (uno solo): "neutral" | "alert" | "positive"
+
+actions = lista corta de strings de acción ("ver rutina", "ver turno", "ver historial"). Máx 3.
+
+DEVOLVÉ JSON estricto del schema. NO markdown.`;
+
+const HOME_INTELLIGENCE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    state: { type: "STRING" }, // needs_action | upcoming | recent_change | stable
+    message: { type: "STRING" },
+    alerts: { type: "ARRAY", items: { type: "STRING" } },
+    recommendation: { type: "STRING" },
+    actions: { type: "ARRAY", items: { type: "STRING" } },
+    tone: { type: "STRING" }, // neutral | alert | positive
+  },
+  required: ["state", "message", "alerts", "recommendation", "actions", "tone"],
+};
+
+export const pessyHomeIntelligence = functions
+  .runWith({ secrets: ["GEMINI_API_KEY"], timeoutSeconds: 30, memory: "256MB" })
+  .region("us-central1")
+  .https.onCall(async (data, context) => {
+    if (!context.auth?.uid) {
+      throw new functions.https.HttpsError("unauthenticated", "Iniciá sesión.");
+    }
+    const petId = typeof data?.petId === "string" ? data.petId.trim() : "";
+    if (!petId) {
+      throw new functions.https.HttpsError("invalid-argument", "Falta petId.");
+    }
+
+    // Rate limit: este se llama en cada Home view, sé generoso pero acotá
+    const { checkRateLimitByTier } = await import("./utils/rateLimiter");
+    const userDoc = await admin.firestore().doc(`users/${context.auth.uid}`).get();
+    const isPremium = userDoc.exists && (
+      userDoc.data()?.plan === "premium" ||
+      userDoc.data()?.planType === "premium" ||
+      userDoc.data()?.subscriptionPlan === "premium"
+    );
+    const rl = await checkRateLimitByTier(context.auth.uid, "brain-query", isPremium);
+    if (!rl.allowed) {
+      // No bloquear: devolver fallback silencioso para no romper Home
+      return {
+        state: "stable",
+        message: "",
+        alerts: [],
+        recommendation: "",
+        actions: [],
+        tone: "neutral",
+        rateLimited: true,
+      };
+    }
+
+    // Verify ownership
+    const petSnap = await admin.firestore().doc(`pets/${petId}`).get();
+    if (!petSnap.exists) {
+      throw new functions.https.HttpsError("not-found", "Mascota no encontrada.");
+    }
+    const pet = petSnap.data() || {};
+    const isOwner = pet.ownerId === context.auth.uid;
+    const isCoTutor = Array.isArray(pet.coTutorUids) && pet.coTutorUids.includes(context.auth.uid);
+    if (!isOwner && !isCoTutor) {
+      throw new functions.https.HttpsError("permission-denied", "Sin acceso.");
+    }
+
+    // Cargar contexto en paralelo
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const fourteenDaysAhead = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+
+    const [recentEventsSnap, upcomingApptSnap, activeMedsSnap] = await Promise.all([
+      admin.firestore()
+        .collection("medical_events")
+        .where("petId", "==", petId)
+        .orderBy("createdAt", "desc")
+        .limit(15)
+        .get(),
+      admin.firestore()
+        .collection("appointments")
+        .where("petId", "==", petId)
+        .where("status", "==", "upcoming")
+        .limit(10)
+        .get(),
+      admin.firestore()
+        .collection("medications")
+        .where("petId", "==", petId)
+        .where("status", "==", "active")
+        .limit(20)
+        .get(),
+    ]);
+
+    const recentEvents = recentEventsSnap.docs.map((d) => {
+      const e = d.data() || {};
+      const ed = e.extractedData || {};
+      const di = (ed.masterPayload || {}).document_info || ed.document_info || {};
+      return {
+        date: ed.eventDate || e.createdAt || null,
+        type: ed.eventType || e.type || di.document_type || "evento",
+        title: di.title || ed.title || null,
+        diagnoses: di.diagnoses || null,
+      };
+    }).filter((e) => !e.date || String(e.date) >= sevenDaysAgo).slice(0, 8);
+
+    const upcomingAppointments = upcomingApptSnap.docs.map((d) => {
+      const a = d.data() || {};
+      return {
+        date: a.date,
+        veterinarian: a.veterinarian || null,
+        title: a.title || null,
+      };
+    }).filter((a) => !a.date || (String(a.date) >= todayStart && String(a.date) <= fourteenDaysAhead));
+
+    const activeMeds = activeMedsSnap.docs.map((d) => {
+      const m = d.data() || {};
+      return {
+        name: m.name || m.medication || "Medicamento",
+        dose: m.dose || m.dosage || null,
+        frequency: m.frequency || null,
+      };
+    });
+
+    const ctx = {
+      pet: {
+        name: pet.name || null,
+        species: pet.species || null,
+        breed: pet.breed || null,
+        age: pet.age || null,
+        conditions: pet.conditions || pet.knownConditions || [],
+      },
+      todayDate: today.toISOString().slice(0, 10),
+      todayCounts: {
+        activeMedications: activeMeds.length,
+        upcomingAppointments: upcomingAppointments.length,
+      },
+      activeMedications: activeMeds,
+      upcomingAppointments,
+      recentEvents,
+    };
+
+    const userPrompt = `Generá el mensaje contextual del Home para esta mascota.
+
+CONTEXTO:
+${JSON.stringify(ctx)}
+
+Recordá: si no hay nada relevante → message vacío + state="stable". Tono Pessy humano, no clínico, no genérico.`;
+
+    let parsed: Record<string, unknown>;
+    try {
+      const { rawText } = await callGeminiBackend({
+        contents: [
+          { parts: [{ text: HOME_INTELLIGENCE_SYSTEM }] },
+          { parts: [{ text: userPrompt }] },
+        ],
+        generationConfig: {
+          temperature: 0.3,
+          topK: 1,
+          topP: 1,
+          maxOutputTokens: 400,
+          responseMimeType: "application/json",
+          responseSchema: HOME_INTELLIGENCE_SCHEMA,
+        },
+      });
+      parsed = JSON.parse(rawText);
+    } catch {
+      // Fallback silencioso si Gemini falla → no romper Home
+      return {
+        state: "stable",
+        message: "",
+        alerts: [],
+        recommendation: "",
+        actions: [],
+        tone: "neutral",
+        fallback: true,
+      };
+    }
+
+    return {
+      state: parsed.state || "stable",
+      message: parsed.message || "",
+      alerts: Array.isArray(parsed.alerts) ? parsed.alerts.slice(0, 3) : [],
+      recommendation: parsed.recommendation || "",
+      actions: Array.isArray(parsed.actions) ? parsed.actions.slice(0, 3) : [],
+      tone: parsed.tone || "neutral",
+      generatedAt: new Date().toISOString(),
+    };
   });
 
 export const resolveBrainPayload = functions

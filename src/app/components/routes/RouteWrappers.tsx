@@ -86,11 +86,6 @@ const MedicationsScreen = lazy(() =>
     default: m.MedicationsScreen,
   }))
 );
-const LostPetFeed = lazy(() =>
-  import("../community/LostPetFeed.tsx").then((m) => ({
-    default: m.LostPetFeed,
-  }))
-);
 const AdoptionContainer = lazy(() =>
   import("../community/AdoptionContainer").then((m) => ({
     default: m.AdoptionContainer,

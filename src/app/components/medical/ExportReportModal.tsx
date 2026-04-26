@@ -6,6 +6,9 @@ import { useAuth } from "../../contexts/AuthContext";
 import { formatDateSafe } from "../../utils/dateUtils";
 import { loadJsPdf, savePdfWithFallback } from "../../utils/pdfExport";
 import { generateClinicalOverview } from "../../utils/clinicalOverview";
+import { loadPessyLogo } from "../../../lib/pdf/loadLogo";
+import { httpsCallable } from "firebase/functions";
+import { functions as fbFunctions } from "../../../lib/firebase";
 
 interface ExportReportModalProps {
   isOpen: boolean;
@@ -180,25 +183,43 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       const newPage = () => { pdf.addPage(); y = 20; };
       const checkY = (need = 14) => { if (y + need> 278) newPage(); };
 
-      // ── HEADER ────────────────────────────────────────────────────────────
-      pdf.setFillColor(13, 148, 136);
-      pdf.rect(0, 0, PW, 28, "F");
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(18);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("PESSY", M, 17);
-      pdf.setFontSize(8);
-      pdf.setFont("helvetica", "normal");
-      pdf.text("Resumen certificado de tu mascota", M, 23);
-      pdf.setFontSize(9);
-      pdf.setFont("helvetica", "bold");
-      pdf.text(TITLE_MAP[selectedReport], PW - M, 15, { align: "right" });
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(7.5);
-      pdf.text(`Generado: ${new Date().toLocaleDateString("es-AR")}`, PW - M, 21, { align: "right" });
+      // Logo blanco (variante manual de marca para fondo verde oscuro)
+      let logoWhite: string | null = null;
+      try { logoWhite = await loadPessyLogo("white", 1024); } catch { /* fallback header text-only */ }
 
-      y = 36;
-      pdf.setTextColor(25, 25, 25);
+      // ── HEADER (manual de marca Pessy — Plano Branding) ───────────────────
+      const HEADER_H = 38;
+      pdf.setFillColor(7, 71, 56); // #074738 primary
+      pdf.rect(0, 0, PW, HEADER_H, "F");
+
+      // Logo isotipo + wordmark "Pessy." (lockup horizontal del manual)
+      const LOGO_SIZE = 22; // mm — área de seguridad respetada
+      const LOGO_Y = (HEADER_H - LOGO_SIZE) / 2; // centrado vertical
+      if (logoWhite) {
+        pdf.addImage(logoWhite, "PNG", M, LOGO_Y, LOGO_SIZE, LOGO_SIZE);
+      }
+      // Wordmark "Pessy." en blanco — lowercase con punto, oficial del manual
+      const WORDMARK_X = logoWhite ? M + LOGO_SIZE + 4 : M;
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(22);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Pessy.", WORDMARK_X, HEADER_H / 2 + 2.5);
+
+      // Columna derecha: tipo de reporte + fecha
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(TITLE_MAP[selectedReport], PW - M, HEADER_H / 2 - 1, { align: "right" });
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.text(
+        `Generado ${new Date().toLocaleDateString("es-AR")}`,
+        PW - M,
+        HEADER_H / 2 + 4.5,
+        { align: "right" }
+      );
+
+      y = HEADER_H + 4;
+      // Pill de validación se renderiza más abajo, después del AI call
 
       // ── DATOS DE LA MASCOTA ───────────────────────────────────────────────
       pdf.setFillColor(240, 253, 250);
@@ -289,18 +310,236 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         `Eventos: ${events.length}`,
       ].join(" · ");
 
-      // ──────────────────────────────────────────────────────────────────────
-      // REPORTE DE SALUD COMPLETO
-      // ──────────────────────────────────────────────────────────────────────
-      if (selectedReport === "health") {
+      // ══════════════════════════════════════════════════════════════════════
+      // AI BRAIN — Cerebro de Pessy genera el resumen estructurado de 10 secciones
+      // Si falla → fallback al renderer local (existing behavior preservado).
+      // ══════════════════════════════════════════════════════════════════════
+      type AISections = {
+        patient: { name: string; species: string; breed: string; sex: string; age: string; weight: string; tutor: string };
+        purpose: string;
+        clinicalHistory: string;
+        diagnoses: { confirmed: string[]; findings: string[]; suspected: string[] };
+        studies: Array<{ date: string; type: string; mainFinding: string; professional: string }>;
+        treatment: Array<{ name: string; dose: string; frequency: string; route: string; indication: string; startDate: string; notes: string }>;
+        professionals: { persons: string[]; institutions: string[] };
+        currentStatus: string;
+        followUp: string;
+        finalNote: string;
+      };
+      type ProvenanceMix = {
+        total: number;
+        vet_input: number;
+        tutor_confirmed: number;
+        ai_extraction: number;
+        ai_pending_review: number;
+        tutor_input: number;
+      };
+      let aiSections: AISections | null = null;
+      let provenanceMix: ProvenanceMix | null = null;
+      let validatedRatio = 0;
+      try {
+        const callAI = httpsCallable<
+          { petId: string },
+          { sections: AISections; provenanceMix?: ProvenanceMix; validatedRatio?: number }
+        >(fbFunctions, "pessyClinicalSummaryStructured");
+        const aiResult = await callAI({ petId: activePet.id });
+        aiSections = aiResult.data?.sections || null;
+        provenanceMix = aiResult.data?.provenanceMix || null;
+        validatedRatio = aiResult.data?.validatedRatio || 0;
+      } catch (err) {
+        console.warn("[ExportReport] cerebro AI falló, uso renderer local:", err);
+      }
+
+      // ── PILL VALIDACIÓN (Fase 1: dinámica según provenance mix) ──────────
+      const validatedCount = (provenanceMix?.vet_input || 0) + (provenanceMix?.tutor_confirmed || 0);
+      const totalEvents = provenanceMix?.total || 0;
+      const pillState: "empty" | "validated" | "mixed" | "not_validated" =
+        totalEvents === 0 ? "empty" :
+        validatedRatio >= 0.7 ? "validated" :
+        validatedRatio >= 0.3 ? "mixed" : "not_validated";
+
+      const pillConfig = {
+        empty:         { fill: [243, 244, 246], stroke: [156, 163, 175], txt: [55, 65, 81], label: "Sin información cargada", subtitle: "Subí documentos para empezar" },
+        validated:     { fill: [220, 252, 231], stroke: [16, 185, 129], txt: [6, 95, 70],   label: `Validación: ${validatedCount}/${totalEvents} eventos confirmados`, subtitle: "La mayoría revisado o cargado por veterinario" },
+        mixed:         { fill: [254, 243, 199], stroke: [245, 158, 11], txt: [146, 64, 14], label: `Validación parcial: ${validatedCount}/${totalEvents}`, subtitle: "Algunos eventos sin revisión humana" },
+        not_validated: { fill: [254, 226, 226], stroke: [239, 68, 68],  txt: [153, 27, 27], label: "Sin validación veterinaria", subtitle: "Información cargada por el tutor — sin revisar" },
+      } as const;
+      const cfg = pillConfig[pillState];
+      pdf.setFillColor(cfg.fill[0], cfg.fill[1], cfg.fill[2]);
+      pdf.setDrawColor(cfg.stroke[0], cfg.stroke[1], cfg.stroke[2]);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(M, y, CW, 7, 1.5, 1.5, "FD");
+      pdf.setFontSize(8);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(cfg.txt[0], cfg.txt[1], cfg.txt[2]);
+      pdf.text(cfg.label, M + 3, y + 4.5);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7);
+      pdf.text(cfg.subtitle, PW - M - 3, y + 4.5, { align: "right" });
+      y += 11;
+      pdf.setTextColor(25, 25, 25);
+
+      if (aiSections) {
+        // ── Renderer 10 secciones ────────────────────────────────────────────
+        const renderSection = (n: number, title: string, body: () => void) => {
+          checkY(20);
+          y += 2;
+          pdf.setFontSize(11);
+          pdf.setFont("helvetica", "bold");
+          pdf.setTextColor(7, 71, 56); // primary
+          pdf.text(`${n}. ${title}`, M, y);
+          y += 4;
+          pdf.setDrawColor(26, 155, 125); // accent
+          pdf.setLineWidth(0.4);
+          pdf.line(M, y, M + CW, y);
+          y += 5;
+          pdf.setTextColor(40, 40, 40);
+          pdf.setFontSize(9);
+          pdf.setFont("helvetica", "normal");
+          body();
+          y += 4;
+        };
+
+        const para = (text: string) => {
+          if (!text) text = "No informado";
+          const lines = pdf.splitTextToSize(text, CW);
+          for (const line of lines) {
+            checkY(6);
+            pdf.text(line, M, y);
+            y += 4.5;
+          }
+        };
+        const bullet = (text: string) => {
+          checkY(6);
+          pdf.text("•", M, y);
+          const lines = pdf.splitTextToSize(text, CW - 5);
+          let first = true;
+          for (const line of lines) {
+            if (!first) checkY(6);
+            pdf.text(line, M + 4, y);
+            y += 4.5;
+            first = false;
+          }
+        };
+
+        // 1. Identificación del paciente
+        renderSection(1, "Identificación del paciente", () => {
+          const p = aiSections!.patient;
+          para(`Nombre: ${p.name || "No informado"}`);
+          para(`Especie: ${p.species || "No informado"}`);
+          para(`Raza: ${p.breed || "No informado"}`);
+          para(`Sexo: ${p.sex || "No informado"}`);
+          para(`Edad: ${p.age || "No informado"}`);
+          para(`Peso: ${p.weight || "No informado"}`);
+          para(`Tutor: ${p.tutor || "No informado"}`);
+        });
+
+        // 2. Motivo del resumen
+        renderSection(2, "Motivo del resumen", () => para(aiSections!.purpose));
+
+        // 3. Historia clínica resumida
+        renderSection(3, "Historia clínica resumida", () => para(aiSections!.clinicalHistory));
+
+        // 4. Diagnósticos / Hallazgos
+        renderSection(4, "Información clínica documentada", () => {
+          const d = aiSections!.diagnoses;
+          if (d.confirmed.length === 0 && d.findings.length === 0 && d.suspected.length === 0) {
+            para("No informado");
+            return;
+          }
+          if (d.confirmed.length) {
+            pdf.setFont("helvetica", "bold"); pdf.text("Documentados en archivos:", M, y); y += 5;
+            pdf.setFont("helvetica", "normal");
+            d.confirmed.forEach(bullet);
+            y += 1;
+          }
+          if (d.findings.length) {
+            pdf.setFont("helvetica", "bold"); pdf.text("Hallazgos extraídos de estudios:", M, y); y += 5;
+            pdf.setFont("helvetica", "normal");
+            d.findings.forEach(bullet);
+            y += 1;
+          }
+          if (d.suspected.length) {
+            pdf.setFont("helvetica", "bold"); pdf.text("Sospechas:", M, y); y += 5;
+            pdf.setFont("helvetica", "normal");
+            d.suspected.forEach(bullet);
+          }
+        });
+
+        // 5. Estudios realizados
+        renderSection(5, "Estudios realizados", () => {
+          if (!aiSections!.studies.length) { para("No informado"); return; }
+          aiSections!.studies.forEach((s) => {
+            const head = `${s.date || "fecha no informada"} · ${s.type || "—"}`;
+            const detail = `${s.mainFinding || "Sin hallazgo registrado"}${s.professional ? ` · ${s.professional}` : ""}`;
+            pdf.setFont("helvetica", "bold"); checkY(6); pdf.text(head, M, y); y += 4.5;
+            pdf.setFont("helvetica", "normal");
+            const lines = pdf.splitTextToSize(detail, CW);
+            for (const line of lines) { checkY(6); pdf.text(line, M, y); y += 4.5; }
+            y += 1.5;
+          });
+        });
+
+        // 6. Tratamiento actual
+        renderSection(6, "Tratamiento actual", () => {
+          if (!aiSections!.treatment.length) { para("No informado"); return; }
+          aiSections!.treatment.forEach((t) => {
+            pdf.setFont("helvetica", "bold"); checkY(6); pdf.text(t.name || "—", M, y); y += 4.5;
+            pdf.setFont("helvetica", "normal");
+            const parts: string[] = [];
+            if (t.dose) parts.push(`Dosis: ${t.dose}`);
+            if (t.frequency) parts.push(`Frecuencia: ${t.frequency}`);
+            if (t.route) parts.push(`Vía: ${t.route}`);
+            if (t.indication) parts.push(`Indicación: ${t.indication}`);
+            if (t.startDate) parts.push(`Inicio: ${t.startDate}`);
+            const detail = parts.join(" · ") || "No informado";
+            const lines = pdf.splitTextToSize(detail, CW);
+            for (const line of lines) { checkY(6); pdf.text(line, M, y); y += 4.5; }
+            if (t.notes) {
+              const noteLines = pdf.splitTextToSize(`Notas: ${t.notes}`, CW);
+              for (const line of noteLines) { checkY(6); pdf.text(line, M, y); y += 4.5; }
+            }
+            y += 1.5;
+          });
+        });
+
+        // 7. Veterinarios e instituciones
+        renderSection(7, "Veterinarios e instituciones tratantes", () => {
+          const p = aiSections!.professionals;
+          if (!p.persons.length && !p.institutions.length) { para("No informado"); return; }
+          if (p.persons.length) {
+            pdf.setFont("helvetica", "bold"); pdf.text("Profesionales:", M, y); y += 5;
+            pdf.setFont("helvetica", "normal");
+            p.persons.forEach(bullet);
+            y += 1;
+          }
+          if (p.institutions.length) {
+            pdf.setFont("helvetica", "bold"); pdf.text("Instituciones:", M, y); y += 5;
+            pdf.setFont("helvetica", "normal");
+            p.institutions.forEach(bullet);
+          }
+        });
+
+        // 8. Estado clínico actual
+        renderSection(8, "Estado clínico actual", () => para(aiSections!.currentStatus));
+
+        // 9. Recomendaciones de seguimiento
+        renderSection(9, "Recomendaciones de seguimiento", () => para(aiSections!.followUp));
+
+        // 10. Nota final
+        renderSection(10, "Nota final", () => para(aiSections!.finalNote));
+
+      } else if (selectedReport === "health") {
+        // FALLBACK LOCAL — solo se ejecuta si el cerebro AI falla.
+        // No es código muerto: garantiza PDF funcional aunque Gemini esté caído.
         const sectionTitle = (title: string) => {
           checkY(16);
           pdf.setFontSize(11);
           pdf.setFont("helvetica", "bold");
-          pdf.setTextColor(13, 148, 136);
+          pdf.setTextColor(26, 155, 125);
           pdf.text(title, M, y);
           y += 5;
-          pdf.setDrawColor(13, 148, 136);
+          pdf.setDrawColor(26, 155, 125);
           pdf.setLineWidth(0.4);
           pdf.line(M, y, M + CW, y);
           y += 5;
@@ -419,35 +658,35 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         if (overview) {
           checkY(22);
           // Card verde claro destacado
-          pdf.setFillColor(236, 253, 245);
+          pdf.setFillColor(224, 242, 241);
           pdf.roundedRect(M, y, CW, 20, 3, 3, "F");
           pdf.setDrawColor(26, 155, 125);
           pdf.setLineWidth(0.6);
           pdf.line(M, y, M, y + 20); // borde izquierdo accent
           pdf.setFontSize(8.5);
           pdf.setFont("helvetica", "bold");
-          pdf.setTextColor(13, 148, 136);
+          pdf.setTextColor(26, 155, 125);
           pdf.text("RESUMEN", M + 4, y + 5.5);
           pdf.setFontSize(9.5);
           pdf.setFont("helvetica", "normal");
-          pdf.setTextColor(15, 76, 52);
+          pdf.setTextColor(7, 71, 56);
           const overviewLines = pdf.splitTextToSize(overview, CW - 8);
           pdf.text(overviewLines, M + 4, y + 11);
           // Altura dinámica si el texto ocupa más
           const cardH = Math.max(20, 11 + overviewLines.length * 4.2 + 2);
           if (cardH > 20) {
             // redibujar con altura correcta
-            pdf.setFillColor(236, 253, 245);
+            pdf.setFillColor(224, 242, 241);
             pdf.roundedRect(M, y, CW, cardH, 3, 3, "F");
             pdf.setDrawColor(26, 155, 125);
             pdf.line(M, y, M, y + cardH);
             pdf.setFontSize(8.5);
             pdf.setFont("helvetica", "bold");
-            pdf.setTextColor(13, 148, 136);
+            pdf.setTextColor(26, 155, 125);
             pdf.text("RESUMEN", M + 4, y + 5.5);
             pdf.setFontSize(9.5);
             pdf.setFont("helvetica", "normal");
-            pdf.setTextColor(15, 76, 52);
+            pdf.setTextColor(7, 71, 56);
             pdf.text(overviewLines, M + 4, y + 11);
           }
           y += cardH + 4;
@@ -590,7 +829,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           sectionTitle("Alertas");
           pdf.setFontSize(9);
           pdf.setFont("helvetica", "normal");
-          pdf.setTextColor(180, 83, 9);
+          pdf.setTextColor(245, 158, 11);
           if (pendingManualReviewCount > 0) {
             bullet(`Hay ${pendingManualReviewCount} documento${pendingManualReviewCount > 1 ? "s" : ""} pendiente${pendingManualReviewCount > 1 ? "s" : ""} de revisión`);
           }
@@ -940,17 +1179,17 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       }
 
       // ──────────────────────────────────────────────────────────────────────
-      // CARNET DE VACUNACIÓN
+      // CARNET DE VACUNACIÓN (fallback local — solo si AI no renderizó)
       // ──────────────────────────────────────────────────────────────────────
-      if (selectedReport === "vaccine") {
+      if (!aiSections && selectedReport === "vaccine") {
         const vaccines = events.filter(e => e.extractedData.documentType === "vaccine");
         checkY(16);
         pdf.setFontSize(10.5);
         pdf.setFont("helvetica", "bold");
-        pdf.setTextColor(13, 148, 136);
+        pdf.setTextColor(26, 155, 125);
         pdf.text("Vacunas registradas", M, y);
         y += 5;
-        pdf.setDrawColor(13, 148, 136);
+        pdf.setDrawColor(26, 155, 125);
         pdf.line(M, y, M + CW, y);
         y += 4;
 
@@ -988,17 +1227,17 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       }
 
       // ──────────────────────────────────────────────────────────────────────
-      // PLAN DE TRATAMIENTO
+      // PLAN DE TRATAMIENTO (fallback local — solo si AI no renderizó)
       // ──────────────────────────────────────────────────────────────────────
-      if (selectedReport === "treatment") {
+      if (!aiSections && selectedReport === "treatment") {
         // Medicaciones
         checkY(16);
         pdf.setFontSize(10.5);
         pdf.setFont("helvetica", "bold");
-        pdf.setTextColor(13, 148, 136);
+        pdf.setTextColor(26, 155, 125);
         pdf.text("Medicaciones activas", M, y);
         y += 5;
-        pdf.setDrawColor(13, 148, 136);
+        pdf.setDrawColor(26, 155, 125);
         pdf.line(M, y, M + CW, y);
         y += 4;
 
@@ -1049,10 +1288,10 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           checkY(16);
           pdf.setFontSize(10.5);
           pdf.setFont("helvetica", "bold");
-          pdf.setTextColor(13, 148, 136);
+          pdf.setTextColor(26, 155, 125);
           pdf.text("Próximas citas", M, y);
           y += 5;
-          pdf.setDrawColor(13, 148, 136);
+          pdf.setDrawColor(26, 155, 125);
           pdf.line(M, y, M + CW, y);
           y += 4;
 
@@ -1089,19 +1328,18 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       } catch { /* silencioso */ }
 
       if (reportId) {
-        checkY(20);
+        checkY(16);
         y += 2;
-        pdf.setFillColor(236, 253, 245);
-        pdf.roundedRect(M, y, CW, 16, 2, 2, "F");
+        pdf.setFillColor(224, 242, 241);
+        pdf.roundedRect(M, y, CW, 12, 2, 2, "F");
         pdf.setFontSize(7.5);
         pdf.setFont("helvetica", "bold");
-        pdf.setTextColor(5, 150, 105);
-        pdf.text("Verificación del reporte", M + 3, y + 6);
+        pdf.setTextColor(7, 71, 56);
+        pdf.text("Identificador del reporte", M + 3, y + 5);
         pdf.setFont("helvetica", "normal");
         pdf.setTextColor(55, 65, 81);
-        pdf.text(`ID: ${reportId}`, M + 3, y + 11);
-        pdf.text(`pessy.app/verify/${reportId}`, M + 3, y + 15);
-        y += 18;
+        pdf.text(`ID: ${reportId}`, M + 3, y + 9.5);
+        y += 14;
       }
 
       // ── FOOTER EN TODAS LAS PÁGINAS ────────────────────────────────────────
@@ -1109,12 +1347,27 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       for (let i = 1; i <= totalPages; i++) {
         pdf.setPage(i);
         pdf.setFillColor(248, 249, 252);
-        pdf.rect(0, 285, PW, 12, "F");
+        pdf.rect(0, 282, PW, 15, "F");
+        pdf.setFontSize(6.5);
+        pdf.setFont("helvetica", "italic");
+        pdf.setTextColor(120, 120, 120);
+        const footerByState = {
+          empty: "Pessy organiza información cargada por el tutor. Aún no hay documentos en este perfil.",
+          validated: "Información parcialmente validada por veterinarios. Conserva valor de referencia. No reemplaza un historial clínico oficial.",
+          mixed: "Información parcialmente validada. Los ítems sin marca de validación fueron cargados por el tutor sin revisión profesional.",
+          not_validated: "Pessy organiza la información cargada por el tutor. No reemplaza un historial clínico oficial ni constituye diagnóstico veterinario.",
+        } as const;
+        pdf.text(
+          footerByState[pillState],
+          PW / 2,
+          287,
+          { align: "center", maxWidth: PW - 2 * M }
+        );
         pdf.setFontSize(7);
         pdf.setFont("helvetica", "normal");
         pdf.setTextColor(150, 150, 150);
-        pdf.text("Generado por PESSY — pessy.app", M, 291);
-        pdf.text(`Página ${i} de ${totalPages}`, PW - M, 291, { align: "right" });
+        pdf.text("Generado por PESSY — pessy.app", M, 293);
+        pdf.text(`Página ${i} de ${totalPages}`, PW - M, 293, { align: "right" });
       }
 
       const fileName = `PESSY_${TITLE_MAP[selectedReport].replace(/ /g, "_")}_${activePet.name}_${new Date().toISOString().slice(0, 10)}.pdf`;

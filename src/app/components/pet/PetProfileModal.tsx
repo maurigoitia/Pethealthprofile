@@ -11,7 +11,6 @@ import { formatDateSafe, parseDateSafe, toDateInputValueSafe, toDateKeySafe } fr
 import { DEFAULT_PET_PHOTO } from "../../constants/petDefaults";
 import { PetPhoto } from "./PetPhoto";
 import { MedicalSummaryCard } from "./MedicalSummaryCard";
-import { PetQRCodeModal } from "./PetQRCodeModal";
 import { getPetPhotoAcceptValue, preparePetPhotoForUpload } from "../../utils/petPhotoUpload";
 import { uploadPetPhotoWithFallback } from "../../services/petPhotoService";
 
@@ -38,7 +37,6 @@ interface Vaccine {
 export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>("profile");
-  const [showQRModal, setShowQRModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showVaccinationCard, setShowVaccinationCard] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -434,7 +432,7 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                       <button
                         onClick={() => setShowPhotoPicker((prev) => !prev)}
                         disabled={uploadingPhoto}
-                        className="absolute bottom-0 right-0 size-10 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform">
+                        className="absolute bottom-0 right-0 size-11 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-lg active:scale-95 transition-transform">
                         {uploadingPhoto
                           ? <span className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                           : <MaterialIcon name="photo_camera" className="text-xl" />}
@@ -491,33 +489,6 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                     hasVaccinationCard={medicalSummary.hasVaccinationCard}
                     lastVetVisit={medicalSummary.lastVetVisit}
                   />
-
-                  {/* QR de identidad — modo perdido */}
-                  <button
-                    type="button"
-                    onClick={() => setShowQRModal(true)}
-                    className="w-full flex items-center gap-3 bg-white border border-[#074738]/15 rounded-[16px] px-4 py-3.5 active:scale-[0.98] transition-transform"
-                    style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
-                  >
-                    <div className="size-10 rounded-[10px] bg-[#E0F2F1] flex items-center justify-center shrink-0">
-                      <MaterialIcon name="qr_code_2" className="text-xl text-[#074738]" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p
-                        className="text-sm font-extrabold text-[#074738]"
-                        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                      >
-                        QR de identidad
-                      </p>
-                      <p
-                        className="text-[11px] text-slate-500 mt-0.5"
-                        style={{ fontFamily: "Manrope, sans-serif" }}
-                      >
-                        Para el collar — si se pierde, te llaman al toque
-                      </p>
-                    </div>
-                    <MaterialIcon name="chevron_right" className="text-lg text-slate-400" />
-                  </button>
 
                   {/* Peso histórico */}
                   {weightHistory.length > 1 && (
@@ -660,7 +631,7 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
                           style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.02em" }}
                         >Editar información</h3>
                         <button onClick={() => setIsEditing(false)}
-                          className="size-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                          className="size-11 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                           <MaterialIcon name="close" className="text-lg" />
                         </button>
                       </div>
@@ -845,12 +816,6 @@ export function PetProfileModal({ isOpen, onClose }: PetProfileModalProps) {
               vaccines={vaccines}
             />
           </Suspense>
-
-          {/* QR Code Modal — modo perdido + descarga */}
-          <PetQRCodeModal
-            isOpen={showQRModal}
-            onClose={() => setShowQRModal(false)}
-          />
         </>
   );
 }

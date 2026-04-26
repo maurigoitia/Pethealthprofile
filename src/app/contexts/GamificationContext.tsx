@@ -81,6 +81,7 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
 
     const ref = doc(db, "user_gamification", user.uid);
     getDoc(ref).then((snap) => {
+      try {
       const now = Timestamp.now();
       if (snap.exists()) {
         const data = snap.data() as UserGamificationProfile;
@@ -114,6 +115,15 @@ export function GamificationProvider({ children }: { children: ReactNode }) {
         setDoc(ref, empty);
         setProfile(empty);
       }
+      } catch (err) {
+        console.warn("[GamificationContext] init failed:", err);
+        setProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    }).catch((err) => {
+      console.warn("[GamificationContext] load failed:", err);
+      setProfile(null);
       setLoading(false);
     });
   }, [user?.uid]);

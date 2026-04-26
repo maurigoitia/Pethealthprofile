@@ -32,7 +32,7 @@ export function HelpSupportScreen({ onBack }: HelpSupportScreenProps) {
     {
       question: "¿Los documentos están seguros?",
       answer:
-        "Sí. Todos los documentos se almacenan de forma segura y solo tú tienes acceso a ellos. Puedes verificar la integridad de los reportes exportados mediante códigos QR y hash de verificación.",
+        "Sí. Todos los documentos se almacenan de forma segura y solo tú tienes acceso a ellos. Cada reporte exportado lleva un identificador único y la fecha en que fue generado.",
     },
     {
       question: "¿Cómo exporto un reporte?",
@@ -101,15 +101,19 @@ export function HelpSupportScreen({ onBack }: HelpSupportScreenProps) {
             <h2 className="text-lg font-black text-slate-900 dark:text-white mb-3">
               Contacto
             </h2>
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3">
-              <div className="size-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <MaterialIcon name="support_agent" className="text-slate-400 text-xl" />
+            <a
+              href="mailto:hola@pessy.app?subject=Soporte%20Pessy"
+              className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 flex items-center gap-3 active:scale-[0.98] transition-transform"
+            >
+              <div className="size-11 rounded-lg bg-[#E0F2F1] flex items-center justify-center">
+                <MaterialIcon name="mail" className="text-[#074738] text-xl" />
               </div>
-              <div>
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">Soporte en camino</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Próximamente habilitaremos canales de contacto.</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white">Escribinos</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">hola@pessy.app — respondemos en menos de 24hs</p>
               </div>
-            </div>
+              <MaterialIcon name="chevron_right" className="text-slate-400 text-lg" />
+            </a>
           </div>
 
           {/* App Version */}

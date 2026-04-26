@@ -397,7 +397,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
             <div className="flex items-center gap-3 mb-4">
               <button
                 onClick={onBack}
-                className="size-10 rounded-full bg-white/80 dark:bg-slate-900/70 flex items-center justify-center shadow-sm"
+                className="size-11 rounded-full bg-white/80 dark:bg-slate-900/70 flex items-center justify-center shadow-sm"
               >
                 <MaterialIcon name="arrow_back" className="text-xl text-[#074738]" />
               </button>
@@ -409,7 +409,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
               </div>
               <button
                 onClick={() => openCreateAppointmentModal()}
-                className="size-10 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-lg shadow-[#074738]/25"
+                className="size-11 rounded-full bg-[#074738] text-white flex items-center justify-center shadow-lg shadow-[#074738]/25"
               >
                 <MaterialIcon name="add" className="text-2xl" />
               </button>

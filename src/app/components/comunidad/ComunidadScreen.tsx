@@ -18,42 +18,8 @@ interface LostPet {
   contact: string;
 }
 
-// ---------------------------------------------------------------------------
-// Mock data (shown when Firestore is empty)
-// ---------------------------------------------------------------------------
-
-const MOCK: LostPet[] = [
-  {
-    id: "1",
-    name: "Luna",
-    breed: "Golden Retriever",
-    status: "perdido",
-    description: "Se escapó del jardín el martes por la tarde. Lleva collar azul.",
-    location: "Palermo, CABA",
-    date: "Hace 2 días",
-    contact: "@luna_owner",
-  },
-  {
-    id: "2",
-    name: "Michi",
-    breed: "Gato común",
-    status: "encontrado",
-    description: "Encontramos este gatito naranja cerca del parque. Muy manso.",
-    location: "Belgrano, CABA",
-    date: "Hace 1 día",
-    contact: "@michi_found",
-  },
-  {
-    id: "3",
-    name: "Thor",
-    breed: "Labrador",
-    status: "perdido",
-    description: "Perro grande, negro, muy amigable. Se perdió cerca de la plaza.",
-    location: "Núñez, CABA",
-    date: "Hoy",
-    contact: "@thor_family",
-  },
-];
+// MOCK ELIMINADO 2026-04-26 — regla del producto: cero hardcoded en producción.
+// Cuando Firestore está vacío, mostrar empty state. NO inventar mascotas.
 
 // ---------------------------------------------------------------------------
 // PetCard
@@ -136,23 +102,20 @@ export function ComunidadScreen(_props: ComunidadScreenProps) {
 
   const formRef = useRef<HTMLDivElement>(null);
 
-  // Load from Firestore on mount
+  // Load from Firestore on mount — sin mocks, empty state si no hay nada
   useEffect(() => {
     async function load() {
       try {
         const q = query(collection(db, "lost_pets"), orderBy("createdAt", "desc"));
         const snap = await getDocs(q);
-        if (snap.empty) {
-          setPets(MOCK);
-        } else {
-          const items: LostPet[] = snap.docs.map((doc) => ({
-            id: doc.id,
-            ...(doc.data() as Omit<LostPet, "id">),
-          }));
-          setPets(items);
-        }
-      } catch {
-        setPets(MOCK);
+        const items: LostPet[] = snap.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<LostPet, "id">),
+        }));
+        setPets(items);
+      } catch (e) {
+        console.warn("[Comunidad] no se pudo cargar lost_pets:", e);
+        setPets([]);
       } finally {
         setLoading(false);
       }
