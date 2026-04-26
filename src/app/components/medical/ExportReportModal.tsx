@@ -7,6 +7,8 @@ import { formatDateSafe } from "../../utils/dateUtils";
 import { loadJsPdf, savePdfWithFallback } from "../../utils/pdfExport";
 import { generateClinicalOverview } from "../../utils/clinicalOverview";
 import { loadPessyLogo } from "../../../lib/pdf/loadLogo";
+import { httpsCallable } from "firebase/functions";
+import { functions as fbFunctions } from "../../../lib/firebase";
 
 interface ExportReportModalProps {
   isOpen: boolean;
@@ -308,10 +310,185 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         `Eventos: ${events.length}`,
       ].join(" · ");
 
-      // ──────────────────────────────────────────────────────────────────────
-      // REPORTE DE SALUD COMPLETO
-      // ──────────────────────────────────────────────────────────────────────
-      if (selectedReport === "health") {
+      // ══════════════════════════════════════════════════════════════════════
+      // AI BRAIN — Cerebro de Pessy genera el resumen estructurado de 10 secciones
+      // Si falla → fallback al renderer local (existing behavior preservado).
+      // ══════════════════════════════════════════════════════════════════════
+      type AISections = {
+        patient: { name: string; species: string; breed: string; sex: string; age: string; weight: string; tutor: string };
+        purpose: string;
+        clinicalHistory: string;
+        diagnoses: { confirmed: string[]; findings: string[]; suspected: string[] };
+        studies: Array<{ date: string; type: string; mainFinding: string; professional: string }>;
+        treatment: Array<{ name: string; dose: string; frequency: string; route: string; indication: string; startDate: string; notes: string }>;
+        professionals: { persons: string[]; institutions: string[] };
+        currentStatus: string;
+        followUp: string;
+        finalNote: string;
+      };
+      let aiSections: AISections | null = null;
+      try {
+        const callAI = httpsCallable<
+          { petId: string },
+          { sections: AISections }
+        >(fbFunctions, "pessyClinicalSummaryStructured");
+        const aiResult = await callAI({ petId: activePet.id });
+        aiSections = aiResult.data?.sections || null;
+      } catch (err) {
+        console.warn("[ExportReport] cerebro AI falló, uso renderer local:", err);
+      }
+
+      if (aiSections) {
+        // ── Renderer 10 secciones ────────────────────────────────────────────
+        const renderSection = (n: number, title: string, body: () => void) => {
+          checkY(20);
+          y += 2;
+          pdf.setFontSize(11);
+          pdf.setFont("helvetica", "bold");
+          pdf.setTextColor(7, 71, 56); // primary
+          pdf.text(`${n}. ${title}`, M, y);
+          y += 4;
+          pdf.setDrawColor(26, 155, 125); // accent
+          pdf.setLineWidth(0.4);
+          pdf.line(M, y, M + CW, y);
+          y += 5;
+          pdf.setTextColor(40, 40, 40);
+          pdf.setFontSize(9);
+          pdf.setFont("helvetica", "normal");
+          body();
+          y += 4;
+        };
+
+        const para = (text: string) => {
+          if (!text) text = "No informado";
+          const lines = pdf.splitTextToSize(text, CW);
+          for (const line of lines) {
+            checkY(6);
+            pdf.text(line, M, y);
+            y += 4.5;
+          }
+        };
+        const bullet = (text: string) => {
+          checkY(6);
+          pdf.text("•", M, y);
+          const lines = pdf.splitTextToSize(text, CW - 5);
+          let first = true;
+          for (const line of lines) {
+            if (!first) checkY(6);
+            pdf.text(line, M + 4, y);
+            y += 4.5;
+            first = false;
+          }
+        };
+
+        // 1. Identificación del paciente
+        renderSection(1, "Identificación del paciente", () => {
+          const p = aiSections!.patient;
+          para(`Nombre: ${p.name || "No informado"}`);
+          para(`Especie: ${p.species || "No informado"}`);
+          para(`Raza: ${p.breed || "No informado"}`);
+          para(`Sexo: ${p.sex || "No informado"}`);
+          para(`Edad: ${p.age || "No informado"}`);
+          para(`Peso: ${p.weight || "No informado"}`);
+          para(`Tutor: ${p.tutor || "No informado"}`);
+        });
+
+        // 2. Motivo del resumen
+        renderSection(2, "Motivo del resumen", () => para(aiSections!.purpose));
+
+        // 3. Historia clínica resumida
+        renderSection(3, "Historia clínica resumida", () => para(aiSections!.clinicalHistory));
+
+        // 4. Diagnósticos / Hallazgos
+        renderSection(4, "Diagnósticos y hallazgos reportados", () => {
+          const d = aiSections!.diagnoses;
+          if (d.confirmed.length === 0 && d.findings.length === 0 && d.suspected.length === 0) {
+            para("No informado");
+            return;
+          }
+          if (d.confirmed.length) {
+            pdf.setFont("helvetica", "bold"); pdf.text("Confirmados:", M, y); y += 5;
+            pdf.setFont("helvetica", "normal");
+            d.confirmed.forEach(bullet);
+            y += 1;
+          }
+          if (d.findings.length) {
+            pdf.setFont("helvetica", "bold"); pdf.text("Hallazgos de estudios:", M, y); y += 5;
+            pdf.setFont("helvetica", "normal");
+            d.findings.forEach(bullet);
+            y += 1;
+          }
+          if (d.suspected.length) {
+            pdf.setFont("helvetica", "bold"); pdf.text("Sospechas:", M, y); y += 5;
+            pdf.setFont("helvetica", "normal");
+            d.suspected.forEach(bullet);
+          }
+        });
+
+        // 5. Estudios realizados
+        renderSection(5, "Estudios realizados", () => {
+          if (!aiSections!.studies.length) { para("No informado"); return; }
+          aiSections!.studies.forEach((s) => {
+            const head = `${s.date || "fecha no informada"} · ${s.type || "—"}`;
+            const detail = `${s.mainFinding || "Sin hallazgo registrado"}${s.professional ? ` · ${s.professional}` : ""}`;
+            pdf.setFont("helvetica", "bold"); checkY(6); pdf.text(head, M, y); y += 4.5;
+            pdf.setFont("helvetica", "normal");
+            const lines = pdf.splitTextToSize(detail, CW);
+            for (const line of lines) { checkY(6); pdf.text(line, M, y); y += 4.5; }
+            y += 1.5;
+          });
+        });
+
+        // 6. Tratamiento actual
+        renderSection(6, "Tratamiento actual", () => {
+          if (!aiSections!.treatment.length) { para("No informado"); return; }
+          aiSections!.treatment.forEach((t) => {
+            pdf.setFont("helvetica", "bold"); checkY(6); pdf.text(t.name || "—", M, y); y += 4.5;
+            pdf.setFont("helvetica", "normal");
+            const parts: string[] = [];
+            if (t.dose) parts.push(`Dosis: ${t.dose}`);
+            if (t.frequency) parts.push(`Frecuencia: ${t.frequency}`);
+            if (t.route) parts.push(`Vía: ${t.route}`);
+            if (t.indication) parts.push(`Indicación: ${t.indication}`);
+            if (t.startDate) parts.push(`Inicio: ${t.startDate}`);
+            const detail = parts.join(" · ") || "No informado";
+            const lines = pdf.splitTextToSize(detail, CW);
+            for (const line of lines) { checkY(6); pdf.text(line, M, y); y += 4.5; }
+            if (t.notes) {
+              const noteLines = pdf.splitTextToSize(`Notas: ${t.notes}`, CW);
+              for (const line of noteLines) { checkY(6); pdf.text(line, M, y); y += 4.5; }
+            }
+            y += 1.5;
+          });
+        });
+
+        // 7. Veterinarios e instituciones
+        renderSection(7, "Veterinarios e instituciones tratantes", () => {
+          const p = aiSections!.professionals;
+          if (!p.persons.length && !p.institutions.length) { para("No informado"); return; }
+          if (p.persons.length) {
+            pdf.setFont("helvetica", "bold"); pdf.text("Profesionales:", M, y); y += 5;
+            pdf.setFont("helvetica", "normal");
+            p.persons.forEach(bullet);
+            y += 1;
+          }
+          if (p.institutions.length) {
+            pdf.setFont("helvetica", "bold"); pdf.text("Instituciones:", M, y); y += 5;
+            pdf.setFont("helvetica", "normal");
+            p.institutions.forEach(bullet);
+          }
+        });
+
+        // 8. Estado clínico actual
+        renderSection(8, "Estado clínico actual", () => para(aiSections!.currentStatus));
+
+        // 9. Recomendaciones de seguimiento
+        renderSection(9, "Recomendaciones de seguimiento", () => para(aiSections!.followUp));
+
+        // 10. Nota final
+        renderSection(10, "Nota final", () => para(aiSections!.finalNote));
+
+      } else if (selectedReport === "health") {
         const sectionTitle = (title: string) => {
           checkY(16);
           pdf.setFontSize(11);
@@ -959,9 +1136,9 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       }
 
       // ──────────────────────────────────────────────────────────────────────
-      // CARNET DE VACUNACIÓN
+      // CARNET DE VACUNACIÓN (fallback local — solo si AI no renderizó)
       // ──────────────────────────────────────────────────────────────────────
-      if (selectedReport === "vaccine") {
+      if (!aiSections && selectedReport === "vaccine") {
         const vaccines = events.filter(e => e.extractedData.documentType === "vaccine");
         checkY(16);
         pdf.setFontSize(10.5);
@@ -1007,9 +1184,9 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       }
 
       // ──────────────────────────────────────────────────────────────────────
-      // PLAN DE TRATAMIENTO
+      // PLAN DE TRATAMIENTO (fallback local — solo si AI no renderizó)
       // ──────────────────────────────────────────────────────────────────────
-      if (selectedReport === "treatment") {
+      if (!aiSections && selectedReport === "treatment") {
         // Medicaciones
         checkY(16);
         pdf.setFontSize(10.5);
