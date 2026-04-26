@@ -218,7 +218,24 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         { align: "right" }
       );
 
-      y = HEADER_H + 8;
+      y = HEADER_H + 4;
+
+      // ── PILL VALIDACIÓN VETERINARIA (Fase 0 honestidad) ──────────────────
+      // TODO Fase 1: calcular ratio real eventos vet_attested / total
+      // Hoy: hardcoded "Sin validación veterinaria" hasta que exista path B/C
+      pdf.setFillColor(254, 243, 199); // amber-100
+      pdf.setDrawColor(245, 158, 11); // warning #F59E0B
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(M, y, CW, 7, 1.5, 1.5, "FD");
+      pdf.setFontSize(8);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(146, 64, 14); // amber-800
+      pdf.text("Sin validación veterinaria", M + 3, y + 4.5);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7);
+      pdf.text("Información cargada por el tutor — no revisada por un profesional", PW - M - 3, y + 4.5, { align: "right" });
+
+      y += 11;
       pdf.setTextColor(25, 25, 25);
 
       // ── DATOS DE LA MASCOTA ───────────────────────────────────────────────
@@ -400,20 +417,20 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         renderSection(3, "Historia clínica resumida", () => para(aiSections!.clinicalHistory));
 
         // 4. Diagnósticos / Hallazgos
-        renderSection(4, "Diagnósticos y hallazgos reportados", () => {
+        renderSection(4, "Información clínica documentada", () => {
           const d = aiSections!.diagnoses;
           if (d.confirmed.length === 0 && d.findings.length === 0 && d.suspected.length === 0) {
             para("No informado");
             return;
           }
           if (d.confirmed.length) {
-            pdf.setFont("helvetica", "bold"); pdf.text("Confirmados:", M, y); y += 5;
+            pdf.setFont("helvetica", "bold"); pdf.text("Documentados en archivos:", M, y); y += 5;
             pdf.setFont("helvetica", "normal");
             d.confirmed.forEach(bullet);
             y += 1;
           }
           if (d.findings.length) {
-            pdf.setFont("helvetica", "bold"); pdf.text("Hallazgos de estudios:", M, y); y += 5;
+            pdf.setFont("helvetica", "bold"); pdf.text("Hallazgos extraídos de estudios:", M, y); y += 5;
             pdf.setFont("helvetica", "normal");
             d.findings.forEach(bullet);
             y += 1;
@@ -1311,7 +1328,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         pdf.setFont("helvetica", "italic");
         pdf.setTextColor(120, 120, 120);
         pdf.text(
-          "Documento informativo generado a partir de información cargada por el tutor. No constituye diagnóstico ni reemplaza la consulta veterinaria.",
+          "Pessy organiza la información cargada por el tutor. No reemplaza un historial clínico oficial ni constituye diagnóstico veterinario.",
           PW / 2,
           287,
           { align: "center", maxWidth: PW - 2 * M }

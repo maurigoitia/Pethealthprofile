@@ -2475,6 +2475,12 @@ REGLAS ESTRICTAS — no negociables:
 - Estilo: claro, profesional, humano, fácil de leer. Evitar jerga sin explicación.
 - Preferir narrativa sobre listas sueltas cuando se pueda.
 
+LENGUAJE — NO afirmar como hechos clínicos lo que es solo extracción:
+- Decir "el documento indica..." / "según el archivo..." / "el tutor cargó..." en vez de "el paciente tiene..."
+- Decir "documentado en archivos" en vez de "confirmado".
+- Decir "extraído de estudios" en vez de "diagnosticado".
+- En el campo finalNote: aclarar siempre que el resumen fue generado a partir de documentos del tutor y debe ser revisado por un veterinario.
+
 DEVOLVÉ UN JSON con la estructura definida en el schema. NO incluyas markdown ni texto fuera del JSON.`;
 
 const CLINICAL_SUMMARY_SCHEMA = {

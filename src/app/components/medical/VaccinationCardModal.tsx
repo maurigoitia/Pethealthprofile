@@ -74,10 +74,22 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
       HEADER_H / 2 + 1,
       { align: "right" }
     );
-    pdf.setFontSize(8);
-    pdf.text(`Generado: ${new Date().toLocaleDateString("es-AR")}`, pageW - margin, 23, { align: "right" });
+    y = HEADER_H + 4;
 
-    y = HEADER_H + 8;
+    // ── PILL VALIDACIÓN VETERINARIA (Fase 0 honestidad) ──────────────────
+    pdf.setFillColor(254, 243, 199);
+    pdf.setDrawColor(245, 158, 11);
+    pdf.setLineWidth(0.3);
+    pdf.roundedRect(margin, y, contentW, 7, 1.5, 1.5, "FD");
+    pdf.setFontSize(8);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(146, 64, 14);
+    pdf.text("Sin validación veterinaria", margin + 3, y + 4.5);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(7);
+    pdf.text("Datos cargados por el tutor — no es certificado oficial", pageW - margin - 3, y + 4.5, { align: "right" });
+
+    y += 11;
     pdf.setTextColor(30, 30, 30);
 
     // Pet info block
@@ -157,7 +169,7 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
       pdf.setFont("helvetica", "italic");
       pdf.setTextColor(107, 114, 128);
       pdf.text(
-        "Documento informativo generado a partir de información cargada por el tutor. No constituye certificado oficial ni reemplaza la consulta veterinaria.",
+        "Pessy organiza la información cargada por el tutor. No constituye certificado oficial de vacunación ni reemplaza la consulta veterinaria.",
         pageW / 2,
         287,
         { align: "center", maxWidth: pageW - 2 * margin }
