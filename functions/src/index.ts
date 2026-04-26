@@ -2605,12 +2605,33 @@ export const pessyClinicalSummaryStructured = functions
       .orderBy("createdAt", "desc")
       .limit(200)
       .get();
+    // Provenance Fase 1: derivar source + confidence por event
     const events = eventsSnap.docs.map((d) => {
       const e = d.data() || {};
       const ed = e.extractedData || {};
       const mp = ed.masterPayload || {};
       const di = mp.document_info || ed.document_info || {};
+
+      // source label:
+      //   "vet_input"          → evento creado en Vet Mode (futuro)
+      //   "tutor_confirmed"    → tutor revisó y confirmó la extracción
+      //   "ai_pending_review"  → AI extrajo, falta revisión humana (low trust)
+      //   "ai_extraction"      → AI extrajo, no hubo review explícita
+      //   "tutor_input"        → tutor lo cargó manualmente sin OCR
+      let source = "ai_extraction";
+      let confidence = 0.6; // default AI extraction
+      if (e.createdBy === "vet" || e.source === "vet_input") {
+        source = "vet_input"; confidence = 1.0;
+      } else if (e.tutorConfirmed === true || e.userConfirmed === true) {
+        source = "tutor_confirmed"; confidence = 0.85;
+      } else if (e.requiresManualConfirmation === true || e.workflowStatus === "review_required") {
+        source = "ai_pending_review"; confidence = 0.4;
+      } else if (e.source === "manual" || !ed.masterPayload) {
+        source = "tutor_input"; confidence = 0.7;
+      }
+
       return {
+        id: d.id,
         date: ed.eventDate || e.createdAt || null,
         type: ed.eventType || e.type || di.document_type || "evento",
         title: ed.title || e.title || di.title || null,
@@ -2622,8 +2643,22 @@ export const pessyClinicalSummaryStructured = functions
         license: di.veterinarian_license || ed.veterinarian_license || null,
         clinic: di.clinic_name || ed.clinic_name || null,
         notes: di.notes || ed.notes || null,
+        provenance: { source, confidence },
       };
     });
+
+    // Provenance summary (para header pill dinámico + footer)
+    const provenanceMix = {
+      total: events.length,
+      vet_input: events.filter((e) => e.provenance.source === "vet_input").length,
+      tutor_confirmed: events.filter((e) => e.provenance.source === "tutor_confirmed").length,
+      ai_extraction: events.filter((e) => e.provenance.source === "ai_extraction").length,
+      ai_pending_review: events.filter((e) => e.provenance.source === "ai_pending_review").length,
+      tutor_input: events.filter((e) => e.provenance.source === "tutor_input").length,
+    };
+    const validatedRatio = events.length === 0
+      ? 0
+      : (provenanceMix.vet_input + provenanceMix.tutor_confirmed) / events.length;
 
     // Patient context (sin datos sensibles ni internos)
     const patientCtx = {
@@ -2674,6 +2709,8 @@ Recordá: NO inventar, NO diagnosticar, "No informado" para campos faltantes, JS
 
     return {
       sections,
+      provenanceMix,
+      validatedRatio,
       generatedAt: new Date().toISOString(),
       eventCount: events.length,
       tokensUsed: totalTokenCount,

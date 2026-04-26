@@ -219,24 +219,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       );
 
       y = HEADER_H + 4;
-
-      // ── PILL VALIDACIÓN VETERINARIA (Fase 0 honestidad) ──────────────────
-      // TODO Fase 1: calcular ratio real eventos vet_attested / total
-      // Hoy: hardcoded "Sin validación veterinaria" hasta que exista path B/C
-      pdf.setFillColor(254, 243, 199); // amber-100
-      pdf.setDrawColor(245, 158, 11); // warning #F59E0B
-      pdf.setLineWidth(0.3);
-      pdf.roundedRect(M, y, CW, 7, 1.5, 1.5, "FD");
-      pdf.setFontSize(8);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(146, 64, 14); // amber-800
-      pdf.text("Sin validación veterinaria", M + 3, y + 4.5);
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(7);
-      pdf.text("Información cargada por el tutor — no revisada por un profesional", PW - M - 3, y + 4.5, { align: "right" });
-
-      y += 11;
-      pdf.setTextColor(25, 25, 25);
+      // Pill de validación se renderiza más abajo, después del AI call
 
       // ── DATOS DE LA MASCOTA ───────────────────────────────────────────────
       pdf.setFillColor(240, 253, 250);
@@ -343,17 +326,58 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         followUp: string;
         finalNote: string;
       };
+      type ProvenanceMix = {
+        total: number;
+        vet_input: number;
+        tutor_confirmed: number;
+        ai_extraction: number;
+        ai_pending_review: number;
+        tutor_input: number;
+      };
       let aiSections: AISections | null = null;
+      let provenanceMix: ProvenanceMix | null = null;
+      let validatedRatio = 0;
       try {
         const callAI = httpsCallable<
           { petId: string },
-          { sections: AISections }
+          { sections: AISections; provenanceMix?: ProvenanceMix; validatedRatio?: number }
         >(fbFunctions, "pessyClinicalSummaryStructured");
         const aiResult = await callAI({ petId: activePet.id });
         aiSections = aiResult.data?.sections || null;
+        provenanceMix = aiResult.data?.provenanceMix || null;
+        validatedRatio = aiResult.data?.validatedRatio || 0;
       } catch (err) {
         console.warn("[ExportReport] cerebro AI falló, uso renderer local:", err);
       }
+
+      // ── PILL VALIDACIÓN (Fase 1: dinámica según provenance mix) ──────────
+      const validatedCount = (provenanceMix?.vet_input || 0) + (provenanceMix?.tutor_confirmed || 0);
+      const totalEvents = provenanceMix?.total || 0;
+      const pillState: "empty" | "validated" | "mixed" | "not_validated" =
+        totalEvents === 0 ? "empty" :
+        validatedRatio >= 0.7 ? "validated" :
+        validatedRatio >= 0.3 ? "mixed" : "not_validated";
+
+      const pillConfig = {
+        empty:         { fill: [243, 244, 246], stroke: [156, 163, 175], txt: [55, 65, 81], label: "Sin información cargada", subtitle: "Subí documentos para empezar" },
+        validated:     { fill: [220, 252, 231], stroke: [16, 185, 129], txt: [6, 95, 70],   label: `Validación: ${validatedCount}/${totalEvents} eventos confirmados`, subtitle: "La mayoría revisado o cargado por veterinario" },
+        mixed:         { fill: [254, 243, 199], stroke: [245, 158, 11], txt: [146, 64, 14], label: `Validación parcial: ${validatedCount}/${totalEvents}`, subtitle: "Algunos eventos sin revisión humana" },
+        not_validated: { fill: [254, 226, 226], stroke: [239, 68, 68],  txt: [153, 27, 27], label: "Sin validación veterinaria", subtitle: "Información cargada por el tutor — sin revisar" },
+      } as const;
+      const cfg = pillConfig[pillState];
+      pdf.setFillColor(cfg.fill[0], cfg.fill[1], cfg.fill[2]);
+      pdf.setDrawColor(cfg.stroke[0], cfg.stroke[1], cfg.stroke[2]);
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(M, y, CW, 7, 1.5, 1.5, "FD");
+      pdf.setFontSize(8);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(cfg.txt[0], cfg.txt[1], cfg.txt[2]);
+      pdf.text(cfg.label, M + 3, y + 4.5);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(7);
+      pdf.text(cfg.subtitle, PW - M - 3, y + 4.5, { align: "right" });
+      y += 11;
+      pdf.setTextColor(25, 25, 25);
 
       if (aiSections) {
         // ── Renderer 10 secciones ────────────────────────────────────────────
@@ -1327,8 +1351,14 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         pdf.setFontSize(6.5);
         pdf.setFont("helvetica", "italic");
         pdf.setTextColor(120, 120, 120);
+        const footerByState = {
+          empty: "Pessy organiza información cargada por el tutor. Aún no hay documentos en este perfil.",
+          validated: "Información parcialmente validada por veterinarios. Conserva valor de referencia. No reemplaza un historial clínico oficial.",
+          mixed: "Información parcialmente validada. Los ítems sin marca de validación fueron cargados por el tutor sin revisión profesional.",
+          not_validated: "Pessy organiza la información cargada por el tutor. No reemplaza un historial clínico oficial ni constituye diagnóstico veterinario.",
+        } as const;
         pdf.text(
-          "Pessy organiza la información cargada por el tutor. No reemplaza un historial clínico oficial ni constituye diagnóstico veterinario.",
+          footerByState[pillState],
           PW / 2,
           287,
           { align: "center", maxWidth: PW - 2 * M }
