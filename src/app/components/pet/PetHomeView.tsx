@@ -23,10 +23,8 @@ import {
   WELLBEING_MASTER_BOOK,
   type WellbeingSpeciesGroupId,
 } from "../../../domain/wellbeing/wellbeingMasterBook";
-import HealthPulse from "../home/HealthPulse";
 import RoutineChecklist from "../home/RoutineChecklist";
 import { QuickActionsV2 } from "../home/QuickActionsV2";
-import LearningVideosSection from "../learning/LearningVideosSection";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -585,33 +583,10 @@ export function PetHomeView({
           </button>
         </SafeBoundary>
 
-        {/* 3. QUICK ACTIONS — navegación principal, alta prioridad de acción */}
-        <div className="mt-3">
-          <QuickActionsV2
-            pendingReviewCount={pendingReviewCount}
-            upcomingAppointments={appointmentCount}
-            activeMedications={medicationCount}
-          />
-        </div>
-
-        {/* 4. HEALTH PULSE — diagnóstico actual (vacunas, vet visits, condiciones) */}
-        <div className="mx-3 mt-2">
-          <HealthPulse
-            petName={activePet.name}
-            overdueVaccines={medicalHistoryInputs.overdueVaccineCount}
-            vaccineEventCount={medicalHistoryInputs.vaccineEventCount}
-            activeMedications={activeMedications.length}
-            lastVetVisitDaysAgo={medicalHistoryInputs.lastVetVisitDaysAgo}
-            recurringConditions={medicalHistoryInputs.recurringConditions || []}
-            upcomingAppointments={upcomingAppointments.length}
-          />
-        </div>
-
-        {/* 5. ROUTINE CHECKLIST — morning/evening/sleep según hora.
-            Si no hay rutina (sleep mode con 0 items), no rendereamos NADA
-            para evitar card decorativa "ya descansa". */}
+        {/* 3. ROUTINE CHECKLIST — actions for today: rutina del momento.
+            Si no hay rutina (sleep mode con 0 items), no rendereamos NADA. */}
         {currentRoutineItems && currentRoutineItems.length > 0 && (
-          <div className="mx-3 mt-2">
+          <div className="mx-3 mt-3">
             <RoutineChecklist
               title={routineTitle}
               icon={routineIcon}
@@ -622,11 +597,20 @@ export function PetHomeView({
           </div>
         )}
 
-        {/* 6. LEARNING VIDEOS — al final: contenido educativo opcional.
-            Matchea videos curados por especie + condiciones + edad. 0 matches → oculto. */}
-        <SafeBoundary name="LearningVideosSection">
-          <LearningVideosSection pet={activePet} />
-        </SafeBoundary>
+        {/* 4. QUICK ACTIONS — bottom: acciones rápidas (turnos / meds / historial).
+            Counts en badges = no necesitamos una HealthPulse separada. */}
+        <div className="mt-3">
+          <QuickActionsV2
+            pendingReviewCount={pendingReviewCount}
+            upcomingAppointments={appointmentCount}
+            activeMedications={medicationCount}
+          />
+        </div>
+
+        {/* HealthPulse + LearningVideos REMOVIDOS (cleanup 2026-04-26):
+            - HealthPulse duplicaba counts ya visibles en QuickActions badges
+            - LearningVideos era contenido educativo, no responde a "qué hago hoy"
+            La home ahora cumple regla de 5 segundos: Today Summary → Actions → Quick. */}
 
         {/* PreferencesNudge / ProfileNudge / PessyTeDice eliminados (Épica 6):
             estaban detrás de `false &&` desde el ajuste de UI kit v2. Si en el
