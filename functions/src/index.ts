@@ -2457,6 +2457,224 @@ export const generateClinicalSummary = functions
   };
   });
 
+// ═══════════════════════════════════════════════════════════════════════
+// pessyClinicalSummaryStructured — resumen clínico veterinario en 10
+// secciones, generado por el cerebro AI de Pessy (Gemini). Hardcodea el
+// prompt + schema en el backend para garantizar formato consistente.
+// Regla 2026-04-26: TODO export PDF de resumen médico DEBE usar esto.
+// ═══════════════════════════════════════════════════════════════════════
+const CLINICAL_SUMMARY_SYSTEM_PROMPT = `Sos un asistente clínico veterinario que genera RESÚMENES estructurados a partir de los documentos cargados de un paciente.
+
+Audiencia: principalmente veterinarios, pero el lenguaje debe ser claro para que también lo entienda el tutor.
+
+REGLAS ESTRICTAS — no negociables:
+- NO crear diagnósticos nuevos. Solo resumir lo que aparece en los documentos.
+- NO exponer información interna del sistema (documentos pendientes, alertas internas, validaciones técnicas, flags, IDs).
+- Si un dato no aparece en los documentos, escribir literalmente "No informado".
+- NO inventar dosis, fechas, profesionales ni instituciones.
+- Estilo: claro, profesional, humano, fácil de leer. Evitar jerga sin explicación.
+- Preferir narrativa sobre listas sueltas cuando se pueda.
+
+DEVOLVÉ UN JSON con la estructura definida en el schema. NO incluyas markdown ni texto fuera del JSON.`;
+
+const CLINICAL_SUMMARY_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    patient: {
+      type: "OBJECT",
+      properties: {
+        name: { type: "STRING" },
+        species: { type: "STRING" },
+        breed: { type: "STRING" },
+        sex: { type: "STRING" },
+        age: { type: "STRING" },
+        weight: { type: "STRING" },
+        tutor: { type: "STRING" },
+      },
+      required: ["name", "species", "breed", "sex", "age", "weight", "tutor"],
+    },
+    purpose: { type: "STRING" },
+    clinicalHistory: { type: "STRING" },
+    diagnoses: {
+      type: "OBJECT",
+      properties: {
+        confirmed: { type: "ARRAY", items: { type: "STRING" } },
+        findings: { type: "ARRAY", items: { type: "STRING" } },
+        suspected: { type: "ARRAY", items: { type: "STRING" } },
+      },
+      required: ["confirmed", "findings", "suspected"],
+    },
+    studies: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          date: { type: "STRING" },
+          type: { type: "STRING" },
+          mainFinding: { type: "STRING" },
+          professional: { type: "STRING" },
+        },
+        required: ["date", "type", "mainFinding", "professional"],
+      },
+    },
+    treatment: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          name: { type: "STRING" },
+          dose: { type: "STRING" },
+          frequency: { type: "STRING" },
+          route: { type: "STRING" },
+          indication: { type: "STRING" },
+          startDate: { type: "STRING" },
+          notes: { type: "STRING" },
+        },
+        required: ["name", "dose", "frequency", "route", "indication", "startDate", "notes"],
+      },
+    },
+    professionals: {
+      type: "OBJECT",
+      properties: {
+        persons: { type: "ARRAY", items: { type: "STRING" } },
+        institutions: { type: "ARRAY", items: { type: "STRING" } },
+      },
+      required: ["persons", "institutions"],
+    },
+    currentStatus: { type: "STRING" },
+    followUp: { type: "STRING" },
+    finalNote: { type: "STRING" },
+  },
+  required: [
+    "patient", "purpose", "clinicalHistory", "diagnoses",
+    "studies", "treatment", "professionals",
+    "currentStatus", "followUp", "finalNote",
+  ],
+};
+
+export const pessyClinicalSummaryStructured = functions
+  .runWith({ secrets: ["GEMINI_API_KEY"], timeoutSeconds: 90, memory: "512MB" })
+  .region("us-central1")
+  .https.onCall(async (data, context) => {
+    if (!context.auth?.uid) {
+      throw new functions.https.HttpsError("unauthenticated", "Iniciá sesión para generar el resumen.");
+    }
+    const petId = typeof data?.petId === "string" ? data.petId.trim() : "";
+    if (!petId) {
+      throw new functions.https.HttpsError("invalid-argument", "Falta petId.");
+    }
+
+    // Rate limit (anti wallet-drain Gemini)
+    const { checkRateLimitByTier } = await import("./utils/rateLimiter");
+    const userDoc = await admin.firestore().doc(`users/${context.auth.uid}`).get();
+    const isPremium = userDoc.exists && (
+      userDoc.data()?.plan === "premium" ||
+      userDoc.data()?.planType === "premium" ||
+      userDoc.data()?.subscriptionPlan === "premium"
+    );
+    const rl = await checkRateLimitByTier(context.auth.uid, "brain-query", isPremium);
+    if (!rl.allowed) {
+      throw new functions.https.HttpsError(
+        "resource-exhausted",
+        `Llegaste al límite de resúmenes. Volvé en ${Math.ceil(rl.resetInSeconds / 60)} min.`
+      );
+    }
+
+    // Verificación de ownership
+    const petSnap = await admin.firestore().doc(`pets/${petId}`).get();
+    if (!petSnap.exists) {
+      throw new functions.https.HttpsError("not-found", "Mascota no encontrada.");
+    }
+    const pet = petSnap.data() || {};
+    const isOwner = pet.ownerId === context.auth.uid;
+    const isCoTutor = Array.isArray(pet.coTutorUids) && pet.coTutorUids.includes(context.auth.uid);
+    if (!isOwner && !isCoTutor) {
+      throw new functions.https.HttpsError("permission-denied", "No tenés acceso a esta mascota.");
+    }
+
+    // Cargar eventos médicos (máx 200, ordenados por fecha)
+    const eventsSnap = await admin.firestore()
+      .collection("medical_events")
+      .where("petId", "==", petId)
+      .orderBy("createdAt", "desc")
+      .limit(200)
+      .get();
+    const events = eventsSnap.docs.map((d) => {
+      const e = d.data() || {};
+      const ed = e.extractedData || {};
+      const mp = ed.masterPayload || {};
+      const di = mp.document_info || ed.document_info || {};
+      return {
+        date: ed.eventDate || e.createdAt || null,
+        type: ed.eventType || e.type || di.document_type || "evento",
+        title: ed.title || e.title || di.title || null,
+        diagnoses: di.diagnoses || ed.diagnoses || null,
+        findings: di.findings || ed.findings || null,
+        treatment: di.treatment || ed.treatment || null,
+        medications: di.medications || ed.medications || null,
+        veterinarian: di.veterinarian_name || ed.veterinarian_name || null,
+        license: di.veterinarian_license || ed.veterinarian_license || null,
+        clinic: di.clinic_name || ed.clinic_name || null,
+        notes: di.notes || ed.notes || null,
+      };
+    });
+
+    // Patient context (sin datos sensibles ni internos)
+    const patientCtx = {
+      patient: {
+        name: pet.name || null,
+        species: pet.species || null,
+        breed: pet.breed || null,
+        sex: pet.sex || null,
+        age: pet.age || pet.birthDate || null,
+        weight: pet.weight || null,
+        tutor: pet.ownerName || null,
+      },
+      events,
+    };
+
+    const userPrompt = `Generá el resumen clínico estructurado del siguiente paciente.
+
+DATOS DEL PACIENTE Y DOCUMENTOS:
+${JSON.stringify(patientCtx, null, 2)}
+
+Recordá: NO inventar, NO diagnosticar, "No informado" para campos faltantes, JSON estricto según schema.`;
+
+    const startedAt = Date.now();
+    const { rawText, totalTokenCount } = await callGeminiBackend({
+      contents: [
+        { parts: [{ text: CLINICAL_SUMMARY_SYSTEM_PROMPT }] },
+        { parts: [{ text: userPrompt }] },
+      ],
+      generationConfig: {
+        temperature: 0.2,
+        topK: 1,
+        topP: 1,
+        maxOutputTokens: 4000,
+        responseMimeType: "application/json",
+        responseSchema: CLINICAL_SUMMARY_SCHEMA,
+      },
+    });
+
+    let sections;
+    try {
+      sections = JSON.parse(rawText);
+    } catch (e) {
+      throw new functions.https.HttpsError(
+        "internal",
+        "El cerebro AI devolvió formato inválido. Probá de nuevo."
+      );
+    }
+
+    return {
+      sections,
+      generatedAt: new Date().toISOString(),
+      eventCount: events.length,
+      tokensUsed: totalTokenCount,
+      processingTimeMs: Date.now() - startedAt,
+    };
+  });
+
 export const resolveBrainPayload = functions
   .region("us-central1")
   .https.onCall(async (data, context) => {
