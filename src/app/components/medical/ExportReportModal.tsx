@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
@@ -20,6 +21,7 @@ type ReportType = "health" | "vaccine" | "treatment";
 export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
   const [selectedReport, setSelectedReport] = useState<ReportType>("health");
   const [isGenerating, setIsGenerating] = useState(false);
+  const navigate = useNavigate();
 
   const { user, userName, userFullName } = useAuth();
   const { activePet } = usePet();
@@ -1388,6 +1390,13 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
     { id: "treatment" as ReportType, icon: "medication", title: "Plan de Cuidados", subtitle: "Rutinas actuales y proximos pasos sugeridos", color: "text-[#074738]", bg: "bg-[#E0F2F1]", border: "border-[#1A9B7D]", dot: "bg-[#1A9B7D]" },
   ];
 
+  // Provenance preview en modal: contar pendings antes de exportar (Fase 2)
+  const pendingReviewCount = activePet
+    ? getEventsByPetId(activePet.id).filter(
+        (e: any) => e.requiresManualConfirmation === true || e.workflowStatus === "review_required"
+      ).length
+    : 0;
+
   if (!isOpen) return null;
 
   return (
@@ -1402,6 +1411,32 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           <p className="text-sm text-slate-500 mt-0.5">Resumen legible de tu mascota para compartir cuando lo necesites</p>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+          {pendingReviewCount > 0 && (
+            <div className="rounded-[14px] border border-amber-300 bg-amber-50 px-4 py-3 flex items-start gap-3">
+              <div className="size-9 rounded-[10px] bg-amber-100 flex items-center justify-center shrink-0">
+                <MaterialIcon name="rule" className="text-amber-700 text-lg" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-amber-900 leading-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  {pendingReviewCount === 1
+                    ? "1 documento sin revisar"
+                    : `${pendingReviewCount} documentos sin revisar`}
+                </p>
+                <p className="text-[11px] text-amber-800 mt-1 leading-snug" style={{ fontFamily: "Manrope, sans-serif" }}>
+                  El PDF los va a incluir como “sin validar”. Revisalos antes para que aparezcan como confirmados.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { onClose(); navigate("/historial"); }}
+                  className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-amber-900 underline underline-offset-2"
+                  style={{ fontFamily: "Manrope, sans-serif" }}
+                >
+                  Ir a revisar
+                  <MaterialIcon name="arrow_forward" className="text-sm" />
+                </button>
+              </div>
+            </div>
+          )}
           {options.map((opt) => {
             const selected = selectedReport === opt.id;
             return (
