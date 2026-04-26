@@ -181,34 +181,42 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       const newPage = () => { pdf.addPage(); y = 20; };
       const checkY = (need = 14) => { if (y + need> 278) newPage(); };
 
-      let logoDataUrl: string | null = null;
-      try { logoDataUrl = await loadPessyLogo(); } catch { /* fallback to text-only header */ }
+      // Logo blanco (variante manual de marca para fondo verde oscuro)
+      let logoWhite: string | null = null;
+      try { logoWhite = await loadPessyLogo("white", 1024); } catch { /* fallback header text-only */ }
 
-      // ── HEADER ────────────────────────────────────────────────────────────
-      pdf.setFillColor(7, 71, 56); // #074738 Plano primary
-      pdf.rect(0, 0, PW, 28, "F");
-      pdf.setTextColor(255, 255, 255);
-      if (logoDataUrl) {
-        pdf.addImage(logoDataUrl, "PNG", M, 6, 16, 16);
-        pdf.setFontSize(16);
-        pdf.setFont("helvetica", "bold");
-        pdf.text("PESSY", M + 20, 17);
-      } else {
-        pdf.setFontSize(18);
-        pdf.setFont("helvetica", "bold");
-        pdf.text("PESSY", M, 17);
+      // ── HEADER (manual de marca Pessy — Plano Branding) ───────────────────
+      const HEADER_H = 38;
+      pdf.setFillColor(7, 71, 56); // #074738 primary
+      pdf.rect(0, 0, PW, HEADER_H, "F");
+
+      // Logo isotipo + wordmark "Pessy." (lockup horizontal del manual)
+      const LOGO_SIZE = 22; // mm — área de seguridad respetada
+      const LOGO_Y = (HEADER_H - LOGO_SIZE) / 2; // centrado vertical
+      if (logoWhite) {
+        pdf.addImage(logoWhite, "PNG", M, LOGO_Y, LOGO_SIZE, LOGO_SIZE);
       }
-      pdf.setFontSize(8);
-      pdf.setFont("helvetica", "normal");
-      pdf.text("Resumen informativo de tu mascota", logoDataUrl ? M + 20 : M, 23);
-      pdf.setFontSize(9);
+      // Wordmark "Pessy." en blanco — lowercase con punto, oficial del manual
+      const WORDMARK_X = logoWhite ? M + LOGO_SIZE + 4 : M;
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(22);
       pdf.setFont("helvetica", "bold");
-      pdf.text(TITLE_MAP[selectedReport], PW - M, 15, { align: "right" });
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(7.5);
-      pdf.text(`Generado: ${new Date().toLocaleDateString("es-AR")}`, PW - M, 21, { align: "right" });
+      pdf.text("Pessy.", WORDMARK_X, HEADER_H / 2 + 2.5);
 
-      y = 36;
+      // Columna derecha: tipo de reporte + fecha
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(TITLE_MAP[selectedReport], PW - M, HEADER_H / 2 - 1, { align: "right" });
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.text(
+        `Generado ${new Date().toLocaleDateString("es-AR")}`,
+        PW - M,
+        HEADER_H / 2 + 4.5,
+        { align: "right" }
+      );
+
+      y = HEADER_H + 8;
       pdf.setTextColor(25, 25, 25);
 
       // ── DATOS DE LA MASCOTA ───────────────────────────────────────────────

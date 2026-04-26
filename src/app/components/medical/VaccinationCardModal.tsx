@@ -43,33 +43,41 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
     const contentW = pageW - margin * 2;
     let y = 0;
 
-    let logoDataUrl: string | null = null;
-    try { logoDataUrl = await loadPessyLogo(); } catch { /* fallback to text-only header */ }
+    // Logo blanco (variante oficial del manual para fondo verde oscuro)
+    let logoWhite: string | null = null;
+    try { logoWhite = await loadPessyLogo("white", 1024); } catch { /* header text-only fallback */ }
 
-    // Header verde Plano primary
-    pdf.setFillColor(7, 71, 56);
-    pdf.rect(0, 0, pageW, 36, "F");
+    // ── HEADER (manual de marca Pessy — Plano Branding) ──────────────────
+    const HEADER_H = 40;
+    pdf.setFillColor(7, 71, 56); // #074738 primary
+    pdf.rect(0, 0, pageW, HEADER_H, "F");
     pdf.setTextColor(255, 255, 255);
-    if (logoDataUrl) {
-      pdf.addImage(logoDataUrl, "PNG", margin, 8, 20, 20);
-      pdf.setFontSize(20);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("PESSY", margin + 24, 18);
-      pdf.setFontSize(9);
-      pdf.setFont("helvetica", "normal");
-      pdf.text("Carnet de Vacunación", margin + 24, 25);
-    } else {
-      pdf.setFontSize(22);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("PESSY", margin, 16);
-      pdf.setFontSize(9);
-      pdf.setFont("helvetica", "normal");
-      pdf.text("Carnet de Vacunación", margin, 23);
+
+    const LOGO_SIZE = 24;
+    const LOGO_Y = (HEADER_H - LOGO_SIZE) / 2;
+    if (logoWhite) {
+      pdf.addImage(logoWhite, "PNG", margin, LOGO_Y, LOGO_SIZE, LOGO_SIZE);
     }
+    const WORDMARK_X = logoWhite ? margin + LOGO_SIZE + 5 : margin;
+    pdf.setFontSize(24);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Pessy.", WORDMARK_X, HEADER_H / 2 + 1.5);
+    pdf.setFontSize(9);
+    pdf.setFont("helvetica", "normal");
+    pdf.text("Carnet de Vacunación", WORDMARK_X, HEADER_H / 2 + 7);
+
+    // Fecha alineada derecha
+    pdf.setFontSize(8);
+    pdf.text(
+      `Generado ${new Date().toLocaleDateString("es-AR")}`,
+      pageW - margin,
+      HEADER_H / 2 + 1,
+      { align: "right" }
+    );
     pdf.setFontSize(8);
     pdf.text(`Generado: ${new Date().toLocaleDateString("es-AR")}`, pageW - margin, 23, { align: "right" });
 
-    y = 46;
+    y = HEADER_H + 8;
     pdf.setTextColor(30, 30, 30);
 
     // Pet info block
