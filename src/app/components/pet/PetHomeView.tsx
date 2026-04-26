@@ -534,7 +534,13 @@ export function PetHomeView({
             />
           </SafeBoundary>
           <SafeBoundary name="HomeGreetingV2">
-            <HomeGreetingV2 userName={userName} petName={activePet.name} />
+            <HomeGreetingV2
+              userName={userName}
+              petName={activePet.name}
+              pendingTodayCount={medicationCount + appointmentCount}
+              pendingReviewCount={pendingReviewCount}
+              overdueCount={medicalHistoryInputs.overdueVaccineCount}
+            />
           </SafeBoundary>
         </div>
 

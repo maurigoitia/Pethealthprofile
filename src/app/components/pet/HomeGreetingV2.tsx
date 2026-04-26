@@ -1,39 +1,71 @@
 interface Props {
   userName: string;
   petName: string;
+  /** Items pendientes hoy: meds + turnos del día. */
+  pendingTodayCount?: number;
+  /** Reviews pendientes en historial (docs por confirmar). */
+  pendingReviewCount?: number;
+  /** Recordatorios atrasados (overdue) */
+  overdueCount?: number;
 }
 
 /**
- * HomeGreetingV2 — Pessy App v2
- * Saludo dinámico por franja horaria + eyebrow.
- * "Buenos días, {user}. ¿Cómo está {pet} hoy?"
+ * HomeGreetingV2 — Pessy App v2 (rediseñado 2026-04-26)
+ *
+ * Regla del producto: Home no muestra saludos estáticos ("Buenos días").
+ * Solo muestra UNA línea CONTEXTUAL basada en data real. Si no hay nada
+ * que decir → no renderiza nada (silencio es correcto).
+ *
+ * Prioridad de mensaje:
+ * 1. overdueCount > 0 → mensaje urgencia
+ * 2. pendingTodayCount > 0 → mensaje del día
+ * 3. pendingReviewCount > 0 → mensaje docs por confirmar
+ * 4. nada → return null (Home no necesita relleno)
  */
-export function HomeGreetingV2({ userName, petName }: Props) {
-  const hour = new Date().getHours();
-  const salute =
-    hour < 6 ? "Buenas noches" :
-    hour < 13 ? "Buenos días" :
-    hour < 20 ? "Buenas tardes" :
-    "Buenas noches";
-
-  const displayName = userName?.trim() || "vos";
+export function HomeGreetingV2({
+  petName,
+  pendingTodayCount = 0,
+  pendingReviewCount = 0,
+  overdueCount = 0,
+}: Props) {
   const displayPet = petName?.trim() || "tu mascota";
 
+  let line: string | null = null;
+  let accent: string = "#074738";
+
+  if (overdueCount > 0) {
+    line =
+      overdueCount === 1
+        ? `${displayPet} tiene 1 recordatorio atrasado`
+        : `${displayPet} tiene ${overdueCount} recordatorios atrasados`;
+    accent = "#EF4444";
+  } else if (pendingTodayCount > 0) {
+    line =
+      pendingTodayCount === 1
+        ? `Hoy: 1 cosa para ${displayPet}`
+        : `Hoy: ${pendingTodayCount} cosas para ${displayPet}`;
+    accent = "#1A9B7D";
+  } else if (pendingReviewCount > 0) {
+    line =
+      pendingReviewCount === 1
+        ? `1 documento esperando que lo confirmes`
+        : `${pendingReviewCount} documentos esperando que los confirmes`;
+    accent = "#074738";
+  }
+
+  if (!line) return null;
+
   return (
-    <div className="px-[18px] pt-3.5 pb-4">
-      <span
-        className="block text-[10px] font-[800] uppercase text-[#1A9B7D] mb-2"
-        style={{ letterSpacing: "0.28em", fontFamily: "'Manrope', sans-serif" }}
-      >
-        Tu mascota, sus cosas
-      </span>
+    <div className="px-[18px] pt-3.5 pb-2">
       <h1
-        className="text-[28px] font-[800] text-[#074738] leading-[1.06]"
-        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.025em" }}
+        className="text-[22px] font-[800] leading-[1.15]"
+        style={{
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          letterSpacing: "-0.02em",
+          color: accent,
+        }}
       >
-        {salute}, {displayName}.
-        <br />
-        <span className="text-[#1A9B7D]">¿Cómo está {displayPet} hoy?</span>
+        {line}
       </h1>
     </div>
   );
