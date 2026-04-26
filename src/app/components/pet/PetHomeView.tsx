@@ -537,6 +537,7 @@ export function PetHomeView({
             <HomeGreetingV2
               userName={userName}
               petName={activePet.name}
+              petId={activePet.id}
               pendingTodayCount={medicationCount + appointmentCount}
               pendingReviewCount={pendingReviewCount}
               overdueCount={medicalHistoryInputs.overdueVaccineCount}

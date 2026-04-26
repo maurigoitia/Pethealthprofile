@@ -2888,6 +2888,216 @@ Recordá: agrupar por contexto clínico + período cercano, tono Pessy humano, n
     };
   });
 
+// ═══════════════════════════════════════════════════════════════════════
+// pessyHomeIntelligence — Dynamic Message Engine para el Home
+// Devuelve { state, message, alerts, recommendation, actions, tone }
+// Reemplaza saludos estáticos por contexto AI basado en data real.
+// Reglas: NO frases genéricas, NO clinical, mensaje vacío permitido.
+// ═══════════════════════════════════════════════════════════════════════
+const HOME_INTELLIGENCE_SYSTEM = `Sos el cerebro de Pessy. Generás UN mensaje contextual para el Home del tutor.
+
+REGLAS ESTRICTAS:
+- NO frases genéricas: prohibido "todo en orden", "salud al día", "buenos días", "buen día", "todo bien".
+- NO inventar tareas, alertas, fechas, profesionales.
+- Mensaje corto: máx 1-2 líneas (≤120 chars).
+- Si no hay nada relevante que decir → message = "" (vacío). El UI maneja silencio con animación.
+- Tono humano, calmo, directo. NO clínico.
+- 1 sola recomendación máx (opcional). Vacía si no aplica.
+
+CLASIFICACIÓN DE state (uno solo):
+- "needs_action": hay tareas/recordatorios pendientes hoy o atrasados
+- "upcoming": hay turnos/eventos en próximos días, nada hoy
+- "recent_change": episodio reciente o cambio importante (últimos 7 días)
+- "stable": sin nada relevante → message vacío
+
+tone (uno solo): "neutral" | "alert" | "positive"
+
+actions = lista corta de strings de acción ("ver rutina", "ver turno", "ver historial"). Máx 3.
+
+DEVOLVÉ JSON estricto del schema. NO markdown.`;
+
+const HOME_INTELLIGENCE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    state: { type: "STRING" }, // needs_action | upcoming | recent_change | stable
+    message: { type: "STRING" },
+    alerts: { type: "ARRAY", items: { type: "STRING" } },
+    recommendation: { type: "STRING" },
+    actions: { type: "ARRAY", items: { type: "STRING" } },
+    tone: { type: "STRING" }, // neutral | alert | positive
+  },
+  required: ["state", "message", "alerts", "recommendation", "actions", "tone"],
+};
+
+export const pessyHomeIntelligence = functions
+  .runWith({ secrets: ["GEMINI_API_KEY"], timeoutSeconds: 30, memory: "256MB" })
+  .region("us-central1")
+  .https.onCall(async (data, context) => {
+    if (!context.auth?.uid) {
+      throw new functions.https.HttpsError("unauthenticated", "Iniciá sesión.");
+    }
+    const petId = typeof data?.petId === "string" ? data.petId.trim() : "";
+    if (!petId) {
+      throw new functions.https.HttpsError("invalid-argument", "Falta petId.");
+    }
+
+    // Rate limit: este se llama en cada Home view, sé generoso pero acotá
+    const { checkRateLimitByTier } = await import("./utils/rateLimiter");
+    const userDoc = await admin.firestore().doc(`users/${context.auth.uid}`).get();
+    const isPremium = userDoc.exists && (
+      userDoc.data()?.plan === "premium" ||
+      userDoc.data()?.planType === "premium" ||
+      userDoc.data()?.subscriptionPlan === "premium"
+    );
+    const rl = await checkRateLimitByTier(context.auth.uid, "brain-query", isPremium);
+    if (!rl.allowed) {
+      // No bloquear: devolver fallback silencioso para no romper Home
+      return {
+        state: "stable",
+        message: "",
+        alerts: [],
+        recommendation: "",
+        actions: [],
+        tone: "neutral",
+        rateLimited: true,
+      };
+    }
+
+    // Verify ownership
+    const petSnap = await admin.firestore().doc(`pets/${petId}`).get();
+    if (!petSnap.exists) {
+      throw new functions.https.HttpsError("not-found", "Mascota no encontrada.");
+    }
+    const pet = petSnap.data() || {};
+    const isOwner = pet.ownerId === context.auth.uid;
+    const isCoTutor = Array.isArray(pet.coTutorUids) && pet.coTutorUids.includes(context.auth.uid);
+    if (!isOwner && !isCoTutor) {
+      throw new functions.https.HttpsError("permission-denied", "Sin acceso.");
+    }
+
+    // Cargar contexto en paralelo
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const fourteenDaysAhead = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+
+    const [recentEventsSnap, upcomingApptSnap, activeMedsSnap] = await Promise.all([
+      admin.firestore()
+        .collection("medical_events")
+        .where("petId", "==", petId)
+        .orderBy("createdAt", "desc")
+        .limit(15)
+        .get(),
+      admin.firestore()
+        .collection("appointments")
+        .where("petId", "==", petId)
+        .where("status", "==", "upcoming")
+        .limit(10)
+        .get(),
+      admin.firestore()
+        .collection("medications")
+        .where("petId", "==", petId)
+        .where("status", "==", "active")
+        .limit(20)
+        .get(),
+    ]);
+
+    const recentEvents = recentEventsSnap.docs.map((d) => {
+      const e = d.data() || {};
+      const ed = e.extractedData || {};
+      const di = (ed.masterPayload || {}).document_info || ed.document_info || {};
+      return {
+        date: ed.eventDate || e.createdAt || null,
+        type: ed.eventType || e.type || di.document_type || "evento",
+        title: di.title || ed.title || null,
+        diagnoses: di.diagnoses || null,
+      };
+    }).filter((e) => !e.date || String(e.date) >= sevenDaysAgo).slice(0, 8);
+
+    const upcomingAppointments = upcomingApptSnap.docs.map((d) => {
+      const a = d.data() || {};
+      return {
+        date: a.date,
+        veterinarian: a.veterinarian || null,
+        title: a.title || null,
+      };
+    }).filter((a) => !a.date || (String(a.date) >= todayStart && String(a.date) <= fourteenDaysAhead));
+
+    const activeMeds = activeMedsSnap.docs.map((d) => {
+      const m = d.data() || {};
+      return {
+        name: m.name || m.medication || "Medicamento",
+        dose: m.dose || m.dosage || null,
+        frequency: m.frequency || null,
+      };
+    });
+
+    const ctx = {
+      pet: {
+        name: pet.name || null,
+        species: pet.species || null,
+        breed: pet.breed || null,
+        age: pet.age || null,
+        conditions: pet.conditions || pet.knownConditions || [],
+      },
+      todayDate: today.toISOString().slice(0, 10),
+      todayCounts: {
+        activeMedications: activeMeds.length,
+        upcomingAppointments: upcomingAppointments.length,
+      },
+      activeMedications: activeMeds,
+      upcomingAppointments,
+      recentEvents,
+    };
+
+    const userPrompt = `Generá el mensaje contextual del Home para esta mascota.
+
+CONTEXTO:
+${JSON.stringify(ctx, null, 2)}
+
+Recordá: si no hay nada relevante → message vacío + state="stable". Tono Pessy humano, no clínico, no genérico.`;
+
+    let parsed: Record<string, unknown>;
+    try {
+      const { rawText } = await callGeminiBackend({
+        contents: [
+          { parts: [{ text: HOME_INTELLIGENCE_SYSTEM }] },
+          { parts: [{ text: userPrompt }] },
+        ],
+        generationConfig: {
+          temperature: 0.3,
+          topK: 1,
+          topP: 1,
+          maxOutputTokens: 400,
+          responseMimeType: "application/json",
+          responseSchema: HOME_INTELLIGENCE_SCHEMA,
+        },
+      });
+      parsed = JSON.parse(rawText);
+    } catch {
+      // Fallback silencioso si Gemini falla → no romper Home
+      return {
+        state: "stable",
+        message: "",
+        alerts: [],
+        recommendation: "",
+        actions: [],
+        tone: "neutral",
+        fallback: true,
+      };
+    }
+
+    return {
+      state: parsed.state || "stable",
+      message: parsed.message || "",
+      alerts: Array.isArray(parsed.alerts) ? parsed.alerts.slice(0, 3) : [],
+      recommendation: parsed.recommendation || "",
+      actions: Array.isArray(parsed.actions) ? parsed.actions.slice(0, 3) : [],
+      tone: parsed.tone || "neutral",
+      generatedAt: new Date().toISOString(),
+    };
+  });
+
 export const resolveBrainPayload = functions
   .region("us-central1")
   .https.onCall(async (data, context) => {
