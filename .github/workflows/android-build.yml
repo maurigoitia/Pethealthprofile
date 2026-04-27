@@ -37,15 +37,15 @@ jobs:
         run: npm ci --force && npm run build
 
       - name: Sync Capacitor
-        run: npx cap sync android
+        run: cd apps/mobile && npx cap sync android
 
       - name: Decode keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/pessy-release.keystore
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > apps/mobile/android/app/pessy-release.keystore
 
       - name: Write key.properties
         run: |
-          cat > android/key.properties <<EOF
+          cat > apps/mobile/android/key.properties <<EOF
           storePassword=${{ secrets.KEYSTORE_PASSWORD }}
           keyPassword=${{ secrets.KEY_PASSWORD }}
           keyAlias=${{ secrets.KEY_ALIAS }}
@@ -53,15 +53,15 @@ jobs:
           EOF
 
       - name: Build release AAB
-        run: cd android && ./gradlew bundleRelease --no-daemon
+        run: cd apps/mobile/android && ./gradlew bundleRelease --no-daemon
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: pessy-release-aab-${{ github.ref_name }}
-          path: android/app/build/outputs/bundle/release/app-release.aab
+          path: apps/mobile/android/app/build/outputs/bundle/release/app-release.aab
           retention-days: 30
 
       - name: Clean secrets
         if: always()
-        run: rm -f android/app/pessy-release.keystore android/key.properties
+        run: rm -f apps/mobile/android/app/pessy-release.keystore apps/mobile/android/key.properties
