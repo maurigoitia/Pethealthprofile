@@ -17,6 +17,60 @@ interface ExportReportModalProps {
 
 type ReportType = "health" | "vaccine" | "treatment";
 
+// Feature flag: when true, the export PDF uses the new source-backed
+// callable (pessyExportSourceBacked). When false, falls back to the
+// legacy pessyClinicalSummaryStructured (prompt-only) path.
+// Toggling this constant requires a code change + redeploy — it is not
+// a runtime-configurable kill switch.
+const USE_SOURCE_BACKED_EXPORT = true;
+
+// ── Source-backed payload shape (mirrors functions/src/export/types.ts) ──
+type SBDocumentedSource =
+  | "vet_document"
+  | "vaccination_card"
+  | "lab_pdf"
+  | "prescription";
+interface SBDiagnosis {
+  id: string;
+  condition: string;
+  date: string;
+  source: SBDocumentedSource;
+  sourceEventIds: string[];
+}
+interface SBObservation {
+  id: string;
+  text: string;
+  date: string;
+  source: "tutor_input";
+  sourceEventIds: string[];
+}
+interface SBTreatment {
+  id: string;
+  name: string;
+  date: string;
+  source: SBDocumentedSource;
+  sourceEventIds: string[];
+}
+interface SBVaccination {
+  id: string;
+  name: string;
+  date: string;
+  source: SBDocumentedSource;
+  sourceEventIds: string[];
+}
+interface SourceBackedExportPayload {
+  petId: string;
+  petName: string | null;
+  safeTemplate: boolean;
+  documentedDiagnoses: SBDiagnosis[];
+  observations: SBObservation[];
+  vaccinations: SBVaccination[];
+  treatments: SBTreatment[];
+  // suggestedQuestionsForVet stays empty in this PR by design.
+  suggestedQuestionsForVet: string[];
+  generatedAt: string;
+}
+
 export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
   const [selectedReport, setSelectedReport] = useState<ReportType>("health");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -337,17 +391,143 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       let aiSections: AISections | null = null;
       let provenanceMix: ProvenanceMix | null = null;
       let validatedRatio = 0;
-      try {
-        const callAI = httpsCallable<
-          { petId: string },
-          { sections: AISections; provenanceMix?: ProvenanceMix; validatedRatio?: number }
-        >(fbFunctions, "pessyClinicalSummaryStructured");
-        const aiResult = await callAI({ petId: activePet.id });
-        aiSections = aiResult.data?.sections || null;
-        provenanceMix = aiResult.data?.provenanceMix || null;
-        validatedRatio = aiResult.data?.validatedRatio || 0;
-      } catch (err) {
-        console.warn("[ExportReport] cerebro AI falló, uso renderer local:", err);
+
+      // ── Adapter: source-backed payload → existing 10-section AISections ──
+      // We only ever populate `diagnoses.confirmed` from documented sources.
+      // Observations from tutor_input never become confirmed claims. Sections
+      // we cannot ground in Firestore-loaded data (studies, professionals,
+      // currentStatus, followUp narrative) stay intentionally empty / generic.
+      const buildSectionsFromPayload = (p: SourceBackedExportPayload): AISections => {
+        const pet = activePet!;
+        const documentedCount = p.documentedDiagnoses.length;
+        const observationCount = p.observations.length;
+        const treatmentCount = p.treatments.length;
+        const vaccinationCount = p.vaccinations.length;
+
+        const historyParts: string[] = [];
+        if (documentedCount > 0) {
+          historyParts.push(
+            `${documentedCount} diagnóstico${documentedCount === 1 ? "" : "s"} documentado${documentedCount === 1 ? "" : "s"} en archivos cargados.`,
+          );
+        }
+        if (vaccinationCount > 0) {
+          historyParts.push(
+            `${vaccinationCount} vacuna${vaccinationCount === 1 ? "" : "s"} registrada${vaccinationCount === 1 ? "" : "s"}.`,
+          );
+        }
+        if (treatmentCount > 0) {
+          historyParts.push(
+            `${treatmentCount} tratamiento${treatmentCount === 1 ? "" : "s"} documentado${treatmentCount === 1 ? "" : "s"}.`,
+          );
+        }
+        if (observationCount > 0) {
+          historyParts.push(
+            `${observationCount} observación${observationCount === 1 ? "" : "es"} cargada${observationCount === 1 ? "" : "s"} por el tutor (sin verificación clínica).`,
+          );
+        }
+        const clinicalHistory = historyParts.length
+          ? historyParts.join(" ")
+          : "Sin información clínica documentada cargada.";
+
+        return {
+          patient: {
+            name: p.petName || pet.name || "",
+            species: pet.species || "",
+            breed: pet.breed || "",
+            sex: pet.sex || "",
+            age: pet.age || (pet as { birthDate?: string }).birthDate || "",
+            weight: pet.weight ? String(pet.weight) : "",
+            tutor: userFullName || userName || "",
+          },
+          purpose:
+            "Reporte de salud generado por Pessy a partir de los documentos y datos cargados por el tutor.",
+          clinicalHistory,
+          diagnoses: {
+            confirmed: p.documentedDiagnoses.map((d) => `${d.condition}${d.date ? ` (${fmt(d.date)})` : ""}`),
+            findings: [],
+            suspected: [],
+          },
+          studies: [],
+          treatment: p.treatments.map((t) => ({
+            name: t.name,
+            dose: "",
+            frequency: "",
+            route: "",
+            indication: "",
+            startDate: t.date ? fmt(t.date) : "",
+            notes: "",
+          })),
+          professionals: { persons: [], institutions: [] },
+          currentStatus: "",
+          followUp:
+            "Consultá con tu veterinario para definir los próximos pasos de seguimiento.",
+          finalNote:
+            "Este reporte se generó a partir de documentos cargados por el tutor en Pessy. No reemplaza una evaluación clínica veterinaria. Cualquier decisión de tratamiento debe tomarla un profesional habilitado.",
+        };
+      };
+
+      const provenanceMixFromPayload = (
+        p: SourceBackedExportPayload,
+      ): ProvenanceMix => {
+        const documented = p.documentedDiagnoses.length + p.vaccinations.length + p.treatments.length;
+        const observation = p.observations.length;
+        const total = documented + observation;
+        return {
+          total,
+          // Documented bucket maps to the existing "validated" pair.
+          // We attribute it to tutor_confirmed since the underlying source
+          // could be either vet_input or tutor_confirmed; the renderer only
+          // sums them anyway.
+          vet_input: 0,
+          tutor_confirmed: documented,
+          ai_extraction: 0,
+          ai_pending_review: 0,
+          tutor_input: observation,
+        };
+      };
+
+      if (USE_SOURCE_BACKED_EXPORT) {
+        // Source-backed path. If this fails we DO NOT fall back to the
+        // legacy prompt-only callable — that would defeat the purpose of
+        // moving to source-backed safety. On failure we leave aiSections
+        // null so the existing local honest renderer takes over (no
+        // fabricated narrative).
+        try {
+          const callSB = httpsCallable<
+            { petId: string },
+            SourceBackedExportPayload
+          >(fbFunctions, "pessyExportSourceBacked");
+          const sbResult = await callSB({ petId: activePet.id });
+          const payload = sbResult.data;
+          if (payload) {
+            provenanceMix = provenanceMixFromPayload(payload);
+            validatedRatio =
+              provenanceMix.total > 0
+                ? provenanceMix.tutor_confirmed / provenanceMix.total
+                : 0;
+            // Empty pet → keep aiSections null so the local fallback renders
+            // the honest "no information yet" state. We do NOT fabricate a
+            // narrative for an empty pet.
+            aiSections = payload.safeTemplate ? null : buildSectionsFromPayload(payload);
+          }
+        } catch (err) {
+          console.warn("[ExportReport] source-backed export falló, uso renderer local:", err);
+        }
+      } else {
+        // Legacy prompt-only path. Only reachable if the feature flag above
+        // is flipped (requires a code change + redeploy).
+        try {
+          const callAI = httpsCallable<
+            { petId: string },
+            { sections: AISections; provenanceMix?: ProvenanceMix; validatedRatio?: number }
+          >(fbFunctions, "pessyClinicalSummaryStructured");
+          const aiResult = await callAI({ petId: activePet.id });
+          aiSections = aiResult.data?.sections || null;
+          provenanceMix = aiResult.data?.provenanceMix || null;
+          validatedRatio = aiResult.data?.validatedRatio || 0;
+        } catch (err) {
+          console.warn("[ExportReport] cerebro AI falló, uso renderer local:", err);
+        }
       }
 
       // ── PILL VALIDACIÓN (Fase 1: dinámica según provenance mix) ──────────
