@@ -1,0 +1,31 @@
+# Pessy
+
+Pessy es una app que organiza la vida cotidiana con mascotas — rutinas, salud, turnos veterinarios, identidad/pasaporte y documentos — todo en un solo lugar.
+
+Promesa de marca: "Tu mascota, sus cosas, todo en orden."
+
+## Producto
+
+Pessy ayuda a tutores de mascotas a tener la información de sus animales ordenada y disponible: rutinas diarias, recordatorios de vacunas y medicaciones, turnos veterinarios, perfil narrativo de la mascota, documentos y export de reportes. No es una app médica ni una herramienta clínica: es un asistente práctico y cercano que acompaña el día a día.
+
+Pilares principales:
+- Día a Día: pulso diario, check-ins y tips contextuales.
+- Rutinas: medicaciones, vacunas, turnos, baños, desparasitaciones.
+- Comunidad: adopción, mascotas perdidas/encontradas, exploración local.
+- Identidad Digital: pasaporte de la mascota, perfil, documentos y export.
+
+## Audiencia
+
+Tutores de mascotas en LATAM. Idioma principal: español (con foco rioplatense para AR/UY/PY y neutral para el resto de la región).
+
+## Páginas clave
+
+- https://pessy.app/
+- https://pessy.app/funciones/
+- https://pessy.app/blog.html
+- https://pessy.app/vs/
+- https://pessy.app/team/
+
+## Contacto
+
+hola@pessy.app
