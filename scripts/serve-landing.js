@@ -2,7 +2,7 @@
 /* ══════════════════════════════════════════════════════════════════════════
  *  serve-landing.js — ISOLATED DEV SERVER FOR THE LANDING PAGE
  *  ─────────────────────────────────────────────────────────────────────────
- *  Serves apps/website/ as plain static HTML on localhost:5174.
+ *  Serves apps/web/ as plain static HTML on localhost:5174.
  *  Zero dependencies on Vite, React, Tailwind, or the PWA bundle.
  *
  *  Why a standalone server?
@@ -19,7 +19,7 @@ import { extname, join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = resolve(__dirname, '..', 'apps', 'website');
+const ROOT = resolve(__dirname, '..', 'apps', 'web');
 const PORT = Number(process.env.LANDING_PORT || 5174);
 
 const MIME = {
@@ -57,7 +57,7 @@ const server = http.createServer(async (req, res) => {
   const filePath = await resolvePath(req.url);
   if (!filePath) {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('404 — not found in apps/website/');
+    res.end('404 — not found in apps/web/');
     return;
   }
   try {
@@ -74,7 +74,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`\n  🌐  Landing page (apps/website/) — isolated`);
+  console.log(`\n  🌐  Landing page (apps/web/) — isolated`);
   console.log(`      → http://localhost:${PORT}/\n`);
   console.log(`      This server is SEPARATE from the PWA dev server.`);
   console.log(`      PWA runs on :5173 (vite). Blog runs on :5175.\n`);

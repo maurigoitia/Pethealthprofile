@@ -15,24 +15,24 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    setupFiles: ["./apps/pwa/src/test/setup.ts"],
+    include: ["apps/pwa/src/**/*.{test,spec}.{ts,tsx}"],
     exclude: ["node_modules", "dist", "android", "ios"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
       include: [
-        "src/app/utils/**",
-        "src/app/services/**",
-        "src/app/config/**",
-        "src/i18n/**",
+        "apps/pwa/src/app/utils/**",
+        "apps/pwa/src/app/services/**",
+        "apps/pwa/src/app/config/**",
+        "apps/pwa/src/i18n/**",
       ],
       exclude: ["**/*.test.*", "**/*.spec.*", "**/node_modules/**"],
     },
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(__dirname, "./apps/pwa/src"),
     },
     conditions: ["development", "browser"],
   },

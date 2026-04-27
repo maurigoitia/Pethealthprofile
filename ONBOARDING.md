@@ -38,7 +38,7 @@ Top MCP Servers:
 ## Team Tips
 
 - **Worktrees nuevos necesitan `.env.local` copiado a mano.** Git no trae untracked files al worktree. Sin `.env.local`, `src/lib/firebase.ts` tira `VITE_FIREBASE_PROJECT_ID no configurado` y la PWA rinde en blanco sin errores visibles. Copialo del repo principal antes de arrancar.
-- **Landing es 100% self-contained en `apps/website/`.** Nunca importes de `public/` — eso es territorio PWA. Los 3 entornos (PWA, landing, blog) corren en procesos separados (`:5173`/`:5174`/`:5175`) y no comparten assets. Contrato completo en `ENVIRONMENTS.md`.
+- **Landing es 100% self-contained en `apps/web/`.** Nunca importes de `public/` — eso es territorio PWA. Los 3 entornos (PWA, landing, blog) corren en procesos separados (`:5173`/`:5174`/`:5175`) y no comparten assets. Contrato completo en `ENVIRONMENTS.md`.
 - **Pessy NO es medical app.** Rechazá cualquier copy/brief que diga "health tracking", "historia clínica", "medical history", "clinical". Los 4 pilares son Día a Día, Rutinas, Comunidad, Identidad Digital — el medical layer vive *detrás*, nunca es la cara.
 - **Usá `superpowers:brainstorming` antes de planificar cosas no triviales.** Reemplaza el deprecated `/superpowers:brainstorm`. Arrancá con brainstorming, después con implementation skills.
 - **Para QA visual usá Claude Preview, no screenshots manuales.** Es nuestro tool #2 más usado (~104 calls/mes). Spin-up de dev servers vía `.claude/launch.json`, después `preview_screenshot` / `preview_eval` / `preview_click` — nada de pedirle al usuario que "mire la pantalla y me diga".
@@ -55,7 +55,7 @@ Primer ejercicio práctico — te hace tocar los 3 entornos y el contrato de sep
    - `npm run dev:blog` → http://localhost:5175
 3. Verificá que los 3 rinden algo distinto (PWA React app, landing HTML estático, blog HTML estático)
 4. Leé `CLAUDE.md` y `ENVIRONMENTS.md` completos
-5. Preguntale a Claude Code: *"explicame el environment separation contract de Pessy y por qué el landing no puede importar de `src/`"*
+5. Preguntale a Claude Code: *"explicame el environment separation contract de Pessy y por qué el landing no puede importar de `apps/pwa/src/`"*
 
 Si podés responder esa última pregunta con tus palabras, estás listo para tomar tickets.
 

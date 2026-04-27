@@ -186,7 +186,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(__dirname, './apps/pwa/src'),
     },
   },
   assetsInclude: ['**/*.svg', '**/*.csv'],
@@ -208,8 +208,8 @@ export default defineConfig({
           'vendor-lucide': ['lucide-react'],
           // App code
           'app-utils': [
-            './src/app/utils/clinicalBrain',
-            './src/app/utils/deduplication',
+            './apps/pwa/src/app/utils/clinicalBrain',
+            './apps/pwa/src/app/utils/deduplication',
           ],
         },
       },

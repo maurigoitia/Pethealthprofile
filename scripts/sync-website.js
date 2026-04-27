@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // sync-website.js
-// Copia apps/website/ -> public/ antes del build de Vite.
+// Copia apps/web/ -> public/ antes del build de Vite.
 // La landing (index.html) es HTML puro sin deps locales.
-// apps/website/ es la fuente de verdad del monorepo.
+// apps/web/ es la fuente de verdad del monorepo.
 //
 // Sincroniza:
-//   apps/website/index.html   -> public/index.html
-//   apps/website/og-cover.png -> public/og-cover.png
+//   apps/web/index.html   -> public/index.html
+//   apps/web/og-cover.png -> public/og-cover.png
 //
 // NO se mueven: firebase-messaging-sw.js, pwa-*.png,
 // apple-touch-icon.png, pessy-logo.*, .well-known/,
@@ -18,7 +18,7 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
-const SRC  = resolve(ROOT, 'apps/website');
+const SRC  = resolve(ROOT, 'apps/web');
 const DST  = resolve(ROOT, 'public');
 
 // Individual files to sync
@@ -27,7 +27,7 @@ const FILES = ['index.html', 'og-cover.png'];
 // Directories to sync (recursive)
 const DIRS = ['team'];
 
-console.log('sync-website: copying apps/website/ -> public/');
+console.log('sync-website: copying apps/web/ -> public/');
 
 FILES.forEach(f => {
   const src = resolve(SRC, f);
