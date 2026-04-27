@@ -101,7 +101,7 @@ Set these in **Settings → Branches → Add rule**.
 | `storage.rules` | infra/security | Deployed only from `main` |
 | `functions/` | backend | Deployed only from `main` |
 | `src/` | frontend PWA | Deployed via hosting (both staging and prod) |
-| `apps/website/` | landing | Static, copied to dist by postbuild |
+| `apps/web/` | landing | Static, copied to dist by postbuild |
 | `apps/blog/` | blog | Static, copied to dist by postbuild |
 | `capacitor.config.ts`, `ios/`, `android/` | mobile | Wraps the same `dist/` |
 

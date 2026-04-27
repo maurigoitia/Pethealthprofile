@@ -7,12 +7,12 @@
 | Environment | Source | Dev server | Entry file |
 |-------------|--------|-----------|-----------|
 | PWA (React) | `src/` | `npm run dev:pwa` → :5173 | `app.html` |
-| Landing page | `apps/website/` | `npm run dev:landing` → :5174 | `apps/website/index.html` |
+| Landing page | `apps/web/` | `npm run dev:landing` → :5174 | `apps/web/index.html` |
 | Blog | `apps/blog/` | `npm run dev:blog` → :5175 | `apps/blog/blog.html` |
 
 **NEVER** cross these boundaries:
-- Do NOT import `apps/website/*` or `apps/blog/*` from `src/`
-- Do NOT import `src/*` from `apps/website/*` or `apps/blog/*`
+- Do NOT import `apps/web/*` or `apps/blog/*` from `src/`
+- Do NOT import `src/*` from `apps/web/*` or `apps/blog/*`
 - Do NOT edit `vite.config.ts` to handle landing or blog — Vite is PWA-only
 - Do NOT unify `npm run dev` into a multiplexer — each env has its own command
 - Do NOT add React/Tailwind/Vite deps for landing or blog use

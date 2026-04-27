@@ -9,16 +9,16 @@
  * React, Vite, or TypeScript. By copying them AFTER the Vite build:
  *
  *   1. A broken Vite build cannot corrupt landing/blog files
- *   2. Landing files always come fresh from apps/website/ (source of truth)
+ *   2. Landing files always come fresh from apps/web/ (source of truth)
  *   3. Vite's output never overwrites the landing page
  *
  * This is the core of the "environment separation" — the PWA build pipeline
  * and the static website pipeline share dist/ but never interfere.
  *
  * Syncs:
- *   apps/website/index.html   → dist/index.html
- *   apps/website/og-cover.png → dist/og-cover.png
- *   apps/website/team/        → dist/team/
+ *   apps/web/index.html   → dist/index.html
+ *   apps/web/og-cover.png → dist/og-cover.png
+ *   apps/web/team/        → dist/team/
  *   apps/blog/blog.html       → dist/blog.html
  *   apps/blog/articles/       → dist/blog/
  */
@@ -32,7 +32,7 @@ const ROOT = resolve(__dirname, '..');
 const DIST = resolve(ROOT, 'dist');
 
 // ── Website (landing page) ──────────────────────────────────────────
-const WEBSITE_SRC = resolve(ROOT, 'apps/website');
+const WEBSITE_SRC = resolve(ROOT, 'apps/web');
 const WEBSITE_FILES = ['index.html', 'og-cover.png'];
 const WEBSITE_DIRS = ['team', 'vs', 'funciones'];
 
