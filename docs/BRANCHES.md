@@ -100,7 +100,7 @@ Set these in **Settings → Branches → Add rule**.
 | `firestore.indexes.json` | infra | Deployed only from `main` |
 | `storage.rules` | infra/security | Deployed only from `main` |
 | `functions/` | backend | Deployed only from `main` |
-| `src/` | frontend PWA | Deployed via hosting (both staging and prod) |
+| `apps/pwa/src/` | frontend PWA | Deployed via hosting (both staging and prod) |
 | `apps/web/` | landing | Static, copied to dist by postbuild |
 | `apps/blog/` | blog | Static, copied to dist by postbuild |
 | `capacitor.config.ts`, `ios/`, `android/` | mobile | Wraps the same `dist/` |

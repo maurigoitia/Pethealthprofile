@@ -55,7 +55,7 @@ Primer ejercicio práctico — te hace tocar los 3 entornos y el contrato de sep
    - `npm run dev:blog` → http://localhost:5175
 3. Verificá que los 3 rinden algo distinto (PWA React app, landing HTML estático, blog HTML estático)
 4. Leé `CLAUDE.md` y `ENVIRONMENTS.md` completos
-5. Preguntale a Claude Code: *"explicame el environment separation contract de Pessy y por qué el landing no puede importar de `src/`"*
+5. Preguntale a Claude Code: *"explicame el environment separation contract de Pessy y por qué el landing no puede importar de `apps/pwa/src/`"*
 
 Si podés responder esa última pregunta con tus palabras, estás listo para tomar tickets.
 
