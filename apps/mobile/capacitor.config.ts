@@ -3,7 +3,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 const config: CapacitorConfig = {
   appId: "app.pessy.mobile",
   appName: "Pessy",
-  webDir: "dist",
+  webDir: "../../dist",
   server: {
     androidScheme: "https",
   },

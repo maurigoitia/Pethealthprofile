@@ -35,18 +35,18 @@ echo ""
 echo "── Android ──"
 warn  "Android SDK (ANDROID_HOME)"   "test -n \"\${ANDROID_HOME:-}\" && test -d \"\$ANDROID_HOME\"" \
       "Set ANDROID_HOME env var (Android Studio → SDK Manager)"
-check "google-services.json"     "test -f android/app/google-services.json" \
+check "google-services.json"     "test -f apps/mobile/android/app/google-services.json" \
       "Download from Firebase Console → Project Settings → Android app"
-check "Android icons exist"      "test -f android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png" \
+check "Android icons exist"      "test -f apps/mobile/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png" \
       "Run icon generation script or add icons manually"
 
 echo ""
 echo "── iOS ──"
 warn  "Xcode CLI tools"          "xcode-select -p"         "Run: xcode-select --install"
 warn  "CocoaPods installed"      "command -v pod"           "Run: sudo gem install cocoapods"
-check "GoogleService-Info.plist" "test -f ios/App/App/GoogleService-Info.plist" \
+check "GoogleService-Info.plist" "test -f apps/mobile/ios/App/App/GoogleService-Info.plist" \
       "Download from Firebase Console → Project Settings → iOS app"
-check "iOS icons exist"          "test -f ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png" \
+check "iOS icons exist"          "test -f apps/mobile/ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png" \
       "Run icon generation or add icons manually"
 
 echo ""
@@ -63,6 +63,6 @@ if [ "$FAIL" -gt 0 ]; then
   exit 1
 else
   echo -e "${GREEN}Ready to build! Next steps:${NC}"
-  echo "  npm run build && npx cap sync"
-  echo "  npx cap open android   # or: npx cap open ios"
+  echo "  npm run build && npm run cap:sync"
+  echo "  npm run cap:open:android   # or: npm run cap:open:ios"
 fi
