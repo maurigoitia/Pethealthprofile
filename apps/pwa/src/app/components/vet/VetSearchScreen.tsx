@@ -278,8 +278,17 @@ function TreatingVetsSection({ petId, petName }: { petId: string | null; petName
 
   if (!petId) return null;
 
-  const showSection = vets.length > 0 || extracting || vetsLoading;
-  if (!showSection && !extractionError) return null;
+  // Decoupled rendering rules:
+  // - The listener (useExtractedVets) is the source of truth for what shows
+  //   on screen. The callable is a refresh trigger only — never a gate.
+  // - On callable failure we degrade to an inline warning above the list,
+  //   never to a blank screen or a hard error in place of content.
+  // - When nothing has been extracted yet AND nothing is loading AND there
+  //   is no error, we render an explicit empty state instead of hiding the
+  //   whole section. The user should see why the list looks empty.
+  const hasData = vets.length > 0;
+  const isLoading = extracting || vetsLoading;
+  const hasError = !!extractionError;
 
   return (
     <div>
@@ -308,21 +317,54 @@ function TreatingVetsSection({ petId, petName }: { petId: string | null; petName
         </button>
       </div>
 
-      {extractionError && (
-        <p style={{ fontSize: 11, color: "#B91C1C", marginBottom: 8 }}>{extractionError}</p>
+      {hasError && (
+        <div
+          style={{
+            fontSize: 11,
+            color: "#92400E",
+            background: "#FEF3C7",
+            border: "1px solid #FCD34D",
+            borderRadius: 8,
+            padding: "6px 10px",
+            marginBottom: 8,
+          }}
+          role="status"
+        >
+          {hasData
+            ? "No pudimos actualizar contactos externos por ahora. Mostramos los profesionales detectados en el historial."
+            : "No pudimos actualizar la lista. Cuando subas más documentos del vet, los nombres van a aparecer acá."}
+        </div>
       )}
 
-      {vets.length === 0 && (extracting || vetsLoading) ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <SkeletonCard />
-          <SkeletonCard />
-        </div>
-      ) : (
+      {hasData && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {vets.map((v) => (
             <ExtractedVetCard key={v.id} vet={v} />
           ))}
         </div>
+      )}
+
+      {!hasData && isLoading && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      )}
+
+      {!hasData && !isLoading && !hasError && (
+        <p
+          style={{
+            fontSize: 12,
+            color: "#6B7280",
+            background: "#F9FAFB",
+            border: "1px dashed #E5E7EB",
+            borderRadius: 8,
+            padding: "10px 12px",
+            margin: 0,
+          }}
+        >
+          Aún no detectamos veterinarios en el historial de tu mascota. A medida que cargues documentos, los profesionales y clínicas se van a listar acá.
+        </p>
       )}
     </div>
   );
