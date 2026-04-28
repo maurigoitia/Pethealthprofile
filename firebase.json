@@ -496,6 +496,10 @@
           "destination": "/blog/como-saber-si-tu-perro-esta-enfermo.html"
         },
         {
+          "source": "/blog/calendario-vacunas-perros-2026",
+          "destination": "/blog/calendario-vacunas-perros-2026/index.html"
+        },
+        {
           "source": "/funciones",
           "destination": "/funciones/index.html"
         },
