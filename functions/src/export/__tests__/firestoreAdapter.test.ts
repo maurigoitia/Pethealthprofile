@@ -40,9 +40,12 @@ describe("firestoreAdapter — bucketing", () => {
     expect(bucketForProvenance("tutor_confirmed")).toBe("vet_document");
   });
 
-  it("everything else (incl. ai_extraction) is bucketed as tutor_input", () => {
-    expect(bucketForProvenance("ai_extraction")).toBe("tutor_input");
-    expect(bucketForProvenance("ai_pending_review")).toBe("tutor_input");
+  it("ai_extraction and ai_pending_review map to the pending-review bucket", () => {
+    expect(bucketForProvenance("ai_extraction")).toBe("ai_extraction");
+    expect(bucketForProvenance("ai_pending_review")).toBe("ai_extraction");
+  });
+
+  it("tutor_input and unknown labels fall to the tutor-note bucket (fail-closed)", () => {
     expect(bucketForProvenance("tutor_input")).toBe("tutor_input");
     expect(bucketForProvenance("unknown_label")).toBe("tutor_input");
   });
@@ -78,14 +81,14 @@ describe("firestoreAdapter — mapMedicalEvent", () => {
     expect(out.text).toBe("creo que está raspándose mucho");
   });
 
-  it("AI-extracted unverified event lands in tutor_input bucket", () => {
+  it("AI-extracted unverified event lands in the pending-review bucket", () => {
     const out = mapMedicalEvent("e3", {
       petId: "p1",
       extractedData: {
         masterPayload: { document_info: { diagnoses: "Sospecha de algo" } },
       },
     });
-    expect(out.source).toBe("tutor_input");
+    expect(out.source).toBe("ai_extraction");
   });
 });
 

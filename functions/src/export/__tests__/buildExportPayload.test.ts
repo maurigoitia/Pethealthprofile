@@ -52,6 +52,42 @@ describe("buildExportPayload", () => {
     }
   });
 
+  it("AI-extracted events go to pendingReview, never to documentedDiagnoses", async () => {
+    const events: RawEvent[] = [
+      {
+        id: "p1",
+        source: "ai_extraction",
+        condition: "Otitis (extraído de PDF, sin confirmar)",
+        date: "2026-03-10",
+      },
+      {
+        id: "p2",
+        source: "ai_pending_review",
+        condition: "Cardiomiopatía dilatada",
+        date: "2026-03-11",
+      },
+      {
+        id: "e1",
+        source: "vet_document",
+        condition: "Otitis externa",
+        date: "2026-03-12",
+      },
+    ];
+    const payload = await buildExportPayload("pet1", makeDeps({
+      loadMedicalEvents: async () => events,
+      generateSuggestedQuestions: async () => [],
+    }));
+    expect(payload.documentedDiagnoses.map((d) => d.id)).toEqual(["e1"]);
+    expect(payload.pendingReview.map((p) => p.id).sort()).toEqual(["p1", "p2"]);
+    expect(payload.pendingReviewCount).toBe(2);
+    // Pending items must not leak into documentedDiagnoses or observations.
+    for (const d of payload.documentedDiagnoses) {
+      expect(d.source).not.toBe("ai_extraction");
+      expect(d.source).not.toBe("ai_pending_review");
+    }
+    expect(payload.observations).toEqual([]);
+  });
+
   it("documented sources only: unknown sources are dropped", async () => {
     const events: RawEvent[] = [
       { id: "e1", source: "vet_document", condition: "Otitis", date: "2026-03-10" },
