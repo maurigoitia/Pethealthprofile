@@ -441,7 +441,9 @@ async function ensureEmailRateLimit(uid: string, action: string) {
   }
 }
 
-export const pessySendInvitationEmail = functions.https.onCall(async (data, context) => {
+export const pessySendInvitationEmail = functions
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
   if (!validRecipient(data?.toEmail)) {
     throw new functions.https.HttpsError("invalid-argument", "Email inválido");
@@ -454,7 +456,9 @@ export const pessySendInvitationEmail = functions.https.onCall(async (data, cont
   return { success: true };
 });
 
-export const pessySendWelcomeEmail = functions.https.onCall(async (data, context) => {
+export const pessySendWelcomeEmail = functions
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
   if (!validRecipient(data?.toEmail)) {
     throw new functions.https.HttpsError("invalid-argument", "Email inválido");
@@ -471,7 +475,9 @@ export const pessySendWelcomeEmail = functions.https.onCall(async (data, context
   return { success: true };
 });
 
-export const pessySendCoTutorInvitation = functions.https.onCall(async (data, context) => {
+export const pessySendCoTutorInvitation = functions
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
   if (!validRecipient(data?.toEmail)) {
     throw new functions.https.HttpsError("invalid-argument", "Email inválido");
@@ -502,7 +508,9 @@ export const pessySendCoTutorInvitation = functions.https.onCall(async (data, co
 });
 
 // ─── AUTO-TRIGGER: enviar bienvenida al crear usuario ───
-export const onUserCreatedSendWelcome = functions.auth.user().onCreate(async (user) => {
+export const onUserCreatedSendWelcome = functions
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .auth.user().onCreate(async (user) => {
   if (!user.email) return;
   await sendWelcomeEmail({
     toEmail: user.email,
