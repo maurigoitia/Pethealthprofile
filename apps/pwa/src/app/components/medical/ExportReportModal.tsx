@@ -44,6 +44,13 @@ interface SBObservation {
   source: "tutor_input";
   sourceEventIds: string[];
 }
+interface SBPendingReview {
+  id: string;
+  label: string;
+  date: string;
+  source: "ai_extraction" | "ai_pending_review";
+  sourceEventIds: string[];
+}
 interface SBTreatment {
   id: string;
   name: string;
@@ -63,6 +70,14 @@ interface SourceBackedExportPayload {
   petName: string | null;
   safeTemplate: boolean;
   documentedDiagnoses: SBDiagnosis[];
+  /**
+   * AI-extracted findings still awaiting vet/tutor confirmation. The
+   * underlying source (a real PDF or email attachment) exists; the data
+   * just isn't verified yet. Render as "pending review", never as
+   * documented.
+   */
+  pendingReview?: SBPendingReview[];
+  pendingReviewCount?: number;
   observations: SBObservation[];
   vaccinations: SBVaccination[];
   treatments: SBTreatment[];
@@ -400,6 +415,10 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       const buildSectionsFromPayload = (p: SourceBackedExportPayload): AISections => {
         const pet = activePet!;
         const documentedCount = p.documentedDiagnoses.length;
+        const pendingReviewCount =
+          typeof p.pendingReviewCount === "number"
+            ? p.pendingReviewCount
+            : (p.pendingReview?.length ?? 0);
         const observationCount = p.observations.length;
         const treatmentCount = p.treatments.length;
         const vaccinationCount = p.vaccinations.length;
@@ -408,6 +427,11 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         if (documentedCount > 0) {
           historyParts.push(
             `${documentedCount} diagnóstico${documentedCount === 1 ? "" : "s"} documentado${documentedCount === 1 ? "" : "s"} en archivos cargados.`,
+          );
+        }
+        if (pendingReviewCount > 0) {
+          historyParts.push(
+            `${pendingReviewCount} ${pendingReviewCount === 1 ? "registro extraído" : "registros extraídos"} de documentos, pendiente${pendingReviewCount === 1 ? "" : "s"} de revisión.`,
           );
         }
         if (vaccinationCount > 0) {
@@ -422,7 +446,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         }
         if (observationCount > 0) {
           historyParts.push(
-            `${observationCount} observación${observationCount === 1 ? "" : "es"} cargada${observationCount === 1 ? "" : "s"} por el tutor (sin verificación clínica).`,
+            `${observationCount} ${observationCount === 1 ? "observación cargada" : "observaciones cargadas"} por el tutor.`,
           );
         }
         const clinicalHistory = historyParts.length
@@ -443,8 +467,15 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             "Reporte de salud generado por Pessy a partir de los documentos y datos cargados por el tutor.",
           clinicalHistory,
           diagnoses: {
-            confirmed: p.documentedDiagnoses.map((d) => `${d.condition}${d.date ? ` (${fmt(d.date)})` : ""}`),
-            findings: [],
+            confirmed: p.documentedDiagnoses.map(
+              (d) => `${d.condition}${d.date ? ` (${fmt(d.date)})` : ""}`,
+            ),
+            // PDF Section 4 already has a "Hallazgos extraídos de estudios"
+            // sub-heading. Pending-review items map there cleanly: real
+            // source, AI-extracted, not yet confirmed.
+            findings: (p.pendingReview ?? []).map(
+              (r) => `${r.label}${r.date ? ` (${fmt(r.date)})` : ""}`,
+            ),
             suspected: [],
           },
           studies: [],
@@ -469,18 +500,25 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       const provenanceMixFromPayload = (
         p: SourceBackedExportPayload,
       ): ProvenanceMix => {
-        const documented = p.documentedDiagnoses.length + p.vaccinations.length + p.treatments.length;
+        const documented =
+          p.documentedDiagnoses.length + p.vaccinations.length + p.treatments.length;
+        const pending =
+          typeof p.pendingReviewCount === "number"
+            ? p.pendingReviewCount
+            : (p.pendingReview?.length ?? 0);
         const observation = p.observations.length;
-        const total = documented + observation;
+        const total = documented + pending + observation;
         return {
           total,
-          // Documented bucket maps to the existing "validated" pair.
-          // We attribute it to tutor_confirmed since the underlying source
-          // could be either vet_input or tutor_confirmed; the renderer only
+          // Documented bucket maps to the existing "validated" pair. We
+          // attribute it to tutor_confirmed since the underlying source
+          // could be vet_input or tutor_confirmed; the renderer only
           // sums them anyway.
           vet_input: 0,
           tutor_confirmed: documented,
-          ai_extraction: 0,
+          // Pending-review items count as ai_extraction so the validation
+          // pill reflects "partially validated" instead of "empty".
+          ai_extraction: pending,
           ai_pending_review: 0,
           tutor_input: observation,
         };
@@ -512,6 +550,26 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
           }
         } catch (err) {
           console.warn("[ExportReport] source-backed export falló, uso renderer local:", err);
+        }
+
+        // Safety net: if the callable returned an empty payload but the
+        // local MedicalContext clearly has events for this pet, do NOT
+        // let the validation pill say "Sin información cargada". That
+        // would directly contradict what the Timeline shows on the same
+        // screen. Surface the discrepancy as an honest "not validated"
+        // pill state so the local fallback renderer can fill in the
+        // narrative from the cached data.
+        const localCount = events.length + appointments.length + treatments.length;
+        if ((!provenanceMix || provenanceMix.total === 0) && localCount > 0) {
+          provenanceMix = {
+            total: localCount,
+            vet_input: 0,
+            tutor_confirmed: 0,
+            ai_extraction: 0,
+            ai_pending_review: 0,
+            tutor_input: localCount,
+          };
+          validatedRatio = 0;
         }
       } else {
         // Legacy prompt-only path. Only reachable if the feature flag above

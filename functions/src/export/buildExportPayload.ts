@@ -19,11 +19,13 @@ import {
   Diagnosis,
   ExportPayload,
   Observation,
+  PendingReviewItem,
   RawEvent,
   RawPet,
   Treatment,
   Vaccination,
   isDocumentedSource,
+  isPendingReviewSource,
 } from "./types";
 import { filterSuggestedQuestions } from "./questionFilter";
 
@@ -75,10 +77,12 @@ export async function buildExportPayload(
       petName,
       safeTemplate: true,
       documentedDiagnoses: [],
+      pendingReview: [],
       observations: [],
       vaccinations: [],
       treatments: [],
       suggestedQuestionsForVet: [],
+      pendingReviewCount: 0,
       generatedAt: now,
     };
   }
@@ -90,6 +94,7 @@ export async function buildExportPayload(
   for (const e of treatmentsRaw) loadedIds.add(e.id);
 
   const documentedDiagnoses: Diagnosis[] = [];
+  const pendingReview: PendingReviewItem[] = [];
   const observations: Observation[] = [];
 
   for (const e of eventsRaw) {
@@ -99,6 +104,18 @@ export async function buildExportPayload(
       documentedDiagnoses.push({
         id: e.id,
         condition,
+        date: e.date ?? e.createdAt ?? now,
+        source: e.source,
+        sourceEventIds: [e.id],
+      });
+    } else if (isPendingReviewSource(e.source)) {
+      // AI-extracted from a real source but not yet vet/tutor confirmed.
+      // Surfaces in the UI as "pending review", never as documented.
+      const label = (e.condition ?? e.diagnosis ?? e.text ?? e.notes ?? e.type ?? "").trim();
+      if (!label) continue;
+      pendingReview.push({
+        id: e.id,
+        label,
         date: e.date ?? e.createdAt ?? now,
         source: e.source,
         sourceEventIds: [e.id],
@@ -151,6 +168,9 @@ export async function buildExportPayload(
   const validatedDiagnoses = documentedDiagnoses.filter((d) =>
     hasOnlyLoadedIds(d.sourceEventIds, loadedIds),
   );
+  const validatedPending = pendingReview.filter((p) =>
+    hasOnlyLoadedIds(p.sourceEventIds, loadedIds),
+  );
   const validatedObservations = observations.filter((o) =>
     hasOnlyLoadedIds(o.sourceEventIds, loadedIds),
   );
@@ -191,10 +211,12 @@ export async function buildExportPayload(
     petName,
     safeTemplate: false,
     documentedDiagnoses: validatedDiagnoses,
+    pendingReview: validatedPending,
     observations: validatedObservations,
     vaccinations: validatedVaccinations,
     treatments: validatedTreatments,
     suggestedQuestionsForVet: questions,
+    pendingReviewCount: validatedPending.length,
     generatedAt: now,
   };
 }

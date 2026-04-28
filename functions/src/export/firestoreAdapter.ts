@@ -4,14 +4,16 @@
  * The repo's existing provenance model uses these labels on medical_events:
  *   vet_input | tutor_confirmed | ai_extraction | ai_pending_review | tutor_input
  *
- * For the export safety layer, we collapse them into the two buckets the
- * payload builder understands:
- *   - documented (counts as evidence): vet_input, tutor_confirmed
- *   - tutor_input (observation only):  ai_extraction, ai_pending_review,
- *                                      tutor_input, anything unknown
+ * Three-bucket mapping (matches functions/src/export/types.ts):
+ *   - documented (vet_document):     vet_input, tutor_confirmed
+ *   - pending_review (ai_extraction): ai_extraction, ai_pending_review
+ *   - tutor_input:                    tutor_input, manual, unknown
  *
- * Mapping is intentionally conservative — when in doubt, the event drops
- * into observations, never into documentedDiagnoses.
+ * Why three buckets instead of two: an event AI-extracted from a real vet
+ * PDF should NOT be presented to the user as "tutor_input / sin verificación
+ * clínica". The 2-bucket model collapsed those cases and made the PDF lie
+ * about the origin of the data. The 3-bucket model preserves that an
+ * underlying document exists but is still pending review.
  */
 
 import { RawEvent, RawPet } from "./types";
@@ -55,10 +57,22 @@ export function deriveProvenanceSource(e: ProvenanceInput): string {
   return "ai_extraction";
 }
 
-/** Maps the repo provenance label onto the export-safety bucket. */
-export function bucketForProvenance(provenance: string): "vet_document" | "tutor_input" {
+/**
+ * Maps the repo provenance label onto the export-safety bucket.
+ *
+ * Returns one of:
+ *   - "vet_document"      → counts as documented evidence
+ *   - "ai_extraction"     → pending review (real source, unconfirmed)
+ *   - "tutor_input"       → free-form tutor note
+ */
+export function bucketForProvenance(
+  provenance: string,
+): "vet_document" | "ai_extraction" | "tutor_input" {
   if (provenance === "vet_input" || provenance === "tutor_confirmed") {
     return "vet_document";
+  }
+  if (provenance === "ai_extraction" || provenance === "ai_pending_review") {
+    return "ai_extraction";
   }
   return "tutor_input";
 }
