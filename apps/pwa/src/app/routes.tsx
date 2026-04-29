@@ -133,6 +133,13 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/register-pet-step2", element: <Navigate to="/register-pet/step2" replace /> }),
   withErrorBoundary({ path: "/login", Component: LoginScreen }),
   withErrorBoundary({ path: "/forgot-password", Component: ForgotPasswordScreen }),
+  withErrorBoundary({
+    path: "/reset-password",
+    lazy: () =>
+      import("./components/auth/ResetPasswordScreen").then((m) => ({
+        Component: m.ResetPasswordScreen,
+      })),
+  }),
   withErrorBoundary({ path: "/solicitar-acceso", Component: RequestAccessScreen }),
   withErrorBoundary({ path: "/admin/access-requests", lazy: AdminAccessRequests }),
   withErrorBoundary({ path: "/admin/hanging-users", lazy: () => import("./components/auth/AdminHangingUsers").then(m => ({ Component: m.AdminHangingUsers })) }),
