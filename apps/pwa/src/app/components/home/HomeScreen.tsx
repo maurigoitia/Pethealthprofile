@@ -71,6 +71,9 @@ const MonthSummary = lazy(() =>
 const PetProfileModal = lazy(() =>
   import("../pet/PetProfileModal.tsx").then((module) => ({ default: module.PetProfileModal }))
 );
+const EmergencyModal = lazy(() =>
+  import("../medical/EmergencyModal.tsx").then((module) => ({ default: module.EmergencyModal }))
+);
 const DocumentScannerModal = lazy(() =>
   import("../medical/DocumentScannerModal.tsx").then((module) => ({ default: module.DocumentScannerModal }))
 );
@@ -125,6 +128,7 @@ export default function HomeScreen() {
   const [showPetProfile, setShowPetProfile] = useState(false);
   const [showExportReport, setShowExportReport] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [showEmergency, setShowEmergency] = useState(false);
   const [showPetSelector, setShowPetSelector] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showInviteFriends, setShowInviteFriends] = useState(false);
@@ -632,6 +636,26 @@ export default function HomeScreen() {
                 )}
               </>
             )}
+
+            {/* Pasó algo — emergency incident quick-log */}
+            <div className="px-4 mt-4">
+              <button
+                type="button"
+                onClick={() => setShowEmergency(true)}
+                className="w-full p-4 rounded-[16px] bg-[#FEF2F2] border border-[#FCA5A5] text-[#B91C1C] flex items-center gap-3 active:scale-[0.98] transition-transform text-left"
+              >
+                <div className="size-11 rounded-[12px] bg-white/70 flex items-center justify-center shrink-0 text-2xl" aria-hidden>
+                  ⚠️
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-black text-base leading-tight">Pasó algo</p>
+                  <p className="text-xs text-[#B91C1C]/80 leading-snug mt-0.5">
+                    Anotá rápido lo que viste, con foto si querés.
+                  </p>
+                </div>
+                <MaterialIcon name="chevron_right" className="text-2xl shrink-0" />
+              </button>
+            </div>
           </>
         )}
 
@@ -691,6 +715,12 @@ export default function HomeScreen() {
         <DocumentScannerModal
           isOpen={showScanner}
           onClose={() => setShowScanner(false)}
+        />
+      </Suspense>
+      <Suspense fallback={null}>
+        <EmergencyModal
+          isOpen={showEmergency}
+          onClose={() => setShowEmergency(false)}
         />
       </Suspense>
       <Suspense fallback={null}>
