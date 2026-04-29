@@ -12,6 +12,7 @@ const sendCoTutorInviteCallable = httpsCallable<
   { ok: boolean }
 >(firebaseFunctions, "sendCoTutorInvite");
 import { buildCoTutorReferralUrl } from "../utils/coTutorInvite";
+import { generatePublicId } from "../utils/publicId";
 import { isFocusHistoryExperimentHost } from "../utils/runtimeFlags";
 
 export interface WeightEntry {
@@ -95,6 +96,8 @@ export interface Pet {
   coTutorUids?: string[];
   microchip?: string;
   preferences?: PetPreferences;
+  /** User-facing Pack ID (format: `pet-XXXXXX`). Internal `id` stays unchanged. */
+  publicId?: string | null;
 }
 
 interface PetContextType {
@@ -260,8 +263,28 @@ export function PetProvider({ children }: { children: ReactNode }) {
 
   const addPet = async (pet: Omit<Pet, "id" | "ownerId">) => {
     if (!user) throw new Error("No user logged in");
+
+    // Generate a collision-free user-facing Pack ID before creating the doc.
+    // Up to 5 attempts — alphabet 32^6 ≈ 1B keyspace, so collisions are
+    // extremely unlikely; we still verify against Firestore to be safe.
+    let publicId: string | null = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const candidate = generatePublicId();
+      const existing = await getDocs(
+        query(collection(db, "pets"), where("publicId", "==", candidate))
+      );
+      if (existing.empty) {
+        publicId = candidate;
+        break;
+      }
+    }
+    if (!publicId) {
+      throw new Error("No se pudo generar un Pack ID único. Intentá de nuevo.");
+    }
+
     const docRef = await addDoc(collection(db, "pets"), {
       ...pet,
+      publicId,
       ownerId: user.uid,
       coTutors: [],
       coTutorUids: [],

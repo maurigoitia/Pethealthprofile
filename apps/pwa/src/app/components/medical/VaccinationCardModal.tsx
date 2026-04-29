@@ -23,6 +23,7 @@ interface VaccinationCardModalProps {
     birthDate: string;
     microchip: string;
     photo: string;
+    publicId?: string | null;
   };
   vaccines: Vaccine[];
 }
@@ -246,6 +247,9 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
                     <div>
                       <p className="text-[10px] font-black tracking-widest opacity-80 uppercase">PESSY</p>
                       <p className="text-lg font-black leading-tight">{petData.name || "Mascota"}</p>
+                      {petData.publicId ? (
+                        <p className="text-[10px] opacity-75 font-mono mt-0.5">Pack ID: {petData.publicId}</p>
+                      ) : null}
                       <p className="text-xs opacity-75">{petData.breed || "Raza no registrada"}</p>
                     </div>
                   </div>
