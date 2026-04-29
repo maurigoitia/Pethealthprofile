@@ -1,0 +1,108 @@
+name: PR — Backend Resources Warning
+
+# Phase 0c — informational warning when a PR modifies backend resources
+# shared with production. Does NOT block merges. Does NOT fail the workflow.
+#
+# Why: Pessy currently has ONE Firebase project (polar-scene-488615-i0).
+# Staging deploys Hosting only. Functions, Firestore rules + indexes, and
+# Storage rules are deployed only from `main`. A PR that changes backend
+# resources will not be reflected in staging after merging to develop.
+#
+# This workflow leaves a comment in the PR explaining that asymmetry.
+# See docs/BRANCHES.md for the full deploy model.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  warn-on-backend-changes:
+    runs-on: ubuntu-latest
+    # Skip when targeting main: the production deploy workflow handles backend
+    # changes when develop merges into main, so the warning is not relevant.
+    if: github.event.pull_request.base.ref != 'main'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes to shared backend resources
+        id: detect
+        shell: bash
+        env:
+          # Pass SHAs via env to keep run script free of expression interpolation.
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          CHANGED=$(git diff --name-only "$BASE_SHA"..."$HEAD_SHA" || true)
+          echo "Changed files in PR:"
+          echo "$CHANGED"
+          MATCHED=$(echo "$CHANGED" | grep -E '^(functions/|firestore\.rules$|firestore\.indexes\.json$|storage\.rules$)' || true)
+          if [ -n "$MATCHED" ]; then
+            echo "matched=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "matched=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post or skip warning comment
+        if: steps.detect.outputs.matched == 'true'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- pessy-backend-warning -->';
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+
+            // Look for an existing warning comment to keep this idempotent.
+            const existing = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number, per_page: 100 }
+            );
+            const alreadyPosted = existing.some(c => c.body && c.body.includes(marker));
+            if (alreadyPosted) {
+              core.info('Warning comment already present, skipping.');
+              return;
+            }
+
+            const body = [
+              marker,
+              '## ⚠️ This PR modifies backend resources shared with production',
+              '',
+              'Changed files include one or more of:',
+              '- `functions/**`',
+              '- `firestore.rules`',
+              '- `firestore.indexes.json`',
+              '- `storage.rules`',
+              '',
+              '**Important:**',
+              '',
+              'Staging deploys **Hosting only** because production and staging currently share the same Firebase project (`polar-scene-488615-i0`).',
+              '',
+              'These backend changes will **NOT** be reflected in staging after merging to `develop`. They will only go live when merged to `main` and deployed through `deploy-prod.yml`.',
+              '',
+              'Staging may show the new frontend but still call the old production backend.',
+              '',
+              '**Before merging:**',
+              '- Review whether this change must be tested manually before reaching production',
+              '- Confirm CI passes',
+              '- Coordinate the `develop → main` merge',
+              '',
+              'See `docs/BRANCHES.md` for the full deploy model.',
+              '',
+              '---',
+              '*This warning is automated and will not block your merge.*',
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body,
+            });
+            core.info('Warning comment posted.');

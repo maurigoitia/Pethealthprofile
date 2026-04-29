@@ -8,7 +8,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/website/**'
+      - 'apps/web/**'
       - 'apps/blog/**'
       - 'public/sitemap.xml'
       - 'public/robots.txt'
@@ -32,7 +32,7 @@ jobs:
           echo "$CHANGED_FILES"
 
           URLS=()
-          if echo "$CHANGED_FILES" | grep -q "apps/website/index.html"; then
+          if echo "$CHANGED_FILES" | grep -q "apps/web/index.html"; then
             URLS+=("https://pessy.app/")
           fi
           if echo "$CHANGED_FILES" | grep -q "public/sitemap.xml"; then

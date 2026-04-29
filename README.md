@@ -47,8 +47,10 @@ functions/src/
 ├── compliance/         # Eliminación de datos / GDPR
 └── index.ts            # Entry point de Cloud Functions
 
-android/                # Proyecto Android nativo (Capacitor-generado)
-ios/                    # Proyecto iOS nativo (Capacitor-generado)
+apps/mobile/            # Wrapper Capacitor (config + proyectos nativos)
+├── capacitor.config.ts
+├── android/            # Proyecto Android nativo (Capacitor-generado)
+└── ios/                # Proyecto iOS nativo (Capacitor-generado)
 public/                 # Assets estáticos (íconos PWA, data-deletion)
 ```
 

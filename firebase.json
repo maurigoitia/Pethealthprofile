@@ -496,6 +496,30 @@
           "destination": "/blog/como-saber-si-tu-perro-esta-enfermo.html"
         },
         {
+          "source": "/blog/calendario-vacunas-perros-2026",
+          "destination": "/blog/calendario-vacunas-perros-2026/index.html"
+        },
+        {
+          "source": "/blog/castracion-perros",
+          "destination": "/blog/castracion-perros.html"
+        },
+        {
+          "source": "/blog/desparasitar-perro",
+          "destination": "/blog/desparasitar-perro.html"
+        },
+        {
+          "source": "/blog/mascota-nueva",
+          "destination": "/blog/mascota-nueva.html"
+        },
+        {
+          "source": "/blog/documentos-mascota",
+          "destination": "/blog/documentos-mascota.html"
+        },
+        {
+          "source": "/blog/pulgas-garrapatas",
+          "destination": "/blog/pulgas-garrapatas.html"
+        },
+        {
           "source": "/funciones",
           "destination": "/funciones/index.html"
         },
@@ -563,116 +587,6 @@
     },
     {
       "target": "appqa",
-      "public": "dist",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
-      "redirects": [
-        {
-          "source": "/data-deletion",
-          "destination": "/data-deletion.html",
-          "type": 301
-        }
-      ],
-      "headers": [
-        {
-          "source": "/sw.js",
-          "headers": [
-            {
-              "key": "Cache-Control",
-              "value": "no-cache, no-store, must-revalidate"
-            }
-          ]
-        },
-        {
-          "source": "/reset.html",
-          "headers": [
-            {
-              "key": "Cache-Control",
-              "value": "no-cache, no-store, must-revalidate"
-            }
-          ]
-        },
-        {
-          "source": "/workbox-*.js",
-          "headers": [
-            {
-              "key": "Cache-Control",
-              "value": "no-cache, no-store, must-revalidate"
-            }
-          ]
-        }
-      ],
-      "rewrites": [
-        {
-          "source": "/api/data-deletion-request",
-          "function": "submitDataDeletionRequest"
-        },
-        {
-          "source": "**",
-          "destination": "/app.html"
-        }
-      ]
-    },
-    {
-      "target": "appit",
-      "public": "dist",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
-      "redirects": [
-        {
-          "source": "/data-deletion",
-          "destination": "/data-deletion.html",
-          "type": 301
-        }
-      ],
-      "headers": [
-        {
-          "source": "/sw.js",
-          "headers": [
-            {
-              "key": "Cache-Control",
-              "value": "no-cache, no-store, must-revalidate"
-            }
-          ]
-        },
-        {
-          "source": "/reset.html",
-          "headers": [
-            {
-              "key": "Cache-Control",
-              "value": "no-cache, no-store, must-revalidate"
-            }
-          ]
-        },
-        {
-          "source": "/workbox-*.js",
-          "headers": [
-            {
-              "key": "Cache-Control",
-              "value": "no-cache, no-store, must-revalidate"
-            }
-          ]
-        }
-      ],
-      "rewrites": [
-        {
-          "source": "/api/data-deletion-request",
-          "function": "submitDataDeletionRequest"
-        },
-        {
-          "source": "**",
-          "destination": "/app.html"
-        }
-      ]
-    },
-    {
-      "target": "appfocusqa",
       "public": "dist",
       "ignore": [
         "firebase.json",

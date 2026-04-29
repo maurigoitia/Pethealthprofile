@@ -441,7 +441,9 @@ async function ensureEmailRateLimit(uid: string, action: string) {
   }
 }
 
-export const pessySendInvitationEmail = functions.https.onCall(async (data, context) => {
+export const pessySendInvitationEmail = functions
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
   if (!validRecipient(data?.toEmail)) {
     throw new functions.https.HttpsError("invalid-argument", "Email inválido");
@@ -454,7 +456,9 @@ export const pessySendInvitationEmail = functions.https.onCall(async (data, cont
   return { success: true };
 });
 
-export const pessySendWelcomeEmail = functions.https.onCall(async (data, context) => {
+export const pessySendWelcomeEmail = functions
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
   if (!validRecipient(data?.toEmail)) {
     throw new functions.https.HttpsError("invalid-argument", "Email inválido");
@@ -471,7 +475,9 @@ export const pessySendWelcomeEmail = functions.https.onCall(async (data, context
   return { success: true };
 });
 
-export const pessySendCoTutorInvitation = functions.https.onCall(async (data, context) => {
+export const pessySendCoTutorInvitation = functions
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
   if (!validRecipient(data?.toEmail)) {
     throw new functions.https.HttpsError("invalid-argument", "Email inválido");
@@ -502,7 +508,9 @@ export const pessySendCoTutorInvitation = functions.https.onCall(async (data, co
 });
 
 // ─── AUTO-TRIGGER: enviar bienvenida al crear usuario ───
-export const onUserCreatedSendWelcome = functions.auth.user().onCreate(async (user) => {
+export const onUserCreatedSendWelcome = functions
+  .runWith({ secrets: ["RESEND_API_KEY"] })
+  .auth.user().onCreate(async (user) => {
   if (!user.email) return;
   await sendWelcomeEmail({
     toEmail: user.email,
@@ -2716,6 +2724,71 @@ Recordá: NO inventar, NO diagnosticar, "No informado" para campos faltantes, JS
       tokensUsed: totalTokenCount,
       processingTimeMs: Date.now() - startedAt,
     };
+  });
+
+// ═══════════════════════════════════════════════════════════════════════
+// pessyExportSourceBacked — source-backed export payload (PR 2 wiring).
+// Reads medical_events + treatments, runs them through buildExportPayload
+// so safety is enforced architecturally (empty-pet skip, tutor_input
+// quarantine, sourceEventIds validation, server-side question filter).
+// Question generator is a no-op for now; PR 3 may wire Gemini if needed.
+// Existing pessyClinicalSummaryStructured is left untouched.
+// ═══════════════════════════════════════════════════════════════════════
+export const pessyExportSourceBacked = functions
+  .runWith({ timeoutSeconds: 60, memory: "256MB" })
+  .region("us-central1")
+  .https.onCall(async (data, context) => {
+    if (!context.auth?.uid) {
+      throw new functions.https.HttpsError("unauthenticated", "Iniciá sesión para generar el reporte.");
+    }
+    const petId = typeof data?.petId === "string" ? data.petId.trim() : "";
+    if (!petId) {
+      throw new functions.https.HttpsError("invalid-argument", "Falta petId.");
+    }
+
+    const { checkRateLimitByTier } = await import("./utils/rateLimiter");
+    const userDoc = await admin.firestore().doc(`users/${context.auth.uid}`).get();
+    const isPremium = userDoc.exists && (
+      userDoc.data()?.plan === "premium" ||
+      userDoc.data()?.planType === "premium" ||
+      userDoc.data()?.subscriptionPlan === "premium"
+    );
+    const rl = await checkRateLimitByTier(context.auth.uid, "brain-query", isPremium);
+    if (!rl.allowed) {
+      throw new functions.https.HttpsError(
+        "resource-exhausted",
+        `Llegaste al límite. Volvé en ${Math.ceil(rl.resetInSeconds / 60)} min.`
+      );
+    }
+
+    const petSnap = await admin.firestore().doc(`pets/${petId}`).get();
+    if (!petSnap.exists) {
+      throw new functions.https.HttpsError("not-found", "Mascota no encontrada.");
+    }
+    const pet = petSnap.data() || {};
+    const isOwner = pet.ownerId === context.auth.uid;
+    const isCoTutor = Array.isArray(pet.coTutorUids) && pet.coTutorUids.includes(context.auth.uid);
+    if (!isOwner && !isCoTutor) {
+      throw new functions.https.HttpsError("permission-denied", "No tenés acceso a esta mascota.");
+    }
+
+    const { buildExportPayload } = await import("./export/buildExportPayload");
+    const adapter = await import("./export/firestoreAdapter");
+    const fs = admin.firestore();
+
+    const payload = await buildExportPayload(petId, {
+      loadPet: () => adapter.loadPet(fs, petId),
+      loadMedicalEvents: () => adapter.loadMedicalEvents(fs, petId),
+      // vaccinations live inside medical_events today; an empty array is
+      // the honest answer until/unless a separate collection exists.
+      loadVaccinations: async () => [],
+      loadTreatments: () => adapter.loadTreatments(fs, petId),
+      // Question generator stays a no-op in this PR. The filter still
+      // runs over an empty array. PR 3 may wire Gemini if needed.
+      generateSuggestedQuestions: async () => [],
+    });
+
+    return payload;
   });
 
 // ═══════════════════════════════════════════════════════════════════════
