@@ -51,7 +51,7 @@ export const createVerificationActionCodeSettings = (): ActionCodeSettings => ({
 });
 
 export const createPasswordResetActionCodeSettings = (): ActionCodeSettings => ({
-  url: buildAuthActionUrl("/login", { source: "password_reset" }),
-  handleCodeInApp: false,
+  url: buildAuthActionUrl("/reset-password"),
+  handleCodeInApp: true,
 });
 
