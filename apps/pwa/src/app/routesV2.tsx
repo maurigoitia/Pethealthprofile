@@ -24,6 +24,7 @@ import { RegisterPetStep1 } from "./components/pet/RegisterPetStep1";
 import { RegisterPetStep2 } from "./components/pet/RegisterPetStep2";
 import { LoginScreen } from "./components/auth/LoginScreen";
 import { ForgotPasswordScreen } from "./components/auth/ForgotPasswordScreen";
+import { ResetPasswordScreen } from "./components/auth/ResetPasswordScreen";
 import { EmailLinkSignInScreen } from "./components/auth/EmailLinkSignInScreen";
 import { RouteErrorFallback } from "./components/shared/RouteErrorFallback";
 import { ClinicalReviewScreen } from "./components/medical/ClinicalReviewScreen";
@@ -192,6 +193,7 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/register-pet-step2", element: <Navigate to="/register-pet/step2" replace /> }),
   withErrorBoundary({ path: "/login", Component: LoginScreen }),
   withErrorBoundary({ path: "/forgot-password", Component: ForgotPasswordScreen }),
+  withErrorBoundary({ path: "/reset-password", Component: ResetPasswordScreen }),
   withErrorBoundary({ path: "/solicitar-acceso", Component: RequestAccessScreen }),
   withErrorBoundary({ path: "/admin/access-requests", lazy: AdminAccessRequests }),
   withErrorBoundary({

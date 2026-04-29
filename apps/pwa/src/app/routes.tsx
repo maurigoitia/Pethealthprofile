@@ -1,3 +1,14 @@
+/**
+ * ⚠️ DEAD ROUTER — NOT THE LIVE RUNTIME
+ *
+ * App.tsx imports the router from `./routesV2.tsx`, not from this file.
+ * Changes here are NOT reachable by users at runtime.
+ *
+ * If you're adding a route, edit `routesV2.tsx` instead.
+ * See docs/RUNTIME.md for the full live-vs-dead map.
+ *
+ * Kept on disk for historical reference and possible future revert.
+ */
 import type { ReactNode } from "react";
 import { createBrowserRouter, Navigate } from "react-router";
 import { RegisterUserScreen } from "./components/auth/RegisterUserScreen";

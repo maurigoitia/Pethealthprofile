@@ -181,6 +181,39 @@ export function PetProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    // Lazy-gen Pack ID for legacy pets that pre-date PR #98. Track in-flight
+    // generations to avoid double-write across the two snapshot queries
+    // (owner + co-tutor) firing for the same doc.
+    const inFlightPublicIdGen = new Set<string>();
+    const ensurePublicIdLazy = async (petId: string, currentData: Record<string, unknown>) => {
+      if (currentData.publicId) return;
+      if (inFlightPublicIdGen.has(petId)) return;
+      inFlightPublicIdGen.add(petId);
+      try {
+        // Same collision-check pattern as addPet: 5 attempts max.
+        let candidate: string | null = null;
+        for (let i = 0; i < 5; i++) {
+          const attempt = generatePublicId();
+          const dup = await getDocs(
+            query(collection(db, "pets"), where("publicId", "==", attempt)),
+          );
+          if (dup.empty) {
+            candidate = attempt;
+            break;
+          }
+        }
+        if (!candidate) {
+          console.warn(`[PETS] lazy-gen Pack ID failed for pet ${petId} after 5 attempts`);
+          return;
+        }
+        await updateDoc(doc(db, "pets", petId), { publicId: candidate });
+      } catch (err) {
+        console.warn(`[PETS] lazy-gen Pack ID failed for pet ${petId}:`, (err as Error)?.message || err);
+      } finally {
+        inFlightPublicIdGen.delete(petId);
+      }
+    };
+
     // Query 1: mascotas donde soy dueño
     const qOwner = query(collection(db, "pets"), where("ownerId", "==", user.uid));
     const unsubOwner = onSnapshot(qOwner, (snap) => {
@@ -195,6 +228,9 @@ export function PetProvider({ children }: { children: ReactNode }) {
               console.warn(`[PETS] No se pudo auto-migrar coTutorUids para pet ${change.doc.id}:`, err?.message || err);
             });
           }
+          // Lazy-gen Pack ID for owner pets (only the owner has write
+          // permission; co-tutor read-only branch must NOT try this).
+          void ensurePublicIdLazy(change.doc.id, data);
           allPetsMap.set(change.doc.id, sanitizePetData(data, change.doc.id));
         }
       });
