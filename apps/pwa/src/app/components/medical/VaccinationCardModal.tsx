@@ -1,7 +1,6 @@
 import { MaterialIcon } from "../shared/MaterialIcon";
 import { PetPhoto } from "../pet/PetPhoto";
 import { loadJsPdf, savePdfWithFallback } from "../../utils/pdfExport";
-import { loadPessyLogo } from "../../../lib/pdf/loadLogo";
 
 interface Vaccine {
   id: number;
@@ -29,7 +28,7 @@ interface VaccinationCardModalProps {
 }
 
 const STATUS_CONFIG = {
-  current:  { label: "Al día",   bg: "bg-[#10B981]",  text: "text-emerald-700", dot: "#10b981" },
+  current:  { label: "Al día",   bg: "bg-emerald-500",  text: "text-emerald-700", dot: "#10b981" },
   "due-soon": { label: "Próxima", bg: "bg-amber-500",    text: "text-amber-700",   dot: "#d97706" },
   overdue:  { label: "Vencida",  bg: "bg-red-500",      text: "text-red-700",     dot: "#dc2626" },
 };
@@ -44,61 +43,28 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
     const contentW = pageW - margin * 2;
     let y = 0;
 
-    // Logo blanco (variante oficial del manual para fondo verde oscuro)
-    let logoWhite: string | null = null;
-    try { logoWhite = await loadPessyLogo("white", 1024); } catch { /* header text-only fallback */ }
-
-    // ── HEADER (manual de marca Pessy — Plano Branding) ──────────────────
-    const HEADER_H = 40;
-    pdf.setFillColor(7, 71, 56); // #074738 primary
-    pdf.rect(0, 0, pageW, HEADER_H, "F");
+    // Header verde
+    pdf.setFillColor(27, 94, 79);
+    pdf.rect(0, 0, pageW, 36, "F");
     pdf.setTextColor(255, 255, 255);
-
-    const LOGO_SIZE = 24;
-    const LOGO_Y = (HEADER_H - LOGO_SIZE) / 2;
-    if (logoWhite) {
-      pdf.addImage(logoWhite, "PNG", margin, LOGO_Y, LOGO_SIZE, LOGO_SIZE);
-    }
-    const WORDMARK_X = logoWhite ? margin + LOGO_SIZE + 5 : margin;
-    pdf.setFontSize(24);
+    pdf.setFontSize(22);
     pdf.setFont("helvetica", "bold");
-    pdf.text("Pessy.", WORDMARK_X, HEADER_H / 2 + 1.5);
+    pdf.text("PESSY", margin, 16);
     pdf.setFontSize(9);
     pdf.setFont("helvetica", "normal");
-    pdf.text("Carnet de Vacunación", WORDMARK_X, HEADER_H / 2 + 7);
-
-    // Fecha alineada derecha
+    pdf.text("Carnet Oficial de Vacunación", margin, 23);
     pdf.setFontSize(8);
-    pdf.text(
-      `Generado ${new Date().toLocaleDateString("es-AR")}`,
-      pageW - margin,
-      HEADER_H / 2 + 1,
-      { align: "right" }
-    );
-    y = HEADER_H + 4;
+    pdf.text(`Generado: ${new Date().toLocaleDateString("es-AR")}`, pageW - margin, 23, { align: "right" });
 
-    // ── PILL VALIDACIÓN VETERINARIA (Fase 0 honestidad) ──────────────────
-    pdf.setFillColor(254, 243, 199);
-    pdf.setDrawColor(245, 158, 11);
-    pdf.setLineWidth(0.3);
-    pdf.roundedRect(margin, y, contentW, 7, 1.5, 1.5, "FD");
-    pdf.setFontSize(8);
-    pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(146, 64, 14);
-    pdf.text("Sin validación veterinaria", margin + 3, y + 4.5);
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(7);
-    pdf.text("Datos cargados por el tutor — no es certificado oficial", pageW - margin - 3, y + 4.5, { align: "right" });
-
-    y += 11;
+    y = 46;
     pdf.setTextColor(30, 30, 30);
 
     // Pet info block
-    pdf.setFillColor(240, 250, 249);
+    pdf.setFillColor(240, 253, 248);
     pdf.roundedRect(margin, y, contentW, 26, 3, 3, "F");
     pdf.setFontSize(14);
     pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(7, 71, 56);
+    pdf.setTextColor(27, 94, 79);
     pdf.text(petData.name, margin + 4, y + 9);
     pdf.setFontSize(9);
     pdf.setFont("helvetica", "normal");
@@ -112,10 +78,10 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
     // Vaccines
     pdf.setFontSize(11);
     pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(7, 71, 56);
+    pdf.setTextColor(27, 94, 79);
     pdf.text("Registro de Vacunas", margin, y);
     y += 5;
-    pdf.setDrawColor(7, 71, 56);
+    pdf.setDrawColor(27, 94, 79);
     pdf.line(margin, y, margin + contentW, y);
     y += 6;
 
@@ -160,27 +126,14 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
       y += 22;
     }
 
-    // Footer con disclaimer legal en cada página
-    const totalPages = (pdf as any).internal.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      pdf.setPage(i);
-      pdf.setFillColor(240, 250, 249);
-      pdf.rect(0, 282, pageW, 15, "F");
-      pdf.setFontSize(6.5);
-      pdf.setFont("helvetica", "italic");
-      pdf.setTextColor(107, 114, 128);
-      pdf.text(
-        "Pessy organiza la información cargada por el tutor. No constituye certificado oficial de vacunación ni reemplaza la consulta veterinaria.",
-        pageW / 2,
-        287,
-        { align: "center", maxWidth: pageW - 2 * margin }
-      );
-      pdf.setFontSize(7);
-      pdf.setFont("helvetica", "normal");
-      pdf.setTextColor(107, 114, 128);
-      pdf.text("Generado por PESSY — pessy.app", margin, 293);
-      pdf.text(`Página ${i} de ${totalPages}`, pageW - margin, 293, { align: "right" });
-    }
+    // Footer
+    pdf.setFillColor(240, 253, 248);
+    pdf.rect(0, 285, pageW, 12, "F");
+    pdf.setFontSize(7);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(100, 150, 130);
+    pdf.text("Generado por PESSY — pessy.app", margin, 291);
+    pdf.text("Documento de uso informativo.", pageW - margin, 291, { align: "right" });
 
     await savePdfWithFallback(
       pdf,
@@ -210,7 +163,7 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
                 <p className="text-xs text-slate-500 mt-0.5">{petData.name} · {vaccines.length} vacuna{vaccines.length !== 1 ? "s" : ""}</p>
               </div>
               <button onClick={onClose}
-                className="size-11 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                className="size-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                 <MaterialIcon name="close" className="text-xl" />
               </button>
             </div>
@@ -340,7 +293,7 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
             {/* Footer actions */}
             <div className="p-4 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 gap-3">
               <button onClick={handleDownloadPDF}
-                className="py-3 rounded-xl bg-[#074738] text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-[#1B5E4F]/30 text-sm">
+                className="py-3 rounded-xl bg-[#1B5E4F] text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-[#1B5E4F]/30 text-sm">
                 <MaterialIcon name="download" className="text-lg" />
                 Descargar PDF
               </button>
@@ -348,7 +301,7 @@ export function VaccinationCardModal({ isOpen, onClose, petData, vaccines }: Vac
                 const text = `Carnet de vacunación de ${petData.name} (PESSY)`;
                 window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
               }}
-                className="py-3 rounded-xl bg-[#10B981] text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30 text-sm">
+                className="py-3 rounded-xl bg-emerald-500 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30 text-sm">
                 <MaterialIcon name="share" className="text-lg" />
                 WhatsApp
               </button>

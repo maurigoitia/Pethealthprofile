@@ -418,9 +418,7 @@ ${petDetail ? `<div style="font-size:13px;color:#666;margin-top:2px;">${petDetai
 
 // ═══════════════════════════════════════════════════════════════
 // CLOUD FUNCTIONS — exponer los emails como callable
-// Rate-limited y con validación anti-phishing (SEC audit 2026-04-25)
 // ═══════════════════════════════════════════════════════════════
-
 // RFC-5322 simplificado, suficiente para validar input
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const stripHtml = (s: unknown, max = 80): string => {
@@ -445,14 +443,7 @@ export const pessySendInvitationEmail = functions
   .runWith({ secrets: ["RESEND_API_KEY"] })
   .https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
-  if (!validRecipient(data?.toEmail)) {
-    throw new functions.https.HttpsError("invalid-argument", "Email inválido");
-  }
-  await ensureEmailRateLimit(context.auth.uid, "send-invitation");
-  await sendInvitationEmail({
-    toEmail: data.toEmail,
-    userName: stripHtml(data.userName),
-  });
+  await sendInvitationEmail({ toEmail: data.toEmail, userName: data.userName });
   return { success: true };
 });
 
@@ -460,18 +451,7 @@ export const pessySendWelcomeEmail = functions
   .runWith({ secrets: ["RESEND_API_KEY"] })
   .https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
-  if (!validRecipient(data?.toEmail)) {
-    throw new functions.https.HttpsError("invalid-argument", "Email inválido");
-  }
-  // Solo permitido enviar bienvenida a la propia cuenta (anti-spam)
-  if (context.auth.token?.email && data.toEmail.toLowerCase() !== String(context.auth.token.email).toLowerCase()) {
-    throw new functions.https.HttpsError("permission-denied", "Solo se permite enviar bienvenida al email propio");
-  }
-  await ensureEmailRateLimit(context.auth.uid, "send-welcome");
-  await sendWelcomeEmail({
-    toEmail: data.toEmail,
-    userName: stripHtml(data.userName),
-  });
+  await sendWelcomeEmail({ toEmail: data.toEmail, userName: data.userName });
   return { success: true };
 });
 
@@ -479,30 +459,13 @@ export const pessySendCoTutorInvitation = functions
   .runWith({ secrets: ["RESEND_API_KEY"] })
   .https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError("unauthenticated", "Requiere autenticación");
-  if (!validRecipient(data?.toEmail)) {
-    throw new functions.https.HttpsError("invalid-argument", "Email inválido");
-  }
-  // Verificar ownership de la mascota antes de invitar co-tutor
-  const petId = typeof data?.petId === "string" ? data.petId : null;
-  if (!petId) throw new functions.https.HttpsError("invalid-argument", "petId requerido");
-  const petDoc = await admin.firestore().doc(`pets/${petId}`).get();
-  if (!petDoc.exists || petDoc.data()?.ownerId !== context.auth.uid) {
-    throw new functions.https.HttpsError("permission-denied", "Solo el dueño puede invitar co-tutores");
-  }
-  // Validar acceptUrl: solo dominios Pessy permitidos
-  const rawUrl = typeof data?.acceptUrl === "string" ? data.acceptUrl : "";
-  const safeUrl = /^https:\/\/(pessy\.app|pessy-qa-app\.web\.app)\//.test(rawUrl)
-    ? rawUrl
-    : "https://pessy.app/login";
-
-  await ensureEmailRateLimit(context.auth.uid, "send-cotutor");
   await sendCoTutorInvitationEmail({
     toEmail: data.toEmail,
-    inviterName: stripHtml(data.inviterName),
-    petName: stripHtml(data.petName, 40),
-    petBreed: stripHtml(data.petBreed, 40),
-    petAge: stripHtml(data.petAge, 20),
-    acceptUrl: safeUrl,
+    inviterName: data.inviterName,
+    petName: data.petName,
+    petBreed: data.petBreed,
+    petAge: data.petAge,
+    acceptUrl: data.acceptUrl || "https://pessy.app/login",
   });
   return { success: true };
 });
@@ -537,7 +500,6 @@ import {
   triggerEmailClinicalIngestion,
 } from "./gmail/clinicalIngestion";
 import { uploadPetPhoto } from "./media/petPhotos";
-import { extractVetsFromArchives } from "./media/extractVets";
 import { resolveClinicalKnowledgeContext } from "./clinical/knowledgeBase";
 import { resolveBrainOutput } from "./clinical/brainResolver";
 import { pessyClinicalBrainGrounding } from "./clinical/groundedBrain";
@@ -2329,22 +2291,6 @@ export const analyzeDocument = functions
     throw new functions.https.HttpsError("unauthenticated", "Debes iniciar sesión para analizar documentos.");
   }
 
-  // Rate limit anti wallet-drain (SEC audit 2026-04-25)
-  const { checkRateLimitByTier } = await import("./utils/rateLimiter");
-  const userDoc = await admin.firestore().doc(`users/${context.auth.uid}`).get();
-  const isPremium = userDoc.exists && (
-    userDoc.data()?.plan === "premium" ||
-    userDoc.data()?.planType === "premium" ||
-    userDoc.data()?.subscriptionPlan === "premium"
-  );
-  const rl = await checkRateLimitByTier(context.auth.uid, "document-scan", isPremium);
-  if (!rl.allowed) {
-    throw new functions.https.HttpsError(
-      "resource-exhausted",
-      `Llegaste al límite de análisis del día. Volvé en ${Math.ceil(rl.resetInSeconds / 3600)} hs.`
-    );
-  }
-
   const requestedMimeType = typeof data?.mimeType === "string" ? data.mimeType.trim() : "";
   const fileName = typeof data?.fileName === "string" ? data.fileName.trim().slice(0, 260) : "";
   const base64 = typeof data?.base64 === "string" ? data.base64.trim() : "";
@@ -2371,9 +2317,12 @@ export const analyzeDocument = functions
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  const _contextHint = typeof data?.contextHint === "string" ? data.contextHint.slice(0, 1200) : "";
-  void _contextHint;
-  const prompt = ANALYSIS_PROMPT_TEMPLATE.replace("__TODAY__", today);
+  const contextHint = typeof data?.contextHint === "string" ? data.contextHint.slice(0, 1200) : "";
+  const knowledgeContext = await resolveClinicalKnowledgeContext({
+    query: [contextHint, fileName, normalizedMimeType, today].filter(Boolean).join(" "),
+    maxSections: 7,
+  });
+  const prompt = `${ANALYSIS_PROMPT_TEMPLATE.replace("__TODAY__", today)}\n\n${knowledgeContext.contextText}`;
 
   const startedAt = Date.now();
   const { rawText, totalTokenCount } = await callGeminiBackend({
@@ -2410,6 +2359,9 @@ export const analyzeDocument = functions
     tokensUsed: totalTokenCount,
     processingTimeMs: Date.now() - startedAt,
     resolvedMimeType: normalizedMimeType,
+    knowledgeVersion: knowledgeContext.version,
+    knowledgeSectionIds: knowledgeContext.sectionIds,
+    knowledgeSource: knowledgeContext.source,
   };
   });
 
@@ -2465,6 +2417,7 @@ export const generateClinicalSummary = functions
   };
   });
 
+<<<<<<< HEAD
 // ═══════════════════════════════════════════════════════════════════════
 // pessyClinicalSummaryStructured — resumen clínico veterinario en 10
 // secciones, generado por el cerebro AI de Pessy (Gemini). Hardcodea el
@@ -3229,6 +3182,8 @@ Recordá: si no hay nada relevante → message vacío + state="stable". Tono Pes
     };
   });
 
+=======
+>>>>>>> origin/main
 export const resolveBrainPayload = functions
   .region("us-central1")
   .https.onCall(async (data, context) => {
@@ -3402,7 +3357,6 @@ export {
   pessyClinicalBrainGrounding,
   provisionPessyVertexDatastore,
   uploadPetPhoto,
-  extractVetsFromArchives,
   onMedicationWriteScheduleV3,
   onTreatmentWriteScheduleV3,
   dispatchTreatmentRemindersV3,

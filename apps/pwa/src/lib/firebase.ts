@@ -23,7 +23,6 @@ const ALLOWED_HOSTS = new Set([
   "polar-scene-488615-i0.web.app",
   "polar-scene-488615-i0.firebaseapp.com",
   "pessy-qa-app.web.app",
-  "pessy-qa-app-1618a.web.app",
   "pessy-focus-qa.web.app",
   "itpessy.web.app",
   "localhost",

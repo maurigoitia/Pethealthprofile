@@ -1,0 +1,25 @@
+{
+	"appId": "app.pessy.mobile",
+	"appName": "Pessy",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "https"
+	},
+	"plugins": {
+		"SplashScreen": {
+			"launchAutoHide": true
+		},
+		"PushNotifications": {
+			"presentationOptions": [
+				"badge",
+				"sound",
+				"alert"
+			]
+		}
+	},
+	"packageClassList": [
+		"AppPlugin",
+		"CAPBrowserPlugin",
+		"PushNotificationsPlugin"
+	]
+}

@@ -9,11 +9,6 @@ import { doc, getDoc, setDoc, collection, query, where, onSnapshot } from "fireb
 import { db } from "../../../lib/firebase";
 import { useAuth } from "../../contexts/AuthContext";
 import { PetPhoto } from "./PetPhoto";
-import { HomeHeaderV2 } from "./HomeHeaderV2";
-import { HomeGreetingV2 } from "./HomeGreetingV2";
-import { PendienteHoyCard } from "./PendienteHoyCard";
-import { useAppLayout } from "../layout/AppLayout";
-import { SafeBoundary } from "../shared/SafeBoundary";
 
 
 const PetPreferencesEditor = lazy(() =>
@@ -21,14 +16,25 @@ const PetPreferencesEditor = lazy(() =>
 );
 import {
   WELLBEING_MASTER_BOOK,
+  type ThermalSafetyProfile,
   type WellbeingSpeciesGroupId,
 } from "../../../domain/wellbeing/wellbeingMasterBook";
+import {
+  runPessyIntelligence,
+  type PessyIntelligenceRecommendation,
+} from "../../../domain/intelligence/pessyIntelligenceEngine";
+
+import DailyHookCard from "../home/DailyHookCard";
+import HealthPulse from "../home/HealthPulse";
 import RoutineChecklist from "../home/RoutineChecklist";
+import ProfileNudge from "../home/ProfileNudge";
 import { QuickActionsV2 } from "../home/QuickActionsV2";
+import PessyTip, { SectionTitle } from "../home/PessyTip";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type PetSpecies = "dog" | "cat";
+type WalkSafetyStatus = "missing_data" | "unavailable" | "safe" | "caution" | "blocked";
 
 interface LiveWeatherSnapshot {
   status: "loading" | "ready" | "unavailable";
@@ -37,6 +43,11 @@ interface LiveWeatherSnapshot {
   weatherCode: number | null;
   windSpeedKmh: number | null;
   uvIndex: number | null;
+}
+
+interface WalkSafetyState {
+  status: WalkSafetyStatus;
+  badge: string;
 }
 
 const WEATHER_CACHE_KEY = "pessy_home_weather_v1";
@@ -127,6 +138,27 @@ function resolveGroupIds(species: PetSpecies, breed: string): WellbeingSpeciesGr
   return ids;
 }
 
+function resolveThermalProfile(species: PetSpecies, groupIds: WellbeingSpeciesGroupId[]): ThermalSafetyProfile | null {
+  const priority = groupIds.find((id) => id === "dog.brachycephalic" || id === "cat.brachycephalic");
+
+  if (priority) {
+    return WELLBEING_MASTER_BOOK.thermal_safety.groups.find((group) => group.id === priority) ?? null;
+  }
+
+  const fallbackId = species === "cat" ? "cat.general" : "dog.general";
+  return WELLBEING_MASTER_BOOK.thermal_safety.groups.find((group) => group.id === fallbackId) ?? null;
+}
+
+const WMO_RAIN_CODES = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82];
+
+function computeFoodDaysLeft(prefs: PetPreferences | undefined): number | null {
+  if (!prefs?.foodBagKg || !prefs?.foodDailyGrams || !prefs?.foodLastPurchase) return null;
+  const totalGrams = prefs.foodBagKg * 1000;
+  const daysSince = Math.max(0, Math.floor((Date.now() - new Date(prefs.foodLastPurchase).getTime()) / 86_400_000));
+  const gramsLeft = Math.max(0, totalGrams - daysSince * prefs.foodDailyGrams);
+  return Math.max(0, Math.floor(gramsLeft / prefs.foodDailyGrams));
+}
+
 /** Map generic groupIds to the closest match in daily_suggestions/routines */
 function resolveRoutineGroupId(groupIds: WellbeingSpeciesGroupId[], species: PetSpecies): WellbeingSpeciesGroupId {
   // If the groupId exists in routines, use it directly
@@ -137,6 +169,52 @@ function resolveRoutineGroupId(groupIds: WellbeingSpeciesGroupId[], species: Pet
   // Fallback mapping
   if (species === "cat") return "cat.general";
   return "dog.companion"; // dog.general -> dog.companion
+}
+
+const CATEGORY_ICONS: Record<string, string> = {
+  outdoor: "park",
+  indoor: "home",
+  grooming: "content_cut",
+  training: "school",
+  social: "groups",
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  outdoor: "Aire libre",
+  indoor: "En casa",
+  grooming: "Cuidado",
+  training: "Entrenamiento",
+  social: "Social",
+};
+
+// ─── Inline WeatherPill ───────────────────────────────────────────────────────
+
+function WeatherPill({
+  emoji,
+  value,
+  label,
+  highlight,
+}: {
+  emoji: string;
+  value: string;
+  label: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`flex-1 flex items-center gap-1.5 rounded-[14px] px-2.5 py-2 border ${
+        highlight
+          ? "border-[#1A9B7D] bg-[#eef8f3]"
+          : "border-[#E5E7EB] bg-white"
+      }`}
+    >
+      <span className="text-[16px] leading-none" role="img">{emoji}</span>
+      <div className="min-w-0">
+        <p className="text-[12px] font-[800] text-[#074738] leading-none">{value}</p>
+        <p className="text-[10px] text-[#9CA3AF] leading-none mt-0.5">{label}</p>
+      </div>
+    </div>
+  );
 }
 
 // ─── ROUTINE STORAGE HELPERS ──────────────────────────────────────────────────
@@ -195,12 +273,24 @@ async function loadCheckedItemsFromFirestore(petId: string): Promise<string[] | 
   }
 }
 
+// ─── RECOMMENDATION COLOR MAPPING ────────────────────────────────────────────
+
+function mapRecToTipColor(rec: PessyIntelligenceRecommendation): "green" | "blue" | "orange" {
+  const segment = rec.slot?.toLowerCase() || "";
+  if (segment.includes("block") || segment.includes("alert") || rec.kind === "block" || rec.kind === "alert") {
+    return "orange";
+  }
+  if (segment.includes("training") || segment.includes("routine")) {
+    return "green";
+  }
+  return "blue";
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function PetHomeView({
-  userName,
   onViewHistory,
   onProfileClick,
   onPetClick,
@@ -212,8 +302,8 @@ export function PetHomeView({
 }: PetHomeViewProps) {
   const { updatePet } = usePet();
   const { user } = useAuth();
-  const { openSymptomLog } = useAppLayout();
   const [showPreferences, setShowPreferences] = useState(false);
+  const [showAllTasks, setShowAllTasks] = useState(false);
   const [weather, setWeather] = useState<LiveWeatherSnapshot>({
     status: "loading",
     temperatureC: null,
@@ -232,6 +322,7 @@ export function PetHomeView({
   const currentIndex = pets.findIndex((pet) => pet.id === activePetId);
   const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0;
   const activePet = pets[safeCurrentIndex];
+  const hasMultiplePets = pets.length > 1;
 
   const petEvents = activePetId ? getEventsByPetId(activePetId) : [];
   const appointments = activePetId ? getAppointmentsByPetId(activePetId) : [];
@@ -244,6 +335,15 @@ export function PetHomeView({
 
   const species = resolveSpecies(activePet?.species, activePet?.breed);
   const groupIds = resolveGroupIds(species, activePet?.breed || "");
+  const thermalProfile = resolveThermalProfile(species, groupIds);
+  const foodDaysLeft = computeFoodDaysLeft(activePet?.preferences);
+
+  // ─── Profile completeness ───────────────────────────────────────────────────
+  const missingItems: string[] = [];
+  if (!activePet?.photo) missingItems.push("foto");
+  if (!activePet?.weight) missingItems.push("peso");
+  if (!activePet?.breed) missingItems.push("raza");
+  const profileIncomplete = missingItems.length > 0;
 
   // ─── Medical history derivation for intelligence engine ─────────────────────
   const medicalHistoryInputs = useMemo(() => {
@@ -260,13 +360,10 @@ export function PetHomeView({
       ? Math.round((now - Math.max(...vetVisitDates)) / DAY_MS)
       : null;
 
-    // Overdue vaccines: vaccine events with revaccination_date in the past.
-    // Track total vaccine events so HealthPulse can distinguish "Al día" vs "Sin datos".
+    // Overdue vaccines: vaccine events with revaccination_date in the past
     let overdueVaccineCount = 0;
-    let vaccineEventCount = 0;
     for (const e of petEvents) {
       if (e.extractedData?.documentType !== "vaccine") continue;
-      vaccineEventCount++;
       const revacDate = e.extractedData?.vaccine_artifacts?.revaccination_date;
       if (revacDate) {
         const ts = toTimestampSafe(revacDate, 0);
@@ -289,28 +386,122 @@ export function PetHomeView({
     return {
       lastVetVisitDaysAgo,
       overdueVaccineCount,
-      vaccineEventCount,
       activeMedicationCount: activeMedications.length,
       upcomingAppointmentCount: upcomingAppointments.length,
       recurringConditions: recurringConditions.length > 0 ? recurringConditions : undefined,
     };
   }, [petEvents, activeMedications.length, upcomingAppointments.length]);
 
-  // NOTA Épica 6: bloque intelligenceResult/sortedRecommendations/criticalAlert
-  // eliminado — solo alimentaba "Pessy te dice" que estaba oculto detrás de
-  // false &&. Si en el futuro vuelve a usarse, recuperar runPessyIntelligence
-  // desde domain/intelligence/pessyIntelligenceEngine.
+  // ─── Intelligence engine ────────────────────────────────────────────────────
+  const intelligenceResult = useMemo(() => {
+    if (!activePet?.breed) return null;
+    const wc = weather.weatherCode;
+    return runPessyIntelligence({
+      petName: activePet.name,
+      species,
+      breed: activePet.breed,
+      ageLabel: activePet.age || "",
+      groupIds,
+      temperatureC: weather.temperatureC,
+      humidityPct: weather.humidityPct,
+      isRaining: wc !== null && WMO_RAIN_CODES.includes(wc),
+      isStormy: wc !== null && wc >= 95,
+      windSpeedKmh: weather.windSpeedKmh,
+      uvIndex: weather.uvIndex,
+      currentHour: new Date().getHours(),
+      fears: activePet.preferences?.fears,
+      personality: activePet.preferences?.personality,
+      favoriteActivities: activePet.preferences?.favoriteActivities,
+      walkTimes: activePet.preferences?.walkTimes,
+      foodDaysLeft,
+      ...medicalHistoryInputs,
+    });
+  }, [activePet?.id, activePet?.breed, activePet?.name, activePet?.age, activePet?.preferences, species, groupIds, weather, foodDaysLeft, medicalHistoryInputs]);
 
-  // walkSafety eliminado (Épica 6): solo alimentaba WeatherPills (también
-  // removida). thermalProfile/groupIds quedan disponibles para futura mini-
-  // badge dentro de HealthPulse si se decide volver a mostrar paseo.
+  const sortedRecommendations = useMemo(() => {
+    if (!intelligenceResult) return [];
+    const order: Record<string, number> = { block: 0, alert: 1, recommendation: 2 };
+    return [...intelligenceResult.recommendations].sort((a, b) => (order[a.kind] ?? 2) - (order[b.kind] ?? 2));
+  }, [intelligenceResult]);
 
-  // NOTA: el bloque dailySuggestions (sugerencias rotativas tipo "Limpieza de
-  // pliegues", "Sesión de calma", etc.) fue eliminado en Épica 1 — se computaba
-  // pero nunca se renderizaba, y mostraba items que no tenían flow real de
-  // "empezar". Si en el futuro se vuelve a usar contenido de
-  // WELLBEING_MASTER_BOOK.daily_suggestions, hay que conectar un onClick que
-  // realmente abra los `steps` o se elimina el botón.
+  // ─── Critical alert for "Pessy te dice" (single most urgent) ───────────────
+  const criticalAlert = sortedRecommendations.find(
+    (rec) => rec.kind === "block" || rec.kind === "alert"
+  ) ?? null;
+
+  // ─── Walk safety (simplified for badge) ─────────────────────────────────────
+  const walkSafety: WalkSafetyState = useMemo(() => {
+    const breed = (activePet?.breed || "").trim();
+    if (!breed || !thermalProfile) return { status: "missing_data", badge: "Falta dato" };
+    if (weather.status !== "ready" || weather.temperatureC === null) return { status: "unavailable", badge: "Sin clima" };
+
+    const humidityPenalty = thermalProfile.humiditySensitive && (weather.humidityPct ?? 0) >= 70;
+    const severeRisk = thermalProfile.severeRiskAboveC ?? Number.POSITIVE_INFINITY;
+    const avoidExercise = thermalProfile.avoidExerciseAboveC ?? Number.POSITIVE_INFINITY;
+    const cautionThreshold =
+      typeof avoidExercise === "number" && Number.isFinite(avoidExercise)
+        ? Math.max((thermalProfile.comfortableMaxC ?? avoidExercise) + 1, avoidExercise - 3)
+        : thermalProfile.comfortableMaxC ?? 26;
+
+    if (weather.temperatureC >= severeRisk || weather.temperatureC > avoidExercise || humidityPenalty) {
+      return { status: "blocked", badge: "STOP" };
+    }
+    if (weather.temperatureC >= cautionThreshold) {
+      return { status: "caution", badge: "Precaución" };
+    }
+    return { status: "safe", badge: "OK" };
+  }, [activePet?.breed, thermalProfile, weather]);
+
+  // ─── Daily suggestions (deterministic by day-of-year, up to 3) ─────────────
+  const dailySuggestions = useMemo(() => {
+    const weatherCondition = walkSafety.status === "blocked" ? "blocked" : walkSafety.status === "safe" ? "safe" : "any";
+
+    // Collect candidates from ALL matching groupIds (breed-aware)
+    const candidates = WELLBEING_MASTER_BOOK.daily_suggestions.filter(
+      (s) => groupIds.includes(s.groupId) && (s.weatherCondition === weatherCondition || s.weatherCondition === "any")
+    );
+
+    // If no candidates for the matched groups, try all suggestions for weather condition
+    const pool = candidates.length > 0
+      ? candidates
+      : WELLBEING_MASTER_BOOK.daily_suggestions.filter(
+          (s) => s.weatherCondition === weatherCondition || s.weatherCondition === "any"
+        );
+
+    const fallback = {
+      category: "Actividad",
+      icon: "park",
+      title: `Tiempo de calidad con ${activePet?.name || "tu mascota"}`,
+      detail: "Un buen momento para compartir tiempo con tu mascota.",
+      duration: "15 min",
+      points: 10,
+    };
+
+    if (pool.length === 0) {
+      return [fallback];
+    }
+
+    const dayOfYear = Math.floor(
+      (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86_400_000
+    );
+
+    // Pick up to 3 unique suggestions, rotating deterministically by day-of-year
+    const count = Math.min(3, pool.length);
+    const results: Array<{ category: string; icon: string; title: string; detail: string; duration: string; points: number }> = [];
+    for (let i = 0; i < count; i++) {
+      const pick = pool[(dayOfYear + i) % pool.length];
+      results.push({
+        category: pick.category,
+        icon: CATEGORY_ICONS[pick.category] || "star",
+        title: pick.title,
+        detail: pick.detail,
+        duration: pick.duration,
+        points: pick.gamificationPoints,
+      });
+    }
+
+    return results;
+  }, [groupIds, species, walkSafety.status, activePet?.name]);
 
   // ─── Routine items ──────────────────────────────────────────────────────────
   const currentHour = new Date().getHours();
@@ -518,82 +709,94 @@ export function PetHomeView({
     <div className="bg-[#F0FAF9] dark:bg-[#0D1B16] min-h-screen font-['Manrope',sans-serif]">
       <div id="main-content" role="main" className="max-w-md mx-auto pb-24">
 
-        {/* 1. HEADER V2 + GREETING V2 — compact avatar + morning greeting */}
-        <div className="pessy-fade-up pt-2">
-          <SafeBoundary name="HomeHeaderV2">
-            <HomeHeaderV2
-              petName={activePet.name}
-              petBreed={activePet.breed}
-              petPhoto={activePet.photo}
-              notificationCount={pendingReviewCount}
-              pointsTotal={gamification.totalPoints}
-              onBellClick={onViewHistory}
-              pets={pets}
-              activePetId={activePetId}
-              onPetChange={onPetChange}
-            />
-          </SafeBoundary>
-          <SafeBoundary name="HomeGreetingV2">
-            <HomeGreetingV2
-              userName={userName}
-              petName={activePet.name}
-              petId={activePet.id}
-              pendingTodayCount={medicationCount + appointmentCount}
-              pendingReviewCount={pendingReviewCount}
-              overdueCount={medicalHistoryInputs.overdueVaccineCount}
-            />
-          </SafeBoundary>
+        {/* 1. HERO - Pet photo with name overlay + blob */}
+        <div className="relative h-[220px] overflow-hidden pessy-fade-up">
+          <PetPhoto
+            src={activePet.photo}
+            alt={activePet.name}
+            className="w-full h-full object-cover"
+            fallbackClassName="rounded-none"
+          />
+          <div className="absolute bottom-0 left-0 right-0 h-[120px] bg-gradient-to-t from-[rgba(7,71,56,0.92)] via-[rgba(7,71,56,0.4)] to-transparent" />
+          {/* Decorative blob — pessy.app organic feel */}
+          <div className="pessy-blob absolute -top-10 -right-10 w-[120px] h-[120px] bg-[rgba(26,155,125,0.15)]" style={{ animationDelay: '2s' }} />
+          <div className="absolute bottom-3.5 left-4 text-white">
+            <h1
+              className="text-[26px] font-[900] leading-none"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              {activePet.name}
+            </h1>
+            <p className="text-xs opacity-80 mt-0.5">{activePet.breed}</p>
+          </div>
+          {/* Gamification points badge top-right */}
+          <div className="absolute top-3 right-3 bg-[rgba(7,71,56,0.85)] text-white text-xs font-[800] px-3 py-1.5 rounded-full flex items-center gap-1 backdrop-blur-sm">
+            <MaterialIcon name="star" className="!text-sm" /> {gamification.totalPoints} pts
+          </div>
         </div>
 
-        {/* Pet selector eliminado (Épica 2A): el cambio de mascota ahora se
-            hace por swipe horizontal en el HomeHeaderV2 + dots indicator. */}
-
-        {/* WeatherPills eliminado (Épica 6 audit): decorativo sin CTA. El clima
-            sigue alimentando walkSafety + intelligence engine en background.
-            TODO: revisar si vale recuperar como mini-badge dentro de HealthPulse. */}
-
-        {/* 2b. PENDIENTE HOY — card central v2 con meds + turnos del día */}
-        <SafeBoundary name="PendienteHoyCard">
-          <PendienteHoyCard
-            medications={activeMedications.filter((m) => !activePet.id || m.petId === activePet.id)}
-            appointments={appointments.filter((a) => a.petId === activePet.id)}
-            petName={activePet.name}
-          />
-        </SafeBoundary>
-
-        {/* 2c. ALGO RARO HOY — quick symptom log (foto + nota corta).
-            Resuelve el pain del Reddit thread: "scrolling forever through camera roll". */}
-        <SafeBoundary name="QuickLogButton">
-          <button
-            type="button"
-            onClick={openSymptomLog}
-            className="mx-3 mt-3 mb-1 flex w-[calc(100%-1.5rem)] items-center gap-3 rounded-[16px] border border-[#1A9B7D]/20 bg-gradient-to-br from-[#E0F2F1] to-white px-4 py-3.5 active:scale-[0.98] transition-transform shadow-[0_2px_8px_rgba(7,71,56,0.06)]"
-          >
-            <div className="size-11 rounded-[12px] bg-[#1A9B7D] flex items-center justify-center shrink-0">
-              <MaterialIcon name="photo_camera" className="text-xl text-white" />
-            </div>
-            <div className="flex-1 text-left">
-              <p
-                className="text-sm font-extrabold text-[#074738] leading-tight"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        {/* Pet selector for multiple pets */}
+        {hasMultiplePets && (
+          <div className="mx-3 mt-2 flex items-center gap-2 overflow-x-auto pb-1">
+            {pets.map((pet) => (
+              <button
+                key={pet.id}
+                onClick={() => onPetChange(pet.id)}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+                  pet.id === activePetId
+                    ? "bg-[#074738] text-white"
+                    : "bg-white text-[#9CA3AF] border border-[#E5E7EB]"
+                }`}
               >
-                ¿Algo raro hoy?
-              </p>
-              <p
-                className="text-[11px] text-slate-500 mt-0.5"
-                style={{ fontFamily: "Manrope, sans-serif" }}
-              >
-                Sacá foto y nota — al historial en 10 segundos
-              </p>
-            </div>
-            <MaterialIcon name="chevron_right" className="text-lg text-slate-400 shrink-0" />
-          </button>
-        </SafeBoundary>
+                {pet.name}
+              </button>
+            ))}
+          </div>
+        )}
 
-        {/* 3. ROUTINE CHECKLIST — actions for today: rutina del momento.
-            Si no hay rutina (sleep mode con 0 items), no rendereamos NADA. */}
-        {currentRoutineItems && currentRoutineItems.length > 0 && (
-          <div className="mx-3 mt-3">
+        {/* 2. WEATHER STRIP - 3 pills */}
+        {weather.status === "ready" && (
+          <div className="flex gap-1.5 mx-3 mt-2.5">
+            <WeatherPill emoji="🌡️" value={`${weather.temperatureC}°C`} label="Ahora" />
+            <WeatherPill emoji="💧" value={`${weather.humidityPct}%`} label="Humedad" />
+            <WeatherPill
+              emoji={walkSafety.status === "safe" ? "✅" : walkSafety.status === "caution" ? "⚠️" : "🚫"}
+              value={walkSafety.badge}
+              label="Paseo"
+              highlight={walkSafety.status === "safe"}
+            />
+          </div>
+        )}
+
+        {/* 3. DAILY TASKS — contexto del día, primero para dar orientación inmediata */}
+        <SectionTitle>Hoy con {activePet.name}</SectionTitle>
+        <div className="pessy-stagger mx-4 space-y-2">
+          {(showAllTasks ? dailySuggestions : dailySuggestions.slice(0, 2)).map((s, i) => (
+            <DailyHookCard
+              key={i}
+              category={CATEGORY_LABELS[s.category] || s.category}
+              categoryIcon={s.icon}
+              title={s.title}
+              description={s.detail}
+              duration={s.duration}
+              points={s.points}
+              steps={s.steps}
+              onStart={() => { void gamification.addPoints("daily_checkin"); }}
+            />
+          ))}
+          {dailySuggestions.length > 2 && !showAllTasks && (
+            <button
+              onClick={() => setShowAllTasks(true)}
+              className="w-full rounded-full border border-[#E5E7EB] bg-white py-2.5 text-xs font-bold text-[#074738] hover:bg-[#E0F2F1] transition-colors"
+            >
+              Ver más actividades
+            </button>
+          )}
+        </div>
+
+        {/* 4. ROUTINE CHECKLIST - morning, evening, or sleep based on time */}
+        {currentRoutineItems && currentRoutineItems.length > 0 ? (
+          <div className="mx-3 mt-2">
             <RoutineChecklist
               title={routineTitle}
               icon={routineIcon}
@@ -602,10 +805,32 @@ export function PetHomeView({
               onToggle={handleRoutineToggle}
             />
           </div>
-        )}
+        ) : currentRoutineItems === null ? (
+          <div className="mx-3 mt-2">
+            <div className="rounded-[16px] border border-[#E5E7EB] bg-white flex items-center gap-3" style={{ padding: "14px 16px" }}>
+              <span className="text-[#074738]">
+                <MaterialIcon name="bedtime" className="!text-[22px]" />
+              </span>
+              <span className="text-[13px] font-[800] text-[#074738]">
+                {activePet.name} ya descansa. Mañana seguimos.
+              </span>
+            </div>
+          </div>
+        ) : null}
 
-        {/* 4. QUICK ACTIONS — bottom: acciones rápidas (turnos / meds / historial).
-            Counts en badges = no necesitamos una HealthPulse separada. */}
+        {/* 5. HEALTH PULSE — alertas de salud, después del contexto */}
+        <div className="mx-3 mt-2">
+          <HealthPulse
+            petName={activePet.name}
+            overdueVaccines={medicalHistoryInputs.overdueVaccineCount}
+            activeMedications={activeMedications.length}
+            lastVetVisitDaysAgo={medicalHistoryInputs.lastVetVisitDaysAgo}
+            recurringConditions={medicalHistoryInputs.recurringConditions || []}
+            upcomingAppointments={upcomingAppointments.length}
+          />
+        </div>
+
+        {/* 5a. QUICK ACTIONS — always visible, action-oriented */}
         <div className="mt-3">
           <QuickActionsV2
             pendingReviewCount={pendingReviewCount}
@@ -614,15 +839,71 @@ export function PetHomeView({
           />
         </div>
 
-        {/* HealthPulse + LearningVideos REMOVIDOS (cleanup 2026-04-26):
-            - HealthPulse duplicaba counts ya visibles en QuickActions badges
-            - LearningVideos era contenido educativo, no responde a "qué hago hoy"
-            La home ahora cumple regla de 5 segundos: Today Summary → Actions → Quick. */}
+        {/* 5b. PREFERENCES NUDGE — appears if pet has no preferences set */}
+        {activePet && !activePet.preferences?.personality?.length && !activePet.preferences?.fears?.length && !activePet.preferences?.favoriteActivities?.length && (
+          <div className="mx-3 mt-2">
+            <button
+              type="button"
+              onClick={() => setShowPreferences(true)}
+              className="w-full rounded-[16px] border border-[#1A9B7D]/20 bg-[#E0F2F1] flex items-center gap-3 text-left transition-colors hover:bg-[#C8E6E3]"
+              style={{ padding: "14px 16px" }}
+            >
+              <span className="text-[22px]">🎯</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-[800] text-[#074738]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  Contanos sobre {activePet.name}
+                </p>
+                <p className="text-[11px] font-[500] text-[#6B7280] mt-0.5">
+                  Personalidad, actividades y miedos — para sugerencias más precisas
+                </p>
+              </div>
+              <span className="text-[#1A9B7D] text-lg shrink-0">→</span>
+            </button>
+          </div>
+        )}
 
-        {/* PreferencesNudge / ProfileNudge / PessyTeDice eliminados (Épica 6):
-            estaban detrás de `false &&` desde el ajuste de UI kit v2. Si en el
-            futuro hace falta un nudge de perfil incompleto, agregarlo dentro
-            de HealthPulse o en un settings dedicado — no como card extra. */}
+        {/* 6. PROFILE NUDGE - only if incomplete */}
+        {profileIncomplete && (
+          <div className="mx-3 mt-2">
+            <ProfileNudge
+              petName={activePet.name}
+              species={species}
+              missingItems={missingItems}
+              onComplete={onProfileClick}
+            />
+          </div>
+        )}
+
+        {/* 7. PESSY TE DICE — single critical alert only */}
+        {criticalAlert && (
+          <>
+            <SectionTitle>Pessy te dice</SectionTitle>
+            <div className="mx-4">
+              <PessyTip
+                icon={criticalAlert.icon}
+                color={mapRecToTipColor(criticalAlert)}
+                title={criticalAlert.title}
+                description={criticalAlert.detail}
+                actionLabel={
+                  criticalAlert.sourceModule === "medical_history" ? "Ver historial" :
+                  criticalAlert.sourceModule === "supply_tracker" ? "Ver recordatorios" :
+                  criticalAlert.sourceModule === "breed_profile" ? "Completar perfil" :
+                  criticalAlert.sourceModule === "weight_trend" ? "Ver historial" :
+                  criticalAlert.sourceModule === "recurring_conditions" ? "Ver historial" :
+                  undefined
+                }
+                onAction={
+                  criticalAlert.sourceModule === "medical_history" ? onViewHistory :
+                  criticalAlert.sourceModule === "supply_tracker" ? onMedicationsClick :
+                  criticalAlert.sourceModule === "breed_profile" ? onProfileClick :
+                  criticalAlert.sourceModule === "weight_trend" ? onViewHistory :
+                  criticalAlert.sourceModule === "recurring_conditions" ? onViewHistory :
+                  undefined
+                }
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* ─── Preferences Editor Modal ─────────────────────────────────────── */}

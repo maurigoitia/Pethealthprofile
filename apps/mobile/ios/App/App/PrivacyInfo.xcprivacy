@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<!--
+  PrivacyInfo.xcprivacy — Pessy (app.pessy.mobile)
+  Required by Apple for all iOS apps submitted to App Store (iOS 17+)
+  SCRUM-36
+-->
+<dict>
+  <!-- ═══════════════════════════════════════════════════════════
+       NSPrivacyTracking: does the app track users across apps/websites?
+       Pessy does NOT use any tracking SDKs or cross-app identifiers.
+  ═══════════════════════════════════════════════════════════ -->
+  <key>NSPrivacyTracking</key>
+  <false/>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       NSPrivacyTrackingDomains: list of domains used for tracking.
+       Empty because NSPrivacyTracking = false.
+  ═══════════════════════════════════════════════════════════ -->
+  <key>NSPrivacyTrackingDomains</key>
+  <array/>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       NSPrivacyCollectedDataTypes: data types collected by the app.
+  ═══════════════════════════════════════════════════════════ -->
+  <key>NSPrivacyCollectedDataTypes</key>
+  <array>
+
+    <!-- Email address — used for authentication -->
+    <dict>
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypeEmailAddress</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <true/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+      </array>
+    </dict>
+
+    <!-- Name — user display name -->
+    <dict>
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypeName</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <true/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+      </array>
+    </dict>
+
+    <!-- Photos — pet and document photos -->
+    <dict>
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypePhotosOrVideos</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <true/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+      </array>
+    </dict>
+
+    <!-- Health & Fitness — pet medical records (NOT human health) -->
+    <dict>
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <true/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+      </array>
+    </dict>
+
+    <!-- Device ID — Firebase installations ID for push notifications -->
+    <dict>
+      <key>NSPrivacyCollectedDataType</key>
+      <string>NSPrivacyCollectedDataTypeDeviceID</string>
+      <key>NSPrivacyCollectedDataTypeLinked</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypeTracking</key>
+      <false/>
+      <key>NSPrivacyCollectedDataTypePurposes</key>
+      <array>
+        <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+      </array>
+    </dict>
+
+  </array>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       NSPrivacyAccessedAPITypes: required reasons for sensitive API use.
+       Only list APIs actually used by the app.
+  ═══════════════════════════════════════════════════════════ -->
+  <key>NSPrivacyAccessedAPITypes</key>
+  <array>
+
+    <!-- UserDefaults — used by Capacitor and app settings -->
+    <dict>
+      <key>NSPrivacyAccessedAPIType</key>
+      <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+      <key>NSPrivacyAccessedAPITypeReasons</key>
+      <array>
+        <!-- CA92.1: Read/write info in app's container using UserDefaults API -->
+        <string>CA92.1</string>
+      </array>
+    </dict>
+
+    <!-- File timestamp — Capacitor web views and document caching -->
+    <dict>
+      <key>NSPrivacyAccessedAPIType</key>
+      <string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+      <key>NSPrivacyAccessedAPITypeReasons</key>
+      <array>
+        <!-- C617.1: Inside app container, related to app functionality -->
+        <string>C617.1</string>
+      </array>
+    </dict>
+
+    <!-- System boot time — used by Firebase Performance monitoring -->
+    <dict>
+      <key>NSPrivacyAccessedAPIType</key>
+      <string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+      <key>NSPrivacyAccessedAPITypeReasons</key>
+      <array>
+        <!-- 35F9.1: Measure time on device for legitimate functionality -->
+        <string>35F9.1</string>
+      </array>
+    </dict>
+
+    <!-- Disk space — used by Capacitor for cache management -->
+    <dict>
+      <key>NSPrivacyAccessedAPIType</key>
+      <string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+      <key>NSPrivacyAccessedAPITypeReasons</key>
+      <array>
+        <!-- E174.1: Display to user or take action if low disk space -->
+        <string>E174.1</string>
+      </array>
+    </dict>
+
+  </array>
+
+</dict>
+</plist>

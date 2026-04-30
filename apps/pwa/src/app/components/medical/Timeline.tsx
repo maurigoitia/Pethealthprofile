@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { clsx } from "clsx";
 import { MaterialIcon } from "../shared/MaterialIcon";
+import { EmptyState } from "../shared/EmptyState";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
 import type { ClinicalEpisode } from "../../contexts/MedicalContext";
@@ -8,12 +9,6 @@ import { MedicalEvent, DocumentType } from "../../types/medical";
 import { EditEventModal } from "./EditEventModal";
 import { formatDateSafe, parseDateSafe, toTimestampSafe } from "../../utils/dateUtils";
 import { isFocusHistoryExperimentHost } from "../../utils/runtimeFlags";
-import {
-  getRealProvider,
-  isEmailIngestedNoiseEvent,
-  sanitizeSummary,
-  cleanProfessional,
-} from "../../utils/timelineFilters";
 
 interface TimelineProps {
   activePet?: { name: string; photo: string };
@@ -31,7 +26,7 @@ type ClinicalRenderKind =
   | "clinical_report"
   | "other";
 
-type HistoricalPeriodType = "month" | "trimester" | "year";
+type HistoricalPeriodType = "month" | "year";
 
 type TimelineEntry =
   | { kind: "event"; id: string; yearKey: string; timestamp: number; event: MedicalEvent }
@@ -94,10 +89,7 @@ const cleanText = (text?: unknown) => {
     .replace(/\*(.*?)\*/g, "$1")
     .replace(/#{1,6}\s+/g, "")
     .replace(/`{1,3}[^`]*`{1,3}/g, "")
-    .replace(/[%Ï]/g, "")         // email encoding garbage
-    .replace(/^>+\s*/gm, "")      // email reply quote prefixes
     .replace(/\n{2,}/g, " ")
-    .replace(/\s{2,}/g, " ")
     .trim();
 };
 
@@ -455,9 +447,8 @@ function buildEventSummary(event: MedicalEvent, petName: string): string {
     { day: "numeric", month: "long", year: "numeric" },
     "fecha no disponible"
   );
-  const realProvider = getRealProvider(event);
-  const provider = realProvider || cleanProfessional(appointmentHints.provider) || "";
-  const clinic = cleanProfessional(d.clinic as string | undefined) || cleanProfessional(appointmentHints.clinic) || "";
+  const provider = cleanText(d.provider || appointmentHints.provider);
+  const clinic = cleanText(d.clinic || appointmentHints.clinic);
   const diagnosis = cleanDiagnosisText(d.diagnosis);
   const firstMedication = d.medications?.[0];
   const detected = d.detectedAppointments?.[0] || null;
@@ -495,11 +486,9 @@ function buildEventSummary(event: MedicalEvent, petName: string): string {
   }
 
   if (kind === "treatment_plan") {
-    const treatmentNarrative = sanitizeSummary(
-      (d.observations as string | undefined) || (d.aiGeneratedSummary as string | undefined)
-    );
-    const tail = treatmentNarrative ? ` ${treatmentNarrative}` : "";
-    return `Plan terapéutico registrado el ${eventDate} para ${petName}${whoWhere ? `. Centro/profesional: ${whoWhere}` : ""}.${tail}`;
+    const treatmentNarrative = cleanText(d.observations || d.aiGeneratedSummary);
+    const narrativePrefix = d.aiGeneratedSummary && !d.observations ? "Resumen automático (pendiente revisión): " : "";
+    return `Plan terapéutico registrado el ${eventDate} para ${petName}${whoWhere ? `. Centro/profesional: ${whoWhere}` : ""}. ${narrativePrefix}${treatmentNarrative}`;
   }
 
   if (kind === "imaging_report") {
@@ -527,9 +516,10 @@ function buildEventSummary(event: MedicalEvent, petName: string): string {
     return `Hallazgo del ${eventDate}: ${condenseClinicalSentence(diagnosis, diagnosis)}${whoWhere ? `. Referencia: ${whoWhere}` : ""}.`;
   }
 
-  const genericNarrative = sanitizeSummary(
-    (d.aiGeneratedSummary as string | undefined) || (d.observations as string | undefined)
-  );
+  const genericNarrative = cleanText(d.aiGeneratedSummary || d.observations);
+  if (d.aiGeneratedSummary) {
+    return `Resumen automático (pendiente revisión): ${genericNarrative || `Documento de ${petName} registrado el ${eventDate}.`}`;
+  }
   return genericNarrative || `Documento de ${petName} registrado el ${eventDate}.`;
 }
 
@@ -539,7 +529,6 @@ function buildMetaPills(event: MedicalEvent, kind: ClinicalRenderKind): string[]
   const medications = asArray<{ frequency?: string | null; dosage?: string | null }>(d.medications);
   const appointmentHints = extractAppointmentNarrativeHints(event);
   const pills: string[] = [];
-  const realProvider = getRealProvider(event);
   const appointment = d.detectedAppointments?.[0] || null;
   const eventDate = formatDateSafe(
     d.eventDate || event.createdAt,
@@ -562,7 +551,7 @@ function buildMetaPills(event: MedicalEvent, kind: ClinicalRenderKind): string[]
     const first = medications[0];
     if (first?.frequency) pills.push(cleanText(first.frequency));
     if (first?.dosage) pills.push(cleanText(first.dosage));
-    if (realProvider) pills.push(realProvider);
+    if (d.provider) pills.push(cleanText(d.provider));
     return pills.slice(0, 3);
   }
 
@@ -574,13 +563,13 @@ function buildMetaPills(event: MedicalEvent, kind: ClinicalRenderKind): string[]
       ).length;
       pills.push(`${altered}/${total} fuera de rango`);
     }
-    if (realProvider) pills.push(realProvider);
+    if (d.provider) pills.push(cleanText(d.provider));
     return pills.slice(0, 3);
   }
 
   if (kind === "imaging_report") {
-    pills.push(realProvider ? "Informe firmado" : "Sin firma");
-    if (realProvider) pills.push(realProvider);
+    pills.push(d.provider ? "Informe firmado" : "Sin firma");
+    if (d.provider) pills.push(cleanText(d.provider));
     return pills.slice(0, 3);
   }
 
@@ -595,13 +584,13 @@ function buildMetaPills(event: MedicalEvent, kind: ClinicalRenderKind): string[]
         )}`
       );
     }
-    if (realProvider) pills.push(realProvider);
+    if (d.provider) pills.push(cleanText(d.provider));
     return pills.slice(0, 3);
   }
 
   if (kind === "treatment_plan") {
     if (medications.length) pills.push(`${medications.length} indicación(es)`);
-    if (realProvider) pills.push(realProvider);
+    if (d.provider) pills.push(cleanText(d.provider));
     return pills.slice(0, 3);
   }
 
@@ -727,24 +716,6 @@ function buildHistoricalPeriodMeta(timestamp: number, nowTimestamp: number): {
     };
   }
 
-  // 3-18 months → trimester bucket (Q1-Q4)
-  if (monthsAgo>= 3) {
-    const quarter = Math.floor(parsed.getMonth() / 3) + 1;
-    const quarterMonths = [
-      ["enero", "febrero", "marzo"],
-      ["abril", "mayo", "junio"],
-      ["julio", "agosto", "septiembre"],
-      ["octubre", "noviembre", "diciembre"],
-    ][quarter - 1];
-    const trimesterKey = `${yearKey}-Q${quarter}`;
-    return {
-      periodType: "trimester",
-      periodKey: trimesterKey,
-      periodLabel: `${capitalizeSpanish(quarterMonths[0])}–${capitalizeSpanish(quarterMonths[2])} ${yearKey}`,
-      yearKey,
-    };
-  }
-
   const monthKey = `${yearKey}-${String(parsed.getMonth() + 1).padStart(2, "0")}`;
   return {
     periodType: "month",
@@ -809,9 +780,7 @@ function buildHistoricalNarrative(events: MedicalEvent[], petName: string, perio
     new Set(
       events.flatMap((event) => {
         const d = getExtractedData(event);
-        const provider = getRealProvider(event);
-        const clinic = cleanProfessional(d.clinic as string | undefined);
-        return [provider, clinic].filter(Boolean) as string[];
+        return [cleanText(d.provider), cleanText(d.clinic)].filter(Boolean);
       })
     )
   ).slice(0, 2);
@@ -882,9 +851,7 @@ function buildAnnualSummary(events: MedicalEvent[], petName: string, yearKey: st
     new Set(
       events.flatMap((event) => {
         const d = getExtractedData(event);
-        const provider = getRealProvider(event);
-        const clinic = cleanProfessional(d.clinic as string | undefined);
-        return [provider, clinic].filter(Boolean) as string[];
+        return [cleanText(d.provider), cleanText(d.clinic)].filter(Boolean);
       })
     )
   ).slice(0, 2);
@@ -930,18 +897,6 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [activeFilter, setActiveFilter] = useState<TimelineFilter>("all");
-  const [hideEmailNoise, setHideEmailNoise] = useState(true);
-  // Por default solo el año actual está expandido; el resto colapsado
-  const currentYear = String(new Date().getFullYear());
-  const [expandedYears, setExpandedYears] = useState<Set<string>>(() => new Set([currentYear]));
-  const toggleYear = (year: string) => {
-    setExpandedYears((prev) => {
-      const next = new Set(prev);
-      if (next.has(year)) next.delete(year);
-      else next.add(year);
-      return next;
-    });
-  };
   const [showEditModal, setShowEditModal] = useState(false);
   const [eventToEdit, setEventToEdit] = useState<MedicalEvent | null>(null);
   const [eventToDelete, setEventToDelete] = useState<MedicalEvent | null>(null);
@@ -970,13 +925,12 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
     () =>
       [...allEvents]
         .filter((event) => matchesFilter(event, activeFilter))
-        .filter((event) => (hideEmailNoise ? !isEmailIngestedNoiseEvent(event) : true))
         .sort((a, b) => {
           const da = toTimestampSafe(getExtractedData(a)?.eventDate || a.createdAt);
           const db = toTimestampSafe(getExtractedData(b)?.eventDate || b.createdAt);
           return db - da;
         }),
-    [allEvents, activeFilter, hideEmailNoise]
+    [allEvents, activeFilter]
   );
 
 
@@ -1137,13 +1091,8 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
   return (
     <section>
       <div className="flex items-center justify-between mb-4">
-        <h2
-          className="text-[22px] font-extrabold text-[#074738] dark:text-white flex items-center gap-2 leading-tight"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.02em" }}
-        >
-          <span className="size-9 rounded-full bg-[#E0F2F1] flex items-center justify-center">
-            <MaterialIcon name="timeline" className="text-[#1A9B7D] text-lg" />
-          </span>
+        <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <MaterialIcon name="timeline" className="text-[#1A9B7D] text-xl" />
           Historial
         </h2>
         <div className="flex items-center gap-2">
@@ -1163,26 +1112,6 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
           )}
         </div>
       </div>
-
-      {allEvents.length> 0 && (
-        <div className="flex items-center justify-between mb-3 px-1">
-          <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            {hideEmailNoise ? "Ocultando placeholders sin contenido clínico" : "Mostrando todo (incluye ruido de emails)"}
-          </p>
-          <button
-            type="button"
-            onClick={() => setHideEmailNoise((v) => !v)}
-            className={clsx(
-              "text-[10px] font-black uppercase tracking-wide px-2.5 py-1 rounded-full transition-colors",
-              hideEmailNoise
-                ? "bg-[#1A9B7D] text-white"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-            )}
-            aria-pressed={hideEmailNoise}>
-            {hideEmailNoise ? "Ruido oculto" : "Mostrar todo"}
-          </button>
-        </div>
-      )}
 
       {allEvents.length> 0 && (
         <div className="bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 p-2 mb-4 overflow-x-auto no-scrollbar">
@@ -1214,57 +1143,28 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
       )}
 
       {filteredSortedEvents.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 rounded-[16px] border border-[rgba(7,71,56,0.08)] dark:border-slate-800 shadow-[0_2px_8px_rgba(0,0,0,0.04)] py-10 px-6 text-center">
-          <div className="w-24 h-24 rounded-full bg-[#E0F2F1] flex items-center justify-center mx-auto mb-5">
-            <MaterialIcon name="auto_stories" className="text-[#1A9B7D] text-5xl" />
-          </div>
-          <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#1A9B7D]/10 border border-[#1A9B7D]/20 mb-4">
-            <span
-              className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#1A9B7D]"
-              style={{ fontFamily: "Manrope, sans-serif" }}
-            >
-              Historial
-            </span>
-          </div>
-          <h3
-            className="text-2xl font-extrabold text-[#074738] dark:text-white mb-2 leading-tight"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-          >
-            {allEvents.length === 0 ? "Sin registros todavía" : "Sin resultados"}
-          </h3>
-          <p
-            className="text-sm text-[#6B7280] max-w-[280px] mx-auto leading-relaxed"
-            style={{ fontFamily: "Manrope, sans-serif" }}
-          >
-            {allEvents.length === 0
-              ? "Los documentos que subas aparecerán acá automáticamente, ordenados por fecha."
-              : "Probá con otro filtro para ver más eventos."}
-          </p>
+        <div className="bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800">
+          <EmptyState
+            icon="inbox"
+            title={allEvents.length === 0 ? "Sin registros" : "Sin resultados para este filtro"}
+            description={
+              allEvents.length === 0
+                ? "Los documentos que subas aparecerán aquí automáticamente"
+                : "Probá con otro filtro para ver más eventos"
+            }
+            illustration="medical"
+          />
         </div>
       ) : (
         <div className="space-y-8">
-          {groupedByYear.map(([year, events], groupIndex) => {
-            const isExpanded = expandedYears.has(year);
-            const eventsCount = events.length;
-            return (
+          {groupedByYear.map(([year, events], groupIndex) => (
             <div key={year} className="space-y-4">
-              <button
-                type="button"
-                onClick={() => toggleYear(year)}
-                className="w-full flex items-center gap-3 py-1 hover:opacity-80 transition-opacity"
-                aria-expanded={isExpanded}
-                aria-label={`${isExpanded ? "Contraer" : "Expandir"} año ${year}`}>
+              <div className="flex items-center gap-3">
                 <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
-                <span className="flex items-center gap-2">
-                  <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400">{year}</p>
-                  <span className="text-[9px] font-bold text-slate-400">
-                    {eventsCount} · {isExpanded ? "▾" : "▸"}
-                  </span>
-                </span>
+                <p className="text-[10px] font-black uppercase tracking-[0.35em] text-slate-400">{year}</p>
                 <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
-              </button>
+              </div>
 
-              {!isExpanded ? null : (
               <div className="space-y-3">
                 {historicalEpisodesEnabled && annualSummaryByYear.has(year) && (
                   <div className="rounded-[24px] border border-[#074738]/15 bg-[#1A9B7D]/5 p-4 shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
@@ -1301,9 +1201,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                     const isExpanded = expandedEvent === entry.id;
                     const episodeTone = entry.periodType === "year"
                       ? "bg-[#1A9B7D]/5 border-[#074738]/15"
-                      : entry.periodType === "trimester"
-                        ? "bg-[#1A9B7D]/[0.03] border-[#074738]/10"
-                        : "bg-white/90 border-slate-200/70";
+                      : "bg-white/90 border-slate-200/70";
 
                     return (
                       <div
@@ -1334,10 +1232,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                   </span>
                                 </div>
 
-                                <h3
-                                  className="text-[15px] font-extrabold text-[#074738] dark:text-white leading-tight mb-1"
-                                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.01em" }}
-                                >
+                                <h3 className="text-[15px] font-black text-slate-900 dark:text-white leading-tight mb-1">
                                   {entry.headline}
                                 </h3>
 
@@ -1376,11 +1271,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                 <div className="flex items-center justify-between mt-3">
                                   <div className="flex flex-wrap gap-1.5">
                                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#1A9B7D]/10 text-[#1A9B7D]">
-                                      {entry.periodType === "year"
-                                        ? "Resumen anual"
-                                        : entry.periodType === "trimester"
-                                          ? "Resumen trimestral"
-                                          : "Resumen mensual"}
+                                      {entry.periodType === "year" ? "Resumen anual" : "Resumen mensual"}
                                     </span>
                                     <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
                                       Historial confirmado
@@ -1465,7 +1356,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                   const cfg = KIND_CONFIG[renderKind] || KIND_CONFIG.other;
                   const d = getExtractedData(event);
                   const petName = cleanText(activePet?.name) || "la mascota";
-                  const summary = sanitizeSummary(buildEventSummary(event, petName));
+                  const summary = buildEventSummary(event, petName);
                   const metaPills = buildMetaPills(event, renderKind);
                   const documentUrl =
                     (typeof event.documentUrl === "string" ? event.documentUrl.trim() : "") ||
@@ -1524,10 +1415,7 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                                 </span>
                               </div>
 
-                              <h3
-                                className="text-[15px] font-extrabold text-[#074738] dark:text-white leading-tight mb-1.5"
-                                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.01em" }}
-                              >
+                              <h3 className="text-[15px] font-black text-slate-900 dark:text-white leading-tight mb-1.5">
                                 {buildEventTitle(event, petName)}
                               </h3>
 
@@ -1778,10 +1666,8 @@ export function Timeline({ activePet, onExportReport }: TimelineProps) {
                   );
                 })}
               </div>
-              )}
             </div>
-            );
-          })}
+          ))}
         </div>
       )}
 

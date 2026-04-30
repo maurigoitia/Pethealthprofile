@@ -7,37 +7,26 @@
  */
 import React from "react";
 import { useLocation, useNavigate } from "react-router";
-import { Home, Users, Plus, Stethoscope, Fingerprint } from "lucide-react";
+import { Home, Shield, Plus, Heart, Compass } from "lucide-react";
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 
 interface BottomNavRoutedProps {
   onAddDocument?: () => void;
 }
 
-// Alineado con UI kit v2: Inicio | Comunidad | [+] | Servicios | Mi Pessy
-// Rutinas/Identidad se acceden desde dentro del Inicio y Mi Pessy respectivamente.
-type TabId = "inicio" | "comunidad" | "servicios" | "mipessy";
+type TabId = "inicio" | "identidad" | "rutinas" | "servicios";
 
 const TAB_ROUTES: Record<TabId, string> = {
   inicio: "/inicio",
-  comunidad: "/comunidad",
+  identidad: "/identidad",
+  rutinas: "/rutinas",
   servicios: "/buscar-vet",
-  mipessy: "/perfil",
 };
 
 function resolveActiveTab(pathname: string): TabId {
   if (pathname === "/inicio" || pathname === "/home") return "inicio";
-  if (pathname.startsWith("/comunidad")) return "comunidad";
+  if (pathname.startsWith("/identidad")) return "identidad";
   if (
-    pathname.startsWith("/buscar-vet") ||
-    pathname.startsWith("/vet/") ||
-    pathname.startsWith("/servicios")
-  )
-    return "servicios";
-  if (
-    pathname.startsWith("/perfil") ||
-    pathname.startsWith("/mi-pessy") ||
-    pathname.startsWith("/identidad") ||
     pathname.startsWith("/rutinas") ||
     pathname.startsWith("/cuidados") ||
     pathname.startsWith("/turnos") ||
@@ -45,7 +34,13 @@ function resolveActiveTab(pathname: string): TabId {
     pathname.startsWith("/historial") ||
     pathname.startsWith("/rutinas-eco")
   )
-    return "mipessy";
+    return "rutinas";
+  if (
+    pathname.startsWith("/buscar-vet") ||
+    pathname.startsWith("/vet/") ||
+    pathname.startsWith("/comunidad")
+  )
+    return "servicios";
   return "inicio";
 }
 
@@ -74,8 +69,8 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
                 <Home size={iconSize} strokeWidth={strokeWidth} />
               </TabButton>
 
-              <TabButton active={activeTab === "comunidad"} label="Comunidad" onClick={() => handleNav("comunidad")}>
-                <Users size={iconSize} strokeWidth={strokeWidth} />
+              <TabButton active={activeTab === "identidad"} label="Identidad" onClick={() => handleNav("identidad")}>
+                <Shield size={iconSize} strokeWidth={strokeWidth} />
               </TabButton>
 
               {onAddDocument ? (
@@ -88,12 +83,12 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
                 <div />
               )}
 
-              <TabButton active={activeTab === "servicios"} label="Servicios" onClick={() => handleNav("servicios")}>
-                <Stethoscope size={iconSize} strokeWidth={strokeWidth} />
+              <TabButton active={activeTab === "rutinas"} label="Rutinas" onClick={() => handleNav("rutinas")}>
+                <Heart size={iconSize} strokeWidth={strokeWidth} />
               </TabButton>
 
-              <TabButton active={activeTab === "mipessy"} label="Mi Pessy" onClick={() => handleNav("mipessy")}>
-                <Fingerprint size={iconSize} strokeWidth={strokeWidth} />
+              <TabButton active={activeTab === "servicios"} label="Servicios" onClick={() => handleNav("servicios")}>
+                <Compass size={iconSize} strokeWidth={strokeWidth} />
               </TabButton>
             </div>
           </div>
@@ -112,8 +107,8 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
               <Home size={20} />
             </StandardTab>
 
-            <StandardTab active={activeTab === "comunidad"} label="Comunidad" onClick={() => handleNav("comunidad")}>
-              <Users size={20} />
+            <StandardTab active={activeTab === "identidad"} label="Identidad" onClick={() => handleNav("identidad")}>
+              <Shield size={20} />
             </StandardTab>
 
             {onAddDocument ? (
@@ -127,12 +122,12 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
               <div className="px-3" />
             )}
 
-            <StandardTab active={activeTab === "servicios"} label="Servicios" onClick={() => handleNav("servicios")}>
-              <Stethoscope size={20} />
+            <StandardTab active={activeTab === "rutinas"} label="Rutinas" onClick={() => handleNav("rutinas")}>
+              <Heart size={20} />
             </StandardTab>
 
-            <StandardTab active={activeTab === "mipessy"} label="Mi Pessy" onClick={() => handleNav("mipessy")}>
-              <Fingerprint size={20} />
+            <StandardTab active={activeTab === "servicios"} label="Servicios" onClick={() => handleNav("servicios")}>
+              <Compass size={20} />
             </StandardTab>
           </div>
         </div>

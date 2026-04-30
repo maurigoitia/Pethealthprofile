@@ -67,12 +67,12 @@ export default defineConfig({
       },
       workbox: {
         cleanupOutdatedCaches: true,
-        clientsClaim: true,  // CRÍTICO: el nuevo SW toma control inmediato (antes: false → usuarios stuck con bundle viejo hasta cerrar pestaña)
+        clientsClaim: false,
         skipWaiting: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // heic2any (1.35 MB) solo lo necesitan usuarios que suben fotos iPhone en formato HEIC.
         // Lo excluimos del precache y lo dejamos como runtime cache (descarga bajo demanda).
-        globIgnores: ['**/vendor-heic*.js', '**/reset.html'],
+        globIgnores: ['**/vendor-heic*.js'],
         // SPA fallback — serve app.html for all navigation requests
         // so React Router handles client-side routing.
         // index.html is the React SPA entry point (Vite default output).
@@ -91,9 +91,6 @@ export default defineConfig({
           /^\/privacidad/,
           /^\/terminos/,
           /^\/legal/,
-          /^\/reset/,
-          /^\/reset\.html$/,
-          /^\/vs/,
         ],
         runtimeCaching: [
           {
@@ -209,6 +206,7 @@ export default defineConfig({
           // App code
           'app-utils': [
             './apps/pwa/src/app/utils/clinicalBrain',
+            './apps/pwa/src/app/utils/medicalRulesEngine',
             './apps/pwa/src/app/utils/deduplication',
           ],
         },

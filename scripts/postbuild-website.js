@@ -34,7 +34,7 @@ const DIST = resolve(ROOT, 'dist');
 // ── Website (landing page) ──────────────────────────────────────────
 const WEBSITE_SRC = resolve(ROOT, 'apps/web');
 const WEBSITE_FILES = ['index.html', 'og-cover.png'];
-const WEBSITE_DIRS = ['team', 'vs', 'funciones'];
+const WEBSITE_DIRS = ['team'];
 
 console.log('postbuild-website: copying static site files → dist/');
 

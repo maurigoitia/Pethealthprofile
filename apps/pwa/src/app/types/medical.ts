@@ -13,7 +13,6 @@ export type DocumentType =
   | "surgery"
   | "medication"
   | "checkup"
-  | "observation"  // Quick symptom log: foto + nota corta del tutor (sin OCR/IA)
   | "other";
 
 export type EventStatus = "processing" | "completed" | "pending" | "draft";

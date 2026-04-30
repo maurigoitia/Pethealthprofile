@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="130" height="110" viewBox="0 0 130 110" fill="none">
+
+  <style>
+    /* ── Gentle float ── */
+    @keyframes float {
+      0%,100% { transform: translateY(0px); }
+      50%      { transform: translateY(-6px); }
+    }
+    /* ── Breathing ── */
+    @keyframes breathe {
+      0%,100% { transform: scale(1); }
+      50%      { transform: scale(1.04); }
+    }
+    /* ── Wiggle ── */
+    @keyframes wiggle {
+      0%,100% { transform: rotate(0deg); }
+      20%     { transform: rotate(8deg); }
+      60%     { transform: rotate(-6deg); }
+    }
+    /* ── Blink ── */
+    @keyframes blink {
+      0%,90%,100% { transform: scaleY(1); }
+      95%          { transform: scaleY(0.08); }
+    }
+    /* ── Tail wag ── */
+    @keyframes tailwag {
+      0%,100% { transform: rotate(0deg); }
+      30%     { transform: rotate(14deg); }
+      70%     { transform: rotate(-10deg); }
+    }
+    /* ── Bounce ── */
+    @keyframes bounce {
+      0%,100% { transform: translateY(0); }
+      40%     { transform: translateY(-8px); }
+      60%     { transform: translateY(-4px); }
+    }
+    /* Apply to root group */
+    .char-root {
+      animation: float 3.2s ease-in-out infinite;
+      transform-origin: center bottom;
+    }
+    .char-body {
+      animation: breathe 2.8s ease-in-out infinite;
+      transform-origin: center center;
+    }
+    .char-ear-l {
+      animation: wiggle 2.6s ease-in-out infinite;
+      transform-origin: bottom center;
+    }
+    .char-ear-r {
+      animation: wiggle 2.6s ease-in-out infinite reverse;
+      transform-origin: bottom center;
+    }
+    .char-eye-l {
+      animation: blink 4s ease-in-out infinite;
+      transform-origin: center center;
+    }
+    .char-eye-r {
+      animation: blink 4s ease-in-out infinite;
+      transform-origin: center center;
+      animation-delay: 0.1s;
+    }
+    .char-tail {
+      animation: tailwag 2s ease-in-out infinite;
+      transform-origin: left center;
+    }
+  </style>
+
+  <g class="char-root" id="guinea_pig">
+
+  <!-- Rounded ears (small) -->
+  <ellipse cx="38" cy="26" rx="12" ry="10" fill="#FF8268"/>
+  <ellipse cx="92" cy="26" rx="12" ry="10" fill="#FF8268"/>
+  <ellipse cx="38" cy="27" rx="7" ry="6" fill="#FDC5A6"/>
+  <ellipse cx="92" cy="27" rx="7" ry="6" fill="#FDC5A6"/>
+  <!-- Big round body/head combo (cuy shape is compact) -->
+  <ellipse cx="65" cy="65" rx="46" ry="38" fill="#FF8268"/>
+  <!-- Chubby face highlight -->
+  <ellipse cx="65" cy="58" rx="30" ry="26" fill="#FF8268"/>
+  <!-- Belly -->
+  <ellipse cx="65" cy="72" rx="30" ry="22" fill="#FDC5A6"/>
+  <!-- Color patches (guinea pig markings) -->
+  <ellipse cx="38" cy="52" rx="14" ry="16" fill="#1A9B7D" opacity="0.35"/>
+  <ellipse cx="92" cy="60" rx="12" ry="14" fill="#074738" opacity="0.25"/>
+  <!-- Eye whites -->
+  <ellipse cx="48" cy="50" rx="9" ry="10" fill="#FBF2EB"/>
+  <ellipse cx="82" cy="50" rx="9" ry="10" fill="#FBF2EB"/>
+  <!-- Pupils -->
+  <ellipse cx="50" cy="51" rx="5.5" ry="6" fill="#6256EA"/>
+  <ellipse cx="84" cy="51" rx="5.5" ry="6" fill="#6256EA"/>
+  <circle cx="52" cy="48" r="2" fill="white"/>
+  <circle cx="86" cy="48" r="2" fill="white"/>
+  <!-- Nose -->
+  <ellipse cx="65" cy="62" rx="5" ry="3.5" fill="#6256EA"/>
+  <!-- Mouth -->
+  <path d="M59 66 Q65 71 71 66" stroke="#6256EA" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <!-- Whiskers -->
+  <line x1="38" y1="63" x2="57" y2="63" stroke="#FDC5A6" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="37" y1="67" x2="56" y2="66" stroke="#FDC5A6" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="92" y1="63" x2="73" y2="63" stroke="#FDC5A6" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="93" y1="67" x2="74" y2="66" stroke="#FDC5A6" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- Tiny legs -->
+  <ellipse cx="46" cy="98" rx="10" ry="6" fill="#FF8268"/>
+  <ellipse cx="64" cy="100" rx="10" ry="6" fill="#FF8268"/>
+  <ellipse cx="82" cy="98" rx="10" ry="6" fill="#FF8268"/>
+
+  </g>
+</svg>

@@ -8,8 +8,6 @@ import { Heart, Syringe, Pill, Calendar, AlertTriangle } from "lucide-react";
 interface HealthPulseProps {
   petName: string;
   overdueVaccines: number;
-  /** Total vaccine events recorded for this pet. Used to distinguish "Al día" vs "Sin datos". */
-  vaccineEventCount: number;
   activeMedications: number;
   lastVetVisitDaysAgo: number | null;
   recurringConditions: string[];
@@ -49,13 +47,13 @@ const STATUS_CONFIG: Record<PulseStatus, { bg: string; border: string; dot: stri
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function HealthPulse(props: HealthPulseProps) {
-  const { petName, overdueVaccines, vaccineEventCount, activeMedications, lastVetVisitDaysAgo, recurringConditions, upcomingAppointments } = props;
+  const { petName, overdueVaccines, activeMedications, lastVetVisitDaysAgo, recurringConditions, upcomingAppointments } = props;
   const status = computeOverallStatus(props);
   const config = STATUS_CONFIG[status];
   const StatusIcon = config.icon;
 
   // Don't render if there's zero medical data
-  const hasAnyData = vaccineEventCount > 0 || overdueVaccines > 0 || activeMedications > 0 || lastVetVisitDaysAgo !== null || recurringConditions.length > 0 || upcomingAppointments > 0;
+  const hasAnyData = overdueVaccines > 0 || activeMedications > 0 || lastVetVisitDaysAgo !== null || recurringConditions.length > 0 || upcomingAppointments > 0;
   if (!hasAnyData) return null;
 
   return (
@@ -82,13 +80,7 @@ export default function HealthPulse(props: HealthPulseProps) {
         <Indicator
           icon={Syringe}
           label="Vacunas"
-          value={
-            overdueVaccines > 0
-              ? `${overdueVaccines} vencida${overdueVaccines > 1 ? "s" : ""}`
-              : vaccineEventCount > 0
-                ? "Al día"
-                : "Sin datos"
-          }
+          value={overdueVaccines > 0 ? `${overdueVaccines} vencida${overdueVaccines > 1 ? "s" : ""}` : "Al día"}
           alert={overdueVaccines > 0}
         />
 

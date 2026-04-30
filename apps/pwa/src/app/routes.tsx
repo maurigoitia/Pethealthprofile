@@ -6,6 +6,7 @@ import { RegisterPetStep2 } from "./components/pet/RegisterPetStep2";
 import { LoginScreen } from "./components/auth/LoginScreen";
 import { ForgotPasswordScreen } from "./components/auth/ForgotPasswordScreen";
 import HomeScreen from "./components/home/HomeScreen";
+import { VerifyReportScreen } from "./components/medical/VerifyReportScreen";
 import { EmailLinkSignInScreen } from "./components/auth/EmailLinkSignInScreen";
 import { RouteErrorFallback } from "./components/shared/RouteErrorFallback";
 import { ClinicalReviewScreen } from "./components/medical/ClinicalReviewScreen";
@@ -162,6 +163,7 @@ export const router = createBrowserRouter([
   withErrorBoundary({ path: "/review/:reviewId", Component: ClinicalReviewScreen }),
   ...previewRoutes,
   withErrorBoundary({ path: "/email-link", Component: EmailLinkSignInScreen }),
+  withErrorBoundary({ path: "/verify/:hash", Component: VerifyReportScreen }),
   withErrorBoundary({ path: "/vet", element: <Navigate to="/vet/login" replace /> }),
   withErrorBoundary({ path: "/vet/login", Component: VetLoginScreen }),
   withErrorBoundary({ path: "/vet/register", Component: VetRegisterScreen }),

@@ -15,7 +15,6 @@ name: Deploy — Staging (appqa)
 on:
   push:
     branches: [develop]
-  workflow_dispatch:  # Allow manual trigger from GitHub UI + CLI
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -44,6 +43,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --force && cd functions && npm ci
 
+      - name: TypeScript check (root)
+        run: npx tsc --noEmit --skipLibCheck
+
       - name: TypeScript check (functions)
         run: cd functions && npx tsc --noEmit
 
@@ -55,6 +57,7 @@ jobs:
         env:
           VITE_ENV: staging
 
+<<<<<<< HEAD
       # Deploy LIVE al site `pessy-qa-app` (target `appqa` en .firebaserc).
       # NECESITA: SA pessy-github-deploy con role firebasehosting.admin
       # sobre el site pessy-qa-app. Si falla con 403 — correr:
@@ -100,3 +103,7 @@ jobs:
             exit 1
           fi
           echo "✅ Smoke test passed — pessy-qa-app-1618a.web.app is up"
+=======
+      - name: Deploy to Firebase Staging (appqa)
+        run: npx firebase-tools deploy --only hosting:appqa --project polar-scene-488615-i0
+>>>>>>> origin/main

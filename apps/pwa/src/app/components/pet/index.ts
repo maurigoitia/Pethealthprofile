@@ -1,6 +1,5 @@
 export { default as CoTutorModal } from './CoTutorModal';
 export { default as InviteFriendsModal } from './InviteFriendsModal';
-export { default as MedicalSummaryCard } from './MedicalSummaryCard';
 export { default as PetHomeView } from './PetHomeView';
 export { default as PetPhoto } from './PetPhoto';
 export { default as PetPreferencesEditor } from './PetPreferencesEditor';

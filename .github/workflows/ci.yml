@@ -24,6 +24,9 @@ jobs:
       - name: Install functions dependencies
         run: cd functions && npm ci
 
+      - name: TypeScript check (root)
+        run: npx tsc --noEmit --skipLibCheck
+
       - name: TypeScript check (functions)
         run: cd functions && npx tsc --noEmit
 
@@ -35,3 +38,16 @@ jobs:
 
       - name: Build frontend (Vite)
         run: npm run build
+
+      - name: Comment PR result
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = '${{ job.status }}' === 'success' ? '✅ CI passed' : '❌ CI failed';
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `${status} — TypeScript + lint + tests + build`
+            });
