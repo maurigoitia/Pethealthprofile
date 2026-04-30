@@ -57,6 +57,10 @@ interface SBTreatment {
   date: string;
   source: SBDocumentedSource;
   sourceEventIds: string[];
+  dosage?: string | null;
+  frequency?: string | null;
+  route?: string | null;
+  status?: "active" | "historical";
 }
 interface SBVaccination {
   id: string;
@@ -65,26 +69,70 @@ interface SBVaccination {
   source: SBDocumentedSource;
   sourceEventIds: string[];
 }
+interface SBStudy {
+  id: string;
+  type: string;
+  subtype: string | null;
+  date: string;
+  finding: string | null;
+  signedBy: string | null;
+  institution: string | null;
+}
+interface SBAppointment {
+  id: string;
+  type: string;
+  date: string;
+  status: "upcoming" | "completed" | "cancelled" | "unknown";
+  professional: string | null;
+  institution: string | null;
+}
+interface SBProfessional {
+  name: string;
+  license: string | null;
+  institution: string | null;
+  eventCount: number;
+}
+interface SBInstitution {
+  name: string;
+  eventCount: number;
+}
+interface SBNarrative {
+  dataStatus: string;
+  currentCare: string;
+  studiesSummary: string;
+  pendingReviewSummary: string;
+}
 interface SourceBackedExportPayload {
   petId: string;
   petName: string | null;
   safeTemplate: boolean;
   documentedDiagnoses: SBDiagnosis[];
-  /**
-   * AI-extracted findings still awaiting vet/tutor confirmation. The
-   * underlying source (a real PDF or email attachment) exists; the data
-   * just isn't verified yet. Render as "pending review", never as
-   * documented.
-   */
   pendingReview?: SBPendingReview[];
   pendingReviewCount?: number;
   observations: SBObservation[];
   vaccinations: SBVaccination[];
   treatments: SBTreatment[];
-  // suggestedQuestionsForVet stays empty in this PR by design.
+  studies?: SBStudy[];
+  appointments?: SBAppointment[];
+  professionals?: SBProfessional[];
+  institutions?: SBInstitution[];
+  narrative?: SBNarrative;
   suggestedQuestionsForVet: string[];
   generatedAt: string;
 }
+
+// Spanish labels per study type, mirrors backend STUDY_TYPE_LABELS.
+const STUDY_TYPE_LABEL: Record<string, string> = {
+  lab: "Laboratorio",
+  imaging_radiology: "Radiografía",
+  imaging_ultrasound: "Ecografía",
+  imaging_echocardiogram: "Ecocardiograma",
+  ecg: "ECG",
+  dermatology_microscopy: "Microscopía dermatológica",
+  ophthalmology: "Oftalmología",
+  biopsy: "Biopsia",
+  other: "Estudio",
+};
 
 export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
   const [selectedReport, setSelectedReport] = useState<ReportType>("health");
@@ -408,50 +456,65 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
       let validatedRatio = 0;
 
       // ── Adapter: source-backed payload → existing 10-section AISections ──
-      // We only ever populate `diagnoses.confirmed` from documented sources.
-      // Observations from tutor_input never become confirmed claims. Sections
-      // we cannot ground in Firestore-loaded data (studies, professionals,
-      // currentStatus, followUp narrative) stay intentionally empty / generic.
+      // The backend now provides:
+      //   - narrative.dataStatus       (used as section purpose)
+      //   - narrative.currentCare      (used as clinicalHistory section)
+      //   - studies[]                  (used as section 5 with grouped narrative)
+      //   - treatments[] with dose/freq/route (used as section 6)
+      //   - professionals[] + institutions[] (used as section 7)
+      //   - narrative.pendingReviewSummary (used as currentStatus quality block)
+      //
+      // Sections still source-strict: section 4 only shows documentedDiagnoses;
+      // pending-review items go to "findings" (the existing sub-heading
+      // "Hallazgos extraídos de estudios"), never to "confirmed".
       const buildSectionsFromPayload = (p: SourceBackedExportPayload): AISections => {
         const pet = activePet!;
-        const documentedCount = p.documentedDiagnoses.length;
-        const pendingReviewCount =
-          typeof p.pendingReviewCount === "number"
-            ? p.pendingReviewCount
-            : (p.pendingReview?.length ?? 0);
-        const observationCount = p.observations.length;
-        const treatmentCount = p.treatments.length;
-        const vaccinationCount = p.vaccinations.length;
 
-        const historyParts: string[] = [];
-        if (documentedCount > 0) {
-          historyParts.push(
-            `${documentedCount} diagnóstico${documentedCount === 1 ? "" : "s"} documentado${documentedCount === 1 ? "" : "s"} en archivos cargados.`,
-          );
+        // Studies block: narrative summary + per-study line items.
+        const studyLines = (p.studies ?? []).map((s) => ({
+          date: s.date ? fmt(s.date) : "",
+          type: STUDY_TYPE_LABEL[s.type] || s.subtype || "Estudio",
+          mainFinding: s.finding || "Sin hallazgo registrado",
+          professional: s.signedBy || (s.institution ? `Sin firma · ${s.institution}` : "Sin firma"),
+        }));
+
+        // Treatment lines with real dosage/frequency/route when extracted.
+        const treatmentLines = p.treatments.map((t) => ({
+          name: t.name,
+          dose: t.dosage || "",
+          frequency: t.frequency || "",
+          route: t.route || "",
+          indication: "",
+          startDate: t.date ? fmt(t.date) : "",
+          notes: "",
+        }));
+
+        // Professional + institution rosters, deduped by backend.
+        const professionalLines = (p.professionals ?? []).map((pro) =>
+          pro.license ? `${pro.name} · Mat. ${pro.license}` : pro.name,
+        );
+        const institutionLines = (p.institutions ?? []).map((inst) => inst.name);
+
+        // currentStatus: anchor section 8 with the data-quality summary if
+        // present, otherwise leave empty so the renderer prints "No informado".
+        const dataQuality = p.narrative?.pendingReviewSummary ?? "";
+
+        // followUp: prefer upcoming appointments narrative when present.
+        const upcoming = (p.appointments ?? []).filter((a) => a.status === "upcoming");
+        let followUp = "Consultá con tu veterinario para definir los próximos pasos de seguimiento.";
+        if (upcoming.length > 0) {
+          const dates = upcoming.slice(0, 3)
+            .map((a) => `${a.type}${a.date ? ` (${fmt(a.date)})` : ""}`);
+          followUp = `Hay ${upcoming.length} ${upcoming.length === 1 ? "turno próximo" : "turnos próximos"} agendado${upcoming.length === 1 ? "" : "s"}: ${dates.join(", ")}.`;
         }
-        if (pendingReviewCount > 0) {
-          historyParts.push(
-            `${pendingReviewCount} ${pendingReviewCount === 1 ? "registro extraído" : "registros extraídos"} de documentos, pendiente${pendingReviewCount === 1 ? "" : "s"} de revisión.`,
-          );
-        }
-        if (vaccinationCount > 0) {
-          historyParts.push(
-            `${vaccinationCount} vacuna${vaccinationCount === 1 ? "" : "s"} registrada${vaccinationCount === 1 ? "" : "s"}.`,
-          );
-        }
-        if (treatmentCount > 0) {
-          historyParts.push(
-            `${treatmentCount} tratamiento${treatmentCount === 1 ? "" : "s"} documentado${treatmentCount === 1 ? "" : "s"}.`,
-          );
-        }
-        if (observationCount > 0) {
-          historyParts.push(
-            `${observationCount} ${observationCount === 1 ? "observación cargada" : "observaciones cargadas"} por el tutor.`,
-          );
-        }
-        const clinicalHistory = historyParts.length
-          ? historyParts.join(" ")
-          : "Sin información clínica documentada cargada.";
+
+        // purpose section uses narrative.dataStatus when available; otherwise
+        // a generic factual line.
+        const purpose = p.narrative?.dataStatus
+          || "Reporte de salud generado por Pessy a partir de los documentos y datos cargados por el tutor.";
+
+        const clinicalHistory = p.narrative?.currentCare
+          || "Sin información clínica documentada cargada.";
 
         return {
           patient: {
@@ -463,35 +526,22 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
             weight: pet.weight ? String(pet.weight) : "",
             tutor: userFullName || userName || "",
           },
-          purpose:
-            "Reporte de salud generado por Pessy a partir de los documentos y datos cargados por el tutor.",
+          purpose,
           clinicalHistory,
           diagnoses: {
             confirmed: p.documentedDiagnoses.map(
               (d) => `${d.condition}${d.date ? ` (${fmt(d.date)})` : ""}`,
             ),
-            // PDF Section 4 already has a "Hallazgos extraídos de estudios"
-            // sub-heading. Pending-review items map there cleanly: real
-            // source, AI-extracted, not yet confirmed.
             findings: (p.pendingReview ?? []).map(
               (r) => `${r.label}${r.date ? ` (${fmt(r.date)})` : ""}`,
             ),
             suspected: [],
           },
-          studies: [],
-          treatment: p.treatments.map((t) => ({
-            name: t.name,
-            dose: "",
-            frequency: "",
-            route: "",
-            indication: "",
-            startDate: t.date ? fmt(t.date) : "",
-            notes: "",
-          })),
-          professionals: { persons: [], institutions: [] },
-          currentStatus: "",
-          followUp:
-            "Consultá con tu veterinario para definir los próximos pasos de seguimiento.",
+          studies: studyLines,
+          treatment: treatmentLines,
+          professionals: { persons: professionalLines, institutions: institutionLines },
+          currentStatus: dataQuality,
+          followUp,
           finalNote:
             "Este reporte se generó a partir de documentos cargados por el tutor en Pessy. No reemplaza una evaluación clínica veterinaria. Cualquier decisión de tratamiento debe tomarla un profesional habilitado.",
         };
