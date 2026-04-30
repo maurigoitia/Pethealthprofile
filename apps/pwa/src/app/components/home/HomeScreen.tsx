@@ -1,3 +1,13 @@
+/**
+ * ⚠️ NOT THE LIVE HOME SCREEN
+ *
+ * `routesV2.tsx` (the live router) sends `/inicio` and `/home` to
+ * `HomeScreenSimplified.tsx`, not to this file. Anything you add here
+ * will not appear on screen for users.
+ *
+ * Add Home UI in `HomeScreenSimplified.tsx`. See docs/RUNTIME.md.
+ * Kept on disk for historical reference and possible future revert.
+ */
 import { Component, lazy, Suspense, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 

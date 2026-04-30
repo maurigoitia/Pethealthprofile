@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useNavigate } from "react-router";
 import { PetHomeView } from "../pet/PetHomeView";
 import { MaterialIcon } from "../shared/MaterialIcon";
@@ -7,6 +7,15 @@ import { useAuth } from "../../contexts/AuthContext";
 import { usePreferences } from "../../contexts/PreferenceContext";
 import { useAppLayout } from "../layout/AppLayout";
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
+
+// Emergency / "Pasó algo" — incident logger. Lazy-loaded to keep this
+// home chunk small. The runtime live home (HomeScreenSimplified) mounts
+// it directly — see docs/RUNTIME.md for why this is the live path.
+const EmergencyModal = lazy(() =>
+  import("../medical/EmergencyModal.tsx").then((m) => ({
+    default: m.EmergencyModal,
+  })),
+);
 
 const RandomQuestionCard = lazy(() =>
   import("../preferences/RandomQuestionCard.tsx")
@@ -39,6 +48,7 @@ export default function HomeScreenSimplified() {
   const { openPetSelector, openPetProfile, openScanner, openExportReport, openSidebar } =
     useAppLayout();
   const focusExperienceEnabled = isFocusExperienceHost();
+  const [showEmergency, setShowEmergency] = useState(false);
 
   // safeUserName: resolución explícita, sin IIFE (el minifier de Safari
   // interpretaba mal el closure del IIFE → 'Can't find variable: userName')
@@ -145,6 +155,39 @@ export default function HomeScreenSimplified() {
           )}
         </>
       )}
+
+      {/* Pasó algo — emergency incident quick-log.
+          Tutor-confirmed observation. No AI. No diagnosis. Saved as a
+          medical_event with documentType="incident", source="tutor_input".
+          Visible across both Home variants (focus-experience + classic). */}
+      <div className="px-4 mt-4">
+        <button
+          type="button"
+          onClick={() => setShowEmergency(true)}
+          className="w-full p-4 rounded-[16px] bg-[#FEF2F2] border border-[#FCA5A5] text-[#B91C1C] flex items-center gap-3 active:scale-[0.98] transition-transform text-left"
+        >
+          <div
+            className="size-11 rounded-[12px] bg-white/70 flex items-center justify-center shrink-0 text-2xl"
+            aria-hidden
+          >
+            ⚠️
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-black text-base leading-tight">Pasó algo</p>
+            <p className="text-xs text-[#B91C1C]/80 leading-snug mt-0.5">
+              Anotá rápido lo que viste, con foto si querés.
+            </p>
+          </div>
+          <MaterialIcon name="chevron_right" className="text-2xl shrink-0" />
+        </button>
+      </div>
+
+      <Suspense fallback={null}>
+        <EmergencyModal
+          isOpen={showEmergency}
+          onClose={() => setShowEmergency(false)}
+        />
+      </Suspense>
     </div>
   );
 }
