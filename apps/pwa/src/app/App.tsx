@@ -11,15 +11,6 @@ import { GamificationProvider } from "./contexts/GamificationContext";
 import { AppErrorBoundary } from "./components/shared/AppErrorBoundary";
 import { OfflineBanner } from "./components/shared/OfflineBanner";
 
-// Fallback visible durante carga inicial de rutas lazy (AppLayout, pantallas)
-function RouteLoader() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F0FAF9]">
-      <div className="size-10 rounded-full border-4 border-[#074738]/20 border-t-[#074738] animate-spin" />
-    </div>
-  );
-}
-
 export default function App() {
   return (
     <AppErrorBoundary>
@@ -35,7 +26,7 @@ export default function App() {
                 <PreferenceProvider>
                   <GamificationProvider>
                     <OfflineBanner />
-                    <RouterProvider router={router} fallbackElement={<RouteLoader />} />
+                    <RouterProvider router={router} />
                     <Toaster position="top-center" richColors />
                   </GamificationProvider>
                 </PreferenceProvider>

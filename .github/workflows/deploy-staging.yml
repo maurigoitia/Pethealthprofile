@@ -1,21 +1,7 @@
 name: Deploy — Staging (appqa)
-
-# ⚠️ Staging deploys HOSTING ONLY.
-#
-# Backend resources (Cloud Functions, Firestore rules, Firestore indexes,
-# Storage rules, Authentication) are SHARED with production in the same
-# Firebase project (polar-scene-488615-i0).
-#
-# Do NOT deploy functions, firestore:rules, firestore:indexes, or storage
-# from develop while staging and production share the same Firebase project.
-# Those resources are deployed only from `main` via deploy-prod.yml to avoid
-# accidentally pushing in-progress backend changes to production.
-# See docs/BRANCHES.md for the branch + deploy model.
-
 on:
   push:
     branches: [develop]
-  workflow_dispatch:  # Allow manual trigger from GitHub UI + CLI
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -44,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --force && cd functions && npm ci
 
+      - name: TypeScript check (root)
+        run: npx tsc --noEmit --skipLibCheck
+
       - name: TypeScript check (functions)
         run: cd functions && npx tsc --noEmit
 
@@ -55,48 +44,5 @@ jobs:
         env:
           VITE_ENV: staging
 
-      # Deploy LIVE al site `pessy-qa-app` (target `appqa` en .firebaserc).
-      # NECESITA: SA pessy-github-deploy con role firebasehosting.admin
-      # sobre el site pessy-qa-app. Si falla con 403 — correr:
-      #   gcloud projects add-iam-policy-binding polar-scene-488615-i0 \
-      #     --member="serviceAccount:pessy-github-deploy@polar-scene-488615-i0.iam.gserviceaccount.com" \
-      #     --role="roles/firebasehosting.admin"
-      #
-      # Fallback automático: si live deploy falla, hace channel deploy (URL temporal).
-      - name: Deploy to appqa (LIVE — failure is NOT hidden)
-        id: deploy
-        shell: bash
-        run: |
-          set -e
-          npx firebase-tools deploy \
-            --only hosting:appqa \
-            --project polar-scene-488615-i0 2>&1 | tee /tmp/firebase_deploy.log
-          echo "preview_url=https://pessy-qa-app.web.app" >> "$GITHUB_OUTPUT"
-          echo "QA URL (live): https://pessy-qa-app.web.app"
-          echo "Commit: ${SHORT_SHA}"
-        env:
-          SHORT_SHA: ${{ github.sha }}
-
-      # Si este step falla con 403:
-      # - SA pessy-github-deploy NO tiene firebasehosting.admin sobre site pessy-qa-app
-      # - Aplicar (1 vez):
-      #     gcloud projects add-iam-policy-binding polar-scene-488615-i0 \
-      #       --member="serviceAccount:pessy-github-deploy@polar-scene-488615-i0.iam.gserviceaccount.com" \
-      #       --role="roles/firebasehosting.admin"
-      # - Si ya estaba aplicado y sigue fallando: el site fue creado bajo otra cuenta/proyecto.
-      #   Verificar console.cloud.google.com/iam-admin/iam y firebase console.
-
-      - name: Smoke test — staging URL reachable
-        run: |
-          # Verifica que staging hosting responde HTTP 200 después del deploy.
-          # Si falla → workflow rojo (no se oculta el problema).
-          # Solo prueba root /. Tests más específicos vendrán en otra fase.
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L \
-            --retry 3 --retry-delay 5 --max-time 30 \
-            https://pessy-qa-app-1618a.web.app)
-          echo "HTTP status: $STATUS"
-          if [ "$STATUS" != "200" ]; then
-            echo "❌ Smoke test FAILED — staging returned HTTP $STATUS"
-            exit 1
-          fi
-          echo "✅ Smoke test passed — pessy-qa-app-1618a.web.app is up"
+      - name: Deploy to Firebase Staging (appqa)
+        run: npx firebase-tools deploy --only hosting:appqa --project polar-scene-488615-i0

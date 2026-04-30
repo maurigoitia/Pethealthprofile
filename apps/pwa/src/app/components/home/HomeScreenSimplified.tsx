@@ -34,68 +34,39 @@ function ScreenLoader({ label = "Cargando..." }: { label?: string }) {
 export default function HomeScreenSimplified() {
   const navigate = useNavigate();
   const { activePetId, setActivePetId, activePet, pets } = usePet();
-  const auth = useAuth();
+  const { userName, user } = useAuth();
   const { currentQuestion, answerQuestion, dismissQuestion } = usePreferences();
   const { openPetSelector, openPetProfile, openScanner, openExportReport, openSidebar } =
     useAppLayout();
   const focusExperienceEnabled = isFocusExperienceHost();
 
-  // safeUserName: resolución explícita, sin IIFE (el minifier de Safari
-  // interpretaba mal el closure del IIFE → 'Can't find variable: userName')
-  const ctxName = typeof auth?.userName === "string" ? auth.userName.trim() : "";
-  const displayName = typeof auth?.user?.displayName === "string"
-    ? auth.user.displayName.trim().split(/\s+/)[0]
-    : "";
-  const emailName = typeof auth?.user?.email === "string"
-    ? auth.user.email.split("@")[0].trim()
-    : "";
-  const safeUserName = ctxName || displayName || emailName || "Tutor";
-  const user = auth?.user;
+  const safeUserName = (() => {
+    const fromContext = (userName || "").trim();
+    if (fromContext) return fromContext;
+    const fromDisplayName = (user?.displayName || "").trim().split(/\s+/)[0];
+    if (fromDisplayName) return fromDisplayName;
+    const fromEmail = (user?.email?.split("@")[0] || "").trim();
+    if (fromEmail) return fromEmail;
+    return "Tutor";
+  })();
 
-  // Guard: sin mascota activa, mostrar onboarding en vez de pantalla blanca
-  if (!activePet) {
-    return (
-      <div className="max-w-md mx-auto min-h-screen flex flex-col items-center justify-center px-6 bg-[#F0FAF9]">
-        <div className="w-20 h-20 rounded-[20px] bg-[#E0F2F1] flex items-center justify-center mb-6">
-          <MaterialIcon name="pets" className="text-5xl text-[#074738]" />
-        </div>
-        <h1
-          className="text-2xl font-extrabold text-[#074738] mb-2 text-center"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-        >
-          Hola {safeUserName}
-        </h1>
-        <p
-          className="text-sm text-slate-500 text-center mb-8 max-w-xs"
-          style={{ fontFamily: "Manrope, sans-serif" }}
-        >
-          Todavía no agregaste una mascota. Empecemos por ahí.
-        </p>
-        <button
-          type="button"
-          onClick={() => navigate("/register-pet")}
-          className="w-full max-w-xs px-6 py-4 rounded-[14px] bg-[#074738] text-white text-sm font-bold active:scale-[0.97] transition-transform shadow-[0_2px_8px_rgba(7,71,56,0.2)]"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-        >
-          Agregar mascota
-        </button>
-        {pets.length === 0 && user?.email && (
-          <button
-            type="button"
-            onClick={() => auth?.logout?.()}
-            className="mt-4 text-xs text-slate-400 font-medium hover:text-slate-600 transition-colors"
-          >
-            Cerrar sesión
-          </button>
-        )}
-      </div>
-    );
-  }
+  // Guard: if no activePet, this shouldn't render (AppLayout handles it)
+  if (!activePet) return null;
 
   return (
     <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24">
-      {/* Hamburger removido — tapaba avatar del HomeHeaderV2. El sidebar se
-          accede desde el Bell del header v2 o desde Perfil. */}
+      {/* Hamburger Menu Button */}
+      <div className="fixed top-4 left-4 z-40">
+        <button
+          onClick={openSidebar}
+          className="size-10 rounded-full bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center hover:scale-110 transition-transform"
+        >
+          <MaterialIcon
+            name="menu"
+            className="text-[#074738] dark:text-emerald-400 text-xl"
+          />
+        </button>
+      </div>
 
       {focusExperienceEnabled ? (
         <Suspense fallback={<ScreenLoader label="Cargando inicio..." />}>

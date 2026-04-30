@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="140" viewBox="0 0 120 140" fill="none">
+
+  <style>
+    /* ── Gentle float ── */
+    @keyframes float {
+      0%,100% { transform: translateY(0px); }
+      50%      { transform: translateY(-6px); }
+    }
+    /* ── Breathing ── */
+    @keyframes breathe {
+      0%,100% { transform: scale(1); }
+      50%      { transform: scale(1.04); }
+    }
+    /* ── Wiggle ── */
+    @keyframes wiggle {
+      0%,100% { transform: rotate(0deg); }
+      20%     { transform: rotate(8deg); }
+      60%     { transform: rotate(-6deg); }
+    }
+    /* ── Blink ── */
+    @keyframes blink {
+      0%,90%,100% { transform: scaleY(1); }
+      95%          { transform: scaleY(0.08); }
+    }
+    /* ── Tail wag ── */
+    @keyframes tailwag {
+      0%,100% { transform: rotate(0deg); }
+      30%     { transform: rotate(14deg); }
+      70%     { transform: rotate(-10deg); }
+    }
+    /* ── Bounce ── */
+    @keyframes bounce {
+      0%,100% { transform: translateY(0); }
+      40%     { transform: translateY(-8px); }
+      60%     { transform: translateY(-4px); }
+    }
+    /* Apply to root group */
+    .char-root {
+      animation: float 3.2s ease-in-out infinite;
+      transform-origin: center bottom;
+    }
+    .char-body {
+      animation: breathe 2.8s ease-in-out infinite;
+      transform-origin: center center;
+    }
+    .char-ear-l {
+      animation: wiggle 2.6s ease-in-out infinite;
+      transform-origin: bottom center;
+    }
+    .char-ear-r {
+      animation: wiggle 2.6s ease-in-out infinite reverse;
+      transform-origin: bottom center;
+    }
+    .char-eye-l {
+      animation: blink 4s ease-in-out infinite;
+      transform-origin: center center;
+    }
+    .char-eye-r {
+      animation: blink 4s ease-in-out infinite;
+      transform-origin: center center;
+      animation-delay: 0.1s;
+    }
+    .char-tail {
+      animation: tailwag 2s ease-in-out infinite;
+      transform-origin: left center;
+    }
+  </style>
+
+  <g class="char-root" id="pony">
+
+  <!-- Mane tufts -->
+  <ellipse cx="44" cy="16" rx="10" ry="14" fill="#1A9B7D" transform="rotate(-15 44 16)"/>
+  <ellipse cx="58" cy="11" rx="10" ry="16" fill="#074738" transform="rotate(-5 58 11)"/>
+  <ellipse cx="72" cy="14" rx="9" ry="13" fill="#1A9B7D" transform="rotate(10 72 14)"/>
+  <!-- Ears -->
+  <ellipse cx="38" cy="30" rx="9" ry="13" fill="#FF8268" transform="rotate(-12 38 30)"/>
+  <ellipse cx="82" cy="30" rx="9" ry="13" fill="#FF8268" transform="rotate(12 82 30)"/>
+  <ellipse cx="38" cy="31" rx="5" ry="8" fill="#FDC5A6" transform="rotate(-12 38 31)"/>
+  <ellipse cx="82" cy="31" rx="5" ry="8" fill="#FDC5A6" transform="rotate(12 82 31)"/>
+  <!-- Head -->
+  <ellipse cx="60" cy="55" rx="30" ry="28" fill="#FF8268"/>
+  <!-- Snout/muzzle -->
+  <ellipse cx="60" cy="72" rx="16" ry="11" fill="#FDC5A6"/>
+  <!-- Eye whites -->
+  <ellipse cx="45" cy="50" rx="9" ry="10" fill="#FBF2EB"/>
+  <ellipse cx="75" cy="50" rx="9" ry="10" fill="#FBF2EB"/>
+  <!-- Pupils -->
+  <ellipse cx="47" cy="51" rx="5.5" ry="6" fill="#6256EA"/>
+  <ellipse cx="77" cy="51" rx="5.5" ry="6" fill="#6256EA"/>
+  <!-- Eye shine -->
+  <circle cx="49" cy="48" r="2" fill="white"/>
+  <circle cx="79" cy="48" r="2" fill="white"/>
+  <!-- Nostrils -->
+  <ellipse cx="54" cy="73" rx="3" ry="2" fill="#FF8268"/>
+  <ellipse cx="66" cy="73" rx="3" ry="2" fill="#FF8268"/>
+  <!-- Mouth -->
+  <path d="M53 78 Q60 83 67 78" stroke="#6256EA" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <!-- Neck + body -->
+  <path d="M40 78 Q30 100 28 120 Q60 132 92 120 Q90 100 80 78 Q60 90 40 78Z" fill="#FF8268"/>
+  <!-- Body belly -->
+  <ellipse cx="60" cy="115" rx="24" ry="14" fill="#FDC5A6"/>
+  <!-- Front legs -->
+  <rect x="38" y="118" width="12" height="18" rx="6" fill="#FF8268"/>
+  <rect x="70" y="118" width="12" height="18" rx="6" fill="#FF8268"/>
+  <!-- Hooves -->
+  <ellipse cx="44" cy="136" rx="7" ry="4" fill="#074738"/>
+  <ellipse cx="76" cy="136" rx="7" ry="4" fill="#074738"/>
+  <!-- Tail -->
+  <path d="M92 108 Q108 100 110 116 Q112 128 96 124" stroke="#1A9B7D" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <path d="M92 112 Q106 104 109 120" stroke="#074738" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+  </g>
+</svg>

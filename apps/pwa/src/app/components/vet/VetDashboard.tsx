@@ -17,19 +17,10 @@ export default function VetDashboard() {
   const [consultationTab, setConsultationTab] = useState<"pending"|"in_progress"|"completed">("pending");
   useEffect(() => { if(!user) return; (async()=>{ try {
     const ps = await getDoc(doc(db,"vetProfiles",user.uid)); if(ps.exists()) setVp(ps.data() as VP);
-    try {
-      const snap = await getDocs(query(collection(db,"consultations"),where("vetId","==",user.uid),orderBy("createdAt","desc"),limit(10)));
-      const list:CS[]=[]; snap.forEach(d=>{const x=d.data();list.push({id:d.id,petName:x.petName||"",tutorName:x.tutorName||"",reason:x.reason||"Consulta",status:x.status||"pending",createdAt:x.createdAt||""});});
-      setCons(list); const td=new Date().toISOString().split("T")[0]; setStats({today:list.filter(c=>c.createdAt.startsWith(td)).length,pending:list.filter(c=>c.status==="pending").length,patients:ps.exists()?(ps.data().patientsCount||0):0});
-    } catch (consErr:any) {
-      // Si falta el composite index (status==active + reportedAt desc), Firestore tira FAILED_PRECONDITION
-      // Permitir que la pantalla se renderice con consultas vacías en vez de bloquearse
-      console.warn("[VetDashboard] no se pudo cargar consultas:", consErr?.message || consErr);
-      setCons([]); setStats({today:0,pending:0,patients:ps.exists()?(ps.data().patientsCount||0):0});
-    }
-  } catch(profileErr:any){
-    console.warn("[VetDashboard] no se pudo cargar perfil de vet:", profileErr?.message || profileErr);
-  } finally{setLoadingData(false);} })(); },[user]);
+    const snap = await getDocs(query(collection(db,"consultations"),where("vetId","==",user.uid),orderBy("createdAt","desc"),limit(10)));
+    const list:CS[]=[]; snap.forEach(d=>{const x=d.data();list.push({id:d.id,petName:x.petName||"",tutorName:x.tutorName||"",reason:x.reason||"Consulta",status:x.status||"pending",createdAt:x.createdAt||""});});
+    setCons(list); const td=new Date().toISOString().split("T")[0]; setStats({today:list.filter(c=>c.createdAt.startsWith(td)).length,pending:list.filter(c=>c.status==="pending").length,patients:ps.exists()?(ps.data().patientsCount||0):0});
+  } catch{} finally{setLoadingData(false);} })(); },[user]);
   if(authLoading) return <div className="min-h-screen flex items-center justify-center" style={{background:"#F0FAF9"}}><div className="size-10 rounded-full border-4 border-[#074738]/20 border-t-[#074738] animate-spin"/></div>;
   if(!user) return <Navigate to="/vet/login" replace/>;
   if(selCon) return <><VetConsultationView consultationId={selCon} onBack={()=>setSelCon(null)}/><VetBottomNav currentTab={tab} onTabChange={setTab}/></>;

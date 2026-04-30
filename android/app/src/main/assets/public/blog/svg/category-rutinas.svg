@@ -1,0 +1,16 @@
+<svg viewBox="0 0 400 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="240" rx="16" fill="#F0FAF9"/>
+  <circle cx="200" cy="105" r="70" fill="#E0F2F1"/>
+  <!-- Clock -->
+  <circle cx="195" cy="98" r="26" fill="white" stroke="#074738" stroke-width="2"/>
+  <line x1="195" y1="98" x2="195" y2="84" stroke="#074738" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="195" y1="98" x2="207" y2="104" stroke="#1A9B7D" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="195" cy="98" r="3" fill="#074738"/>
+  <!-- Calendar grid -->
+  <rect x="214" y="105" width="24" height="22" rx="4" fill="#1A9B7D" opacity="0.6"/>
+  <rect x="214" y="105" width="24" height="7" rx="4" fill="#074738" opacity="0.6"/>
+  <rect x="218" y="116" width="4" height="4" rx="1" fill="white" opacity="0.8"/>
+  <rect x="225" y="116" width="4" height="4" rx="1" fill="white" opacity="0.8"/>
+  <circle cx="150" cy="145" r="3" fill="#1A9B7D" opacity="0.2"/>
+  <circle cx="265" cy="70" r="4" fill="#5048CA" opacity="0.15"/>
+</svg>

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.pessy.mobile",
+      "sha256_cert_fingerprints": [
+        "D1:33:46:50:12:DA:8A:48:66:52:CA:4E:14:4B:DA:52:8A:EE:26:2F:DF:2C:7E:E1:2A:7D:FD:F7:C9:6E:D2:06"
+      ]
+    }
+  }
+]

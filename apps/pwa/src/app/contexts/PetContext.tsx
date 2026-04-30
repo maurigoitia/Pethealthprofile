@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
 import { auth, db } from "../../lib/firebase";
 import {
-  collection, query, where, onSnapshot, doc, updateDoc, addDoc, arrayUnion, setDoc, getDoc, getDocs,
+  collection, query, where, onSnapshot, doc, updateDoc, addDoc, arrayUnion, setDoc, getDoc,
 } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { functions as firebaseFunctions } from "../../lib/firebase";
@@ -42,39 +42,6 @@ export interface PetPreferences {
   fears?: string[]; // truenos, fuegos artificiales, otros perros, etc.
   personality?: ("calm" | "energetic" | "shy" | "social" | "independent" | "playful" | "protective")[];
   notes?: string;
-}
-
-/**
- * Normaliza preferences que viene de Firestore — datos legacy pueden tener
- * fears/favoriteActivities/walkTimes/etc guardados como string o null en vez
- * de array (causaba crashes con .some/.includes/.filter en PetHomeView y
- * pessyIntelligenceEngine).
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function sanitizePreferences(raw: any): PetPreferences | undefined {
-  if (!raw || typeof raw !== "object") return undefined;
-  const out: PetPreferences = { ...raw };
-  const arrayFields: (keyof PetPreferences)[] = [
-    "favoriteActivities", "favoritePlaces", "walkTimes",
-    "allergies", "fears", "personality",
-  ];
-  for (const k of arrayFields) {
-    const v = out[k];
-    if (v !== undefined && !Array.isArray(v)) {
-      // si es string lo wrapeamos, otro tipo → array vacío
-      (out as any)[k] = typeof v === "string" && v.trim().length > 0 ? [v] : [];
-    }
-  }
-  return out;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function sanitizePetData(petData: any, id: string): Pet {
-  return {
-    ...petData,
-    id,
-    preferences: sanitizePreferences(petData?.preferences),
-  };
 }
 
 export interface Pet {
@@ -192,7 +159,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
               console.warn(`[PETS] No se pudo auto-migrar coTutorUids para pet ${change.doc.id}:`, err?.message || err);
             });
           }
-          allPetsMap.set(change.doc.id, sanitizePetData(data, change.doc.id));
+          allPetsMap.set(change.doc.id, { id: change.doc.id, ...data } as Pet);
         }
       });
       resolved.owner = true;
@@ -216,7 +183,7 @@ export function PetProvider({ children }: { children: ReactNode }) {
         } else {
           // No sobreescribir si ya está (el owner query tiene más info actualizada)
           if (!allPetsMap.has(change.doc.id)) {
-            allPetsMap.set(change.doc.id, sanitizePetData(change.doc.data(), change.doc.id));
+            allPetsMap.set(change.doc.id, { id: change.doc.id, ...change.doc.data() } as Pet);
           }
         }
       });
@@ -385,22 +352,6 @@ export function PetProvider({ children }: { children: ReactNode }) {
 
     const petName = inv.petName || petData.name || "la mascota";
     const alreadyJoined = currentCoTutorUids.includes(currentUser.uid);
-
-    // FREE TIER LIMIT: máximo 3 mascotas como co-tutor en plan gratuito.
-    // Se cuentan solo mascotas donde el user es co-tutor (no incluye las propias).
-    if (!alreadyJoined) {
-      const CO_TUTOR_FREE_LIMIT = 3;
-      const existingCoTutorQuery = query(
-        collection(db, "pets"),
-        where("coTutorUids", "array-contains", currentUser.uid)
-      );
-      const existingSnap = await getDocs(existingCoTutorQuery);
-      if (existingSnap.size >= CO_TUTOR_FREE_LIMIT) {
-        throw new Error(
-          `Llegaste al límite de ${CO_TUTOR_FREE_LIMIT} mascotas como co-tutor en el plan gratuito. Pronto vas a poder subir a Pessy Premium para cuidar más.`
-        );
-      }
-    }
 
     if (!alreadyJoined) {
       const newCoTutor: CoTutor = {

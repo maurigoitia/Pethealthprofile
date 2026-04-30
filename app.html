@@ -150,45 +150,7 @@
 
 <body class="pessy-grain">
   <div id="root"></div>
-  <!--
-    SW stuck-recovery: si el bundle viejo tira un error ANTES que main.tsx arranque
-    (import fail, hash mismatch, chunk 404, etc.), auto-redirigimos a /reset una
-    sola vez. Esto vive acá en HTML puro para que funcione incluso si todos los
-    scripts del bundle fallan.
-  -->
-  <script>
-    (function(){
-      var triggered = false;
-      var triggerReset = function(reason){
-        if (triggered) return;
-        if (sessionStorage.getItem('pessy_auto_reset_done') === '1') return; // evitar loop
-        triggered = true;
-        sessionStorage.setItem('pessy_auto_reset_done', '1');
-        console.warn('[Pessy] Bundle failure detected, redirecting to /reset', reason);
-        window.location.replace('/reset');
-      };
-      window.addEventListener('error', function(e){
-        var msg = (e && (e.message || (e.error && e.error.message))) || '';
-        if (/Loading chunk|Failed to fetch dynamically imported module|Importing a module script failed|chunk.*failed|is not a valid JavaScript MIME type|text\/html.+MIME|Failed to load module script|Expected a JavaScript|Strict MIME type/i.test(msg)) {
-          triggerReset(msg);
-        }
-      }, true);
-      window.addEventListener('unhandledrejection', function(e){
-        var msg = (e && e.reason && (e.reason.message || String(e.reason))) || '';
-        if (/Loading chunk|Failed to fetch dynamically imported module|Importing a module script failed/i.test(msg)) {
-          triggerReset(msg);
-        }
-      });
-      // Safety net: si después de 10s el root sigue vacío, asumimos bundle roto
-      setTimeout(function(){
-        var root = document.getElementById('root');
-        if (root && root.childElementCount === 0) {
-          triggerReset('Root empty after 10s — bundle likely failed');
-        }
-      }, 10000);
-    })();
-  </script>
-  <script type="module" src="/apps/pwa/src/main.tsx"></script>
+  <script type="module" src="/src/main.tsx"></script>
 </body>
 
 </html>

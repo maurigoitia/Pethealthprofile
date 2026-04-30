@@ -1,156 +1,51 @@
-/**
- * WelcomeScreen — Premium style: full-bleed dark photo + gradient overlay + glass cards.
- * Tokens Plano puros (no Material 3 aliases). Logo Pessy + illustration interna.
- */
-import { useNavigate } from "react-router";
-
-const HERO_IMG = "/illustrations/dark_top_surprised_cork_head.svg";
+import { Link, useNavigate } from "react-router";
 
 export function WelcomeScreen() {
   const navigate = useNavigate();
 
   return (
-    <main
-      className="relative min-h-screen w-full overflow-hidden bg-[#074738]"
-      style={{ fontFamily: "'Manrope', sans-serif" }}
-    >
-      {/* Hero full-bleed background */}
-      <img
-        src={HERO_IMG}
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover opacity-80"
-        aria-hidden="true"
-      />
+    <div className="min-h-screen bg-[#F0FAF9] font-['Manrope'] text-slate-900">
+      <header className="mx-auto max-w-5xl px-5 pt-5">
+        <div className="rounded-[2rem] border border-slate-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur">
+          <div className="flex items-center justify-between">
+            <Link to="/" className="inline-flex items-center gap-2" aria-label="Pessy inicio">
+              <img src="/pessy-logo.svg" alt="Pessy" className="size-7" />
+              <span className="text-3xl font-black tracking-tight text-[#074738]">Pessy</span>
+            </Link>
 
-      {/* Gradient overlay */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(to bottom, rgba(7,71,56,0.4) 0%, rgba(7,71,56,0.75) 55%, rgba(7,71,56,0.95) 100%)",
-        }}
-        aria-hidden="true"
-      />
+            <div className="flex items-center gap-3">
+              <span className="text-lg font-black uppercase text-slate-500">ES</span>
+              <button
+                onClick={() => navigate("/login")}
+                className="rounded-full bg-[#1A9B7D] px-6 py-2.5 text-sm font-black uppercase tracking-widest text-white">
+                Entrar
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
 
-      {/* Content */}
-      <div
-        className="relative z-10 flex flex-col items-center min-h-screen max-w-md mx-auto px-6 pt-16 pb-10"
-        style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}
-      >
-        {/* Logo */}
-        <img
-          src="/pessy-logo.svg"
-          alt="Pessy"
-          className="w-20 h-20 drop-shadow-lg"
-          style={{ filter: "brightness(0) invert(1)" }}
-        />
-
-        {/* Headline */}
-        <div className="mt-8 text-center">
-          <h1
-            className="text-[32px] font-extrabold text-white tracking-tight leading-[1.15]"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-          >
-            Tu mascota, sus cosas, todo en orden.
+      <main className="px-5 pb-16 pt-8">
+        <div className="mx-auto max-w-4xl text-center">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-[#074738]/20 bg-[#074738]/8 px-3 py-1 text-xs font-bold uppercase tracking-widest text-[#074738] mb-6">
+            <span className="size-1.5 rounded-full bg-[#074738] animate-pulse inline-block" />
+            AI-powered
+          </div>
+          <h1 className="mx-auto max-w-3xl text-6xl font-black leading-[0.95] tracking-tight text-slate-900 md:text-8xl">
+            Porque quererlo ya es suficiente trabajo.
           </h1>
-          <p className="mt-4 text-[18px] leading-relaxed text-[#F0FAF9]/90">
-            La forma más simple de gestionar la vida de tus compañeros.
+          <p className="mx-auto mt-8 max-w-3xl text-2xl font-semibold leading-relaxed text-slate-500 md:text-3xl">
+            Pessy lo maneja. Vos lo disfrutás.
           </p>
-        </div>
 
-        {/* Glass cards */}
-        <div className="w-full max-w-sm mt-10 space-y-3">
-          <GlassCard
-            icon="pets"
-            title="Perfiles únicos"
-            desc="Toda la info médica centralizada"
-          />
-          <GlassCard
-            icon="notifications_active"
-            title="Recordatorios"
-            desc="Nunca olvides una vacuna o medicación"
-          />
-          <GlassCard
-            icon="groups"
-            title="Comunidad"
-            desc="Conectá con otros tutores"
-          />
-        </div>
-
-        {/* Buttons */}
-        <div className="w-full max-w-sm mt-10 space-y-3">
           <button
-            type="button"
-            onClick={() => navigate("/register-user")}
-            className="w-full py-4 bg-[#1A9B7D] text-white rounded-full shadow-lg active:scale-95 transition-transform text-[15px] font-bold"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-          >
-            Empezar
-          </button>
-          <button
-            type="button"
             onClick={() => navigate("/login")}
-            className="w-full py-4 bg-white/10 hover:bg-white/20 text-white border border-white/30 rounded-full backdrop-blur-sm active:scale-95 transition-all text-[15px] font-semibold"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-          >
-            Iniciar Sesión
+            className="mt-10 rounded-full bg-[#074738] px-14 py-5 text-2xl font-black text-white shadow-xl shadow-[#074738]/30">
+            Probar ahora
           </button>
+          <p className="mt-8 text-sm font-black uppercase tracking-[0.35em] text-slate-400">PESSY LO MANEJA. VOS LO DISFRUTÁS.</p>
         </div>
-
-        {/* Footer compliance */}
-        <p className="mt-8 text-center text-[11px] text-white/60 px-4 leading-relaxed">
-          Al continuar aceptás{" "}
-          <a href="/terminos" className="underline decoration-white/40">
-            Términos
-          </a>{" "}
-          y{" "}
-          <a href="/privacidad" className="underline decoration-white/40">
-            Privacidad
-          </a>
-        </p>
-      </div>
-
-      {/* Decorative bottom gradient bar */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-1 z-20"
-        style={{
-          background:
-            "linear-gradient(90deg, transparent 0%, #1A9B7D 50%, transparent 100%)",
-        }}
-        aria-hidden="true"
-      />
-    </main>
-  );
-}
-
-function GlassCard({
-  icon,
-  title,
-  desc,
-}: {
-  icon: string;
-  title: string;
-  desc: string;
-}) {
-  return (
-    <div className="bg-white/95 backdrop-blur-md p-6 rounded-xl border border-white/20 shadow-xl flex items-center gap-4">
-      <div className="w-12 h-12 rounded-full bg-[#F0FAF9] flex items-center justify-center shrink-0">
-        <span
-          className="material-symbols-outlined"
-          style={{ color: "#1A9B7D", fontSize: 24 }}
-        >
-          {icon}
-        </span>
-      </div>
-      <div className="flex-1 min-w-0">
-        <p
-          className="text-[15px] font-bold text-[#1A1A1A] leading-tight"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-        >
-          {title}
-        </p>
-        <p className="text-[13px] text-[#6B7280] mt-0.5 leading-snug">{desc}</p>
-      </div>
+      </main>
     </div>
   );
 }

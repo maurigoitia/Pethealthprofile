@@ -1,0 +1,12 @@
+<svg viewBox="0 0 400 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="240" rx="16" fill="#F0FAF9"/>
+  <circle cx="200" cy="105" r="70" fill="#E0F2F1"/>
+  <!-- Community circles -->
+  <circle cx="185" cy="100" r="20" fill="#5048CA" opacity="0.25"/>
+  <circle cx="215" cy="100" r="20" fill="#1A9B7D" opacity="0.3"/>
+  <circle cx="200" cy="80" r="20" fill="#074738" opacity="0.15"/>
+  <!-- Heart in center -->
+  <path d="M200 110 C200 110, 192 104, 192 99 C192 96, 195 94, 198 95 C200 96, 200 96, 200 96 C200 96, 202 96, 202 95 C205 94, 208 96, 208 99 C208 104, 200 110, 200 110Z" fill="#5048CA" opacity="0.7"/>
+  <circle cx="148" cy="140" r="3" fill="#5048CA" opacity="0.2"/>
+  <circle cx="260" cy="75" r="4" fill="#1A9B7D" opacity="0.15"/>
+</svg>

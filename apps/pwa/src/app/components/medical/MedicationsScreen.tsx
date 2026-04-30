@@ -177,7 +177,7 @@ function formatDoseMoment(value: string | null): string {
 }
 
 const STATUS_CONFIG: Record<MedicationStatus, { label: string; color: string; bg: string; accent: string }> = {
-  active:    { label: "Activo",   color: "text-[#1A9B7D]",   bg: "bg-[#1A9B7D]/10",  accent: "#1A9B7D" },
+  active:    { label: "Activo",   color: "text-[#074738]",   bg: "bg-[#074738]/10",  accent: "#074738" },
   chronic:   { label: "Crónico",  color: "text-violet-600",  bg: "bg-violet-100",     accent: "#7c3aed" },
   completed: { label: "Finalizado", color: "text-slate-500", bg: "bg-slate-100",      accent: "#94a3b8" },
 };
@@ -558,27 +558,23 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
         {/* Header */}
         <div className={focusExperienceEnabled
           ? "px-4 pt-6 pb-6 bg-[linear-gradient(180deg,rgba(7,71,56,0.18)_0%,rgba(7,71,56,0.08)_40%,rgba(243,247,245,0)_100%)]"
-          : "bg-[#F0FAF9]/85 backdrop-blur-md sticky top-0 z-10 px-4 pt-4 pb-3"}>
-          <div className="flex items-center gap-3 mb-3">
+          : "bg-white border-b border-slate-100 sticky top-0 z-10 px-4 pt-6 pb-4"}>
+          <div className="flex items-center gap-3 mb-4">
             <button onClick={onBack}
-              aria-label="Volver"
-              className={`flex items-center justify-center active:scale-[0.97] transition-all ${focusExperienceEnabled ? "size-10 rounded-full bg-white/80 dark:bg-slate-900/70 shadow-[0_2px_12px_rgba(0,0,0,0.06)]" : "size-11 rounded-full bg-white border border-[#E5E7EB] shadow-sm"}`}>
-              <MaterialIcon name="arrow_back" className="text-xl text-[#074738]" />
+              className={`size-10 rounded-full flex items-center justify-center ${focusExperienceEnabled ? "bg-white/80 dark:bg-slate-900/70 shadow-[0_2px_12px_rgba(0,0,0,0.06)]" : "bg-[#E0F2F1]"}`}>
+              <MaterialIcon name="arrow_back" className={`text-xl ${focusExperienceEnabled ? "text-[#074738]" : "text-[#074738]"}`} />
             </button>
-            <div className="flex-1 min-w-0">
+            <div>
               {focusExperienceEnabled && (
                 <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#074738] mb-1">Tratamientos</p>
               )}
-              <h1
-                className={`font-extrabold leading-tight ${focusExperienceEnabled ? "text-2xl text-slate-900 dark:text-white" : "text-[22px] text-[#074738]"}`}
-                style={!focusExperienceEnabled ? { fontFamily: "Plus Jakarta Sans, sans-serif", letterSpacing: "-0.02em" } : undefined}
-              >
-                Tratamientos activos
+              {!focusExperienceEnabled && (
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Rutinas</p>
+              )}
+              <h1 className={`text-2xl font-black ${focusExperienceEnabled ? "text-slate-900 dark:text-white" : "text-[#074738]"}`}>
+                Tratamientos y medicación
               </h1>
-              <p
-                className={`text-sm ${focusExperienceEnabled ? "text-slate-600 dark:text-slate-300" : "text-[#6B7280]"}`}
-                style={!focusExperienceEnabled ? { fontFamily: "Manrope, sans-serif" } : undefined}
-              >
+              <p className={`text-sm ${focusExperienceEnabled ? "text-slate-600 dark:text-slate-300" : "text-slate-500"}`}>
                 {activeBaseItems.length} activos · {expiredItems.length} vencidos · {completedItems.length} finalizados
               </p>
             </div>
@@ -592,15 +588,14 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
             </div>
           )}
 
-          <div className={`flex gap-2 p-1 ${focusExperienceEnabled ? "rounded-full bg-white/80 dark:bg-slate-900/70" : "bg-white border border-[rgba(7,71,56,0.08)] rounded-full"}`}>
+          <div className={`flex gap-2 p-1 ${focusExperienceEnabled ? "rounded-full bg-white/80 dark:bg-slate-900/70" : "bg-[#E0F2F1] rounded-[14px]"}`}>
             {(["active", "history"] as const).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                style={!focusExperienceEnabled ? { fontFamily: "Plus Jakarta Sans, sans-serif" } : undefined}
                 className={[
-                  "flex-1 py-2.5 font-bold text-sm transition-all",
+                  "flex-1 py-2.5 font-semibold text-sm transition-all",
                   activeTab === tab
-                    ? focusExperienceEnabled ? "bg-[#074738] text-white rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.06)]" : "bg-[#074738] text-white rounded-full shadow-[0_2px_8px_rgba(7,71,56,0.18)]"
-                    : focusExperienceEnabled ? "text-slate-600 dark:text-slate-300 rounded-full" : "text-[#6B7280] rounded-full"
+                    ? focusExperienceEnabled ? "bg-[#074738] text-white rounded-full shadow-[0_2px_12px_rgba(0,0,0,0.06)]" : "bg-white text-[#074738] rounded-[10px] shadow-sm"
+                    : focusExperienceEnabled ? "text-slate-600 dark:text-slate-300 rounded-full" : "text-[#1A9B7D] rounded-[10px]"
                 ].join(" ")}>
                 {tab === "active" ? "Activos (" + activeBaseItems.length + ")" : "Historial (" + completedItems.length + ")"}
               </button>
@@ -649,41 +644,17 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
           )}
 
           {shownItems.length === 0 ? (
-            <div className="text-center py-16 px-4">
-              <div className="w-24 h-24 rounded-full bg-[#E0F2F1] flex items-center justify-center mx-auto mb-5">
-                <MaterialIcon name="medication" className="text-5xl text-[#1A9B7D]" />
+            <div className="text-center py-16">
+              <div className="size-20 bg-[#E0F2F1] rounded-full flex items-center justify-center mx-auto mb-4">
+                <MaterialIcon name="medication" className="text-4xl text-[#1A9B7D]" />
               </div>
-              <span className="inline-block text-[11px] font-black uppercase tracking-[0.18em] bg-[#1A9B7D]/10 text-[#1A9B7D] px-3 py-1 rounded-full mb-3">
-                Tratamientos
-              </span>
-              <h2
-                className="text-2xl font-extrabold text-[#074738] mb-2"
-                style={{ fontFamily: "Plus Jakarta Sans, sans-serif", letterSpacing: "-0.02em" }}
-              >
-                {activeTab === "active" ? "Sin tratamientos activos" : "Sin tratamientos finalizados"}
-              </h2>
-              <p
-                className="text-sm text-[#6B7280] max-w-[280px] mx-auto mb-6"
-                style={{ fontFamily: "Manrope, sans-serif" }}
-              >
-                {activeTab === "active"
-                  ? "Subí una receta o agregá un medicamento para llevar el seguimiento acá."
-                  : "Cuando finalices o interrumpas un tratamiento, lo vas a ver acá."}
-              </p>
-              {activeTab === "active" && (
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="px-6 h-12 rounded-full bg-[#074738] text-white font-bold shadow-[0_4px_14px_rgba(7,71,56,0.18)] active:scale-[0.97] transition-all"
-                  style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
-                >
-                  Agregar medicamento
-                </button>
-              )}
+              <h3 className="font-semibold text-slate-800 mb-2">Sin registros</h3>
+              <p className="text-sm text-slate-500">Subí recetas y notas de tratamiento para verlos acá.</p>
             </div>
           ) : (
             shownItems.map((item) => {
               const sc = item.isExpired
-                ? { label: "Vencido", color: "text-[#92400E]", bg: "bg-[#FEF3C7]", accent: "#dc2626" }
+                ? { label: "Vencido", color: "text-red-600", bg: "bg-red-100", accent: "#dc2626" }
                 : STATUS_CONFIG[item.status];
               const noteCount = item.event.treatmentNotes?.length || 0;
               const isExpanded = Boolean(expandedNotesByEvent[item.event.id]);
@@ -692,7 +663,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
               return (
                 <div
                   key={item.id}
-                  ref={highlightEventId === item.event.id ? highlightRef : undefined} className={`bg-white rounded-[16px] border border-[rgba(7,71,56,0.08)] shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden transition-all ${
+                  ref={highlightEventId === item.event.id ? highlightRef : undefined} className={`bg-white rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden transition-all ${
                     highlightEventId === item.event.id
                       ? "ring-2 ring-amber-300/50"
                       : ""
@@ -711,7 +682,7 @@ export function MedicationsScreen({ onBack }: MedicationsScreenProps) {
                         <p className="text-xs text-slate-500">{item.provider}</p>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${needsReview ? "bg-[#FEF3C7] text-[#92400E]" : `${sc.bg} ${sc.color}`}`}>
+                        <span className={`text-[10px] font-semibold px-3 py-1 rounded-full ${sc.bg} ${sc.color}`}>
                           {needsReview ? "Por confirmar" : sc.label}
                         </span>
                         {/* Acciones editar / borrar */}

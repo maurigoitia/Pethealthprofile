@@ -248,11 +248,15 @@ export default function HomeScreen() {
     };
   }, [user, inviteJoiningCode, inviteResolvedCode, joinWithCode]);
 
-  // safeUserName — sin IIFE (rompe en Safari iOS por bug del minifier)
-  const _ctxName = typeof userName === "string" ? userName.trim() : "";
-  const _displayName = typeof user?.displayName === "string" ? user.displayName.trim().split(/\s+/)[0] : "";
-  const _emailName = typeof user?.email === "string" ? user.email.split("@")[0].trim() : "";
-  const safeUserName = _ctxName || _displayName || _emailName || "Tutor";
+  const safeUserName = (() => {
+    const fromContext = (userName || "").trim();
+    if (fromContext) return fromContext;
+    const fromDisplayName = (user?.displayName || "").trim().split(/\s+/)[0];
+    if (fromDisplayName) return fromDisplayName;
+    const fromEmail = (user?.email?.split("@")[0] || "").trim();
+    if (fromEmail) return fromEmail;
+    return "Tutor";
+  })();
 
   if (authLoading) {
     return (

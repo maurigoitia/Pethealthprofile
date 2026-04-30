@@ -46,19 +46,11 @@ export function LostPetFeed({ onReport, onBack }: Props) {
       orderBy("reportedAt", "desc"),
       limit(20),
     );
-    getDocs(q)
-      .then((snap) => {
-        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as LostPetReport);
-        setReports(data);
-      })
-      .catch((err) => {
-        // Si falta index, permission, etc. → empty state honesto en vez de pantalla blanca
-        console.warn("[LostPetFeed] no se pudo cargar reportes:", err?.message || err);
-        setReports([]);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    getDocs(q).then((snap) => {
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as LostPetReport);
+      setReports(data);
+      setLoading(false);
+    });
   }, []);
 
   const sorted = userLocation
@@ -70,27 +62,13 @@ export function LostPetFeed({ onReport, onBack }: Props) {
   return (
     <div className="min-h-screen bg-[#F0FAF9] dark:bg-[#101622]">
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#F0FAF9]/85 backdrop-blur-md px-4 py-3 flex items-center gap-3">
-        <button
-          onClick={onBack}
-          aria-label="Volver"
-          className="size-11 flex items-center justify-center rounded-full bg-white border border-[#E5E7EB] active:scale-[0.96] transition-transform"
-          style={{ boxShadow: "0 1px 3px rgba(7,71,56,0.04)" }}
-        >
-          <MaterialIcon name="arrow_back" className="text-[#074738]" />
+      <div className="sticky top-0 z-30 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center gap-3">
+        <button onClick={onBack} className="size-[44px] flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" style={{ transition: "background 150ms ease" }}>
+          <MaterialIcon name="arrow_back" className="text-[#074738] dark:text-emerald-400" />
         </button>
-        <h1
-          className="text-lg font-extrabold text-[#074738] flex-1"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: "-0.02em" }}
-        >
-          Mascotas perdidas
-        </h1>
-        <button
-          onClick={onReport}
-          className="h-11 px-4 rounded-full bg-[#1A9B7D] text-white text-xs font-bold uppercase tracking-wide flex items-center gap-1.5 active:scale-[0.97] transition-transform shadow-[0_4px_14px_rgba(26,155,125,0.25)]"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-        >
-          <MaterialIcon name="add_alert" className="text-base" />
+        <h1 className="text-lg font-bold text-[#074738] dark:text-white flex-1">Mascotas perdidas</h1>
+        <button onClick={onReport} className="h-[44px] px-4 rounded-2xl bg-[#1A9B7D] text-white text-sm font-semibold flex items-center gap-2" style={{ transition: "opacity 150ms ease" }}>
+          <MaterialIcon name="add_alert" className="text-lg" />
           Reportar
         </button>
       </div>
@@ -102,39 +80,10 @@ export function LostPetFeed({ onReport, onBack }: Props) {
             <div className="size-8 rounded-full border-4 border-[#074738]/20 border-t-[#074738] animate-spin" />
           </div>
         ) : sorted.length === 0 ? (
-          <div className="text-center py-12 px-4">
-            {/* Stitch-style empty state con illustration */}
-            <div className="w-24 h-24 rounded-full bg-[#E0F2F1] flex items-center justify-center mx-auto mb-5">
-              <MaterialIcon name="pets" className="text-5xl text-[#1A9B7D]" />
-            </div>
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#1A9B7D]/10 border border-[#1A9B7D]/20 mb-4">
-              <span
-                className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#1A9B7D]"
-                style={{ fontFamily: "Manrope, sans-serif" }}
-              >
-                Comunidad
-              </span>
-            </div>
-            <h2
-              className="text-2xl font-extrabold text-[#074738] mb-2 leading-tight"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            >
-              Todo en orden por acá
-            </h2>
-            <p
-              className="text-sm text-[#6B7280] max-w-[280px] mx-auto leading-relaxed mb-6"
-              style={{ fontFamily: "Manrope, sans-serif" }}
-            >
-              No hay reportes activos en tu zona. Si encontrás o perdés una mascota, podés reportarlo.
-            </p>
-            <button
-              type="button"
-              onClick={onReport}
-              className="px-6 py-3 rounded-full bg-[#074738] hover:bg-[#0e5c49] text-white text-sm font-bold shadow-[0_4px_14px_rgba(7,71,56,0.18)] active:scale-[0.97] transition-transform"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            >
-              Reportar mascota perdida
-            </button>
+          <div className="text-center py-12">
+            <MaterialIcon name="pets" className="text-5xl text-[#1A9B7D]/30 mb-3" />
+            <p className="text-base font-semibold text-slate-700 dark:text-slate-300">No hay reportes en tu zona</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">¡Buena noticia! Todas las mascotas están a salvo.</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">

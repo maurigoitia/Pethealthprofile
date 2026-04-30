@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { db } from "../../lib/firebase";
-import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, getDocs, serverTimestamp, arrayUnion, increment } from "firebase/firestore";
+import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc, getDocs } from "firebase/firestore";
 import { usePet } from "./PetContext";
 import { useAuth } from "./AuthContext";
 import {
@@ -39,8 +39,11 @@ import {
   slugifyKey,
 } from "../utils/clinicalBrain";
 import { syncAppointmentWithGoogleCalendar } from "../services/calendarSyncService";
-import { isFocusHistoryExperimentHost } from "../utils/runtimeFlags";
-import { normalizeMedicationKey, extractTimeFromText, hasAppointmentLanguage, extractSpecialtyFromText, deriveAppointmentCandidateFromEvent } from "../utils/medicalContextHelpers";
+import { isEmailSyncEnabled, isFocusHistoryExperimentHost } from "../utils/runtimeFlags";
+import { normalizeForHint, hasMailSyncHint, normalizeMedicationKey, extractTimeFromText, hasAppointmentLanguage, extractSpecialtyFromText, deriveAppointmentCandidateFromEvent } from "../utils/medicalContextHelpers";
+
+// Kill-switch operativo: desactiva visualización de datos provenientes de sincronización por mail.
+const EMAIL_SYNC_ENABLED = isEmailSyncEnabled();
 
 // ─── Tipos episódicos (mirror de episodeCompiler) ──────────────────────────────
 export interface ClinicalEpisodeMedication {
@@ -85,90 +88,34 @@ export interface ClinicalProfileSnapshot {
   sourceEpisodeIds: string[];
 }
 
-// ─── Upsert incremental de vet extraído (mirror ligero de la CF) ─────────────
-// Al agregar un evento con masterPayload.document_info.veterinarian_name
-// escribimos directo en pets/{petId}/extractedVets/{hash}. Hash derivado de
-// name+clinic, mismo algoritmo que la Cloud Function (sha1 → 24 hex chars).
-async function computeVetHash(name: string, clinic: string | null): Promise<string> {
-  const normalize = (raw: string | null) =>
-    (raw || "")
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "")
-      .trim();
-  const input = `${normalize(name)}|${normalize(clinic)}`;
-  if (typeof crypto !== "undefined" && crypto.subtle) {
-    const buf = new TextEncoder().encode(input);
-    const digest = await crypto.subtle.digest("SHA-1", buf);
-    return Array.from(new Uint8Array(digest))
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("")
-      .slice(0, 24);
-  }
-  // Fallback determinístico no-crypto (muy raro; tests/SSR)
-  let h = 0;
-  for (let i = 0; i < input.length; i++) {
-    h = (h * 31 + input.charCodeAt(i)) | 0;
-  }
-  return `fallback${Math.abs(h).toString(16)}`.slice(0, 24);
-}
-
-async function upsertExtractedVetFromEvent(event: MedicalEvent): Promise<void> {
-  const payload = event.extractedData?.masterPayload as Record<string, unknown> | undefined;
-  const docInfo = payload?.document_info as Record<string, unknown> | undefined;
-  if (!docInfo) return;
-
-  const asStr = (v: unknown): string | null => {
-    if (typeof v !== "string") return null;
-    const t = v.trim();
-    return t.length ? t : null;
-  };
-
-  const name = asStr(docInfo.veterinarian_name);
-  if (!name) return;
-
-  const clinic = asStr(docInfo.clinic_name);
-  const license = asStr(docInfo.veterinarian_license);
-  const phoneRaw = asStr(docInfo.phone);
-  const emailRaw = asStr(docInfo.email);
-
-  const phone = phoneRaw ? phoneRaw.replace(/\D/g, "") || null : null;
-  const email = emailRaw ? emailRaw.toLowerCase() : null;
-
-  const hash = await computeVetHash(name, clinic);
-  const ref = doc(db, "pets", event.petId, "extractedVets", hash);
-  const snap = await getDoc(ref);
-
-  if (!snap.exists()) {
-    await setDoc(ref, {
-      id: hash,
-      name,
-      clinic,
-      license,
-      phone,
-      email,
-      firstSeenAt: serverTimestamp(),
-      lastSeenAt: serverTimestamp(),
-      eventCount: 1,
-      sourceEventIds: event.id ? [event.id] : [],
-      confidence: "high",
-    });
-    return;
+const isMailSyncedEvent = (event: MedicalEvent): boolean => {
+  if (EMAIL_SYNC_ENABLED) return false;
+  const extracted = event.extractedData || {};
+  if (
+    extracted.sourceSender ||
+    extracted.sourceReceivedAt ||
+    extracted.sourceSubject ||
+    extracted.sourceFileName
+  ) {
+    return true;
   }
 
-  const existing = snap.data() as { sourceEventIds?: string[] };
-  const alreadyTracked = event.id && (existing.sourceEventIds || []).includes(event.id);
-  if (alreadyTracked) return; // idempotencia
+  const reviewHints = event.reviewReasons || [];
+  const textHints = [
+    event.title,
+    extracted.suggestedTitle,
+    extracted.observations,
+    extracted.aiGeneratedSummary,
+    ...reviewHints,
+  ];
+  return textHints.some((value) => hasMailSyncHint(value));
+};
 
-  await updateDoc(ref, {
-    lastSeenAt: serverTimestamp(),
-    eventCount: increment(1),
-    ...(event.id ? { sourceEventIds: arrayUnion(event.id) } : {}),
-    // rellenar campos faltantes (no pisar existentes)
-    ...(clinic ? {} : {}),
-  });
-}
+const isMailSyncedPendingAction = (action: PendingAction): boolean => {
+  if (EMAIL_SYNC_ENABLED) return false;
+  if (action.type === "sync_review") return true;
+  return hasMailSyncHint(action.title) || hasMailSyncHint(action.subtitle);
+};
 
 const normalizeProactiveScope = (value: string): string =>
   (value || "")
@@ -238,11 +185,6 @@ interface MedicalContextType {
   deactivateMedication: (id: string) => Promise<void>;
   getActiveMedicationsByPetId: (petId: string) => ActiveMedication[];
 
-  // Medication intakes — persistencia cross-device de "tomado HOY"
-  markMedicationAsTaken: (medicationId: string, expectedTime?: string) => Promise<void>;
-  isMedicationTakenToday: (medicationId: string, expectedTime?: string) => boolean;
-  markAppointmentAsCompleted: (appointmentId: string) => Promise<void>;
-
   getMonthSummary: (petId: string, month: Date) => MonthSummary;
   saveVerifiedReport: (report: Record<string, unknown>) => Promise<string>;
 
@@ -269,7 +211,6 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   const [pendingActions, setPendingActions] = useState<PendingAction[]>([]);
   const [activeMedications, setActiveMedications] = useState<ActiveMedication[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [todayIntakes, setTodayIntakes] = useState<Array<{ id: string; medicationId: string; expectedTime?: string; takenAt: string }>>([]);
   const [clinicalConditions, setClinicalConditions] = useState<ClinicalCondition[]>([]);
   const [clinicalAlerts, setClinicalAlerts] = useState<ClinicalAlert[]>([]);
   const [consolidatedTreatments, setConsolidatedTreatments] = useState<TreatmentEntity[]>([]);
@@ -900,29 +841,6 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   // 4. Sync Appointments
   useEffect(() => syncPetCollection<Appointment>("appointments", setAppointments), [activePet]);
 
-  // 4b. Sync medication_intakes — solo del día actual, para "Pendiente hoy"
-  useEffect(() => {
-    if (!activePet) {
-      setTodayIntakes([]);
-      return;
-    }
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-    const q = query(
-      collection(db, "medication_intakes"),
-      where("petId", "==", activePet.id),
-      where("takenAt", ">=", startOfDay.toISOString()),
-    );
-    return onSnapshot(q, (snap) => {
-      setTodayIntakes(
-        snap.docs.map((d) => {
-          const data = d.data() as { medicationId: string; expectedTime?: string; takenAt: string };
-          return { id: d.id, medicationId: data.medicationId, expectedTime: data.expectedTime, takenAt: data.takenAt };
-        }),
-      );
-    });
-  }, [activePet?.id]);
-
   // 5. Sync Clinical Conditions
   useEffect(() => syncPetCollection<ClinicalCondition>("clinical_conditions", setClinicalConditions), [activePet]);
 
@@ -1017,14 +935,6 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     };
     await setDoc(docRef, payload);
     const persistedEvent: MedicalEvent = { ...event, id: persistedEventId, userId: payload.userId };
-
-    // Incremental vet upsert: si el evento trae vet en masterPayload, escribir
-    // directo en pets/{petId}/extractedVets/{hash} sin llamar a la CF.
-    try {
-      await upsertExtractedVetFromEvent(persistedEvent);
-    } catch (err) {
-      console.warn("upsertExtractedVetFromEvent failed:", err);
-    }
 
     try {
       await syncAutoAppointmentFromEvent(persistedEvent);
@@ -1236,7 +1146,7 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   };
 
   const getEventsByPetId = (petId: string) => {
-    const visibleEvents = events.filter((event) => event.petId === petId && !event.deletedAt);
+    const visibleEvents = events.filter((event) => event.petId === petId && !isMailSyncedEvent(event) && !event.deletedAt);
     return dedupeEvents(visibleEvents).sort((a, b) => {
       // Ordenar por fecha del documento (eventDate), si no existe usar createdAt (fecha de escaneo)
       const dateA = a.extractedData?.eventDate || a.createdAt;
@@ -1279,7 +1189,8 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     const visiblePendingActions = pendingActions.filter(
       (action) =>
         action.petId === petId &&
-        !action.completed
+        !action.completed &&
+        !isMailSyncedPendingAction(action)
     );
     return dedupePendingActions(visiblePendingActions)
       .sort((a, b) => toTimestampSafe(a.dueDate) - toTimestampSafe(b.dueDate));
@@ -1494,35 +1405,6 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  // ─── Medication intakes (cross-device "tomado HOY") ──────────────────────
-  const markMedicationAsTaken = async (medicationId: string, expectedTime?: string) => {
-    if (!user || !activePet) throw new Error("No user/pet activo");
-    await addDoc(collection(db, "medication_intakes"), {
-      petId: activePet.id,
-      medicationId,
-      expectedTime: expectedTime || null,
-      takenAt: new Date().toISOString(),
-      takenBy: user.uid,
-    });
-  };
-
-  const isMedicationTakenToday = (medicationId: string, expectedTime?: string): boolean => {
-    return todayIntakes.some((i) => {
-      if (i.medicationId !== medicationId) return false;
-      // Si se especifica expectedTime, matchear exacto. Si no, cualquier intake de hoy cuenta.
-      if (expectedTime && i.expectedTime) return i.expectedTime === expectedTime;
-      return true;
-    });
-  };
-
-  const markAppointmentAsCompleted = async (appointmentId: string) => {
-    const ref = doc(db, "appointments", appointmentId);
-    await updateDoc(ref, {
-      status: "completed",
-      completedAt: new Date().toISOString(),
-    });
-  };
-
   const getMonthSummary = (petId: string, month: Date): MonthSummary => {
     const startOfMonth = new Date(month.getFullYear(), month.getMonth(), 1);
     const endOfMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0);
@@ -1702,6 +1584,12 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
   };
 
   const getAppointmentsByPetId = (petId: string) => {
+    const mailEventIds = new Set(
+      events
+        .filter((event) => event.petId === petId && isMailSyncedEvent(event))
+        .map((event) => event.id)
+    );
+
     const toTimestamp = (appointment: Appointment) => {
       const withTime = appointment.time
         ? `${appointment.date}T${appointment.time}:00`
@@ -1711,7 +1599,16 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
       return toTimestampSafe(appointment.createdAt);
     };
 
-    const visibleAppointments = appointments.filter((appointment) => appointment.petId === petId);
+    const visibleAppointments = appointments.filter((appointment) => {
+      if (appointment.petId !== petId) return false;
+      if (EMAIL_SYNC_ENABLED) return true;
+      if (appointment.sourceEventId && mailEventIds.has(appointment.sourceEventId)) return false;
+      const hasTextHint =
+        hasMailSyncHint(appointment.notes || null) ||
+        hasMailSyncHint(appointment.title || null);
+      if (hasTextHint && Boolean(appointment.sourceEventId || appointment.sourceSuggestionKey)) return false;
+      return true;
+    });
 
     return dedupeAppointments(visibleAppointments)
       .sort((a, b) => toTimestamp(a) - toTimestamp(b));
@@ -1757,7 +1654,6 @@ export function MedicalProvider({ children }: { children: ReactNode }) {
         getClinicalReviewDraftById,
         submitClinicalReviewDraft,
         activeMedications, addMedication, updateMedication, deactivateMedication, getActiveMedicationsByPetId,
-        markMedicationAsTaken, isMedicationTakenToday, markAppointmentAsCompleted,
         getMonthSummary, saveVerifiedReport,
         addAppointment, updateAppointment, deleteAppointment, getAppointmentsByPetId,
         getClinicalConditionsByPetId,

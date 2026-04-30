@@ -86,12 +86,11 @@ const MedicationsScreen = lazy(() =>
     default: m.MedicationsScreen,
   }))
 );
-const AdoptionContainer = lazy(() =>
-  import("../community/AdoptionContainer").then((m) => ({
-    default: m.AdoptionContainer,
+const LostPetFeed = lazy(() =>
+  import("../community/LostPetFeed.tsx").then((m) => ({
+    default: m.LostPetFeed,
   }))
 );
-
 const ReportLostPet = lazy(() =>
   import("../community/ReportLostPet.tsx").then((m) => ({
     default: m.ReportLostPet,
@@ -113,8 +112,8 @@ const IdentidadScreen = lazy(() =>
 const VetSearchScreen = lazy(() =>
   import("../vet/VetSearchScreen").then((m) => ({ default: m.VetSearchScreen }))
 );
-const RoutinesScreen = lazy(() =>
-  import("../routines/RoutinesScreen").then((m) => ({ default: m.RoutinesScreen }))
+const RutinasScreen = lazy(() =>
+  import("../rutinas/RutinasScreen").then((m) => ({ default: m.RutinasScreen }))
 );
 const TiendaScreen = lazy(() =>
   import("../tienda/TiendaScreen").then((m) => ({ default: m.TiendaScreen }))
@@ -220,20 +219,6 @@ function ReportarPerdidoRoute() {
 }
 
 // ---------------------------------------------------------------------------
-// 5b. AdoptarRoute — AdoptionContainer (perfil setup + feed con matching)
-// ---------------------------------------------------------------------------
-
-function AdoptarRoute() {
-  const navigate = useNavigate();
-
-  return (
-    <Suspense fallback={<ScreenLoader label="Cargando adopciones..." />}>
-      <AdoptionContainer onBack={() => navigate("/comunidad")} />
-    </Suspense>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // 6. ExplorarRoute — RecommendationFeed
 // ---------------------------------------------------------------------------
 
@@ -303,7 +288,7 @@ function RutinasEcoRoute() {
   const navigate = useNavigate();
   return (
     <Suspense fallback={<ScreenLoader label="Cargando rutinas..." />}>
-      <RoutinesScreen onBack={() => navigate(-1)} />
+      <RutinasScreen onBack={() => navigate(-1)} />
     </Suspense>
   );
 }
@@ -382,7 +367,6 @@ export {
   TratamientosRoute,
   ComunidadRoute,
   ReportarPerdidoRoute,
-  AdoptarRoute,
   ExplorarRoute,
   PerfilRoute,
   IdentidadRoute,

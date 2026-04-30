@@ -7,14 +7,6 @@ export function RouteErrorFallback() {
 
   // Auto-reload on chunk/module load errors (stale SW hashes after deploy)
   useEffect(() => {
-    // CRÍTICO: loguear siempre el error para diagnosticar en prod
-    // (antes el error se tragaba silencioso y solo veíamos el fallback)
-    if (error) {
-      console.error("[RouteErrorFallback] captured error:", error);
-      if (error instanceof Error && error.stack) {
-        console.error("[RouteErrorFallback] stack:", error.stack);
-      }
-    }
     if (error instanceof Error) {
       const isChunkError =
         (error as any).name === "ChunkLoadError" ||
@@ -31,13 +23,7 @@ export function RouteErrorFallback() {
   const message =
     error?.status === 404
       ? "La pantalla no existe o fue movida."
-      : "Ocurrió un error inesperado en esta pantalla.";
-
-  // Mostrar detalles del error SIEMPRE en pantalla (antes era ?debug=1).
-  // Mientras debuggeamos el crash de /inicio en mobile, visibilidad > estética.
-  const errorDetails = error
-    ? (error instanceof Error ? `${error.message}\n${(error.stack || "").slice(0, 500)}` : String(error).slice(0, 500))
-    : null;
+      : "Ocurri� un error inesperado en esta pantalla.";
 
   return (
     <div
@@ -50,9 +36,6 @@ export function RouteErrorFallback() {
         <h1 className="text-3xl font-black text-[#074738]">Pessy</h1>
         <p className="text-slate-500 mt-3 text-sm">Tuvimos un problema en esta vista.</p>
         <p className="mt-4 text-sm text-slate-700">{message}</p>
-        {errorDetails && (
-          <pre className="mt-4 text-[10px] text-left text-red-700 bg-red-50 p-2 rounded-lg overflow-auto max-h-40 whitespace-pre-wrap break-all">{errorDetails}</pre>
-        )}
         <div className="mt-8 space-y-3">
           <button
             onClick={() => window.location.reload()}
@@ -61,17 +44,11 @@ export function RouteErrorFallback() {
             Reintentar
           </button>
           <button
-            onClick={() => { window.location.href = "/"; }}
+            onClick={() => navigate("/inicio")}
             className="w-full py-4 rounded-2xl border-2 border-[#074738] text-[#074738] font-bold"
           >
-            Volver a la página principal
+            Ir al inicio
           </button>
-          <a
-            href="/reset"
-            className="block text-xs text-slate-400 underline mt-4"
-          >
-            ¿Sigue fallando? Resetear caché
-          </a>
         </div>
       </div>
     </div>

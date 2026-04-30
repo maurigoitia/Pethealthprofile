@@ -22,8 +22,5 @@
   "devDependencies": {
     "typescript": "^5.9.3"
   },
-  "overrides": {
-    "protobufjs": "^7.5.5"
-  },
   "private": true
 }
