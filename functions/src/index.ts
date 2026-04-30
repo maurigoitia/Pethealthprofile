@@ -2783,8 +2783,12 @@ export const pessyExportSourceBacked = functions
       // the honest answer until/unless a separate collection exists.
       loadVaccinations: async () => [],
       loadTreatments: () => adapter.loadTreatments(fs, petId),
-      // Question generator stays a no-op in this PR. The filter still
-      // runs over an empty array. PR 3 may wire Gemini if needed.
+      // Pull future appointments + ICS-backed past ones from the
+      // appointments collection. Used by the narrative builder for the
+      // "current care" sentence and section 9 follow-up.
+      loadAppointments: () => adapter.loadAppointments(fs, petId),
+      // Question generator stays a no-op for now. The filter still
+      // runs over an empty array.
       generateSuggestedQuestions: async () => [],
     });
 

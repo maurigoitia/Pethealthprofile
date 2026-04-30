@@ -98,6 +98,67 @@ export function mapMedicalEvent(id: string, raw: Record<string, unknown>): RawEv
 
   const text = str(di.notes) ?? str(ed.notes) ?? str(e.notes) ?? null;
 
+  // Vet/clinic identity from the document. Preferred path is the
+  // masterPayload structure, with falls back to flat extractedData.
+  const veterinarian =
+    str(di.veterinarian_name) ??
+    str(ed.veterinarian_name) ??
+    null;
+  const veterinarianLicense =
+    str(di.veterinarian_license) ??
+    str(ed.veterinarian_license) ??
+    null;
+  const clinic =
+    str(di.clinic_name) ??
+    str(ed.clinic_name) ??
+    null;
+
+  // Specific finding/observation phrase (no inference). Used by the
+  // study summary so the PDF can quote what the document says verbatim,
+  // not interpret it.
+  const mainFinding =
+    str(di.findings) ??
+    str(ed.findings) ??
+    str(di.mainFinding) ??
+    str(ed.aiGeneratedSummary) ??
+    null;
+
+  // Medications array — preserves dosage/frequency/route when present.
+  const medsRaw = (ed.medications as unknown[] | undefined)
+    ?? (di.medications as unknown[] | undefined)
+    ?? null;
+  const medications = Array.isArray(medsRaw)
+    ? medsRaw
+        .map((m): { name?: string | null; dosage?: string | null; frequency?: string | null; route?: string | null } | null => {
+          if (!m || typeof m !== "object") return null;
+          const r = m as Record<string, unknown>;
+          return {
+            name: str(r.name),
+            dosage: str(r.dosage),
+            frequency: str(r.frequency),
+            route: str(r.route),
+          };
+        })
+        .filter((m): m is NonNullable<typeof m> => !!m && !!m.name)
+    : null;
+
+  // Detected appointments inside this event (e.g. "next checkup on …").
+  const apptsRaw = (ed.detectedAppointments as unknown[] | undefined) ?? null;
+  const detectedAppointments = Array.isArray(apptsRaw)
+    ? apptsRaw
+        .map((a) => {
+          if (!a || typeof a !== "object") return null;
+          const r = a as Record<string, unknown>;
+          return {
+            date: str(r.date),
+            time: str(r.time),
+            specialty: str(r.specialty),
+            location: str(r.location),
+          };
+        })
+        .filter((a): a is NonNullable<typeof a> => !!a)
+    : null;
+
   return {
     id,
     petId: str(e.petId) ?? undefined,
@@ -107,6 +168,59 @@ export function mapMedicalEvent(id: string, raw: Record<string, unknown>): RawEv
     text: text ?? undefined,
     date: str(ed.eventDate) ?? str(e.createdAt) ?? undefined,
     createdAt: str(e.createdAt) ?? undefined,
+    documentType: str(di.document_type) ?? str(ed.documentType) ?? null,
+    veterinarian,
+    veterinarianLicense,
+    clinic,
+    mainFinding,
+    medications: medications && medications.length > 0 ? medications : null,
+    detectedAppointments: detectedAppointments && detectedAppointments.length > 0 ? detectedAppointments : null,
+  };
+}
+
+/**
+ * Loader for the appointments collection. Pet appointments live in their
+ * own collection, separate from medical_events.
+ */
+export async function loadAppointments(
+  firestore: FirestoreLike,
+  petId: string,
+  limit = 100,
+): Promise<RawAppointment[]> {
+  const snap = await firestore
+    .collection("appointments")
+    .where("petId", "==", petId)
+    .limit(limit)
+    .get();
+  return snap.docs.map((d) => mapAppointment(d.id, d.data() ?? {}));
+}
+
+/** Raw shape for appointments collection rows. */
+export interface RawAppointment {
+  id: string;
+  date: string | null;
+  type: string | null;
+  status: "upcoming" | "completed" | "cancelled" | "unknown";
+  professional: string | null;
+  institution: string | null;
+  notes: string | null;
+}
+
+export function mapAppointment(id: string, raw: Record<string, unknown>): RawAppointment {
+  const r = raw as Record<string, unknown>;
+  const statusRaw = str(r.status);
+  const status: RawAppointment["status"] =
+    statusRaw === "upcoming" || statusRaw === "completed" || statusRaw === "cancelled"
+      ? statusRaw
+      : "unknown";
+  return {
+    id,
+    date: str(r.date) ?? str(r.scheduledFor) ?? str(r.startDate) ?? null,
+    type: str(r.type) ?? str(r.title) ?? null,
+    status,
+    professional: str(r.professional) ?? str(r.veterinarian_name) ?? null,
+    institution: str(r.clinic) ?? str(r.location) ?? null,
+    notes: str(r.notes) ?? null,
   };
 }
 

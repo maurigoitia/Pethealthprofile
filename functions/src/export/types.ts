@@ -91,6 +91,110 @@ export interface Treatment {
   date: string;
   source: DocumentedSource;
   sourceEventIds: string[];
+  /** Optional dosage as written on the prescription. Never inferred. */
+  dosage?: string;
+  /** e.g. "cada 12 horas". Never inferred. */
+  frequency?: string;
+  /** e.g. "vía oral". Never inferred. */
+  route?: string;
+  /** Active vs historical. */
+  status?: "active" | "historical";
+  /** Vet who prescribed, when known. */
+  prescribedBy?: string;
+}
+
+/**
+ * Categorized study record (lab, imaging, ECG, etc). Studies are grouped
+ * for narrative output ("3 estudios cardiológicos / 2 análisis de laboratorio").
+ * Never contains diagnostic interpretation.
+ */
+export interface Study {
+  id: string;
+  /** Coarse type used for grouping in the narrative. */
+  type: StudyType;
+  /** Specific subtype if known: "ecocardiograma", "radiografía pelvis", "KOH". */
+  subtype: string | null;
+  date: string;
+  /**
+   * One-line factual finding extracted verbatim from the document
+   * (e.g. "cardiomiopatía dilatada"). Quoted, not interpreted. Optional.
+   */
+  finding: string | null;
+  /** Vet/professional who signed the study. Null if unsigned/unknown. */
+  signedBy: string | null;
+  /** Lab / clinic / institution that issued the study. */
+  institution: string | null;
+  source: DocumentedSource | PendingReviewSource;
+  sourceEventIds: string[];
+}
+
+export const STUDY_TYPES = [
+  "lab",
+  "imaging_radiology",
+  "imaging_ultrasound",
+  "imaging_echocardiogram",
+  "ecg",
+  "dermatology_microscopy",
+  "ophthalmology",
+  "biopsy",
+  "other",
+] as const;
+
+export type StudyType = (typeof STUDY_TYPES)[number];
+
+export interface Appointment {
+  id: string;
+  type: string;
+  date: string;
+  /** Past: status="completed" | "cancelled"; Future: status="upcoming". */
+  status: "upcoming" | "completed" | "cancelled" | "unknown";
+  professional: string | null;
+  institution: string | null;
+  notes: string | null;
+  sourceEventIds: string[];
+}
+
+/** Deduplicated professional record, aggregated across all events. */
+export interface Professional {
+  /** Normalized name used for dedup. */
+  name: string;
+  /** License/matrícula if known. */
+  license: string | null;
+  /** Most-recent institution this professional was associated with. */
+  institution: string | null;
+  /** How many distinct events mention this professional. */
+  eventCount: number;
+  /** Last seen date across all events. */
+  lastSeenAt: string | null;
+  sourceEventIds: string[];
+}
+
+/** Deduplicated institution / clinic / lab record. */
+export interface Institution {
+  name: string;
+  /** "clinica", "laboratorio", "hospital", etc — best-effort. */
+  kind: string | null;
+  address: string | null;
+  phone: string | null;
+  eventCount: number;
+  sourceEventIds: string[];
+}
+
+/**
+ * Pre-rendered narrative blocks. The frontend should display these as
+ * sentences in the existing PDF sections instead of building lists from
+ * scratch. Each block is a deterministic projection of the structured
+ * payload — no AI generation, no invented content.
+ */
+export interface NarrativeBlocks {
+  /** "Este perfil contiene información clínica registrada, incluyendo X, Y, Z..." */
+  dataStatus: string;
+  /** "Thor tiene tratamiento activo registrado con Pimobendan. También hay..." */
+  currentCare: string;
+  /** "10 estudios documentados — 4 cardiológicos, 3 de laboratorio, 2 radiológicos, 1 dermatológico." */
+  studiesSummary: string;
+  /** "Algunos documentos todavía requieren revisión: 3 estudios sin firma, 2 turnos sin hora confirmada." */
+  pendingReviewSummary: string;
 }
 
 export interface ExportPayload {
@@ -114,6 +218,24 @@ export interface ExportPayload {
   observations: Observation[];
   vaccinations: Vaccination[];
   treatments: Treatment[];
+  /**
+   * Studies grouped from medical_events with imaging/lab/ECG/etc document
+   * types. Used by PDF section 5 ("Estudios realizados") for narrative
+   * output instead of raw event dumps.
+   */
+  studies: Study[];
+  /**
+   * Past + upcoming appointments. Past come from medical_events with
+   * documentType="appointment"; upcoming come from the appointments
+   * collection (when present).
+   */
+  appointments: Appointment[];
+  /** Deduped vet/specialist roster across all events. */
+  professionals: Professional[];
+  /** Deduped clinic/lab/hospital roster across all events. */
+  institutions: Institution[];
+  /** Pre-rendered narrative sentences, see NarrativeBlocks. */
+  narrative: NarrativeBlocks;
   suggestedQuestionsForVet: string[];
   /** Convenience counter for the UI; equals pendingReview.length. */
   pendingReviewCount: number;
@@ -133,6 +255,30 @@ export interface RawEvent {
   notes?: string;
   date?: string;
   createdAt?: string;
+  /** Optional document_type from extractedData (e.g. "lab_test", "echocardiogram"). */
+  documentType?: string | null;
+  /** Vet name extracted from the document. */
+  veterinarian?: string | null;
+  /** Vet license extracted from the document. */
+  veterinarianLicense?: string | null;
+  /** Clinic / institution name extracted from the document. */
+  clinic?: string | null;
+  /** Specific finding/observation phrase extracted (no inference). */
+  mainFinding?: string | null;
+  /** Medications array as extracted, items: { name, dosage?, frequency?, route? }. */
+  medications?: Array<{
+    name?: string | null;
+    dosage?: string | null;
+    frequency?: string | null;
+    route?: string | null;
+  }> | null;
+  /** Detected appointments inside this event (not the same as the appointments collection). */
+  detectedAppointments?: Array<{
+    date?: string | null;
+    time?: string | null;
+    specialty?: string | null;
+    location?: string | null;
+  }> | null;
 }
 
 export interface RawPet {
