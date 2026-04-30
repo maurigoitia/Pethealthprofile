@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Pulgas y garrapatas en perros: Prevención y tratamiento | Pessy</title>
+<meta name="description" content="Aprendé cómo detectar pulgas y garrapatas en tu perro, los riesgos para su salud y cómo prevenirlos con el tratamiento antiparasitario correcto.">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#074738">
+<link rel="canonical" href="https://pessy.app/blog/pulgas-garrapatas-perros">
+<meta property="og:type" content="article">
+<meta property="og:url" content="https://pessy.app/blog/pulgas-garrapatas-perros">
+<meta property="og:title" content="Pulgas y garrapatas en perros: Prevención y tratamiento">
+<meta property="og:description" content="Aprendé cómo detectar pulgas y garrapatas en tu perro, los riesgos para su salud y cómo prevenirlos con el tratamiento antiparasitario correcto.">
+<meta property="og:image" content="https://images.unsplash.com/photo-1588943211346-0908a1fb0b01?w=1200&q=85&auto=format&fit=crop">
+<meta property="og:locale" content="es_AR">
+<meta property="article:published_time" content="2026-04-24">
+<meta property="article:author" content="Equipo Pessy">
+<link rel="icon" href="https://pessy.app/pwa-192x192.png" type="image/png">
+<link rel="apple-touch-icon" href="https://pessy.app/pwa-192x192.png">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+tailwind.config={theme:{extend:{colors:{dk:'#074738',green2:'#1A9B7D',mint:'#E0F2F1',bgm:'#F0FAF9',purple2:'#5048CA',purplebg:'#e3dfff',tx:'#0a2e23',tx2:'#3d5a50',tx3:'#6b8a7e',border2:'#c8d9d2'},fontFamily:{brand:['Plus Jakarta Sans','sans-serif'],body:['Manrope','system-ui','sans-serif']}}}}
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Manrope',system-ui,sans-serif;background:#F0FAF9;-webkit-font-smoothing:antialiased;color:#0a2e23;overflow-x:hidden}
+h1,h2,h3,h4,h5{font-family:'Plus Jakarta Sans',sans-serif}
+.ms{font-family:'Material Symbols Outlined';font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;vertical-align:middle}
+html{scroll-behavior:smooth}
+::selection{background:#1A9B7D;color:white}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.012;mix-blend-mode:multiply;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.sl{font-size:.625rem;font-weight:800;letter-spacing:.3em;text-transform:uppercase;color:#1A9B7D;margin-bottom:.75rem;display:block}
+.sh{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;color:#074738;font-size:clamp(1.75rem,4.5vw,2.8rem);line-height:1.06;letter-spacing:-.025em;margin-bottom:.75rem}
+.sb{color:#3d5a50;font-size:1rem;line-height:1.75}
+.blob{position:absolute;pointer-events:none;border-radius:42% 58% 65% 35%/52% 45% 55% 48%}
+.mm{display:none;position:fixed;inset:0;background:rgba(240,250,249,.97);backdrop-filter:blur(20px);z-index:99;flex-direction:column;align-items:center;justify-content:center;gap:1.8rem}
+.mm.open{display:flex}
+@keyframes wagTail{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(12deg)}}
+@keyframes earWiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
+@keyframes catBlink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.wag{animation:wagTail 1.2s ease-in-out infinite;transform-origin:bottom left}
+.ear-wiggle{animation:earWiggle 3s ease-in-out infinite}
+.cat-blink{animation:catBlink 4s ease-in-out infinite;transform-origin:center}
+.prose p{margin-bottom:1.4rem;color:#3d5a50;line-height:1.85;font-size:1.05rem}
+.prose h2{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;color:#074738;font-size:1.55rem;line-height:1.2;letter-spacing:-.02em;margin-top:2.5rem;margin-bottom:1rem}
+.prose h3{font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;color:#074738;font-size:1.2rem;line-height:1.3;margin-top:1.8rem;margin-bottom:.75rem}
+.prose ul{list-style:none;margin-bottom:1.4rem;padding:0}
+.prose ul li{position:relative;padding-left:1.6rem;margin-bottom:.5rem;color:#3d5a50;line-height:1.75;font-size:1.05rem}
+.prose ul li::before{content:'';position:absolute;left:0;top:.65em;width:8px;height:8px;border-radius:50%;background:#1A9B7D}
+.prose strong{color:#074738;font-weight:700}
+</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Pulgas y garrapatas en perros: Prevención y tratamiento","description":"Aprendé cómo detectar pulgas y garrapatas en tu perro, los riesgos para su salud y cómo prevenirlos con el tratamiento antiparasitario correcto.","image":"https://images.unsplash.com/photo-1588943211346-0908a1fb0b01?w=1200&q=85&auto=format&fit=crop","datePublished":"2026-04-24","author":{"@type":"Organization","name":"Equipo Pessy","url":"https://pessy.app"},"publisher":{"@type":"Organization","name":"Pessy","url":"https://pessy.app","logo":{"@type":"ImageObject","url":"https://pessy.app/pwa-192x192.png"}},"mainEntityOfPage":{"@type":"WebPage","@id":"https://pessy.app/blog/pulgas-garrapatas-perros"},"keywords":"pulgas y garrapatas en perros, como eliminar pulgas perros, garrapatas perros Argentina, antiparasitario perros, prevención pulgas perros"}</script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LV2E710H09"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-LV2E710H09');</script>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="fixed inset-x-0 top-0 z-50 transition-all duration-500" id="nav">
+<div class="max-w-[1120px] mx-auto flex items-center justify-between px-6 py-3.5">
+  <a href="https://pessy.app" class="flex items-center gap-2.5">
+    <img src="https://pessy.app/pessy-logo.svg" alt="Pessy" class="h-9">
+    <span class="font-brand font-extrabold text-dk text-xl tracking-tight">Pessy</span>
+  </a>
+  <ul class="hidden md:flex gap-8 list-none">
+    <li><a href="https://pessy.app#identidad" class="text-[11px] font-bold text-tx3 hover:text-dk transition tracking-wide uppercase">Identidad</a></li>
+    <li><a href="https://pessy.app#comofunciona" class="text-[11px] font-bold text-tx3 hover:text-dk transition tracking-wide uppercase">Como funciona</a></li>
+    <li><a href="/blog" class="text-[11px] font-bold text-dk transition tracking-wide uppercase border-b-2 border-green2 pb-0.5">Blog</a></li>
+    <li><a href="https://pessy.app#planes" class="text-[11px] font-bold text-tx3 hover:text-dk transition tracking-wide uppercase">Planes</a></li>
+  </ul>
+  <a href="https://pessy.app/inicio?src=landing" class="hidden md:inline-flex bg-dk text-white px-5 py-2.5 rounded-full text-[11px] font-extrabold tracking-wide hover:bg-[#063d30] transition shadow-lg shadow-dk/10">Entrar</a>
+  <button class="md:hidden text-dk" onclick="document.getElementById('mm').classList.add('open')" aria-label="Abrir menu"><span class="ms text-2xl">menu</span></button>
+</div>
+</nav>
+<div class="mm" id="mm">
+  <button class="absolute top-5 right-6 text-dk" onclick="this.parentElement.classList.remove('open')" aria-label="Cerrar menu"><span class="ms text-2xl">close</span></button>
+  <a href="https://pessy.app#identidad" class="text-lg font-extrabold text-dk" onclick="this.parentElement.classList.remove('open')">Identidad</a>
+  <a href="https://pessy.app#comofunciona" class="text-lg font-extrabold text-dk" onclick="this.parentElement.classList.remove('open')">Como funciona</a>
+  <a href="/blog" class="text-lg font-extrabold text-green2" onclick="this.parentElement.classList.remove('open')">Blog</a>
+  <a href="https://pessy.app#planes" class="text-lg font-extrabold text-dk" onclick="this.parentElement.classList.remove('open')">Planes</a>
+  <a href="https://pessy.app/inicio?src=landing" class="bg-dk text-white px-8 py-3 rounded-full font-extrabold mt-4" onclick="this.parentElement.classList.remove('open')">Entrar</a>
+</div>
+
+<main>
+<!-- ARTICLE HERO -->
+<section class="min-h-[60svh] flex items-end relative overflow-hidden pt-24 pb-0 px-0">
+  <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 70% 50% at 80% 20%,rgba(7,71,56,.06),transparent 60%),radial-gradient(ellipse 50% 60% at 10% 80%,rgba(26,155,125,.05),transparent 50%)"></div>
+  <div class="blob top-[-8%] right-[-6%] w-[45vw] h-[45vw] max-w-[550px] max-h-[550px] bg-dk opacity-[.04]" style="filter:blur(1px)"></div>
+  <div class="absolute inset-0 z-0">
+    <img src="https://images.unsplash.com/photo-1588943211346-0908a1fb0b01?w=1400&q=85&auto=format&fit=crop" alt="Perro siendo revisado por pulgas y garrapatas" class="w-full h-full object-cover object-center">
+    <div class="absolute inset-0" style="background:linear-gradient(to bottom, rgba(240,250,249,0.15) 0%, rgba(7,71,56,0.25) 40%, rgba(7,71,56,0.80) 80%, #074738 100%)"></div>
+  </div>
+  <div class="max-w-[800px] mx-auto w-full px-6 pb-14 relative z-10 hero-content">
+    <a href="/blog" class="inline-flex items-center gap-2 text-white/70 text-xs font-semibold mb-6 hover:text-white transition"><span class="ms text-sm">arrow_back</span> Volver al blog</a>
+    <span class="inline-block text-[10px] font-bold tracking-wide uppercase bg-green2 text-white px-3 py-1 rounded-full mb-5">Salud</span>
+    <h1 class="font-brand font-extrabold text-white text-[clamp(2rem,5.5vw,3.2rem)] leading-[1.06] tracking-[-0.03em] mb-5">Pulgas y garrapatas<br>en perros: Prevención<br>y tratamiento</h1>
+    <div class="flex flex-wrap items-center gap-4 text-white/60 text-xs font-semibold">
+      <span class="flex items-center gap-1.5"><span class="ms text-sm">calendar_today</span> 24 de abril, 2026</span>
+      <span class="w-1 h-1 rounded-full bg-white/30"></span>
+      <span class="flex items-center gap-1.5"><span class="ms text-sm">schedule</span> 7 minutos de lectura</span>
+      <span class="w-1 h-1 rounded-full bg-white/30"></span>
+      <span class="flex items-center gap-1.5"><span class="ms text-sm">person</span> Equipo Pessy</span>
+    </div>
+  </div>
+</section>
+
+<!-- ARTICLE BODY -->
+<section class="py-16 md:py-24 px-6 bg-bgm relative">
+  <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 50% 60% at 50% 10%,rgba(26,155,125,.04),transparent 50%)"></div>
+  <div class="max-w-[800px] mx-auto relative z-10">
+
+    <!-- Intro highlight card -->
+    <div class="bg-white rounded-2xl p-6 border border-border2/20 shadow-sm mb-10 article-intro">
+      <div class="flex gap-4 items-start">
+        <div class="w-12 h-12 rounded-xl bg-green2/10 flex items-center justify-center flex-shrink-0"><span class="ms text-green2 text-xl">bug_report</span></div>
+        <div>
+          <p class="text-dk font-semibold text-base leading-relaxed">Las <strong>pulgas y garrapatas en perros</strong> son uno de los problemas más frecuentes que enfrentamos como pet parents en Argentina. La buena noticia es que con prevención adecuada podés mantenerlas lejos de tu perro durante todo el año.</p>
+        </div>
+      </div>
+    </div>
+
+    <article class="prose article-body">
+
+      <p>Si alguna vez viste a tu perro rascarse sin parar, morderse la base de la cola o sacudirse la cabeza constantemente, ya sabés de qué hablamos. Las <strong>pulgas y garrapatas en perros</strong> son parásitos externos que pueden afectar seriamente la calidad de vida de tu mascota si no se tratan a tiempo.</p>
+
+      <p>La realidad es que en Argentina, con el clima que tenemos, estos parásitos están activos prácticamente todo el año. No son solo un problema de verano. Y lo que parece un simple picor puede convertirse en una infestación del hogar o en una enfermedad seria si no actuamos a tiempo.</p>
+
+      <h2>¿Cómo saber si tu perro tiene pulgas?</h2>
+
+      <p>Las pulgas son pequeñas (miden entre 1 y 3 mm), se mueven rápido y prefieren las zonas de pelo denso. Por eso no siempre es fácil verlas directamente. Estos son los signos más comunes de que tu perro las tiene:</p>
+
+      <ul>
+        <li><strong>Se rasca con frecuencia e intensidad:</strong> Sobre todo en el cuello, la base de la cola, el abdomen y las ingles. Un rascado obsesivo que interrumpe el descanso es señal de alarma.</li>
+        <li><strong>Se muerde o lame zonas específicas:</strong> La base de la cola es el favorito de las pulgas. Si tu perro se muerde esa zona o la tiene con pelos partidos o piel irritada, revisá bien.</li>
+        <li><strong>Puntos negros en la piel o el pelaje:</strong> El excremento de las pulgas parece pimienta negra. Podés confirmarlo poniendo esos puntos en un papel húmedo: si se vuelven rojizos, es sangre digerida, o sea, materia fecal de pulgas.</li>
+        <li><strong>Piel enrojecida, costras o pérdida de pelo:</strong> Algunos perros son alérgicos a la saliva de la pulga y desarrollan dermatitis alérgica a la picadura (DAPP), que provoca mucha picazón incluso con pocas pulgas.</li>
+        <li><strong>Perros muy pequeños o cachorros letárgicos y pálidos:</strong> Una infestación severa puede causar anemia, especialmente en cachorros o perros de razas pequeñas.</li>
+      </ul>
+
+      <h2>¿Cómo detectar garrapatas en tu perro?</h2>
+
+      <p>Las garrapatas son más fáciles de ver que las pulgas porque se adhieren a la piel y se quedan ahí para alimentarse. Sin embargo, cuando son pequeñas (larvas o ninfas) pueden pasar desapercibidas fácilmente.</p>
+
+      <p>La mejor forma de buscarlas es revisando a tu perro con las manos después de cada salida al aire libre, especialmente si estuvo en pasto alto, monte o zonas rurales. Las zonas favoritas de las garrapatas son:</p>
+
+      <ul>
+        <li>Alrededor de las orejas y dentro del conducto auditivo</li>
+        <li>Entre los dedos de las patas</li>
+        <li>La zona del cuello y debajo del collar</li>
+        <li>Las axilas y la ingle</li>
+        <li>Alrededor de la cola y el ano</li>
+      </ul>
+
+      <p>Una garrapata que ya se alimentó puede hincharse hasta el tamaño de un poroto. Si encontrás algo así pegado a la piel de tu perro, no lo saques de cualquier manera: más adelante te explicamos cómo hacerlo bien.</p>
+
+    </article>
+  </div>
+</section>
+
+<!-- Article body continued -->
+<section class="py-0 pb-4 px-6 bg-bgm">
+  <div class="max-w-[800px] mx-auto">
+    <article class="prose article-body-2">
+
+      <h2>Los riesgos reales de las pulgas y garrapatas en perros</h2>
+
+      <p>Más allá de la incomodidad de la picazón, estos parásitos pueden transmitir enfermedades serias. Esto es lo que tenés que saber:</p>
+
+      <h3>Enfermedades transmitidas por garrapatas</h3>
+      <ul>
+        <li><strong>Babesiosis:</strong> Una enfermedad parasitaria que destruye glóbulos rojos y puede ser mortal si no se trata a tiempo. Los síntomas incluyen fiebre, debilidad, orina oscura y palidez en encías.</li>
+        <li><strong>Ehrlichiosis:</strong> Infección bacteriana que afecta las células blancas de la sangre. Puede presentarse como fiebre, pérdida de apetito, ganglios inflamados y tendencia al sangrado.</li>
+        <li><strong>Rickettsia:</strong> Aunque más frecuente en humanos, también puede afectar a perros a través de la garrapata café del perro.</li>
+      </ul>
+
+      <h3>Enfermedades y problemas transmitidos por pulgas</h3>
+      <ul>
+        <li><strong>Dermatitis alérgica a la picadura de pulgas (DAPP):</strong> Una sola picadura puede desencadenar una reacción alérgica severa en perros sensibles.</li>
+        <li><strong>Tenia (Dipylidium caninum):</strong> Si tu perro ingiere una pulga infectada al morderse, puede contagiarse de este parásito intestinal. Vas a ver segmentos blancos parecidos a semillas de arroz en las heces o cerca del ano.</li>
+        <li><strong>Anemia:</strong> En cachorros, perros pequeños o adultos mayores muy infestados, la pérdida de sangre por las pulgas puede causar anemia seria.</li>
+        <li><strong>Infestación del hogar:</strong> Las pulgas ponen hasta 50 huevos por día. Una vez que tu perro las trae a casa, el ciclo se instala rápidamente en alfombras, sillones y ropa de cama.</li>
+      </ul>
+
+      <h2>Prevención: la mejor estrategia contra pulgas y garrapatas</h2>
+
+      <p>La clave para controlar las <strong>pulgas y garrapatas en perros</strong> es la prevención sistemática y constante. No alcanza con tratar cuando ya hay problema: hay que evitar que el problema aparezca.</p>
+
+      <h3>Opciones de tratamiento preventivo</h3>
+      <ul>
+        <li><strong>Pipetas antiparasitarias:</strong> Se aplican directamente en la piel del cuello. Su efecto dura entre 3 y 4 semanas dependiendo del producto. Son fáciles de usar y muy efectivas contra pulgas y garrapatas cuando se aplican de forma continua.</li>
+        <li><strong>Comprimidos o pastillas antiparasitarias:</strong> Actúan desde adentro del organismo. Algunos matan pulgas en pocas horas, otros también cubren garrapatas. Hay versiones mensuales y trimestrales.</li>
+        <li><strong>Collares antiparasitarios:</strong> Liberan activos de forma continua durante meses. Son una buena opción para perros que salen mucho o viven en zonas de riesgo. Los de última generación duran hasta 8 meses.</li>
+        <li><strong>Sprays y champúes antiparasitarios:</strong> Útiles como complemento del tratamiento principal, pero no reemplazan a las opciones sistémicas.</li>
+      </ul>
+
+      <p>¿Con qué frecuencia aplicar el tratamiento? Eso lo define el veterinario según el producto elegido, el estilo de vida del perro y la zona donde vivís. Lo importante es no saltear aplicaciones: un mes sin tratamiento puede ser suficiente para que empiece una infestación.</p>
+
+    </article>
+  </div>
+</section>
+
+<!-- Article body 3 -->
+<section class="py-0 pb-16 md:pb-24 px-6 bg-bgm">
+  <div class="max-w-[800px] mx-auto">
+    <article class="prose article-body-3">
+
+      <h2>¿Cómo sacar una garrapata correctamente?</h2>
+
+      <p>Si encontrás una garrapata en tu perro, lo más importante es no entrar en pánico y no hacer cosas que puedan empeorar la situación. Estas son las reglas básicas:</p>
+
+      <ul>
+        <li><strong>Usá una pinza especial para garrapatas o una pinza de punta fina.</strong> Están disponibles en veterinarias y son el método más seguro.</li>
+        <li><strong>Agarrá la garrapata lo más cerca posible de la piel</strong> y tirá hacia arriba con movimiento firme y recto, sin girar ni aplastar el cuerpo.</li>
+        <li><strong>Nunca uses alcohol, vaselina, aceite o fuego</strong> para "asfixiar" a la garrapata. Esos métodos hacen que el parásito libere sus contenidos en la herida, aumentando el riesgo de transmisión de enfermedades.</li>
+        <li><strong>Desinfectá bien la zona</strong> con yodo o alcohol después de retirarla.</li>
+        <li><strong>Guardá la garrapata en un frasco con alcohol</strong> durante unos días. Si tu perro desarrolla síntomas en las semanas siguientes, el veterinario puede necesitar analizarla.</li>
+      </ul>
+
+      <p>Si quedó alguna parte de la garrapata en la piel, o si la zona se inflama y no mejora en un par de días, consultá al veterinario. No intentes extraer el resto vos mismo.</p>
+
+      <h2>También hay que tratar el ambiente</h2>
+
+      <p>Una parte que muchos dueños subestiman: si tu perro tiene pulgas, el ambiente también está infestado. Las pulgas adultas representan solo el 5% del problema. El 95% restante son huevos, larvas y pupas escondidos en alfombras, sillones, camas y grietas del piso.</p>
+
+      <p>Para desinfectar el hogar podés usar sprays ambientales antiparasitarios (prestá atención a que sean seguros para mascotas), lavar la ropa de cama del perro con agua caliente y pasar la aspiradora con frecuencia en las zonas donde duerme o descansa. Consultá al vet sobre el producto más adecuado según la situación.</p>
+
+      <h2>Cómo registrar los tratamientos antiparasitarios en Pessy</h2>
+
+      <p>Una de las causas más comunes por las que los tratamientos antiparasitarios fallan es el olvido. Un mes se nos pasa, después otro, y de repente el perro lleva tres meses sin cobertura. Con Pessy podés registrar cada aplicación y activar recordatorios para que eso no pase.</p>
+
+      <p>En el perfil de salud de tu perro podés anotar qué producto usaste contra <strong>pulgas y garrapatas</strong>, la dosis, la fecha de aplicación y cuándo es la próxima. Así, cuando llegue el momento, ya tenés todo registrado: el historial completo del tratamiento antiparasitario de tu perro en un solo lugar, fácil de mostrar al veterinario si hace falta.</p>
+
+      <p>Cuidar a tu perro de pulgas y garrapatas no es complicado. Solo requiere constancia, el producto correcto y no saltear aplicaciones. Y cuando tenés un registro claro, esa constancia se vuelve mucho más fácil de mantener.</p>
+
+    </article>
+
+    <!-- Pessy CTA card -->
+    <div class="bg-white rounded-2xl p-7 border border-border2/20 shadow-sm mt-12 mb-4 flex flex-col md:flex-row gap-6 items-center">
+      <div class="w-16 h-16 rounded-2xl bg-green2/10 flex items-center justify-center flex-shrink-0">
+        <span class="ms text-green2 text-3xl">event_available</span>
+      </div>
+      <div class="flex-1">
+        <h3 class="font-brand font-extrabold text-dk text-lg mb-1">Nunca más olvidés el antiparasitario</h3>
+        <p class="text-tx3 text-sm leading-relaxed mb-4">Con Pessy podés registrar cada aplicación contra pulgas y garrapatas y activar recordatorios automáticos. Así la protección de tu perro nunca tiene baches.</p>
+        <a href="https://pessy.app/register-user?src=blog-pulgas" class="inline-flex items-center gap-2 bg-dk text-white px-5 py-2.5 rounded-full text-sm font-extrabold hover:-translate-y-0.5 transition-all duration-300 shadow-lg shadow-dk/10">
+          Empezar gratis <span class="ms text-sm">arrow_forward</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Tags -->
+    <div class="flex flex-wrap gap-2 mt-10 mb-12">
+      <span class="bg-white text-tx3 text-[11px] font-semibold px-3 py-1.5 rounded-full border border-border2/30">Salud canina</span>
+      <span class="bg-white text-tx3 text-[11px] font-semibold px-3 py-1.5 rounded-full border border-border2/30">Pulgas y garrapatas</span>
+      <span class="bg-white text-tx3 text-[11px] font-semibold px-3 py-1.5 rounded-full border border-border2/30">Antiparasitarios</span>
+      <span class="bg-white text-tx3 text-[11px] font-semibold px-3 py-1.5 rounded-full border border-border2/30">Prevención</span>
+    </div>
+
+    <!-- Back to blog -->
+    <a href="/blog" class="inline-flex items-center gap-2 text-dk font-bold text-sm hover:text-green2 transition"><span class="ms text-base">arrow_back</span> Ver todos los artículos</a>
+  </div>
+</section>
+
+<!-- Organic wave -->
+<svg viewBox="0 0 1440 80" preserveAspectRatio="none" class="block w-full -mt-1" style="height:60px;background:#F0FAF9"><path d="M0,25 C300,60 600,10 900,40 C1100,55 1300,20 1440,30 L1440,80 L0,80Z" fill="#074738"/></svg>
+
+<!-- CTA -->
+<section class="py-20 md:py-28 px-6 bg-dk relative overflow-hidden">
+  <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse 60% 50% at 20% 30%,rgba(26,155,125,.12),transparent 50%),radial-gradient(ellipse 50% 50% at 80% 70%,rgba(80,72,202,.08),transparent 50%)"></div>
+  <div class="blob top-[-5%] left-[-3%] w-[30vw] h-[30vw] max-w-[350px] max-h-[350px] bg-green2 opacity-[.05]" style="filter:blur(2px)"></div>
+  <div class="max-w-[650px] mx-auto text-center relative z-10 cta-section">
+    <div class="mx-auto w-[180px] md:w-[210px] mb-8">
+      <svg viewBox="0 0 220 130" fill="none"><ellipse cx="72" cy="92" rx="30" ry="24" fill="#d4ede8" stroke="white" stroke-width="2.5" opacity=".9"/><circle cx="72" cy="55" r="24" fill="#d4ede8" stroke="white" stroke-width="2.5"/><ellipse cx="52" cy="38" rx="10" ry="18" fill="#1A9B7D" stroke="white" stroke-width="2" transform="rotate(-18,52,38)"/><ellipse cx="92" cy="38" rx="10" ry="18" fill="#1A9B7D" stroke="white" stroke-width="2" transform="rotate(18,92,38)" class="ear-wiggle"/><circle cx="63" cy="52" r="4" fill="white"/><circle cx="81" cy="52" r="4" fill="white"/><circle cx="64" cy="50.5" r="1.5" fill="#074738"/><circle cx="82" cy="50.5" r="1.5" fill="#074738"/><ellipse cx="72" cy="62" rx="4.5" ry="3.5" fill="white"/><path d="M66 66 Q72 73 78 66" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round"/><ellipse cx="72" cy="70" rx="3" ry="3.5" fill="#e8847a"/><path d="M98 82 Q114 68 110 50" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" class="wag"/><ellipse cx="150" cy="95" rx="24" ry="20" fill="#e3dfff" stroke="white" stroke-width="2.5" opacity=".9"/><circle cx="150" cy="62" r="20" fill="#e3dfff" stroke="white" stroke-width="2.5"/><path d="M134 50 L128 28 L142 46 Z" fill="#5048CA" stroke="white" stroke-width="2" stroke-linejoin="round"/><path d="M166 50 L172 28 L158 46 Z" fill="#5048CA" stroke="white" stroke-width="2" stroke-linejoin="round"/><ellipse cx="143" cy="60" rx="3" ry="3.5" fill="white" class="cat-blink"/><ellipse cx="157" cy="60" rx="3" ry="3.5" fill="white" class="cat-blink"/><circle cx="144" cy="58.5" r="1.2" fill="#074738"/><circle cx="158" cy="58.5" r="1.2" fill="#074738"/><path d="M148 68 L150 71 L152 68" stroke="#e8847a" stroke-width="1.3" fill="none"/><path d="M146 71 Q150 75 154 71" stroke="white" stroke-width="1.2" fill="none"/><path d="M170 88 Q184 76 180 58" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M110 42 C110 37 104 33 104 39 C104 43 110 49 110 49 C110 49 116 43 116 39 C116 33 110 37 110 42 Z" fill="#1A9B7D" opacity=".7"/></svg>
+    </div>
+    <h2 class="font-brand font-extrabold text-white text-[2rem] md:text-[2.4rem] leading-[1.08] tracking-tight mb-4">Empeza a ordenar la vida de tu mascota</h2>
+    <p class="text-white/45 text-lg leading-[1.7] mb-8 max-w-lg mx-auto">Registrá tratamientos, vacunas, visitas al vet y más. Todo en un solo lugar para que no se te escape nada.</p>
+    <div class="flex gap-4 justify-center flex-wrap">
+      <a href="https://pessy.app/register-user?src=blog-pulgas" class="bg-green2 text-white px-8 py-4 rounded-full text-sm font-extrabold inline-flex items-center gap-2.5 shadow-xl shadow-green2/25 hover:-translate-y-0.5 hover:shadow-2xl transition-all duration-300">Crear cuenta <span class="ms text-base">arrow_forward</span></a>
+      <a href="https://pessy.app#comofunciona" class="bg-white/10 text-white px-8 py-4 rounded-full text-sm font-extrabold border border-white/12 hover:bg-white/15 transition-all duration-300 backdrop-blur-sm">Ver como funciona</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- FOOTER -->
+<footer class="bg-[#031f18] px-6 py-8">
+<div class="max-w-[1120px] mx-auto">
+  <div class="flex flex-wrap justify-between items-start gap-6 mb-6">
+    <div class="flex items-center gap-2.5 text-[#e0ede8]">
+      <img src="https://pessy.app/pessy-logo.svg" alt="Pessy logo" class="h-8 brightness-[10]">
+      <div><span class="font-brand font-extrabold text-base">Pessy</span><small class="block text-[11px] text-[#7a9e92]">Tu mascota, sus cosas, todo en orden.</small></div>
+    </div>
+    <div class="flex flex-wrap gap-6">
+      <a href="https://pessy.app#identidad" class="text-[#7a9e92] text-[11px] font-semibold hover:text-white transition tracking-wide uppercase">Identidad</a>
+      <a href="https://pessy.app#comofunciona" class="text-[#7a9e92] text-[11px] font-semibold hover:text-white transition tracking-wide uppercase">Como funciona</a>
+      <a href="/blog" class="text-[#7a9e92] text-[11px] font-semibold hover:text-white transition tracking-wide uppercase">Blog</a>
+      <a href="https://pessy.app#planes" class="text-[#7a9e92] text-[11px] font-semibold hover:text-white transition tracking-wide uppercase">Planes</a>
+    </div>
+  </div>
+  <div class="flex flex-wrap gap-5 mb-6">
+    <a href="https://pessy.app/privacidad" class="text-[#5a8d7a] text-[11px] font-medium hover:text-white transition">Privacidad</a>
+    <a href="https://pessy.app/terminos" class="text-[#5a8d7a] text-[11px] font-medium hover:text-white transition">Terminos</a>
+    <a href="https://pessy.app/data-deletion" class="text-[#5a8d7a] text-[11px] font-medium hover:text-white transition">Eliminacion de datos</a>
+    <a href="mailto:it@pessy.app" class="text-[#5a8d7a] text-[11px] font-medium hover:text-white transition">it@pessy.app</a>
+  </div>
+  <div class="pt-4 border-t border-[#1a4038] flex justify-between flex-wrap gap-2">
+    <span class="text-[9px] tracking-[.12em] uppercase text-[#4a6d62]">Pessy organiza informacion y acompana el cuidado diario.</span>
+    <span class="text-[9px] tracking-[.12em] uppercase text-[#4a6d62]">&copy; 2026 Pessy. Todos los derechos reservados.</span>
+  </div>
+</div>
+</footer>
+
+<script>
+gsap.registerPlugin(ScrollTrigger);
+function revealFrom(selector,triggerEl,vars){var els=gsap.utils.toArray(selector);if(!els.length)return;els.forEach(function(el){el.style.opacity='0';el.style.transform='translateY('+(vars.y||0)+'px)'});ScrollTrigger.create({trigger:triggerEl||selector,start:vars.start||'top 85%',once:true,onEnter:function(){gsap.to(els,{opacity:1,y:0,duration:vars.duration||0.7,stagger:vars.stagger||0,ease:vars.ease||'power2.out',delay:vars.delay||0,clearProps:'transform'})}});}
+gsap.from('.hero-content > *',{y:20,opacity:0.3,duration:0.6,stagger:0.1,ease:'power2.out',delay:0.2});
+revealFrom('.article-intro','.article-intro',{y:30});
+revealFrom('.article-body > *','.article-body',{y:25,stagger:0.06});
+revealFrom('.article-body-2 > *','.article-body-2',{y:25,stagger:0.06});
+revealFrom('.article-body-3 > *','.article-body-3',{y:25,stagger:0.06});
+revealFrom('.cta-section > *','.cta-section',{y:30,stagger:0.1});
+setTimeout(function(){document.querySelectorAll('.hero-content>*,.article-intro,.article-body>*,.article-body-2>*,.article-body-3>*,.cta-section>*').forEach(function(el){if(parseFloat(getComputedStyle(el).opacity)<0.1){el.style.transition='opacity .6s,transform .6s';el.style.opacity='1';el.style.transform='none'}});},2500);
+window.addEventListener('scroll',function(){var n=document.getElementById('nav'),y=window.scrollY;if(y>50){n.style.background='rgba(240,250,249,.92)';n.style.backdropFilter='blur(20px)';n.style.webkitBackdropFilter='blur(20px)';n.style.boxShadow='0 1px 0 rgba(200,217,210,.25)';}else{n.style.background='transparent';n.style.backdropFilter='none';n.style.webkitBackdropFilter='none';n.style.boxShadow='none';}},{passive:true});
+</script>
+</body>
+</html>
