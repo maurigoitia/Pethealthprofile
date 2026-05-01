@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useNavigate } from "react-router";
 import { PetHomeView } from "../pet/PetHomeView";
 import { MaterialIcon } from "../shared/MaterialIcon";
@@ -15,6 +15,12 @@ const RandomQuestionCard = lazy(() =>
 const FocusedHomeExperience = lazy(() =>
   import("./FocusedHomeExperience.tsx").then((m) => ({
     default: m.FocusedHomeExperience,
+  }))
+);
+
+const EmergencyModal = lazy(() =>
+  import("../medical/EmergencyModal.tsx").then((m) => ({
+    default: m.EmergencyModal,
   }))
 );
 
@@ -39,6 +45,7 @@ export default function HomeScreenSimplified() {
   const { openPetSelector, openPetProfile, openScanner, openExportReport, openSidebar } =
     useAppLayout();
   const focusExperienceEnabled = isFocusExperienceHost();
+  const [showEmergency, setShowEmergency] = useState(false);
 
   const safeUserName = (() => {
     const fromContext = (userName || "").trim();
@@ -115,6 +122,27 @@ export default function HomeScreenSimplified() {
             </Suspense>
           )}
         </>
+      )}
+
+      {/* Pasó algo — emergency incident quick-log */}
+      <div className="fixed bottom-28 right-4 z-30">
+        <button
+          onClick={() => setShowEmergency(true)}
+          className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-red-500 text-white font-bold text-sm shadow-lg hover:bg-red-600 active:scale-95 transition-all"
+        >
+          <MaterialIcon name="warning" className="text-base" />
+          Pasó algo
+        </button>
+      </div>
+
+      {/* Emergency modal */}
+      {showEmergency && (
+        <Suspense fallback={null}>
+          <EmergencyModal
+            isOpen={showEmergency}
+            onClose={() => setShowEmergency(false)}
+          />
+        </Suspense>
       )}
     </div>
   );
