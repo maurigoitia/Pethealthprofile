@@ -1,4 +1,4 @@
-import { Check, ChevronRight } from "lucide-react";
+import { MaterialIcon } from "./MaterialIcon";
 import { useAuth } from "../../contexts/AuthContext";
 import { PetPhoto } from "../pet/PetPhoto";
 
@@ -45,7 +45,7 @@ export function Header({ onPetClick, activePet }: HeaderProps) {
                 </div>
               </div>
               <div className="absolute -bottom-1 -right-1 size-6 rounded-full bg-[#1A9B7D] border-2 border-white dark:border-slate-900 flex items-center justify-center">
-                <Check size={12} strokeWidth={3} className="text-white" />
+                <MaterialIcon name="check" className="!text-[12px] text-white" />
               </div>
             </div>
 
@@ -58,7 +58,7 @@ export function Header({ onPetClick, activePet }: HeaderProps) {
               </p>
             </div>
 
-            <ChevronRight size={24} className="text-slate-400" strokeWidth={1.5} />
+            <MaterialIcon name="chevron_right" className="!text-[24px] text-slate-400" />
           </div>
         </button>
       )}

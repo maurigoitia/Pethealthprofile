@@ -1,13 +1,7 @@
 "use client";
 
 import React from "react";
-import { Sun, Sunset, Moon } from "lucide-react";
-
-const ROUTINE_ICONS: Record<string, React.ElementType> = {
-  wb_sunny: Sun,
-  wb_twilight: Sunset,
-  bedtime: Moon,
-};
+import { MaterialIcon } from "../shared/MaterialIcon";
 
 interface RoutineChecklistProps {
   title: string;
@@ -28,12 +22,12 @@ export default function RoutineChecklist({
   const totalCount = items.length;
 
   return (
-    <div className="rounded-3xl border border-[#E5E7EB] bg-white p-4">
+    <div className="rounded-3xl border border-[#c8d9d2] bg-white p-4 transition-all">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-[#074738]">
-            {(() => { const IconComp = ROUTINE_ICONS[icon] || Sun; return <IconComp size={20} strokeWidth={1.8} />; })()}
+            <MaterialIcon name={icon} className="!text-[22px]" />
           </span>
           <span className="text-sm font-[800] text-[#074738]">
             {title}
@@ -53,32 +47,18 @@ export default function RoutineChecklist({
               key={item}
               type="button"
               onClick={() => onToggle(item)}
-              className="flex items-center gap-2.5 w-full text-left"
+              className="flex items-center gap-2.5 w-full text-left transition-opacity active:opacity-70"
             >
               {/* Checkbox */}
               <div
-                className={`flex-shrink-0 flex items-center justify-center w-[22px] h-[22px] rounded-[6px] border-2 transition-colors ${
+                className={`flex-shrink-0 flex items-center justify-center w-[22px] h-[22px] rounded-[6px] border-2 transition-all ${
                   isDone
                     ? "bg-[#074738] border-[#074738]"
-                    : "border-[#E5E7EB] bg-transparent"
+                    : "border-[#c8d9d2] bg-transparent"
                 }`}
               >
                 {isDone && (
-                  <svg
-                    width="12"
-                    height="10"
-                    viewBox="0 0 12 10"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M1 5L4.5 8.5L11 1.5"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <MaterialIcon name="check" className="text-white !text-[16px] !font-bold" />
                 )}
               </div>
 
@@ -86,7 +66,7 @@ export default function RoutineChecklist({
               <span
                 className={`text-sm font-medium transition-colors ${
                   isDone
-                    ? "text-[#9CA3AF] line-through"
+                    ? "text-[#6b8a7e] line-through"
                     : "text-[#074738]"
                 }`}
               >

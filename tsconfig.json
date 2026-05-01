@@ -1,45 +1,33 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ESNext",
     "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "allowJs": true,
     "skipLibCheck": true,
-
-    /* Bundler mode */
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
     "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
     "isolatedModules": true,
-    "moduleDetection": "force",
     "noEmit": true,
-
-    /* React */
     "jsx": "react-jsx",
-
-    /* Paths */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["apps/pwa/src/*"]
-    },
-
-    /* Linting */
-    "strict": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false
+      "@/*": ["apps/pwa/src/*", "src/*"]
+    }
   },
   "include": [
+    "src",
+    "apps",
     "vite.config.ts",
     "vitest.config.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "src",
-    "functions",
-    "apps/blog",
-    "apps/web",
-    "flutter_app",
-    "ios",
-    "e2e"
+    "dist"
   ]
 }

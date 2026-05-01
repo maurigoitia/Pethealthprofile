@@ -42,7 +42,7 @@ export default function HomeScreenSimplified() {
   const { activePetId, setActivePetId, activePet, pets } = usePet();
   const { userName, user } = useAuth();
   const { currentQuestion, answerQuestion, dismissQuestion } = usePreferences();
-  const { openPetSelector, openPetProfile, openScanner, openExportReport, openSidebar } =
+  const { openPetSelector, openPetProfile, openScanner, openExportReport } =
     useAppLayout();
   const focusExperienceEnabled = isFocusExperienceHost();
   const [showEmergency, setShowEmergency] = useState(false);
@@ -62,18 +62,7 @@ export default function HomeScreenSimplified() {
 
   return (
     <div className="max-w-md mx-auto min-h-screen flex flex-col pb-24">
-      {/* Hamburger Menu Button */}
-      <div className="fixed top-4 left-4 z-40">
-        <button
-          onClick={openSidebar}
-          className="size-10 rounded-full bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center hover:scale-110 transition-transform"
-        >
-          <MaterialIcon
-            name="menu"
-            className="text-[#074738] dark:text-emerald-400 text-xl"
-          />
-        </button>
-      </div>
+      {/* Desktop warning */}
 
       {focusExperienceEnabled ? (
         <Suspense fallback={<ScreenLoader label="Cargando inicio..." />}>
@@ -124,14 +113,24 @@ export default function HomeScreenSimplified() {
         </>
       )}
 
-      {/* Pasó algo — emergency incident quick-log */}
-      <div className="fixed bottom-28 right-4 z-30">
+      {/* EMERGENCY CARD (Rule 14) - Plano Tokens: bg-[#FEF2F2] border-[#FCA5A5] text-[#B91C1C] */}
+      <div className="px-4 mt-4">
         <button
           onClick={() => setShowEmergency(true)}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-red-500 text-white font-bold text-sm shadow-lg hover:bg-red-600 active:scale-95 transition-all"
+          className="w-full flex items-center gap-3 p-4 rounded-2xl bg-[#FEF2F2] border border-[#FCA5A5] text-left transition-all active:scale-[0.98]"
         >
-          <MaterialIcon name="warning" className="text-base" />
-          Pasó algo
+          <div className="size-10 rounded-xl bg-white border border-[#FCA5A5] flex items-center justify-center shrink-0">
+            <MaterialIcon name="warning" className="text-[#B91C1C] text-xl" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-[#B91C1C]">
+              ¿Pasó algo?
+            </p>
+            <p className="text-xs text-[#B91C1C]/70 mt-0.5">
+              Registrá un incidente o emergencia ahora
+            </p>
+          </div>
+          <MaterialIcon name="chevron_right" className="text-[#B91C1C]/50" />
         </button>
       </div>
 

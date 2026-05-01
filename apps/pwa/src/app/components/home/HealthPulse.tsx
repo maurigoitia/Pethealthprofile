@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Heart, Syringe, Pill, Calendar, AlertTriangle } from "lucide-react";
+import { MaterialIcon } from "../shared/MaterialIcon";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -38,10 +38,10 @@ function formatLastVisit(daysAgo: number | null): string {
   return `Hace ${years} año${years > 1 ? "s" : ""}`;
 }
 
-const STATUS_CONFIG: Record<PulseStatus, { bg: string; border: string; dot: string; label: string; icon: React.ElementType }> = {
-  great:     { bg: "bg-[#E0F2F1]",  border: "border-[#1A9B7D]/30", dot: "bg-[#1A9B7D]", label: "Todo en orden",   icon: Heart },
-  attention: { bg: "bg-amber-50",   border: "border-amber-200",    dot: "bg-amber-400",  label: "Atención",        icon: AlertTriangle },
-  urgent:    { bg: "bg-red-50",     border: "border-red-200",      dot: "bg-red-400",    label: "Requiere acción", icon: AlertTriangle },
+const STATUS_CONFIG: Record<PulseStatus, { bg: string; border: string; dot: string; label: string; icon: string }> = {
+  great:     { bg: "bg-[#E0F2F1]",  border: "border-[#1A9B7D]/30", dot: "bg-[#1A9B7D]", label: "Todo en orden",   icon: "favorite" },
+  attention: { bg: "bg-amber-50",   border: "border-amber-200",    dot: "bg-amber-400",  label: "Atención",        icon: "warning" },
+  urgent:    { bg: "bg-red-50",     border: "border-red-200",      dot: "bg-red-400",    label: "Requiere acción", icon: "warning" },
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -50,7 +50,6 @@ export default function HealthPulse(props: HealthPulseProps) {
   const { petName, overdueVaccines, activeMedications, lastVetVisitDaysAgo, recurringConditions, upcomingAppointments } = props;
   const status = computeOverallStatus(props);
   const config = STATUS_CONFIG[status];
-  const StatusIcon = config.icon;
 
   // Don't render if there's zero medical data
   const hasAnyData = overdueVaccines > 0 || activeMedications > 0 || lastVetVisitDaysAgo !== null || recurringConditions.length > 0 || upcomingAppointments > 0;
@@ -69,7 +68,7 @@ export default function HealthPulse(props: HealthPulseProps) {
             Salud de {petName}
           </span>
         </div>
-        <span className="text-[11px] font-[700] text-[#6B7280] uppercase tracking-wide">
+        <span className="text-[11px] font-[700] text-[#6B8A7E] uppercase tracking-wide">
           {config.label}
         </span>
       </div>
@@ -78,7 +77,7 @@ export default function HealthPulse(props: HealthPulseProps) {
       <div className="grid grid-cols-2 gap-2">
         {/* Vaccines */}
         <Indicator
-          icon={Syringe}
+          iconName="syringe"
           label="Vacunas"
           value={overdueVaccines > 0 ? `${overdueVaccines} vencida${overdueVaccines > 1 ? "s" : ""}` : "Al día"}
           alert={overdueVaccines > 0}
@@ -86,7 +85,7 @@ export default function HealthPulse(props: HealthPulseProps) {
 
         {/* Medications */}
         <Indicator
-          icon={Pill}
+          iconName="pill"
           label="Tratamientos"
           value={activeMedications > 0 ? `${activeMedications} activo${activeMedications > 1 ? "s" : ""}` : "Ninguno"}
           alert={activeMedications >= 3}
@@ -94,7 +93,7 @@ export default function HealthPulse(props: HealthPulseProps) {
 
         {/* Last vet visit */}
         <Indicator
-          icon={Heart}
+          iconName="stethoscope"
           label="Última visita"
           value={formatLastVisit(lastVetVisitDaysAgo)}
           alert={lastVetVisitDaysAgo !== null && lastVetVisitDaysAgo > 365}
@@ -102,7 +101,7 @@ export default function HealthPulse(props: HealthPulseProps) {
 
         {/* Next appointment */}
         <Indicator
-          icon={Calendar}
+          iconName="calendar_today"
           label="Próximo turno"
           value={upcomingAppointments > 0 ? `${upcomingAppointments} agendado${upcomingAppointments > 1 ? "s" : ""}` : "Ninguno"}
           alert={false}
@@ -112,7 +111,7 @@ export default function HealthPulse(props: HealthPulseProps) {
       {/* Recurring conditions note (only if any) */}
       {recurringConditions.length > 0 && (
         <div className="mt-2.5 pt-2.5 border-t border-[rgba(0,0,0,0.06)]">
-          <p className="text-[11px] font-[600] text-[#6B7280]">
+          <p className="text-[11px] font-[600] text-[#6B8A7E]">
             Condiciones recurrentes: {recurringConditions.slice(0, 3).join(", ")}
           </p>
         </div>
@@ -123,17 +122,16 @@ export default function HealthPulse(props: HealthPulseProps) {
 
 // ─── Sub-component ───────────────────────────────────────────────────────────
 
-function Indicator({ icon: Icon, label, value, alert }: { icon: React.ElementType; label: string; value: string; alert: boolean }) {
+function Indicator({ iconName, label, value, alert }: { iconName: string; label: string; value: string; alert: boolean }) {
   return (
     <div className="flex items-center gap-2 bg-white/60 rounded-[10px] px-2.5 py-2">
-      <Icon
-        size={16}
-        strokeWidth={2}
-        className={alert ? "text-[#EF5350]" : "text-[#074738]"}
+      <MaterialIcon
+        name={iconName}
+        className={`!text-[18px] ${alert ? "text-[#B91C1C]" : "text-[#074738]"}`}
       />
       <div className="min-w-0">
-        <p className="text-[10px] font-[600] text-[#9CA3AF] leading-none">{label}</p>
-        <p className={`text-[12px] font-[700] leading-tight mt-0.5 truncate ${alert ? "text-[#EF5350]" : "text-[#074738]"}`}>
+        <p className="text-[10px] font-[600] text-[#6B8A7E] leading-none">{label}</p>
+        <p className={`text-[12px] font-[700] leading-tight mt-0.5 truncate ${alert ? "text-[#B91C1C]" : "text-[#074738]"}`}>
           {value}
         </p>
       </div>

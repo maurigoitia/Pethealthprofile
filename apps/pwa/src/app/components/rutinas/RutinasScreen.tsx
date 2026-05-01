@@ -1,14 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import {
-  ChevronLeft,
-  Pill,
-  CalendarClock,
-  ShieldCheck,
-  Scissors,
-  Plus,
-  Check,
-} from "lucide-react";
+import { MaterialIcon } from "../shared/MaterialIcon";
 import { useMedical } from "../../contexts/MedicalContext";
 import { usePet } from "../../contexts/PetContext";
 
@@ -60,10 +52,10 @@ const MOCK_ITEMS: RutinaItem[] = [
 
 function ItemIcon({ type }: { type: RutinaItem["type"] }) {
   const icons = {
-    medication: <Pill size={20} className="text-[#074738]" />,
-    appointment: <CalendarClock size={20} className="text-[#074738]" />,
-    vaccine: <ShieldCheck size={20} className="text-[#074738]" />,
-    grooming: <Scissors size={20} className="text-[#074738]" />,
+    medication: <MaterialIcon name="medication" className="text-[#074738] !text-[20px]" />,
+    appointment: <MaterialIcon name="event" className="text-[#074738] !text-[20px]" />,
+    vaccine: <MaterialIcon name="verified_user" className="text-[#074738] !text-[20px]" />,
+    grooming: <MaterialIcon name="content_cut" className="text-[#074738] !text-[20px]" />,
   };
   return (
     <div className="size-11 rounded-[12px] bg-[#E0F2F1] flex items-center justify-center shrink-0">
@@ -138,14 +130,14 @@ export function RutinasScreen({ onBack }: RutinasScreenProps) {
   return (
     <div className="min-h-screen bg-[#F0FAF9] flex flex-col">
       {/* Sticky header */}
-      <header className="sticky top-0 z-10 bg-white border-b border-slate-100 px-4 flex items-center h-14 gap-3">
+      <header className="sticky top-0 z-10 bg-white border-b border-[#c8d9d2] px-4 flex items-center h-14 gap-3">
         <button
           type="button"
           onClick={onBack}
           aria-label="Volver"
           className="size-11 flex items-center justify-center rounded-[14px] active:scale-[0.97] transition-all -ml-1"
         >
-          <ChevronLeft size={22} className="text-[#074738]" />
+          <MaterialIcon name="arrow_back" className="text-[#074738] !text-[22px]" />
         </button>
         <h1
           className="text-lg font-bold text-[#074738] font-['Plus_Jakarta_Sans']"
@@ -158,7 +150,7 @@ export function RutinasScreen({ onBack }: RutinasScreenProps) {
       <div className="flex-1 overflow-y-auto pb-24 px-4 pt-4 space-y-4">
         {/* Esta semana — day chips */}
         <section>
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3 font-['Manrope']">
+          <p className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-wide mb-3 font-['Manrope']">
             Esta semana
           </p>
           <div className="flex gap-2">
@@ -193,11 +185,11 @@ export function RutinasScreen({ onBack }: RutinasScreenProps) {
                   <ItemIcon type={item.type} />
                   <div className={`flex-1 min-w-0 transition-all duration-200 ${checked ? "opacity-50" : ""}`}>
                     <p
-                      className={`text-sm font-semibold text-slate-800 font-['Plus_Jakarta_Sans'] truncate transition-all duration-200 ${checked ? "line-through" : ""}`}
+                      className={`text-sm font-semibold text-[#1A1A1A] font-['Plus_Jakarta_Sans'] truncate transition-all duration-200 ${checked ? "line-through" : ""}`}
                     >
                       {item.name}
                     </p>
-                    <p className="text-xs text-slate-400 font-['Manrope'] mt-0.5">
+                    <p className="text-xs text-[#9CA3AF] font-['Manrope'] mt-0.5">
                       {item.time}
                     </p>
                   </div>
@@ -212,7 +204,7 @@ export function RutinasScreen({ onBack }: RutinasScreenProps) {
                         : "border-2 border-[#E0F2F1]",
                     ].join(" ")}
                   >
-                    {checked && <Check size={16} className="text-white" />}
+                    {checked && <MaterialIcon name="check" className="text-white !text-[16px]" />}
                   </button>
                 </div>
               );
@@ -222,7 +214,7 @@ export function RutinasScreen({ onBack }: RutinasScreenProps) {
           // Empty state
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <span className="text-4xl">🐾</span>
-            <p className="text-sm text-slate-500 font-['Manrope'] text-center">
+            <p className="text-sm text-[#6B7280] font-['Manrope'] text-center">
               Sin rutinas para este día
             </p>
             <button
@@ -243,7 +235,7 @@ export function RutinasScreen({ onBack }: RutinasScreenProps) {
         aria-label="Agregar rutina"
         className="fixed bottom-6 right-6 size-14 bg-[#074738] text-white rounded-full shadow-lg flex items-center justify-center active:scale-[0.97] transition-all z-20"
       >
-        <Plus size={24} />
+        <MaterialIcon name="add" className="!text-[24px]" />
       </button>
     </div>
   );

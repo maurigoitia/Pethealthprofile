@@ -721,6 +721,9 @@ export function PetHomeView({
           {/* Decorative blob — pessy.app organic feel */}
           <div className="pessy-blob absolute -top-10 -right-10 w-[120px] h-[120px] bg-[rgba(26,155,125,0.15)]" style={{ animationDelay: '2s' }} />
           <div className="absolute bottom-3.5 left-4 text-white">
+            <p className="text-[13px] opacity-90 font-medium mb-1 drop-shadow-sm">
+              Hola, ¿cómo está {activePet.name}?
+            </p>
             <h1
               className="text-[26px] font-[900] leading-none"
               style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}

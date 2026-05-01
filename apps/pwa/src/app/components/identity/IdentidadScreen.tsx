@@ -1,15 +1,5 @@
 import { useState, useMemo, lazy, Suspense } from "react";
-import {
-  ChevronLeft,
-  Syringe,
-  Share2,
-  Pencil,
-  History,
-  Pill,
-  CalendarDays,
-  UserRound,
-  Dog,
-} from "lucide-react";
+import { MaterialIcon } from "../shared/MaterialIcon";
 import { useNavigate } from "react-router";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
@@ -122,7 +112,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
         style={{ fontFamily: "'Manrope', sans-serif" }}
       >
         <div className="size-20 rounded-[20px] bg-[#E0F2F1] flex items-center justify-center">
-          <Dog size={40} className="text-[#1A9B7D]" />
+          <MaterialIcon name="pets" className="!text-[40px] text-[#1A9B7D]" />
         </div>
         <div className="text-center space-y-2">
           <h2
@@ -131,7 +121,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
           >
             Sin mascota activa
           </h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-[#6B7280]">
             Registrá tu mascota para ver su identidad digital.
           </p>
         </div>
@@ -196,10 +186,10 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
         <button
           type="button"
           onClick={onBack}
-          className="size-11 rounded-full bg-white border border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex items-center justify-center text-slate-700 active:scale-95 transition-transform"
+          className="size-11 rounded-full bg-white border border-[#c8d9d2] shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex items-center justify-center text-[#1A1A1A] active:scale-95 transition-transform"
           aria-label="Volver"
         >
-          <ChevronLeft size={20} />
+          <MaterialIcon name="arrow_back" className="!text-[20px]" />
         </button>
         <h1
           className="flex-1 text-lg font-bold text-[#074738]"
@@ -268,7 +258,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
             onClick={() => setShowVaccCard(true)}
             className="bg-white rounded-[14px] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex flex-col items-center gap-2 active:scale-95 transition-transform min-h-[80px] justify-center"
           >
-            <Syringe size={22} className="text-[#1A9B7D]" />
+            <MaterialIcon name="vaccines" className="!text-[22px] text-[#1A9B7D]" />
             <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">
               Carnet de vacunación
             </span>
@@ -279,7 +269,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
             onClick={() => openExportReport()}
             className="bg-white rounded-[14px] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex flex-col items-center gap-2 active:scale-95 transition-transform min-h-[80px] justify-center"
           >
-            <Share2 size={22} className="text-[#1A9B7D]" />
+            <MaterialIcon name="share" className="!text-[22px] text-[#1A9B7D]" />
             <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">
               Compartir con el veterinario
             </span>
@@ -290,7 +280,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
             onClick={() => openPetProfile()}
             className="bg-white rounded-[14px] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex flex-col items-center gap-2 active:scale-95 transition-transform min-h-[80px] justify-center"
           >
-            <Pencil size={22} className="text-[#1A9B7D]" />
+            <MaterialIcon name="edit" className="!text-[22px] text-[#1A9B7D]" />
             <span className="text-[11px] font-bold text-slate-600 text-center leading-tight">
               Editar perfil
             </span>
@@ -300,7 +290,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
         {/* Datos esenciales */}
         <div className="bg-white rounded-[16px] p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
           <div className="flex items-center gap-2 mb-4">
-            <UserRound size={16} className="text-[#1A9B7D]" />
+            <MaterialIcon name="person" className="!text-[16px] text-[#1A9B7D]" />
             <span
               className="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
               style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
@@ -315,10 +305,10 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
                 key={row.label}
                 className="flex items-start justify-between gap-4"
               >
-                <span className="text-[12px] text-slate-400 shrink-0">
+                <span className="text-[12px] text-[#9CA3AF] shrink-0">
                   {row.label}
                 </span>
-                <span className="text-[13px] font-semibold text-slate-800 text-right">
+                <span className="text-[13px] font-semibold text-[#1A1A1A] text-right">
                   {row.value}
                 </span>
               </div>
@@ -338,7 +328,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
         {/* Estado actual de salud */}
         <div className="bg-white rounded-[16px] p-5 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
           <div className="flex items-center gap-2 mb-4">
-            <Pill size={16} className="text-[#1A9B7D]" />
+            <MaterialIcon name="medication" className="!text-[16px] text-[#1A9B7D]" />
             <span
               className="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
               style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
@@ -375,7 +365,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
 
           {/* Events count */}
           <div className="flex items-center gap-2 mb-5">
-            <CalendarDays size={14} className="text-slate-400" />
+            <MaterialIcon name="event" className="!text-[14px] text-slate-400" />
             <span className="text-sm text-slate-500">
               {petEvents.length === 0
                 ? "Sin eventos registrados"
@@ -389,7 +379,7 @@ export function IdentidadScreen({ onBack }: IdentidadScreenProps) {
             className="w-full bg-[#074738] text-white rounded-[12px] py-3 text-sm font-bold active:scale-[0.97] transition-transform flex items-center justify-center gap-2"
             style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
-            <History size={16} />
+            <MaterialIcon name="history" className="!text-[16px]" />
             Ver historial completo
           </button>
         </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
-import { Search, Star, MapPin, Stethoscope, RefreshCw, Phone, Mail, Hash } from "lucide-react";
+import { MaterialIcon } from "../shared/MaterialIcon";
 import { db, functions } from "../../../lib/firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
@@ -61,7 +61,7 @@ function EmptyState({ query }: { query: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
       <div className="w-16 h-16 rounded-full bg-[#E0F2F1] flex items-center justify-center mb-4">
-        <Stethoscope size={28} color="#1A9B7D" />
+        <MaterialIcon name="medical_services" className="!text-[28px] text-[#1A9B7D]" />
       </div>
       <p className="font-bold text-slate-700 text-sm" style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}>
         {query ? `Sin resultados para "${query}"` : "Sin veterinarios disponibles"}
@@ -76,7 +76,7 @@ function EmptyState({ query }: { query: string }) {
         className="flex items-center gap-2 px-5 py-3 rounded-[14px] bg-[#074738] text-white text-sm font-bold active:scale-[0.97] transition-transform"
         style={{ fontFamily: "Plus Jakarta Sans, sans-serif" }}
       >
-        <MapPin size={15} />
+        <MaterialIcon name="location_on" className="!text-[15px]" />
         Buscar en Google Maps
       </a>
     </div>
@@ -173,7 +173,7 @@ function ExtractedVetCard({ vet }: { vet: ExtractedVet }) {
                 borderRadius: 8,
               }}
             >
-              <Hash size={11} strokeWidth={2} color="#1A9B7D" />
+              <MaterialIcon name="tag" className="!text-[11px] text-[#1A9B7D]" />
               Mat. {vet.license}
             </span>
           )}
@@ -193,7 +193,7 @@ function ExtractedVetCard({ vet }: { vet: ExtractedVet }) {
                 textDecoration: "none",
               }}
             >
-              <Phone size={11} strokeWidth={2} />
+              <MaterialIcon name="phone" className="!text-[11px]" />
               {vet.phone}
             </a>
           )}
@@ -213,7 +213,7 @@ function ExtractedVetCard({ vet }: { vet: ExtractedVet }) {
                 textDecoration: "none",
               }}
             >
-              <Mail size={11} strokeWidth={2} />
+              <MaterialIcon name="mail" className="!text-[11px]" />
               {vet.email}
             </a>
           )}
@@ -312,7 +312,7 @@ function TreatingVetsSection({ petId, petName }: { petId: string | null; petName
           style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           aria-label="Actualizar lista de veterinarios"
         >
-          <RefreshCw size={12} strokeWidth={2.4} className={extracting ? "animate-spin" : ""} />
+          <MaterialIcon name="refresh" className={`!text-[12px] ${extracting ? "animate-spin" : ""}`} />
           {extracting ? "Actualizando…" : "Actualizar lista"}
         </button>
       </div>
@@ -467,7 +467,7 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
         <div className="mt-5 flex items-center gap-2">
           <div className="relative flex-1">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-              <Search size={18} className="text-[#9CA3AF]" />
+              <MaterialIcon name="search" className="!text-[18px] text-[#9CA3AF]" />
             </span>
             <input
               type="text"
@@ -590,7 +590,7 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
                         </p>
                       </div>
                       <div className="bg-[#F0FAF9] rounded-lg px-2 py-1 flex items-center gap-1 shrink-0">
-                        <Star size={12} fill="#FFB800" color="#FFB800" />
+                        <MaterialIcon name="star" className="!text-[12px] text-[#FFB800]" />
                         <span
                           className="text-[12px] font-bold text-[#074738]"
                           style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
@@ -623,7 +623,7 @@ export function VetSearchScreen({ onBack }: VetSearchScreenProps) {
                 {/* Footer: distance + agendar */}
                 <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-[#E5E7EB]">
                   <span className="flex items-center gap-1 text-[12px] text-[#6B7280]">
-                    <MapPin size={12} className="text-[#9CA3AF]" />
+                    <MaterialIcon name="location_on" className="!text-[12px] text-[#9CA3AF]" />
                     {vet.distanceKm < 1
                       ? `${Math.round(vet.distanceKm * 1000)} m`
                       : `${vet.distanceKm.toFixed(1)} km`}

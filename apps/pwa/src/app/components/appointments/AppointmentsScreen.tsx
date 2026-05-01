@@ -402,7 +402,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                 <MaterialIcon name="arrow_back" className="text-xl text-[#074738]" />
               </button>
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#074738]">Agenda</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#074738]">Calendario</p>
                 <h1 className="text-[28px] leading-[32px] font-black text-slate-900 dark:text-white mt-1">
                   Turnos de {activePet?.name || "tu mascota"}
                 </h1>
@@ -438,10 +438,10 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
                     </span>
                   </div>
                   <h2 className="text-xl font-black text-slate-900 dark:text-white">
-                    {activePet?.name || "Mascota"} necesita una agenda clara
+                    {activePet?.name || "Mascota"} necesita un calendario claro
                   </h2>
                   <p className="text-sm text-slate-600 dark:text-slate-200 mt-2 leading-5">
-                    Confirmá, editá o cerrá turnos sin mezclar logística con historial clínico.
+                    Confirmá, editá o cerrá turnos sin mezclar logística con historial.
                   </p>
                 </div>
               </div>
@@ -699,7 +699,7 @@ export function AppointmentsScreen({ onBack }: AppointmentsScreenProps) {
               <MaterialIcon name="arrow_back" className="text-xl text-[#074738]" />
             </button>
             <div className="flex-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Agenda</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Calendario</p>
               <h1 className="text-2xl font-black text-[#074738]">Citas</h1>
               <p className="text-sm text-slate-500">{upcoming.length} próximas · {past.length} pasadas</p>
             </div>

@@ -1641,9 +1641,9 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         pdf.setTextColor(120, 120, 120);
         const footerByState = {
           empty: "Pessy organiza información cargada por el tutor. Aún no hay documentos en este perfil.",
-          validated: "Información parcialmente validada por veterinarios. Conserva valor de referencia. No reemplaza un historial clínico oficial.",
+          validated: "Información parcialmente validada por veterinarios. Conserva valor de referencia. No reemplaza un historial oficial.",
           mixed: "Información parcialmente validada. Los ítems sin marca de validación fueron cargados por el tutor sin revisión profesional.",
-          not_validated: "Pessy organiza la información cargada por el tutor. No reemplaza un historial clínico oficial ni constituye diagnóstico veterinario.",
+          not_validated: "Pessy organiza la información cargada por el tutor. No reemplaza un historial oficial ni constituye diagnóstico veterinario.",
         } as const;
         pdf.text(
           footerByState[pillState],

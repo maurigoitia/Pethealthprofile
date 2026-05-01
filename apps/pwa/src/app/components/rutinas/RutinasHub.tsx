@@ -1,20 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import {
-  ChevronLeft,
-  Zap,
-  Wind,
-  Minus,
-  MapPin,
-  Cat,
-  Footprints,
-  TreePine,
-  Heart,
-  ShieldAlert,
-  Users,
-  Pill,
-  PlusCircle,
-} from "lucide-react";
+import { MaterialIcon } from "../shared/MaterialIcon";
 import { doc, updateDoc } from "firebase/firestore";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
@@ -118,11 +104,11 @@ function getRecommendations(
   const recs: Recommendation[] = [];
 
   // No preferences at all → single prompt card
-  if (!prefs.personality && !prefs.favoriteActivities && !prefs.walkTimes && !prefs.foodType && !prefs.fears) {
-    recs.push({
-      id: "complete-profile",
-      icon: <Heart className="w-5 h-5 text-[#1A9B7D]" />,
-      title: "Completá el perfil",
+    if (!prefs.personality && !prefs.favoriteActivities && !prefs.walkTimes && !prefs.foodType && !prefs.fears) {
+      recs.push({
+        id: "complete-profile",
+        icon: <MaterialIcon name="favorite" className="!text-[20px] text-[#1A9B7D]" />,
+        title: "Completá el perfil",
       description: `Cuéntanos sobre ${petName} para recibir recomendaciones personalizadas cada día.`,
       category: "cuidado",
       isActionable: true,
@@ -137,7 +123,7 @@ function getRecommendations(
   if (nextWalk) {
     recs.push({
       id: "walk-time",
-      icon: <Footprints className="w-5 h-5 text-[#1A9B7D]" />,
+      icon: <MaterialIcon name="pets" className="!text-[20px] text-[#1A9B7D]" />,
       title: "Próximo paseo",
       description: `Tu próximo paseo con ${petName} está programado para las ${nextWalk}.`,
       category: "actividad",
@@ -149,7 +135,7 @@ function getRecommendations(
   if (species === "cat") {
     recs.push({
       id: "cat-enrichment",
-      icon: <Cat className="w-5 h-5 text-[#1A9B7D]" />,
+      icon: <MaterialIcon name="pets" className="!text-[20px] text-[#1A9B7D]" />,
       title: "Enriquecimiento ambiental",
       description: `Dedica 10 min hoy a jugar con ${petName} usando una varita o simulando una presa en movimiento.`,
       category: "actividad",
@@ -162,7 +148,7 @@ function getRecommendations(
     if (energy === "high") {
       recs.push({
         id: "active-play",
-        icon: <Zap className="w-5 h-5 text-[#074738]" />,
+        icon: <MaterialIcon name="bolt" className="!text-[20px] text-[#074738]" />,
         title: "Tiempo de juego activo",
         description: `${petName} tiene mucha energía hoy. Un juego de búsqueda o carrera de 20-30 min sería ideal.`,
         category: "actividad",
@@ -171,7 +157,7 @@ function getRecommendations(
     } else if (energy === "low") {
       recs.push({
         id: "gentle-walk",
-        icon: <Wind className="w-5 h-5 text-[#1A9B7D]" />,
+        icon: <MaterialIcon name="air" className="!text-[20px] text-[#1A9B7D]" />,
         title: "Paseo suave",
         description: `Una caminata corta y sin esfuerzo es perfecta para ${petName} hoy.`,
         category: "actividad",
@@ -180,7 +166,7 @@ function getRecommendations(
     } else if (energy === "medium") {
       recs.push({
         id: "moderate-activity",
-        icon: <Minus className="w-5 h-5 text-[#1A9B7D]" />,
+        icon: <MaterialIcon name="remove" className="!text-[20px] text-[#1A9B7D]" />,
         title: "Actividad moderada",
         description: `Un paseo de 20-30 min o juego suave en casa es perfecto para ${petName} hoy.`,
         category: "actividad",
@@ -192,7 +178,7 @@ function getRecommendations(
     if (prefs.favoriteActivities?.includes("park")) {
       recs.push({
         id: "park-today",
-        icon: <TreePine className="w-5 h-5 text-[#1A9B7D]" />,
+        icon: <MaterialIcon name="park" className="!text-[20px] text-[#1A9B7D]" />,
         title: "Llevalo al parque hoy",
         description: `El parque es una de las actividades favoritas de ${petName}. ¡Hoy es un buen día para ir!`,
         category: "actividad",
@@ -207,7 +193,7 @@ function getRecommendations(
   if (ageYears !== null && ageYears < 1) {
     recs.push({
       id: "puppy-socialization",
-      icon: <Users className="w-5 h-5 text-[#1A9B7D]" />,
+      icon: <MaterialIcon name="people" className="!text-[20px] text-[#1A9B7D]" />,
       title: "Socialización temprana",
       description: `${petName} está en etapa clave. Exponerlo a personas nuevas, sonidos y entornos distintos hoy lo ayuda a crecer seguro.`,
       category: "social",
@@ -220,7 +206,7 @@ function getRecommendations(
     const fearList = prefs.fears.slice(0, 2).join(", ");
     recs.push({
       id: "fear-management",
-      icon: <ShieldAlert className="w-5 h-5 text-[#074738]" />,
+      icon: <MaterialIcon name="security" className="!text-[20px] text-[#074738]" />,
       title: "Manejo de miedos",
       description: `${petName} puede tener sensibilidad a: ${fearList}. Si aparece ese estímulo, mantené calma y usá refuerzo positivo gradual.`,
       category: "cuidado",
@@ -255,10 +241,10 @@ function Card({ children, className = "" }: { children: React.ReactNode; classNa
   );
 }
 
-const ENERGY_CONFIG: Record<EnergyLevel, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
-  high: { label: "Energía alta", color: "text-green-700", bg: "bg-green-100", Icon: Zap },
-  medium: { label: "Energía normal", color: "text-yellow-700", bg: "bg-yellow-100", Icon: Minus },
-  low: { label: "Energía baja", color: "text-slate-500", bg: "bg-slate-100", Icon: Wind },
+const ENERGY_CONFIG: Record<EnergyLevel, { label: string; color: string; bg: string; iconName: string }> = {
+  high: { label: "Energía alta", color: "text-green-700", bg: "bg-green-100", iconName: "bolt" },
+  medium: { label: "Energía normal", color: "text-yellow-700", bg: "bg-yellow-100", iconName: "remove" },
+  low: { label: "Energía baja", color: "text-slate-500", bg: "bg-slate-100", iconName: "air" },
 };
 
 // ---------------------------------------------------------------------------
@@ -280,9 +266,8 @@ export function RutinasHub({ onBack }: Props) {
   const completeness = pet ? getDataCompleteness(pet) : "minimal";
   const recommendations = pet
     ? getRecommendations(pet, ageYears, energy)
-    : [{
         id: "add-pet",
-        icon: <PlusCircle className="w-5 h-5 text-[#1A9B7D]" />,
+        icon: <MaterialIcon name="add_circle" className="!text-[20px] text-[#1A9B7D]" />,
         title: "Agregá tu mascota",
         description: "Creá el perfil de tu mascota para ver recomendaciones personalizadas.",
         category: "cuidado" as const,
@@ -322,7 +307,7 @@ export function RutinasHub({ onBack }: Props) {
             aria-label="Volver"
             className="flex items-center justify-center w-11 h-11 rounded-full hover:bg-[#E0F2F1] transition-colors"
           >
-            <ChevronLeft className="w-5 h-5 text-[#074738]" />
+            <MaterialIcon name="chevron_left" className="!text-[20px] text-[#074738]" />
           </button>
           <h1
             className="text-lg font-bold text-[#074738]"
@@ -352,15 +337,14 @@ export function RutinasHub({ onBack }: Props) {
               <span
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${energyCfg.bg} ${energyCfg.color}`}
               >
-                <energyCfg.Icon className="w-3.5 h-3.5" />
+                <MaterialIcon name={energyCfg.iconName} className="!text-[14px]" />
                 {energyCfg.label}
               </span>
             </div>
 
             {/* Next walk */}
-            {nextWalk && (
               <div className="mt-3 flex items-center gap-2 rounded-[12px] bg-[#E0F2F1] px-3 py-2">
-                <MapPin className="w-4 h-4 text-[#1A9B7D] shrink-0" />
+                <MaterialIcon name="location_on" className="!text-[16px] text-[#1A9B7D] shrink-0" />
                 <p className="text-xs font-semibold text-[#074738]">
                   Próximo paseo: {nextWalk}
                 </p>
@@ -450,7 +434,7 @@ export function RutinasHub({ onBack }: Props) {
                 <Card key={med.id}>
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 rounded-[10px] bg-[#E0F2F1] flex items-center justify-center shrink-0">
-                      <Pill className="w-4 h-4 text-[#1A9B7D]" />
+                      <MaterialIcon name="medication" className="!text-[16px] text-[#1A9B7D]" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p

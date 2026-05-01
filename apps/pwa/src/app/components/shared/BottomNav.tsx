@@ -1,4 +1,4 @@
-import { Home, Users, Plus, Compass, User } from "lucide-react";
+import { MaterialIcon } from "./MaterialIcon";
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 
 interface BottomNavProps {
@@ -29,7 +29,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, onNavigate }
                 <div className={`size-11 rounded-full flex items-center justify-center transition-all duration-150 ${
                   currentTab === "home" ? "bg-white/18 text-white" : "text-white/70"
                 }`}>
-                  <Home size={iconSize} strokeWidth={strokeWidth} />
+                  <MaterialIcon name="home" className="!text-[22px]" />
                 </div>
               </button>
 
@@ -39,7 +39,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, onNavigate }
                 aria-label="Comunidad"
               >
                 <div className="size-11 rounded-full flex items-center justify-center transition-all duration-150 text-white/70">
-                  <Users size={iconSize} strokeWidth={strokeWidth} />
+                  <MaterialIcon name="people" className="!text-[22px]" />
                 </div>
               </button>
 
@@ -50,7 +50,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, onNavigate }
                   aria-label="Agregar documento"
                 >
                   <div className="size-12 rounded-[14px] bg-white text-[#074738] flex items-center justify-center shadow-[0_4px_16px_rgba(26,155,125,0.3)] hover:shadow-[0_4px_24px_rgba(26,155,125,0.45)] transition-shadow duration-150">
-                    <Plus size={24} strokeWidth={2.2} />
+                    <MaterialIcon name="add" className="!text-[24px]" />
                   </div>
                 </button>
               ) : (
@@ -63,7 +63,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, onNavigate }
                 aria-label="Explorar"
               >
                 <div className="size-11 rounded-full flex items-center justify-center transition-all duration-150 text-white/70">
-                  <Compass size={iconSize} strokeWidth={strokeWidth} />
+                  <MaterialIcon name="explore" className="!text-[22px]" />
                 </div>
               </button>
 
@@ -76,7 +76,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, onNavigate }
                 <div className={`size-11 rounded-full flex items-center justify-center transition-all duration-150 ${
                   currentTab === "settings" ? "bg-white/18 text-white" : "text-white/70"
                 }`}>
-                  <User size={iconSize} strokeWidth={strokeWidth} />
+                  <MaterialIcon name="person" className="!text-[22px]" />
                 </div>
               </button>
             </div>
@@ -104,7 +104,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, onNavigate }
                   ? "bg-[#074738] text-white shadow-[0_2px_8px_rgba(7,71,56,0.25)]"
                   : "text-[#9CA3AF]"
               }`}>
-                <Home size={20} strokeWidth={currentTab === "home" ? 2 : 1.5} />
+                <MaterialIcon name="home" className="!text-[20px]" />
               </div>
               <span className={`text-[10px] font-bold tracking-wider ${
                 currentTab === "home" ? "text-[#074738]" : "text-[#9CA3AF]"
@@ -118,7 +118,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, onNavigate }
               aria-label="Comunidad"
             >
               <div className="size-10 rounded-xl flex items-center justify-center transition-all duration-150 text-[#9CA3AF]">
-                <Users size={20} strokeWidth={1.5} />
+                <MaterialIcon name="people" className="!text-[20px]" />
               </div>
               <span className="text-[10px] font-bold tracking-wider text-[#9CA3AF]">Comunidad</span>
             </button>
@@ -131,7 +131,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, onNavigate }
                 aria-label="Agregar documento"
               >
                 <div className="size-12 rounded-[14px] bg-[#074738] text-white flex items-center justify-center shadow-[0_2px_12px_rgba(7,71,56,0.3)]">
-                  <Plus size={24} strokeWidth={2.2} />
+                  <MaterialIcon name="add" className="!text-[24px]" />
                 </div>
                 <span className="text-[10px] font-bold tracking-wider text-[#074738]">Agregar</span>
               </button>
@@ -146,7 +146,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, onNavigate }
               aria-label="Explorar"
             >
               <div className="size-10 rounded-xl flex items-center justify-center transition-all duration-150 text-[#9CA3AF]">
-                <Compass size={20} strokeWidth={1.5} />
+                <MaterialIcon name="explore" className="!text-[20px]" />
               </div>
               <span className="text-[10px] font-bold tracking-wider text-[#9CA3AF]">Explorar</span>
             </button>
@@ -163,7 +163,7 @@ export function BottomNav({ currentTab, onTabChange, onAddDocument, onNavigate }
                   ? "bg-[#074738] text-white shadow-[0_2px_8px_rgba(7,71,56,0.25)]"
                   : "text-[#9CA3AF]"
               }`}>
-                <User size={20} strokeWidth={currentTab === "settings" ? 2 : 1.5} />
+                <MaterialIcon name="person" className="!text-[20px]" />
               </div>
               <span className={`text-[10px] font-bold tracking-wider ${
                 currentTab === "settings" ? "text-[#074738]" : "text-[#9CA3AF]"

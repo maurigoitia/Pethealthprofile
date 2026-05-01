@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Bell } from "lucide-react";
+import { MaterialIcon } from "../shared/MaterialIcon";
 import { PetPhoto } from "./PetPhoto";
 
 interface PetLike {
@@ -124,7 +124,7 @@ export function HomeHeaderV2({
           className="relative w-11 h-11 rounded-full bg-white border border-[rgba(7,71,56,0.08)] flex items-center justify-center text-[#074738] active:scale-[0.96] transition-transform"
           style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}
         >
-          <Bell size={20} strokeWidth={2} />
+          <MaterialIcon name="notifications" className="!text-[20px]" />
           {notificationCount > 0 && (
             <span
               className="absolute -top-0.5 -right-0.5 w-[18px] h-[18px] rounded-full bg-[#1A9B7D] text-white text-[9px] font-[800] flex items-center justify-center"

@@ -133,7 +133,7 @@ export function ActionTray() {
       {!showList ? (
         <button
           onClick={() => setShowList(true)}
-          className="w-full bg-white dark:bg-slate-900 rounded-[16px] border border-[#E5E7EB] dark:border-slate-800 p-4 text-left hover:bg-[#F0FAF9] dark:hover:bg-slate-800/50 transition-colors"
+          className="w-full bg-white dark:bg-[#1A1A1A] rounded-[16px] border border-[#c8d9d2] dark:border-[#074738]/30 p-4 text-left hover:bg-[#F0FAF9] dark:hover:bg-[#074738]/10 transition-colors"
         >
           <p className="text-base font-bold text-[#1A1A1A] dark:text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             {pendingActions.length} pendiente{pendingActions.length !== 1 ? "s" : ""} activo{pendingActions.length !== 1 ? "s" : ""}
@@ -162,7 +162,7 @@ export function ActionTray() {
             return (
               <div
                 key={action.id}
-                className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm"
+                className="bg-white dark:bg-[#1A1A1A] rounded-xl border border-[#c8d9d2] dark:border-[#074738]/30 overflow-hidden shadow-sm"
               >
                 <button
                   onClick={() => toggleCard(action.id)}
@@ -206,7 +206,7 @@ export function ActionTray() {
 
                   <MaterialIcon
                     name={isExpanded ? "expand_less" : "expand_more"}
-                    className="text-slate-400 text-xl shrink-0"
+                    className="text-[#9CA3AF] text-xl shrink-0"
                   />
                 </button>
 

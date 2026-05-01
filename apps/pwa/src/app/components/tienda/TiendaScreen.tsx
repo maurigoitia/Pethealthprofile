@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, UtensilsCrossed, ShoppingBag, Pill, Star } from "lucide-react";
+import { MaterialIcon } from "../shared/MaterialIcon";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 
@@ -73,22 +73,22 @@ export function TiendaScreen({ onBack }: TiendaScreenProps) {
     {
       emoji: "🥩",
       label: "Alimentos",
-      icon: <UtensilsCrossed size={22} className="text-[#1A9B7D]" />,
+      icon: <MaterialIcon name="restaurant" className="!text-[22px] text-[#1A9B7D]" />,
     },
     {
       emoji: "🎒",
       label: "Accesorios",
-      icon: <ShoppingBag size={22} className="text-[#1A9B7D]" />,
+      icon: <MaterialIcon name="shopping_bag" className="!text-[22px] text-[#1A9B7D]" />,
     },
     {
       emoji: "💊",
       label: "Salud",
-      icon: <Pill size={22} className="text-[#1A9B7D]" />,
+      icon: <MaterialIcon name="medication" className="!text-[22px] text-[#1A9B7D]" />,
     },
     {
       emoji: "🎾",
       label: "Juguetes",
-      icon: <Star size={22} className="text-[#1A9B7D]" />,
+      icon: <MaterialIcon name="star" className="!text-[22px] text-[#1A9B7D]" />,
     },
   ];
 
@@ -102,7 +102,7 @@ export function TiendaScreen({ onBack }: TiendaScreenProps) {
           className="size-9 flex items-center justify-center rounded-full hover:bg-slate-100 active:scale-[0.97] transition-all"
           aria-label="Volver"
         >
-          <ChevronLeft size={22} className="text-slate-700" />
+          <MaterialIcon name="arrow_back" className="!text-[22px] text-slate-700" />
         </button>
         <h1
           className="text-base font-bold text-[#074738]"

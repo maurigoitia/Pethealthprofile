@@ -114,7 +114,7 @@ const InviteFriendsModal = lazy(() =>
 function ScreenLoader({ label = "Cargando..." }: { label?: string }) {
   return (
     <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 p-8 text-center">
+      <div className="w-full max-w-sm bg-white dark:bg-[#1A1A1A] rounded-[16px] border border-[#c8d9d2] dark:border-[#074738]/30 p-8 text-center">
         <div className="mx-auto mb-4 size-10 rounded-full border-4 border-[#074738]/20 border-t-[#074738] animate-spin" />
         <p className="text-base font-bold text-slate-900 dark:text-white">{label}</p>
       </div>
@@ -321,12 +321,11 @@ export default function HomeScreen() {
         <div className="fixed inset-x-4 top-4 z-[60] mx-auto max-w-md">
           <div
             className={`rounded-[16px] border px-4 py-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)] ${
-              inviteNotice.type === "success"
                 ? "border-emerald-200 bg-emerald-50 text-emerald-900"
                 : inviteNotice.type === "error"
                   ? "border-red-200 bg-red-50 text-red-900"
-                  : "border-slate-200 bg-white text-slate-900"
-            }`}
+                  : "border-[#c8d9d2] bg-white text-[#1A1A1A]"
+            } overflow-hidden font-jakarta`}
           >
             <p className="text-sm font-semibold leading-5">{inviteNotice.message}</p>
           </div>
@@ -341,7 +340,7 @@ export default function HomeScreen() {
   if ((petsLoading && pets.length === 0) || inviteJoiningCode) {
     return withTermsNotice(
       <div className="bg-[#F0FAF9] dark:bg-[#101622] min-h-screen flex items-center justify-center px-6">
-        <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-[16px] border border-slate-200 dark:border-slate-800 p-8 text-center">
+        <div className="w-full max-w-sm bg-white dark:bg-[#1A1A1A] rounded-[16px] border border-[#c8d9d2] dark:border-[#074738]/30 p-8 text-center">
           {loadTimeout && !inviteJoiningCode ? (
             <>
               <p className="text-base font-bold text-slate-900 dark:text-white">Problema de conexión</p>
@@ -563,7 +562,7 @@ export default function HomeScreen() {
           <div className="fixed top-4 left-4 z-40">
             <button
               onClick={() => setShowSidebar(true)}
-              className="size-10 rounded-full bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-800 flex items-center justify-center hover:scale-110 transition-transform"
+              className="size-10 rounded-full bg-white dark:bg-[#1A1A1A] shadow-lg border border-[#c8d9d2] dark:border-[#074738]/30 flex items-center justify-center hover:scale-110 transition-transform"
             >
               <MaterialIcon
                 name="menu"

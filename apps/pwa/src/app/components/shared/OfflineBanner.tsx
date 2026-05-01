@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { WifiOff } from "lucide-react";
+import { MaterialIcon } from "./MaterialIcon";
 
 /**
  * Global offline banner. Slides in from top when connection drops,
@@ -44,7 +44,7 @@ export function OfflineBanner() {
     >
       {isOffline ? (
         <>
-          <WifiOff size={14} strokeWidth={2.5} />
+          <MaterialIcon name="wifi_off" className="!text-[14px]" />
           Sin conexión — los datos se sincronizarán al volver
         </>
       ) : (

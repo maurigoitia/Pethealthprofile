@@ -1,30 +1,24 @@
-/**
- * BottomNavRouted — route-based bottom navigation.
- *
- * Replaces the callback-based BottomNav with one that navigates
- * to real routes using react-router. Active tab is derived from
- * the current URL path — no more viewMode state.
- */
 import React from "react";
 import { useLocation, useNavigate } from "react-router";
-import { Home, Shield, Plus, Heart, Compass } from "lucide-react";
+import { MaterialIcon } from "./MaterialIcon";
 import { isFocusExperienceHost } from "../../utils/runtimeFlags";
 
 interface BottomNavRoutedProps {
   onAddDocument?: () => void;
 }
 
-type TabId = "inicio" | "identidad" | "rutinas" | "servicios";
+type TabId = "dia_a_dia" | "rutinas" | "comunidad" | "identidad";
 
 const TAB_ROUTES: Record<TabId, string> = {
-  inicio: "/inicio",
-  identidad: "/identidad",
+  dia_a_dia: "/inicio",
   rutinas: "/rutinas",
-  servicios: "/buscar-vet",
+  comunidad: "/comunidad",
+  identidad: "/identidad",
 };
 
 function resolveActiveTab(pathname: string): TabId {
-  if (pathname === "/inicio" || pathname === "/home") return "inicio";
+  if (pathname === "/inicio" || pathname === "/home") return "dia_a_dia";
+  if (pathname.startsWith("/comunidad")) return "comunidad";
   if (pathname.startsWith("/identidad")) return "identidad";
   if (
     pathname.startsWith("/rutinas") ||
@@ -35,13 +29,7 @@ function resolveActiveTab(pathname: string): TabId {
     pathname.startsWith("/rutinas-eco")
   )
     return "rutinas";
-  if (
-    pathname.startsWith("/buscar-vet") ||
-    pathname.startsWith("/vet/") ||
-    pathname.startsWith("/comunidad")
-  )
-    return "servicios";
-  return "inicio";
+  return "dia_a_dia";
 }
 
 export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
@@ -50,11 +38,8 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
   const activeTab = resolveActiveTab(location.pathname);
   const focusExperienceEnabled = isFocusExperienceHost();
 
-  const iconSize = focusExperienceEnabled ? 22 : 20;
-  const strokeWidth = 1.8;
-
   const handleNav = (tab: TabId) => {
-    if (tab === activeTab) return; // already on this tab
+    if (tab === activeTab) return;
     navigate(TAB_ROUTES[tab]);
   };
 
@@ -64,31 +49,21 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
       <nav className="fixed inset-x-0 bottom-4 z-40 pessy-fade-up" style={{ animationDelay: "200ms" }}>
         <div className="max-w-md mx-auto px-4">
           <div className="rounded-full bg-[#074738] px-5 py-3 shadow-[0_8px_32px_rgba(7,71,56,0.25)]">
-            <div className="grid grid-cols-5 items-center">
-              <TabButton active={activeTab === "inicio"} label="Inicio" onClick={() => handleNav("inicio")}>
-                <Home size={iconSize} strokeWidth={strokeWidth} />
+            <div className="grid grid-cols-4 items-center">
+              <TabButton active={activeTab === "dia_a_dia"} label="Día a Día" onClick={() => handleNav("dia_a_dia")}>
+                <MaterialIcon name="home" className="text-[22px]" />
+              </TabButton>
+
+              <TabButton active={activeTab === "rutinas"} label="Rutinas" onClick={() => handleNav("rutinas")}>
+                <MaterialIcon name="favorite" className="text-[22px]" />
+              </TabButton>
+
+              <TabButton active={activeTab === "comunidad"} label="Comunidad" onClick={() => handleNav("comunidad")}>
+                <MaterialIcon name="groups" className="text-[22px]" />
               </TabButton>
 
               <TabButton active={activeTab === "identidad"} label="Identidad" onClick={() => handleNav("identidad")}>
-                <Shield size={iconSize} strokeWidth={strokeWidth} />
-              </TabButton>
-
-              {onAddDocument ? (
-                <button onClick={onAddDocument} className="flex items-center justify-center" aria-label="Agregar documento">
-                  <div className="size-12 rounded-[14px] bg-white text-[#074738] flex items-center justify-center shadow-[0_4px_16px_rgba(26,155,125,0.3)] hover:shadow-[0_4px_24px_rgba(26,155,125,0.45)] transition-shadow duration-150">
-                    <Plus size={24} strokeWidth={2.2} />
-                  </div>
-                </button>
-              ) : (
-                <div />
-              )}
-
-              <TabButton active={activeTab === "rutinas"} label="Rutinas" onClick={() => handleNav("rutinas")}>
-                <Heart size={iconSize} strokeWidth={strokeWidth} />
-              </TabButton>
-
-              <TabButton active={activeTab === "servicios"} label="Servicios" onClick={() => handleNav("servicios")}>
-                <Compass size={iconSize} strokeWidth={strokeWidth} />
+                <MaterialIcon name="shield" className="text-[22px]" />
               </TabButton>
             </div>
           </div>
@@ -97,37 +72,26 @@ export function BottomNavRouted({ onAddDocument }: BottomNavRoutedProps) {
     );
   }
 
-  // ── Standard bottom nav ──
+  // ── Standard bottom nav (4 Pillars) ──
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 pessy-fade-up" style={{ animationDelay: "200ms" }}>
       <div className="max-w-md mx-auto px-3 pb-[env(safe-area-inset-bottom,8px)]">
         <div className="pessy-glass rounded-2xl border border-white/40 shadow-[0_-2px_20px_rgba(7,71,56,0.08)] px-2 py-2">
           <div className="flex items-center justify-around">
-            <StandardTab active={activeTab === "inicio"} label="Inicio" onClick={() => handleNav("inicio")}>
-              <Home size={20} />
+            <StandardTab active={activeTab === "dia_a_dia"} label="Día a Día" onClick={() => handleNav("dia_a_dia")}>
+              <MaterialIcon name="home" />
+            </StandardTab>
+
+            <StandardTab active={activeTab === "rutinas"} label="Rutinas" onClick={() => handleNav("rutinas")}>
+              <MaterialIcon name="favorite" />
+            </StandardTab>
+
+            <StandardTab active={activeTab === "comunidad"} label="Comunidad" onClick={() => handleNav("comunidad")}>
+              <MaterialIcon name="groups" />
             </StandardTab>
 
             <StandardTab active={activeTab === "identidad"} label="Identidad" onClick={() => handleNav("identidad")}>
-              <Shield size={20} />
-            </StandardTab>
-
-            {onAddDocument ? (
-              <button onClick={onAddDocument} className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-150" aria-label="Agregar documento">
-                <div className="size-12 rounded-[14px] bg-[#074738] text-white flex items-center justify-center shadow-[0_2px_12px_rgba(7,71,56,0.3)]">
-                  <Plus size={24} strokeWidth={2.2} />
-                </div>
-                <span className="text-[10px] font-bold tracking-wider text-[#074738]">Agregar</span>
-              </button>
-            ) : (
-              <div className="px-3" />
-            )}
-
-            <StandardTab active={activeTab === "rutinas"} label="Rutinas" onClick={() => handleNav("rutinas")}>
-              <Heart size={20} />
-            </StandardTab>
-
-            <StandardTab active={activeTab === "servicios"} label="Servicios" onClick={() => handleNav("servicios")}>
-              <Compass size={20} />
+              <MaterialIcon name="shield" />
             </StandardTab>
           </div>
         </div>

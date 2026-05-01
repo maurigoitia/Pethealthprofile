@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { MapPin, NavigationIcon, Star, ExternalLink } from "lucide-react";
+import { MaterialIcon } from "../shared/MaterialIcon";
 
 /**
  * NearbyVetsFromMaps — Fuente B de "Servicios reales".
@@ -62,7 +62,7 @@ function FallbackButton({ coords, label }: { coords: { lat: number; lng: number 
       className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-[14px] bg-[#074738] text-white text-sm font-bold active:scale-[0.97] transition-transform"
       style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
     >
-      <ExternalLink size={14} />
+      <MaterialIcon name="open_in_new" className="!text-[14px]" />
       {label}
     </button>
   );
@@ -71,7 +71,7 @@ function FallbackButton({ coords, label }: { coords: { lat: number; lng: number 
 function SectionHeader() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-      <NavigationIcon size={12} color="#1A9B7D" strokeWidth={2.4} />
+      <MaterialIcon name="navigation" className="!text-[12px] text-[#1A9B7D]" />
       <p
         style={{
           fontFamily: "'Plus Jakarta Sans', sans-serif",
@@ -395,7 +395,7 @@ export function NearbyVetsFromMaps() {
           className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-[10px] border-2 border-[#E0F2F1] text-[#074738] text-[11px] font-bold active:scale-[0.97] transition-transform"
           style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
         >
-          <ExternalLink size={11} />
+          <MaterialIcon name="open_in_new" className="!text-[11px]" />
           Ver más en Google Maps
         </button>
       </div>

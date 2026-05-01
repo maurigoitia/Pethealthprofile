@@ -1,5 +1,5 @@
 import React from "react";
-import { Stethoscope, Phone, Mail, Hash } from "lucide-react";
+import { MaterialIcon } from "../shared/MaterialIcon";
 import { usePet } from "../../contexts/PetContext";
 import { useExtractedVets } from "../../hooks/useExtractedVets";
 
@@ -69,7 +69,7 @@ export function TreatingVetsList() {
                   color: "#1A9B7D",
                 }}
               >
-                <Stethoscope size={18} strokeWidth={1.8} />
+                <MaterialIcon name="medical_services" className="!text-[18px]" />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p
@@ -77,7 +77,7 @@ export function TreatingVetsList() {
                     fontFamily: "'Plus Jakarta Sans', sans-serif",
                     fontSize: 14,
                     fontWeight: 700,
-                    color: "#0F172A",
+                    color: "#1A1A1A",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -86,7 +86,7 @@ export function TreatingVetsList() {
                   {vet.name}
                 </p>
                 {vet.clinic && (
-                  <p style={{ fontSize: 11, color: "#94A3B8", marginTop: 1 }}>
+                  <p style={{ fontSize: 11, color: "#9CA3AF", marginTop: 1 }}>
                     {vet.clinic}
                     {vet.eventCount >= 2 ? ` · ${vet.eventCount} docs` : ""}
                   </p>
@@ -111,14 +111,14 @@ export function TreatingVetsList() {
                       alignItems: "center",
                       gap: 4,
                       fontSize: 11,
-                      color: "#374151",
+                      color: "#6B7280",
                       fontWeight: 600,
                       backgroundColor: "#F1F5F9",
                       padding: "4px 8px",
                       borderRadius: 8,
                     }}
                   >
-                    <Hash size={11} strokeWidth={2} color="#1A9B7D" />
+                    <MaterialIcon name="tag" className="!text-[11px] text-[#1A9B7D]" />
                     Mat. {vet.license}
                   </span>
                 )}
@@ -138,7 +138,7 @@ export function TreatingVetsList() {
                       textDecoration: "none",
                     }}
                   >
-                    <Phone size={11} strokeWidth={2} />
+                    <MaterialIcon name="phone" className="!text-[11px]" />
                     {vet.phone}
                   </a>
                 )}
@@ -158,7 +158,7 @@ export function TreatingVetsList() {
                       textDecoration: "none",
                     }}
                   >
-                    <Mail size={11} strokeWidth={2} />
+                    <MaterialIcon name="mail" className="!text-[11px]" />
                     {vet.email}
                   </a>
                 )}

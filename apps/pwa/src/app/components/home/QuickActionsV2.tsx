@@ -6,14 +6,7 @@
  * are email ingestion items awaiting confirmation.
  */
 import { useNavigate } from "react-router";
-import {
-  CalendarPlus,
-  FileUp,
-  Stethoscope,
-  MapPin,
-  AlertCircle,
-  Pill,
-} from "lucide-react";
+import { MaterialIcon } from "../shared/MaterialIcon";
 import { useAppLayout } from "../layout/AppLayout";
 
 interface QuickActionsV2Props {
@@ -42,13 +35,13 @@ export function QuickActionsV2({
           className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#FEF3C7] border border-[#F59E0B]/30 text-left transition-all active:scale-[0.98]"
         >
           <div className="size-10 rounded-xl bg-[#F59E0B]/20 flex items-center justify-center shrink-0">
-            <AlertCircle size={20} className="text-[#D97706]" strokeWidth={2} />
+            <MaterialIcon name="warning" className="text-[#D97706] !text-[22px]" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-[#92400E]">
               {pendingReviewCount === 1
-                ? "1 registro necesita tu confirmacion"
-                : `${pendingReviewCount} registros necesitan tu confirmacion`}
+                ? "1 registro necesita tu confirmación"
+                : `${pendingReviewCount} registros necesitan tu confirmación`}
             </p>
             <p className="text-xs text-[#B45309] mt-0.5">
               De correos procesados por Pessy
@@ -63,7 +56,7 @@ export function QuickActionsV2({
       {/* ── Action buttons grid ── */}
       <div className="pessy-stagger grid grid-cols-2 gap-3">
         <ActionButton
-          icon={<CalendarPlus size={22} strokeWidth={1.8} />}
+          iconName="event_available"
           label="Agregar turno"
           sublabel={upcomingAppointments > 0 ? `${upcomingAppointments} próximo${upcomingAppointments > 1 ? "s" : ""}` : undefined}
           onClick={() => navigate("/turnos")}
@@ -71,14 +64,14 @@ export function QuickActionsV2({
           iconColor="text-[#1A9B7D]"
         />
         <ActionButton
-          icon={<FileUp size={22} strokeWidth={1.8} />}
+          iconName="upload_file"
           label="Subir documento"
           onClick={openScanner}
           iconBg="bg-[#EDE9FE]"
           iconColor="text-[#5048CA]"
         />
         <ActionButton
-          icon={<Pill size={22} strokeWidth={1.8} />}
+          iconName="pill"
           label="Tratamientos"
           sublabel={activeMedications > 0 ? `${activeMedications} activo${activeMedications > 1 ? "s" : ""}` : "Ver todos"}
           onClick={() => navigate("/tratamientos")}
@@ -86,7 +79,7 @@ export function QuickActionsV2({
           iconColor="text-[#1A9B7D]"
         />
         <ActionButton
-          icon={<Stethoscope size={22} strokeWidth={1.8} />}
+          iconName="history"
           label="Ver historial"
           onClick={() => navigate("/historial")}
           iconBg="bg-[#F0F0FF]"
@@ -100,14 +93,14 @@ export function QuickActionsV2({
 // ── Internal action button ──
 
 function ActionButton({
-  icon,
+  iconName,
   label,
   sublabel,
   onClick,
   iconBg,
   iconColor,
 }: {
-  icon: React.ReactNode;
+  iconName: string;
   label: string;
   sublabel?: string;
   onClick: () => void;
@@ -117,14 +110,14 @@ function ActionButton({
   return (
     <button
       onClick={onClick}
-      className="rounded-[16px] p-4 text-left border border-[#E5E7EB] bg-white transition-all active:scale-[0.97] hover:border-[#1A9B7D]/30 min-h-[88px]"
+      className="rounded-[16px] p-4 text-left border border-[#c8d9d2] bg-white transition-all active:scale-[0.97] hover:border-[#1A9B7D]/30 min-h-[88px]"
     >
       <div className={`size-11 rounded-[12px] ${iconBg} flex items-center justify-center mb-2.5`}>
-        <span className={iconColor}>{icon}</span>
+        <MaterialIcon name={iconName} className={`${iconColor} !text-[22px]`} />
       </div>
       <p className="text-[14px] font-bold text-[#074738] leading-tight">{label}</p>
       {sublabel && (
-        <p className="text-[12px] text-[#6B7280] mt-0.5 font-medium">{sublabel}</p>
+        <p className="text-[12px] text-[#6b8a7e] mt-0.5 font-medium">{sublabel}</p>
       )}
     </button>
   );

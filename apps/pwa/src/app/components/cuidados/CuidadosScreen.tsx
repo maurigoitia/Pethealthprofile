@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, Stethoscope, Syringe, Pill, Scissors, HeartPulse } from "lucide-react";
+import { MaterialIcon } from "../shared/MaterialIcon";
 import { usePet } from "../../contexts/PetContext";
 import { useMedical } from "../../contexts/MedicalContext";
 import { TreatingVetsList } from "../medical/TreatingVetsList";
@@ -94,10 +94,10 @@ export function CuidadosScreen({ onBack }: Props) {
   const groomingDetail = "Sin registro de grooming";
 
   const dimensions: HealthDimension[] = [
-    { icon: <Syringe size={18} strokeWidth={1.8} />,     label: "Vacunas",         status: vaccineStatus, detail: vaccineDetail },
-    { icon: <Stethoscope size={18} strokeWidth={1.8} />, label: "Control médico",  status: apptStatus,    detail: apptDetail },
-    { icon: <Pill size={18} strokeWidth={1.8} />,        label: "Medicamentos",    status: medStatus,     detail: medDetail },
-    { icon: <Scissors size={18} strokeWidth={1.8} />,    label: "Grooming",        status: groomingStatus, detail: groomingDetail },
+    { icon: <MaterialIcon name="vaccines" className="!text-[18px]" />,         label: "Vacunas",         status: vaccineStatus, detail: vaccineDetail },
+    { icon: <MaterialIcon name="medical_services" className="!text-[18px]" />, label: "Control médico",  status: apptStatus,    detail: apptDetail },
+    { icon: <MaterialIcon name="medication" className="!text-[18px]" />,        label: "Medicamentos",    status: medStatus,     detail: medDetail },
+    { icon: <MaterialIcon name="content_cut" className="!text-[18px]" />,    label: "Grooming",        status: groomingStatus, detail: groomingDetail },
   ];
 
   const hasAlert    = dimensions.some((d) => d.status === "alert");
@@ -131,10 +131,10 @@ export function CuidadosScreen({ onBack }: Props) {
             type="button"
             onClick={onBack}
             aria-label="Volver"
-            className="size-11 rounded-full bg-white flex items-center justify-center border border-[#E5E7EB] transition-all active:scale-[0.96] shrink-0"
+            className="size-11 rounded-full bg-white flex items-center justify-center border border-[#c8d9d2] transition-all active:scale-[0.96] shrink-0"
             style={{ boxShadow: "0 1px 3px rgba(7,71,56,0.04)" }}
           >
-            <ArrowLeft size={18} color="#074738" />
+            <MaterialIcon name="arrow_back" className="!text-[18px] text-[#074738]" />
           </button>
           <h1
             className="flex-1 text-[22px] font-extrabold text-[#074738] leading-tight"
@@ -151,10 +151,10 @@ export function CuidadosScreen({ onBack }: Props) {
         <div style={{ borderRadius: 20, padding: "24px 20px", backgroundColor: overallConfig.bg, display: "flex", alignItems: "center", gap: 16 }}>
           <span style={{ fontSize: 52, lineHeight: 1 }}>{overallConfig.emoji}</span>
           <div>
-            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 17, fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>
+            <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 17, fontWeight: 800, color: "#1A1A1A", lineHeight: 1.2 }}>
               {overallConfig.headline}
             </p>
-            <p style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>{overallConfig.sub}</p>
+            <p style={{ fontSize: 13, color: "#6B7280", marginTop: 4 }}>{overallConfig.sub}</p>
           </div>
         </div>
 
@@ -162,7 +162,7 @@ export function CuidadosScreen({ onBack }: Props) {
         {allUnknown && activeConditions.length === 0 && appointments.filter((a) => a.status === "upcoming" && a.date).length === 0 && (
           <div className="bg-white rounded-[16px] border border-[rgba(7,71,56,0.08)] shadow-[0_2px_8px_rgba(0,0,0,0.04)] py-10 px-6 text-center">
             <div className="w-24 h-24 rounded-full bg-[#E0F2F1] flex items-center justify-center mx-auto mb-5">
-              <HeartPulse size={40} color="#1A9B7D" strokeWidth={1.8} />
+              <MaterialIcon name="favorite" className="!text-[40px] text-[#1A9B7D]" />
             </div>
             <div className="inline-flex items-center px-3 py-1 rounded-full bg-[#1A9B7D]/10 border border-[#1A9B7D]/20 mb-4">
               <span
@@ -206,8 +206,8 @@ export function CuidadosScreen({ onBack }: Props) {
                     </span>
                   </div>
                   <div>
-                    <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{dim.label}</p>
-                    <p style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>{dim.detail}</p>
+                    <p style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, fontWeight: 700, color: "#1A1A1A" }}>{dim.label}</p>
+                    <p style={{ fontSize: 11, color: "#6B7280", marginTop: 2 }}>{dim.detail}</p>
                   </div>
                 </div>
               );
@@ -229,14 +229,14 @@ export function CuidadosScreen({ onBack }: Props) {
                 const days = daysUntil(appt.date);
                 return (
                   <div key={appt.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, marginBottom: 10, boxShadow: "0 2px 8px rgba(0,0,0,.04)", border: "1px solid rgba(7,71,56,0.08)" }}>
-                    <div style={{ width: 40, height: 40, minWidth: 40, borderRadius: "50%", backgroundColor: "#E0F2F1", display: "flex", alignItems: "center", justifyContent: "center", color: "#1A9B7D" }}>
-                      <Stethoscope size={18} strokeWidth={1.8} />
+                    <div style={{ width: 40, height: 40, minWidth: 40, borderRadius: "50%", backgroundColor: "#E0F2F1", display: "flex", alignItems: "center", justifyCenter: "center", color: "#1A9B7D" }}>
+                      <MaterialIcon name="medical_services" className="!text-[18px]" />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#1E293B", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#1A1A1A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         {appt.title || "Turno médico"}
                       </p>
-                      <p style={{ fontSize: 11, color: "#94A3B8" }}>
+                      <p style={{ fontSize: 11, color: "#9CA3AF" }}>
                         {appt.date} {appt.time ? `· ${appt.time}` : ""}
                       </p>
                     </div>

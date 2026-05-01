@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { MapPin, MessageCircle } from "lucide-react";
+import { MaterialIcon } from "../shared/MaterialIcon";
 import { db } from "../../../lib/firebase";
 import { collection, getDocs, addDoc, query, orderBy } from "firebase/firestore";
 
@@ -76,16 +76,16 @@ function PetCard({ pet }: { pet: LostPet }) {
           <span>{isPerdido ? "🔴" : "🟢"}</span>
           {isPerdido ? "Perdido" : "Encontrado"}
         </span>
-        <span className="text-xs text-slate-400">{pet.date}</span>
+        <span className="text-xs text-[#9CA3AF]">{pet.date}</span>
       </div>
 
       {/* Name + breed */}
-      <p className="font-semibold text-slate-800 leading-tight">{pet.name}</p>
-      <p className="text-xs text-slate-500 mt-0.5">{pet.breed}</p>
+      <p className="font-semibold text-[#1A1A1A] leading-tight">{pet.name}</p>
+      <p className="text-xs text-[#6B7280] mt-0.5">{pet.breed}</p>
 
       {/* Description */}
       <p
-        className="text-sm text-slate-600 mt-1 overflow-hidden"
+        className="text-sm text-[#4B5563] mt-1 overflow-hidden"
         style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
       >
         {pet.description}
@@ -94,14 +94,14 @@ function PetCard({ pet }: { pet: LostPet }) {
       {/* Bottom row */}
       <div className="flex items-center justify-between mt-3">
         <span className="inline-flex items-center gap-1 bg-[#E0F2F1] text-[#074738] text-[10px] rounded-full px-2 py-0.5">
-          <MapPin size={10} />
+          <MaterialIcon name="place" className="!text-[10px]" />
           {pet.location}
         </span>
         <button
           type="button"
           className="inline-flex items-center gap-1 text-xs font-bold text-[#074738] border border-[#074738] rounded-full px-3 py-1 active:scale-[0.97] transition-transform"
         >
-          <MessageCircle size={11} />
+          <MaterialIcon name="chat_bubble_outline" className="!text-[11px]" />
           Contactar
         </button>
       </div>
@@ -194,7 +194,7 @@ export function ComunidadScreen(_props: ComunidadScreenProps) {
   ];
 
   const inputClass =
-    "w-full border border-slate-200 rounded-[12px] px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1A9B7D]/40 bg-[#F0FAF9]";
+    "w-full border border-[#c8d9d2] rounded-[12px] px-4 py-3 text-sm text-[#1A1A1A] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#1A9B7D]/40 bg-[#F0FAF9]";
 
   return (
     <div className="min-h-screen bg-[#F0FAF9] pb-24" style={{ fontFamily: "'Manrope', sans-serif" }}>
@@ -252,7 +252,7 @@ export function ComunidadScreen(_props: ComunidadScreenProps) {
             <div className="size-8 rounded-full border-2 border-[#074738]/20 border-t-[#074738] animate-spin" />
           </div>
         ) : filteredPets.length === 0 ? (
-          <div className="text-center py-10 text-slate-400 text-sm">
+          <div className="text-center py-10 text-[#9CA3AF] text-sm">
             No hay publicaciones en esta categoría aún.
           </div>
         ) : (
@@ -269,7 +269,7 @@ export function ComunidadScreen(_props: ComunidadScreenProps) {
           >
             ¿Encontraste o perdiste una mascota?
           </h2>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-[#6B7280] mt-1">
             Publicá en la comunidad y recibí ayuda de vecinos cercanos.
           </p>
 
@@ -279,7 +279,7 @@ export function ComunidadScreen(_props: ComunidadScreenProps) {
               <p className="font-bold text-[#074738]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                 ¡Publicado!
               </p>
-              <p className="text-sm text-slate-500">La comunidad puede ayudarte.</p>
+            <p className="text-sm text-[#6B7280]">La comunidad puede ayudarte.</p>
               <button
                 type="button"
                 onClick={() => setSubmitted(false)}
