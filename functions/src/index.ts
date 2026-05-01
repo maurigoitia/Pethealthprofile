@@ -2417,7 +2417,6 @@ export const generateClinicalSummary = functions
   };
   });
 
-<<<<<<< HEAD
 // ═══════════════════════════════════════════════════════════════════════
 // pessyClinicalSummaryStructured — resumen clínico veterinario en 10
 // secciones, generado por el cerebro AI de Pessy (Gemini). Hardcodea el
@@ -3182,8 +3181,6 @@ Recordá: si no hay nada relevante → message vacío + state="stable". Tono Pes
     };
   });
 
-=======
->>>>>>> origin/main
 export const resolveBrainPayload = functions
   .region("us-central1")
   .https.onCall(async (data, context) => {
