@@ -69,12 +69,12 @@ describe("LoginScreen — Render", () => {
 
   it("renders email input", () => {
     render(<LoginScreen />);
-    expect(screen.getByPlaceholderText(/correo/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
   });
 
   it("renders password input", () => {
     render(<LoginScreen />);
-    expect(screen.getByPlaceholderText(/contraseña/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Contraseña")).toBeInTheDocument();
   });
 
   it("renders 'Ingresar' submit button", () => {
@@ -108,8 +108,8 @@ describe("LoginScreen — Email/password login", () => {
     render(<LoginScreen />);
     const user = userEvent.setup();
 
-    await user.type(screen.getByPlaceholderText(/correo/i), "MAURI@PESSY.APP");
-    await user.type(screen.getByPlaceholderText(/contraseña/i), "secret123");
+    await user.type(screen.getByLabelText(/email/i), "MAURI@PESSY.APP");
+    await user.type(screen.getByLabelText("Contraseña"), "secret123");
     await user.click(screen.getByRole("button", { name: /ingresar/i }));
 
     await waitFor(() => {
@@ -126,8 +126,8 @@ describe("LoginScreen — Email/password login", () => {
     render(<LoginScreen />);
     const user = userEvent.setup();
 
-    await user.type(screen.getByPlaceholderText(/correo/i), "mauri@pessy.app");
-    await user.type(screen.getByPlaceholderText(/contraseña/i), "wrong");
+    await user.type(screen.getByLabelText(/email/i), "mauri@pessy.app");
+    await user.type(screen.getByLabelText("Contraseña"), "wrong");
     await user.click(screen.getByRole("button", { name: /ingresar/i }));
 
     await waitFor(() => {
@@ -141,8 +141,8 @@ describe("LoginScreen — Email/password login", () => {
     render(<LoginScreen />);
     const user = userEvent.setup();
 
-    await user.type(screen.getByPlaceholderText(/correo/i), "ghost@test.com");
-    await user.type(screen.getByPlaceholderText(/contraseña/i), "pass");
+    await user.type(screen.getByLabelText(/email/i), "ghost@test.com");
+    await user.type(screen.getByLabelText("Contraseña"), "pass");
     await user.click(screen.getByRole("button", { name: /ingresar/i }));
 
     await waitFor(() => {
@@ -155,8 +155,8 @@ describe("LoginScreen — Email/password login", () => {
     render(<LoginScreen />);
     const user = userEvent.setup();
 
-    await user.type(screen.getByPlaceholderText(/correo/i), "mauri@pessy.app");
-    await user.type(screen.getByPlaceholderText(/contraseña/i), "pass");
+    await user.type(screen.getByLabelText(/email/i), "mauri@pessy.app");
+    await user.type(screen.getByLabelText("Contraseña"), "pass");
     await user.click(screen.getByRole("button", { name: /ingresar/i }));
 
     await waitFor(() => {
@@ -172,8 +172,8 @@ describe("LoginScreen — Email/password login", () => {
     const user = userEvent.setup();
     const submitBtn = screen.getByRole("button", { name: /ingresar/i });
 
-    await user.type(screen.getByPlaceholderText(/correo/i), "mauri@pessy.app");
-    await user.type(screen.getByPlaceholderText(/contraseña/i), "pass");
+    await user.type(screen.getByLabelText(/email/i), "mauri@pessy.app");
+    await user.type(screen.getByLabelText("Contraseña"), "pass");
     await user.click(submitBtn);
 
     expect(submitBtn).toBeDisabled();
@@ -227,6 +227,6 @@ describe("LoginScreen — Accessibility", () => {
 
   it("password input defaults to type=password (not plain text)", () => {
     render(<LoginScreen />);
-    expect(screen.getByPlaceholderText(/contraseña/i)).toHaveAttribute("type", "password");
+    expect(screen.getByLabelText("Contraseña")).toHaveAttribute("type", "password");
   });
 });
