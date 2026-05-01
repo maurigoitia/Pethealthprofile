@@ -266,6 +266,7 @@ export function RutinasHub({ onBack }: Props) {
   const completeness = pet ? getDataCompleteness(pet) : "minimal";
   const recommendations = pet
     ? getRecommendations(pet, ageYears, energy)
+    : [{
         id: "add-pet",
         icon: <MaterialIcon name="add_circle" className="!text-[20px] text-[#1A9B7D]" />,
         title: "Agregá tu mascota",
