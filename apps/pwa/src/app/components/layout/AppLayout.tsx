@@ -1,7 +1,6 @@
 import { createContext, lazy, Suspense, useContext, useEffect, useState } from "react";
 import { Navigate, Outlet, useLocation, useNavigate } from "react-router";
 import { BottomNavRouted } from "../shared/BottomNavRouted";
-import { Sidebar } from "../shared/Sidebar";
 import { TermsAcceptanceNotice } from "../settings/TermsAcceptanceNotice";
 import { usePet } from "../../contexts/PetContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -53,7 +52,6 @@ export interface AppLayoutActions {
   openPetProfile: () => void;
   openExportReport: () => void;
   openInviteFriends: () => void;
-  openSidebar: () => void;
 }
 
 export const AppLayoutContext = createContext<AppLayoutActions>({
@@ -62,7 +60,6 @@ export const AppLayoutContext = createContext<AppLayoutActions>({
   openPetProfile: () => {},
   openExportReport: () => {},
   openInviteFriends: () => {},
-  openSidebar: () => {},
 });
 
 export function useAppLayout() {
@@ -86,11 +83,6 @@ function ScreenLoader({ label = "Cargando..." }: { label?: string }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Routes where the hamburger menu button should appear
-// ---------------------------------------------------------------------------
-
-const HAMBURGER_ROUTES = ["/inicio", "/home", "/historial"];
 
 // ---------------------------------------------------------------------------
 // Legacy ?review= param → new route redirect map
@@ -137,8 +129,6 @@ export default function AppLayout() {
   const [showExportReport, setShowExportReport] = useState(false);
   const [showInviteFriends, setShowInviteFriends] = useState(false);
 
-  // Sidebar
-  const [showSidebar, setShowSidebar] = useState(false);
 
   // Co-tutor invite state
   const [inviteNotice, setInviteNotice] = useState<{
@@ -289,9 +279,6 @@ export default function AppLayout() {
 
   const currentTab = deriveCurrentTab(location.pathname);
 
-  const showHamburger = HAMBURGER_ROUTES.some(
-    (r) => location.pathname === r || location.pathname.startsWith(r + "/")
-  );
 
   // -----------------------------------------------------------------------
   // Handlers
@@ -302,34 +289,6 @@ export default function AppLayout() {
     else navigate("/perfil");
   };
 
-  const handleBottomNavNavigate = (screen: "lost-pets" | "explore") => {
-    if (screen === "lost-pets") navigate("/comunidad");
-    else navigate("/explorar");
-  };
-
-  const handleSidebarNavigate = (
-    screen:
-      | "home"
-      | "appointments"
-      | "medications"
-      | "feed"
-      | "settings"
-      | "nearby-vets"
-      | "lost-pets"
-      | "explore"
-  ) => {
-    const routeMap: Record<string, string> = {
-      home: "/inicio",
-      appointments: "/turnos",
-      medications: "/tratamientos",
-      feed: "/historial",
-      "nearby-vets": "/explorar",
-      "lost-pets": "/comunidad",
-      explore: "/explorar",
-      settings: "/perfil",
-    };
-    navigate(routeMap[screen] || "/inicio");
-  };
 
   const handlePetChange = (petId: string) => {
     setActivePetId(petId);
@@ -349,7 +308,6 @@ export default function AppLayout() {
     openPetProfile: () => setShowPetProfile(true),
     openExportReport: () => setShowExportReport(true),
     openInviteFriends: () => setShowInviteFriends(true),
-    openSidebar: () => setShowSidebar(true),
   };
 
   // -----------------------------------------------------------------------
@@ -545,25 +503,6 @@ export default function AppLayout() {
       {inviteBanner}
 
       <div className="pessy-grain bg-[#F0FAF9] dark:bg-[#101622] text-slate-900 dark:text-slate-100 min-h-screen font-['Manrope',sans-serif]">
-        {/* Sidebar */}
-        <Sidebar
-          isOpen={showSidebar}
-          onClose={() => setShowSidebar(false)}
-          userName={safeUserName}
-          userEmail={user.email || undefined}
-          pets={pets.map((p) => ({
-            id: p.id,
-            name: p.name,
-            photo: p.photo,
-            breed: p.breed,
-          }))}
-          activePetId={activePetId}
-          onPetChange={handlePetChange}
-          onAddPet={handleAddNewPet}
-          onInviteFriends={() => setShowInviteFriends(true)}
-          onNavigate={handleSidebarNavigate}
-          onLogout={logout}
-        />
 
         {/* Child route content */}
         <Suspense fallback={<ScreenLoader />}>

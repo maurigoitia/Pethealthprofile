@@ -32,22 +32,22 @@ export function QuickActionsV2({
       {pendingReviewCount > 0 && (
         <button
           onClick={() => navigate("/historial")}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#FEF3C7] border border-[#F59E0B]/30 text-left transition-all active:scale-[0.98]"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#FEF2F2] border border-[#FCA5A5] text-left transition-all active:scale-[0.98]"
         >
-          <div className="size-10 rounded-xl bg-[#F59E0B]/20 flex items-center justify-center shrink-0">
-            <MaterialIcon name="warning" className="text-[#D97706] !text-[22px]" />
+          <div className="size-10 rounded-xl bg-white border border-[#FCA5A5] flex items-center justify-center shrink-0">
+            <MaterialIcon name="warning" className="text-[#B91C1C] !text-[22px]" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-[#92400E]">
+            <p className="text-sm font-bold text-[#B91C1C]">
               {pendingReviewCount === 1
                 ? "1 registro necesita tu confirmación"
                 : `${pendingReviewCount} registros necesitan tu confirmación`}
             </p>
-            <p className="text-xs text-[#B45309] mt-0.5">
+            <p className="text-xs text-[#B91C1C]/70 mt-0.5">
               De correos procesados por Pessy
             </p>
           </div>
-          <div className="size-6 rounded-full bg-[#F59E0B] text-white flex items-center justify-center text-xs font-black shrink-0">
+          <div className="size-6 rounded-full bg-[#B91C1C] text-white flex items-center justify-center text-xs font-black shrink-0">
             {pendingReviewCount > 9 ? "9+" : pendingReviewCount}
           </div>
         </button>

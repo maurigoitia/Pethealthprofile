@@ -266,15 +266,18 @@ export function RutinasHub({ onBack }: Props) {
   const completeness = pet ? getDataCompleteness(pet) : "minimal";
   const recommendations = pet
     ? getRecommendations(pet, ageYears, energy)
-        id: "add-pet",
-        icon: <MaterialIcon name="add_circle" className="!text-[20px] text-[#1A9B7D]" />,
-        title: "Agregá tu mascota",
-        description: "Creá el perfil de tu mascota para ver recomendaciones personalizadas.",
-        category: "cuidado" as const,
-        isActionable: true,
-        ctaLabel: "Ir al inicio",
-        ctaRoute: "/inicio",
-      }];
+    : [
+        {
+          id: "add-pet",
+          icon: <MaterialIcon name="add_circle" className="!text-[20px] text-[#1A9B7D]" />,
+          title: "Agregá tu mascota",
+          description: "Creá el perfil de tu mascota para ver recomendaciones personalizadas.",
+          category: "cuidado" as const,
+          isActionable: true,
+          ctaLabel: "Ir al inicio",
+          ctaRoute: "/inicio",
+        },
+      ];
   const nextWalk = getNextWalkTime(pet?.preferences?.walkTimes);
 
   const energyCfg = ENERGY_CONFIG[energy];
@@ -343,6 +346,7 @@ export function RutinasHub({ onBack }: Props) {
             </div>
 
             {/* Next walk */}
+            {nextWalk && (
               <div className="mt-3 flex items-center gap-2 rounded-[12px] bg-[#E0F2F1] px-3 py-2">
                 <MaterialIcon name="location_on" className="!text-[16px] text-[#1A9B7D] shrink-0" />
                 <p className="text-xs font-semibold text-[#074738]">

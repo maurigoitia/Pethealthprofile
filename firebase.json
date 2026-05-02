@@ -634,37 +634,9 @@
               "value": "no-cache, no-store, must-revalidate"
             }
           ]
-        }
-      ],
-      "rewrites": [
-        {
-          "source": "/api/data-deletion-request",
-          "function": "submitDataDeletionRequest"
         },
         {
-          "source": "**",
-          "destination": "/app.html"
-        }
-      ]
-    },
-    {
-      "target": "appfocusqa",
-      "public": "dist",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
-      "redirects": [
-        {
-          "source": "/data-deletion",
-          "destination": "/data-deletion.html",
-          "type": 301
-        }
-      ],
-      "headers": [
-        {
-          "source": "/sw.js",
+          "source": "/workbox-*.js",
           "headers": [
             {
               "key": "Cache-Control",

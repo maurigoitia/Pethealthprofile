@@ -1,136 +1,76 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+    <!-- Core pages -->
     <url>
-          <loc>https://pessy.app/</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>weekly</changefreq>
-          <priority>1.0</priority>
+        <loc>https://pessy.app/</loc>
+        <lastmod>2026-04-30</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>1.0</priority>
     </url>
     <url>
-          <loc>https://pessy.app/blog.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>weekly</changefreq>
-          <priority>0.8</priority>
+        <loc>https://pessy.app/empezar</loc>
+        <lastmod>2026-04-30</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.6</priority>
+    </url>
+
+    <!-- Blog index -->
+    <url>
+        <loc>https://pessy.app/blog</loc>
+        <lastmod>2026-04-30</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <!-- Blog posts — verificados en apps/blog/articles/ -->
+    <url>
+        <loc>https://pessy.app/blog/vacunas-perros-argentina</loc>
+        <lastmod>2026-04-30</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
     </url>
     <url>
-          <loc>https://pessy.app/blog/tu-mascota-todo-en-orden.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
+        <loc>https://pessy.app/blog/alimentos-prohibidos-perros</loc>
+        <lastmod>2026-04-30</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
     </url>
     <url>
-          <loc>https://pessy.app/blog/vacunas-perros-argentina.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
+        <loc>https://pessy.app/blog/alimentos-prohibidos-gatos</loc>
+        <lastmod>2026-04-30</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
     </url>
     <url>
-          <loc>https://pessy.app/blog/alimentos-prohibidos-gatos/</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
+        <loc>https://pessy.app/blog/cada-cuanto-banar-perro</loc>
+        <lastmod>2026-04-30</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
     </url>
     <url>
-          <loc>https://pessy.app/blog/alimentos-prohibidos-perros/</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
+        <loc>https://pessy.app/blog/frecuencia-bano</loc>
+        <lastmod>2026-04-30</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
     </url>
     <url>
-          <loc>https://pessy.app/blog/app-mascotas-razones.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
+        <loc>https://pessy.app/blog/frutas-para-perros</loc>
+        <lastmod>2026-04-30</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
     </url>
     <url>
-          <loc>https://pessy.app/blog/cada-cuanto-banar-perro/</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
+        <loc>https://pessy.app/blog/carnet-digital</loc>
+        <lastmod>2026-04-30</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
     </url>
     <url>
-          <loc>https://pessy.app/blog/calendario-vacunas-perros-2026/</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
-    </url>
-    <url>
-          <loc>https://pessy.app/blog/carnet-digital.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
-    </url>
-    <url>
-          <loc>https://pessy.app/blog/castracion-perros.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
-    </url>
-    <url>
-          <loc>https://pessy.app/blog/como-saber-si-tu-perro-esta-enfermo.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
-    </url>
-    <url>
-          <loc>https://pessy.app/blog/control-anual.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
-    </url>
-    <url>
-          <loc>https://pessy.app/blog/desparasitar-perro.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
-    </url>
-    <url>
-          <loc>https://pessy.app/blog/documentos-importantes-mascota.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
-    </url>
-    <url>
-          <loc>https://pessy.app/blog/documentos-mascota.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
-    </url>
-    <url>
-          <loc>https://pessy.app/blog/frecuencia-bano/</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
-    </url>
-    <url>
-          <loc>https://pessy.app/blog/frutas-para-perros/</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
-    </url>
-    <url>
-          <loc>https://pessy.app/blog/mascota-nueva.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
-    </url>
-    <url>
-          <loc>https://pessy.app/blog/microchip-mascotas-argentina.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
-    </url>
-    <url>
-          <loc>https://pessy.app/blog/pulgas-garrapatas-perros.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
-    </url>
-    <url>
-          <loc>https://pessy.app/blog/pulgas-garrapatas.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.7</priority>
+        <loc>https://pessy.app/blog/tu-mascota-todo-en-orden</loc>
+        <lastmod>2026-04-30</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
     </url>
     <url>
         <loc>https://pessy.app/blog/calendario-vacunas-perros-2026</loc>
@@ -145,13 +85,19 @@
         <priority>0.7</priority>
     </url>
     <url>
+        <loc>https://pessy.app/blog/castracion-perros</loc>
+        <lastmod>2026-04-28</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
         <loc>https://pessy.app/blog/como-saber-si-tu-perro-esta-enfermo</loc>
         <lastmod>2026-04-28</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
     </url>
     <url>
-        <loc>https://pessy.app/blog/castracion-perros</loc>
+        <loc>https://pessy.app/blog/control-anual</loc>
         <lastmod>2026-04-28</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
@@ -169,7 +115,7 @@
         <priority>0.7</priority>
     </url>
     <url>
-        <loc>https://pessy.app/blog/documentos-mascota</loc>
+        <loc>https://pessy.app/blog/microchip-mascotas-argentina</loc>
         <lastmod>2026-04-28</lastmod>
         <changefreq>monthly</changefreq>
         <priority>0.7</priority>
@@ -181,27 +127,30 @@
         <priority>0.7</priority>
     </url>
     <url>
-          <loc>https://pessy.app/empezar</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.6</priority>
+        <loc>https://pessy.app/blog/pulgas-garrapatas-perros</loc>
+        <lastmod>2026-04-28</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
     </url>
     <url>
-          <loc>https://pessy.app/privacidad</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.4</priority>
+        <loc>https://pessy.app/blog/documentos-mascota</loc>
+        <lastmod>2026-04-28</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+    <!-- Legal -->
+    <url>
+        <loc>https://pessy.app/privacidad</loc>
+        <lastmod>2026-04-30</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
     </url>
     <url>
-          <loc>https://pessy.app/terminos</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.4</priority>
+        <loc>https://pessy.app/terminos</loc>
+        <lastmod>2026-04-30</lastmod>
+        <changefreq>yearly</changefreq>
+        <priority>0.3</priority>
     </url>
-    <url>
-          <loc>https://pessy.app/data-deletion.html</loc>
-          <lastmod>2026-04-30</lastmod>
-          <changefreq>monthly</changefreq>
-          <priority>0.3</priority>
-    </url>
+
 </urlset>

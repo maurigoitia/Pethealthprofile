@@ -40,8 +40,8 @@ function formatLastVisit(daysAgo: number | null): string {
 
 const STATUS_CONFIG: Record<PulseStatus, { bg: string; border: string; dot: string; label: string; icon: string }> = {
   great:     { bg: "bg-[#E0F2F1]",  border: "border-[#1A9B7D]/30", dot: "bg-[#1A9B7D]", label: "Todo en orden",   icon: "favorite" },
-  attention: { bg: "bg-amber-50",   border: "border-amber-200",    dot: "bg-amber-400",  label: "Atención",        icon: "warning" },
-  urgent:    { bg: "bg-red-50",     border: "border-red-200",      dot: "bg-red-400",    label: "Requiere acción", icon: "warning" },
+  attention: { bg: "bg-[#FEF3C7]",  border: "border-[#F59E0B]/30", dot: "bg-[#F59E0B]", label: "Atención",        icon: "warning" },
+  urgent:    { bg: "bg-[#FEF2F2]",  border: "border-[#FCA5A5]",    dot: "bg-[#B91C1C]", label: "Requiere acción", icon: "warning" },
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
