@@ -109,6 +109,12 @@ Auth: Workload Identity Federation (GitHub Actions → GCP)
 - Firebase Admin (original)
 - Administrador de Secret Manager (2026-04-13)
 - Editor — `roles/editor` (2026-04-13) — covers Cloud Scheduler, Functions IAM, and most GCP services
+- Cloud Run Admin — `roles/run.admin` (verified 2026-05-02 — already present, NOT the cause of #85 failure)
+- Service Account User — `roles/iam.serviceAccountUser` (verified 2026-05-02 — already present, NOT the cause of #85 failure)
+
+### IAM roles granted at organization level (user-level)
+- `mauri@pessy.app` — `roles/resourcemanager.organizationAdmin` (existing)
+- `mauri@pessy.app` — `roles/orgpolicy.policyAdmin` (2026-05-02) — required to override Domain Restricted Sharing for project-level exceptions
 
 ### Deploy flags
 - Functions: `--force` flag required to auto-delete orphaned functions (PR #8)
@@ -129,6 +135,38 @@ Auth: Workload Identity Federation (GitHub Actions → GCP)
 | `appfocusqa` | `pessy-focus-qa` | Focus QA |
 | `appsubdomain` | `pessy-app-subdomain` | Unused — not deployed |
 
+### Org Policy overrides — `polar-scene-488615-i0`
+
+The pessy.app organization inherits a `iam.allowedPolicyMemberDomains` org policy (Domain Restricted Sharing — only Workspace customer ID `C0378z45b` allowed). This blocks `setIamPolicy(allUsers)` calls.
+
+**Cloud Functions Gen 1 callable functions REQUIRE `allUsers` invoker** because:
+- The HTTP endpoint must be reachable from the public internet
+- Auth check happens IN the function via `context.auth?.uid`, AFTER the HTTP request hits the function
+- Without `allUsers` invoker, the firebase client SDK cannot reach the function endpoint
+
+For this reason, project `polar-scene-488615-i0` has an override:
+
+```yaml
+# Applied: 2026-05-02T13:23:24Z
+# etag: CMz1188GEKiLqIwD
+constraint: constraints/iam.allowedPolicyMemberDomains
+listPolicy:
+  allValues: ALLOW
+```
+
+**To re-apply if ever removed:**
+```bash
+cat > /tmp/drs-override.yaml <<'EOF'
+constraint: constraints/iam.allowedPolicyMemberDomains
+listPolicy:
+  allValues: ALLOW
+EOF
+gcloud resource-manager org-policies set-policy /tmp/drs-override.yaml \
+  --project=polar-scene-488615-i0
+```
+
+**Security note:** This override allows IAM bindings to ANY identity (including `allUsers`) on this project. The rest of the pessy.app org keeps DRS active. Do not bind `allUsers` to buckets/secrets manually — only firebase-tools should be doing this for HTTP-callable functions.
+
 ---
 
 ## Incident log
@@ -136,6 +174,7 @@ Auth: Workload Identity Federation (GitHub Actions → GCP)
 - 2026-03-28 ~12:41: Agent deployed hosting from main manually AGAIN → broke CSS/layout
 - 2026-04-07: CI/CD audit — unified branch policy, Node 22, test gate, dist/ untracked
 - 2026-04-13: Operación Limpieza — fixed all deploy blockers (Secret Manager, Cloud Billing API, orphaned functions --force, Editor role for scheduler/IAM, smoke test 404). Full green deploy ✅
+- 2026-05-02: Deploy #83/#84/#85 failed with "Failed to set the IAM Policy on the function" for 4 NEW Gen 1 callable functions (`pessyExportSourceBacked`, `pessyClinicalSummaryStructured`, `pessyCompileRecentEpisodes`, `pessyHomeIntelligence`). Cause: org policy `iam.allowedPolicyMemberDomains` (Domain Restricted Sharing) inherited from pessy.app org blocked `allUsers` invoker assignment on new functions. Existing functions worked because their bindings predated the policy. **Misdiagnosis to avoid:** the missing roles were NOT `roles/run.admin` or `roles/iam.serviceAccountUser` — both were already granted. The fix was an Org Policy override at project level (see "Org Policy overrides" section). Deploy #86 ✅ 1m39s.
 
 ---
 
