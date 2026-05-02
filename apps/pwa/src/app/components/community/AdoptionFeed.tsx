@@ -21,7 +21,6 @@ import {
 } from "firebase/firestore";
 import { db } from "../../../lib/firebase";
 import { MaterialIcon } from "../shared/MaterialIcon";
-import { ArrowLeft } from "lucide-react";
 import type {
   AdoptionListing,
   AdopterProfile,
@@ -87,7 +86,7 @@ export function AdoptionFeed({ onBack, adopter }: Props) {
               className="size-11 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center active:scale-[0.96] transition-transform"
               style={{ boxShadow: "0 1px 3px rgba(7,71,56,0.04)" }}
             >
-              <ArrowLeft size={18} color="#074738" />
+              <MaterialIcon name="arrow_back" className="text-[#074738] text-xl" />
             </button>
           )}
           <h1

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Camera, Check, ExternalLink, Linkedin, Mail, Shield } from "lucide-react";
 import { SEO } from "../components/shared/SEO";
 import { Logo } from "../components/shared/Logo";
 import { MaterialIcon } from "../components/shared/MaterialIcon";
@@ -485,8 +484,8 @@ export default function LandingEcosystemPreviewPage() {
                       </div>
 
                       <div className="mb-6 flex w-full justify-between px-2 opacity-60">
-                        <Camera size={16} className="text-white" />
-                        <Shield size={16} className="text-white" />
+                        <MaterialIcon name="photo_camera" className="text-white text-base" />
+                        <MaterialIcon name="security" className="text-white text-base" />
                       </div>
                     </div>
 
@@ -598,7 +597,7 @@ export default function LandingEcosystemPreviewPage() {
               <div className="space-y-5">
                 {trustPoints.map((item) => (
                   <div key={item} className="flex gap-4">
-                    <Check size={20} className="mt-1 shrink-0 text-[#b5efd9]" />
+                    <MaterialIcon name="check" className="mt-1 shrink-0 text-[#b5efd9] text-xl" />
                     <p className="leading-relaxed text-[#dceee8]">{item}</p>
                   </div>
                 ))}
@@ -698,7 +697,7 @@ export default function LandingEcosystemPreviewPage() {
                         target="_blank"
                         rel="noreferrer"
                         className="flex size-10 items-center justify-center rounded-full bg-[#f4f3f9] text-[#074738] transition-transform hover:scale-105">
-                        <Linkedin size={16} />
+                        <MaterialIcon name="link" className="text-base" />
                       </a>
                     </div>
                   </div>
@@ -743,7 +742,7 @@ export default function LandingEcosystemPreviewPage() {
                   <ul className="space-y-3">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex items-center gap-3 text-sm font-medium">
-                        <Check size={16} className="shrink-0" />
+                        <MaterialIcon name="check" className="shrink-0 text-base" />
                         {feature}
                       </li>
                     ))}
@@ -864,7 +863,7 @@ export default function LandingEcosystemPreviewPage() {
                 className="inline-flex items-center gap-2 rounded-full bg-[#f4f3f9] px-8 py-4 text-lg font-bold text-[#074738]"
                 style={{ fontFamily: "'Plus Jakarta Sans', 'Manrope', sans-serif" }}>
                 Ver como funciona
-                <ExternalLink size={18} />
+                  <MaterialIcon name="open_in_new" className="text-xl" />
               </a>
             </div>
           </div>

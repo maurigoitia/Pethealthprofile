@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Check } from "lucide-react";
+import { MaterialIcon } from "../components/shared/MaterialIcon";
 import { SEO } from "../components/shared/SEO";
 import { Logo } from "../components/shared/Logo";
 import { detectInAppBrowser, openInSystemBrowser } from "../utils/inAppBrowser";
@@ -285,7 +285,7 @@ export default function LandingEcosystemPreviewPage() {
                   {coTutorBullets.map((b) => (
                     <li key={b} className="flex items-center gap-3">
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#1A9B7D] text-white">
-                        <Check className="h-3.5 w-3.5" />
+                        <MaterialIcon name="check" className="!text-[14px]" />
                       </span>
                       <span className="text-gray-700">{b}</span>
                     </li>

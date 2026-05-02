@@ -1,13 +1,6 @@
-import React, { useEffect } from "react";
-import { 
-  Shield, 
-  FileText, 
-  Database, 
-  Check, 
-  ChevronUp,
-  ChevronRight,
-} from "lucide-react";
+import { useEffect } from "react";
 import { Link, useLocation } from "react-router";
+import { MaterialIcon } from "../components/shared/MaterialIcon";
 import { Logo } from "../components/shared/Logo";
 import { SEO } from "../components/shared/SEO";
 
@@ -136,19 +129,19 @@ export default function LegalPage() {
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
             <Card 
               href="#privacidad"
-              icon={<Shield className="size-6" />}
+              icon={<MaterialIcon name="shield" className="text-2xl" />}
               title="Politica de Privacidad"
               desc="Como recolectamos, usamos y protegemos tus datos y los de tu mascota."
             />
             <Card 
               href="#terminos"
-              icon={<FileText className="size-6" />}
+              icon={<MaterialIcon name="description" className="text-2xl" />}
               title="Terminos y Condiciones"
               desc="Condiciones de uso del ecosistema Pessy, planes y responsabilidades."
             />
             <Card 
               href="#dpa"
-              icon={<Database className="size-6" />}
+              icon={<MaterialIcon name="database" className="text-2xl" />}
               title="Acuerdo de Procesamiento"
               desc="Como tratamos datos bajo GDPR, Ley 25.326 y otras normativas internacionales."
             />
@@ -213,7 +206,7 @@ export default function LegalPage() {
               <ul className="space-y-3">
                 {['Nombre, especie, raza, edad, peso y fotografias.', 'Historia de cuidado, registros de vacunacion, tratamientos y rutinas.', 'Documentos procesados por inteligencia artificial.'].map((item, i) => (
                   <li key={i} className="flex gap-3 text-slate-600 font-medium">
-                    <Check className="size-5 text-[#1A9B7D] flex-shrink-0" /> {item}
+                    <MaterialIcon name="check" className="text-[#1A9B7D] shrink-0 text-xl" /> {item}
                   </li>
                 ))}
               </ul>
@@ -223,7 +216,7 @@ export default function LegalPage() {
               <ul className="space-y-3">
                 {['Nombre y apellido.', 'Direccion de correo electronico.', 'Datos de contacto basicos.'].map((item, i) => (
                   <li key={i} className="flex gap-3 text-slate-600 font-medium">
-                    <Check className="size-5 text-[#1A9B7D] flex-shrink-0" /> {item}
+                    <MaterialIcon name="check" className="text-[#1A9B7D] shrink-0 text-xl" /> {item}
                   </li>
                 ))}
               </ul>
@@ -305,7 +298,7 @@ export default function LegalPage() {
               'Eliminar o devolver datos al finalizar la relacion contractual.'
             ].map((item, i) => (
               <li key={i} className="flex gap-4 text-slate-600 font-medium">
-                <Check className="size-5 text-[#1A9B7D] flex-shrink-0" /> {item}
+                <MaterialIcon name="check" className="text-[#1A9B7D] shrink-0 text-xl" /> {item}
               </li>
             ))}
           </ul>
@@ -317,7 +310,7 @@ export default function LegalPage() {
         <section className="pb-32 px-6" id="subencargados">
           <div className="max-w-3xl mx-auto">
             <button onClick={scrollToTop} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#074738] mb-8 hover:opacity-70 transition-all">
-              <ChevronUp size={14} /> VOLVER ARRIBA
+              <MaterialIcon name="arrow_upward" className="text-sm" /> VOLVER ARRIBA
             </button>
             <div className="space-y-4 mb-12">
               <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-[#191A15] uppercase">Sub-encargados Autorizados</h2>
@@ -399,7 +392,7 @@ function Card({ href, icon, title, desc }: { href: string; icon: React.ReactNode
         <p className="text-slate-500 leading-relaxed font-medium">{desc}</p>
       </div>
       <div className="mt-auto flex items-center gap-2 text-[10px] font-black text-[#1A9B7D] uppercase tracking-[0.2em]">
-        Leer documento <ChevronRight className="size-4" />
+        Leer documento <MaterialIcon name="chevron_right" className="text-sm" />
       </div>
     </a>
   );
@@ -410,7 +403,7 @@ function DocSection({ id, title, meta, onBackTop, children }: { id: string; titl
     <section className="py-24 px-6" id={id}>
       <div className="max-w-3xl mx-auto">
         <button onClick={onBackTop} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#074738] mb-8 hover:opacity-70 transition-all">
-          <ChevronUp size={14} /> VOLVER ARRIBA
+          <MaterialIcon name="arrow_upward" className="text-sm" /> VOLVER ARRIBA
         </button>
         <div className="space-y-4 mb-16 border-b-4 border-slate-50 pb-12">
           <h2 className="text-4xl md:text-6xl font-black tracking-tighter text-[#191A15] uppercase leading-none">{title}</h2>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ChevronLeft, ShieldCheck, Phone, CalendarPlus, Star } from "lucide-react";
 import { db } from "../../../lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { MaterialIcon } from "../shared/MaterialIcon";
 
 interface VetDoctorProfileProps {
   onBack: () => void;
@@ -112,7 +112,7 @@ export default function VetDoctorProfile({ onBack }: VetDoctorProfileProps) {
           aria-label="Volver"
           className="absolute top-4 left-4 size-10 rounded-full bg-white/20 flex items-center justify-center active:scale-[0.97] transition-transform"
         >
-          <ChevronLeft size={20} color="white" />
+          <MaterialIcon name="arrow_back" className="text-white text-xl" />
         </button>
       </div>
 
@@ -144,8 +144,8 @@ export default function VetDoctorProfile({ onBack }: VetDoctorProfileProps) {
         </p>
 
         {/* Stars */}
-        <div className="flex items-center justify-center gap-1 mt-2">
-          <Star size={14} fill="#F59E0B" color="#F59E0B" className="text-amber-500" />
+        <div className="flex items-center justify-center gap-1 mt-2 text-amber-500">
+          <MaterialIcon name="star" className="text-sm" />
           <span className="font-bold text-sm text-slate-800">{vet.rating}</span>
           <span className="text-xs text-slate-400">({vet.reviews} reseñas)</span>
         </div>
@@ -176,7 +176,7 @@ export default function VetDoctorProfile({ onBack }: VetDoctorProfileProps) {
         {vet.verified && (
           <div className="flex items-center gap-1.5 mt-4 justify-center">
             <span className="bg-[#EEEDF9] text-[#5048CA] text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-              <ShieldCheck size={12} color="#5048CA" />
+              <MaterialIcon name="verified" className="text-xs" />
               Verificado ✓
             </span>
           </div>
@@ -234,7 +234,7 @@ export default function VetDoctorProfile({ onBack }: VetDoctorProfileProps) {
           onClick={showToast}
           className="flex-1 flex items-center justify-center gap-2 border border-[#074738] text-[#074738] rounded-[14px] py-3 font-semibold text-sm active:scale-[0.97] transition-transform"
         >
-          <Phone size={16} />
+          <MaterialIcon name="call" className="text-xl" />
           Llamar
         </button>
         <button
@@ -242,7 +242,7 @@ export default function VetDoctorProfile({ onBack }: VetDoctorProfileProps) {
           onClick={showToast}
           className="flex-1 flex items-center justify-center gap-2 bg-[#074738] text-white rounded-[14px] py-3 font-semibold text-sm shadow-[0_4px_12px_rgba(7,71,56,0.25)] active:scale-[0.97] transition-transform"
         >
-          <CalendarPlus size={16} />
+          <MaterialIcon name="event" className="text-xl" />
           Agendar turno
         </button>
       </div>
