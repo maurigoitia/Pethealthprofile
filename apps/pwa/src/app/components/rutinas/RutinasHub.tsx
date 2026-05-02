@@ -344,6 +344,7 @@ export function RutinasHub({ onBack }: Props) {
             </div>
 
             {/* Next walk */}
+            {nextWalk && (
               <div className="mt-3 flex items-center gap-2 rounded-[12px] bg-[#E0F2F1] px-3 py-2">
                 <MaterialIcon name="location_on" className="!text-[16px] text-[#1A9B7D] shrink-0" />
                 <p className="text-xs font-semibold text-[#074738]">
