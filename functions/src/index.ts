@@ -4,6 +4,7 @@ import { Resend } from "resend";
 export * from "./appointments";
 export { setAdminClaim, onAdminBootstrap } from "./admin/adminClaims";
 export { ingestHistory } from "./clinical/ingestHistory";
+export { extractVetsFromArchives } from "./clinical/extractVetsFromArchives";
 export { onLostPetReport, onPetSighting, computeAdoptionMatches, onNewAdoptionListing, scheduledExpireLostPets, scheduledExpireSearchAlerts, onFoundPetReport } from "./community";
 
 // Resend — email fallback para notificaciones de medicación
